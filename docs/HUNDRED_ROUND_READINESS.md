@@ -4,7 +4,7 @@
 
 ## 必跑自動檢查
 
-1. `bash scripts/demo-check.sh` 通過。
+1. `node scripts/competition-readiness-check.mjs` 通過。
 2. `node scripts/build-github-pages.mjs` 通過。
 3. `node scripts/pages-artifact-check.mjs` 通過。
 4. `node scripts/mobile-layout-check.mjs` 通過。

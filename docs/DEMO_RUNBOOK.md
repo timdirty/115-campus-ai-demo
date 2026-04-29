@@ -11,18 +11,18 @@
 比賽前先在根目錄執行：
 
 ```zsh
-bash scripts/demo-check.sh
-node scripts/build-github-pages.mjs
-node scripts/pages-artifact-check.mjs
+node scripts/competition-readiness-check.mjs
 ```
 
 這會一次檢查：
 
+- GitHub 發布安全掃描
 - App 1：AI 自動板擦機器人的 TypeScript、前端 build、Node bridge API contract
 - App 2：校園服務機器人的狀態測試、TypeScript、前端 build
 - App 3：AI 校園心靈守護者的本機狀態/AI 測試、TypeScript 與前端 build
 - Arduino UNO R4 firmware：PlatformIO 編譯
 - GitHub Pages bundle：三個 App、三個學生講稿頁與入口連結
+- 390px 手機版 Pages 入口、三個 App 與三個講稿頁版面
 
 全部通過後，作品才算可以帶到現場展示。
 
