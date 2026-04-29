@@ -41,13 +41,14 @@ App 2、App 3 是完整 local-first 前端。App 1 在 GitHub Pages 會使用瀏
 比賽前在根目錄執行：
 
 ```zsh
-zsh scripts/demo-check.sh
+bash scripts/demo-check.sh
 ```
 
 手機版 UI 量測可在 Pages bundle 生成後執行：
 
 ```zsh
 node scripts/build-github-pages.mjs
+node scripts/pages-artifact-check.mjs
 node scripts/mobile-layout-check.mjs
 ```
 
@@ -64,6 +65,7 @@ node scripts/mobile-layout-check.mjs
 ```text
 docs/DEMO_RUNBOOK.md
 docs/STUDENT_PRESENTATION_PACK.md
+docs/HUNDRED_ROUND_READINESS.md
 docs/ARDUINO_CONNECTION_READY.md
 docs/GITHUB_STUDENT_PUBLISH.md
 ```
@@ -125,9 +127,11 @@ npm run dev
 - `docs/ARDUINO_CONNECTION_READY.md`：三隊共用 bridge 與實機驗收步驟。
 - `docs/GITHUB_STUDENT_PUBLISH.md`：GitHub 發布、安全預檢與學生操作說明。
 - `docs/STUDENT_PRESENTATION_PACK.md`：三隊學生操作網址、分組講稿索引、評審問答與 Arduino 連動說法。
+- `docs/HUNDRED_ROUND_READINESS.md`：百項展示巡檢表，涵蓋自動檢查、三隊操作、手機、講稿與硬體銜接。
 - `docs/templates/`：Cloud 模式起始範本。
 - `scripts/demo-check.sh`：三個 app 加 firmware 的總驗收。
 - `scripts/github-prepublish-check.mjs`：發布前檢查 secret、placeholder 與必要檔案。
+- `scripts/pages-artifact-check.mjs`：確認 GitHub Pages bundle 內有三個 App、三個學生講稿頁與入口連結。
 - `scripts/mobile-layout-check.mjs`：用 390px 手機 viewport 檢查 Pages 入口、三個 app 與三個學生講稿頁是否水平爆版、截字或出現過小按鈕。
 - `scripts/verify-command-catalog.mjs`：確認 App 1 bridge 指令表與 UNO R4 firmware 指令一致。
 - `.codex/skills/arduino-uno-r4-vibecoding/SKILL.md`：專案本地 AI 協作規範。

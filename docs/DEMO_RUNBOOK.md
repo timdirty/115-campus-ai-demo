@@ -6,12 +6,14 @@
 
 學生操作、分組講稿與評審問答包請先看 `docs/STUDENT_PRESENTATION_PACK.md`。各 App 也有自己的 `STUDENT_DEMO_GUIDE.md`。
 
-十輪巡檢清單請看 `docs/TEN_ROUND_ACCEPTANCE.md`。
+十輪巡檢清單請看 `docs/TEN_ROUND_ACCEPTANCE.md`；比賽前完整百項巡檢請看 `docs/HUNDRED_ROUND_READINESS.md`。
 
 比賽前先在根目錄執行：
 
 ```zsh
-zsh scripts/demo-check.sh
+bash scripts/demo-check.sh
+node scripts/build-github-pages.mjs
+node scripts/pages-artifact-check.mjs
 ```
 
 這會一次檢查：
@@ -20,6 +22,7 @@ zsh scripts/demo-check.sh
 - App 2：校園服務機器人的狀態測試、TypeScript、前端 build
 - App 3：AI 校園心靈守護者的本機狀態/AI 測試、TypeScript 與前端 build
 - Arduino UNO R4 firmware：PlatformIO 編譯
+- GitHub Pages bundle：三個 App、三個學生講稿頁與入口連結
 
 全部通過後，作品才算可以帶到現場展示。
 

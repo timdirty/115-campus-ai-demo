@@ -4,7 +4,9 @@
 
 ```zsh
 node scripts/github-prepublish-check.mjs
-zsh scripts/demo-check.sh
+bash scripts/demo-check.sh
+node scripts/build-github-pages.mjs
+node scripts/pages-artifact-check.mjs
 ```
 
 ## 可以公開的內容

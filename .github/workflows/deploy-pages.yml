@@ -29,6 +29,9 @@ jobs:
       - name: Build three student apps
         run: node scripts/build-github-pages.mjs
 
+      - name: Verify Pages artifact
+        run: node scripts/pages-artifact-check.mjs
+
       - uses: actions/upload-pages-artifact@v5
         with:
           path: pages-dist
