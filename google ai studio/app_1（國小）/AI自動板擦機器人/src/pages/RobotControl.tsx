@@ -60,8 +60,9 @@ export default function RobotControl() {
 
   const refreshPorts = async () => {
     try {
-      const response = await fetch('/api/arduino/ports');
-      const result = await response.json();
+      const result = await fetch('/api/arduino/ports')
+        .then((response) => response.json())
+        .catch(() => ({ports: [], activePath: ''}));
       const [robot, commandResult] = await Promise.all([
         loadRobotStatus(),
         loadRobotCommands().catch(() => ({commands: fallbackCommands})),

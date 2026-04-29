@@ -12,6 +12,7 @@ const ignoredDirs = new Set([
   '.playwright-mcp',
   'node_modules',
   'dist',
+  'pages-dist',
   'build',
   'coverage',
 ]);

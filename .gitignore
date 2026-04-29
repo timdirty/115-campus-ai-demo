@@ -11,6 +11,7 @@
 # Node / Vite apps
 **/node_modules/
 **/dist/
+pages-dist/
 **/build/
 **/coverage/
 **/*.log

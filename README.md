@@ -12,6 +12,24 @@
 
 ## Demo Readiness
 
+## Student URLs
+
+學生操作入口會由 GitHub Pages 自動部署：
+
+```text
+https://timdirty.github.io/115-campus-ai-demo/
+```
+
+三個 App 會分別出現在：
+
+```text
+https://timdirty.github.io/115-campus-ai-demo/app1/
+https://timdirty.github.io/115-campus-ai-demo/app2/
+https://timdirty.github.io/115-campus-ai-demo/app3/
+```
+
+App 2、App 3 是完整 local-first 前端。App 1 在 GitHub Pages 會使用瀏覽器展示模式，仍可操作白板分析、課堂紀錄、教師決策、匯出與模擬機器人指令；需要真 Arduino Serial 時再啟動本機 App 1 bridge。
+
 比賽前在根目錄執行：
 
 ```zsh
