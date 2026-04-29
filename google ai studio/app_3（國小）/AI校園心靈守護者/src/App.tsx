@@ -142,7 +142,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7faf8] text-slate-900">
+    <div className="guardian-shell min-h-screen overflow-x-hidden bg-[#f7faf8] text-slate-900">
       <AnimatePresence>
         {toastMessage && (
           <motion.div
@@ -159,7 +159,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/90 px-4 py-3 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/90 px-3 py-3 backdrop-blur-xl sm:px-4">
         <input
           ref={importInputRef}
           type="file"
@@ -167,9 +167,9 @@ export default function App() {
           className="hidden"
           onChange={(event) => void importDemoData(event.target.files?.[0])}
         />
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <button onClick={() => setActiveTab('dashboard')} className="flex min-w-0 items-center gap-3 text-left">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-600 text-white shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-teal-600 text-white shadow-sm sm:h-11 sm:w-11">
               <HeartHandshake className="h-6 w-6" />
             </div>
             <div className="min-w-0">
@@ -177,7 +177,7 @@ export default function App() {
               <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">Local Care Demo</p>
             </div>
           </button>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="grid min-w-0 w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:shrink-0 sm:items-center">
             <button
               onClick={() => {
                 dispatch({type: 'TOGGLE_PRIVACY'});
@@ -191,34 +191,34 @@ export default function App() {
             <button
               onClick={exportDemoData}
               aria-label="匯出展示資料"
-              className="flex h-10 min-h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-xs font-extrabold text-slate-600 shadow-sm sm:w-auto sm:gap-2 sm:px-3"
+              className="flex h-10 min-h-10 w-full items-center justify-center rounded-2xl border border-slate-200 bg-white text-xs font-extrabold text-slate-600 shadow-sm sm:w-auto sm:gap-2 sm:px-3"
             >
               <Download className="h-4 w-4 text-teal-600" />
-              <span className="hidden sm:inline">匯出</span>
+              <span className="text-xs sm:inline">匯出</span>
             </button>
             <button
               onClick={() => importInputRef.current?.click()}
               aria-label="匯入展示資料"
-              className="flex h-10 min-h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-xs font-extrabold text-slate-600 shadow-sm sm:w-auto sm:gap-2 sm:px-3"
+              className="flex h-10 min-h-10 w-full items-center justify-center rounded-2xl border border-slate-200 bg-white text-xs font-extrabold text-slate-600 shadow-sm sm:w-auto sm:gap-2 sm:px-3"
             >
               <Upload className="h-4 w-4 text-teal-600" />
-              <span className="hidden sm:inline">匯入</span>
+              <span className="text-xs sm:inline">匯入</span>
             </button>
             <button
               onClick={() => {
                 dispatch({type: 'RESET_DEMO'});
                 showToast('展示資料已重置');
               }}
-              className="flex min-h-10 items-center gap-2 rounded-2xl bg-slate-900 px-3 text-xs font-extrabold text-white shadow-sm active:scale-95"
+              className="flex min-w-0 min-h-10 items-center justify-center gap-1.5 overflow-hidden rounded-2xl bg-slate-900 px-2 text-xs font-extrabold text-white shadow-sm active:scale-95 sm:gap-2 sm:px-3"
             >
               <RefreshCw className="h-4 w-4" />
-              重置
+              <span className="truncate">重設</span>
             </button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-6 pb-28 md:pb-10">
+      <main className="mx-auto max-w-7xl px-3 py-4 pb-28 sm:px-4 sm:py-6 md:pb-10">
         <GuardianDemoPanel
           activeTab={activeTab}
           onSelectTab={setActiveTab}
@@ -428,7 +428,7 @@ export default function App() {
                           dispatch({type: 'RESTART_NODE', payload: {id: node.id}});
                           sendHardwareCue('NODE_RESTART', `app3:node:${node.id}`);
                         }}
-                        className={`absolute flex h-20 w-28 flex-col items-center justify-center rounded-2xl border-2 text-xs font-black shadow-sm transition active:scale-95 ${node.status === 'online' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : node.status === 'attention' ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-rose-200 bg-rose-50 text-rose-800'}`}
+                        className={`absolute flex h-16 w-24 flex-col items-center justify-center rounded-2xl border-2 text-xs font-black shadow-sm transition active:scale-95 sm:h-20 sm:w-28 ${node.status === 'online' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : node.status === 'attention' ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-rose-200 bg-rose-50 text-rose-800'}`}
                         style={{left: `${12 + (index % 2) * 48}%`, top: `${12 + Math.floor(index / 2) * 46}%`}}
                       >
                         <MapPin className="mb-1 h-5 w-5" />
@@ -456,7 +456,7 @@ export default function App() {
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white/95 px-3 py-3 backdrop-blur-xl md:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-4 gap-2">
+        <div className="mx-auto grid w-full grid-cols-4 gap-1.5">
           {tabs.map((tab) => (
             <TabButton key={tab.id} active={activeTab === tab.id} icon={tab.icon} label={tab.label} onClick={() => setActiveTab(tab.id)} />
           ))}

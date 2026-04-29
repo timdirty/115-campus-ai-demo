@@ -75,7 +75,7 @@ export default function App() {
   }, [toastMessage]);
 
   return (
-    <div className="min-h-screen overflow-x-hidden text-on-surface md:flex md:bg-surface-container-low">
+    <div className="app2-shell min-h-screen overflow-x-hidden text-on-surface md:flex md:bg-surface-container-low">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
@@ -145,15 +145,15 @@ export default function App() {
       </aside>
 
       <div className="min-h-screen w-full pb-32 md:ml-[260px] md:pb-0">
-      <header className="fixed top-0 w-full z-50 bg-background/85 backdrop-blur-2xl border-b border-outline-variant/10 flex justify-between items-center px-5 h-[72px] max-w-md mx-auto left-0 right-0 shadow-[0_4px_32px_rgba(0,0,0,0.02)] md:left-[260px] md:right-0 md:max-w-none md:mx-0 md:px-8">
+      <header className="fixed top-0 w-full z-50 bg-background/85 backdrop-blur-2xl border-b border-outline-variant/10 flex justify-between items-center gap-3 px-4 h-[72px] left-0 right-0 shadow-[0_4px_32px_rgba(0,0,0,0.02)] md:left-[260px] md:right-0 md:max-w-none md:mx-0 md:px-8">
         <button
           onClick={() => showToast('核心系統診斷正常...')}
-          className="flex items-center gap-2.5 text-primary hover:opacity-80 transition-opacity"
+          className="flex min-w-0 items-center gap-2.5 text-primary hover:opacity-80 transition-opacity"
         >
           <div className="bg-primary/10 p-1.5 rounded-xl border border-primary/20">
              <Bot size={24} />
           </div>
-          <span className="font-headline font-bold text-lg tracking-tight text-on-surface">
+          <span className="min-w-0 truncate font-headline text-base font-bold tracking-tight text-on-surface sm:text-lg">
             校園服務機器人
           </span>
         </button>
@@ -171,7 +171,7 @@ export default function App() {
       </header>
 
       {/* Dynamic Content Views */}
-      <main className="pt-28 pb-36 px-5 max-w-md mx-auto min-h-screen md:max-w-6xl md:px-8 md:pb-12">
+      <main className="mx-auto min-h-screen max-w-6xl px-4 pb-36 pt-24 sm:px-5 md:px-8 md:pb-12 md:pt-28">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -197,7 +197,7 @@ export default function App() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: '100%', filter: 'blur(4px)' }}
             transition={{ type: 'spring', damping: 26, stiffness: 220 }}
-            className="fixed inset-0 z-[100] bg-background overflow-y-auto scrollbar-hide max-w-md mx-auto shadow-2xl md:left-[260px] md:max-w-none"
+            className="fixed inset-0 z-[100] bg-background overflow-y-auto scrollbar-hide shadow-2xl md:left-[260px]"
           >
             {subView.id === 'task-schedule' && <TaskScheduleView goBack={goBack} showToast={showToast} {...subView.props} />}
             {subView.id === 'student-report' && <StudentReportView goBack={goBack} showToast={showToast} {...subView.props} />}
@@ -209,7 +209,7 @@ export default function App() {
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 w-full z-50 rounded-t-[2rem] border-t border-outline-variant/30 bg-background/95 backdrop-blur-3xl shadow-[0_-8px_40px_rgba(0,0,0,0.08)] left-0 right-0 pb-safe pb-4 md:hidden" aria-label="手機底部導覽">
-        <div className="flex justify-around items-end pt-3 px-5 w-full max-w-md mx-auto h-[76px]">
+        <div className="grid h-[82px] w-full grid-cols-4 items-end gap-1 px-2 pt-3 mx-auto">
           {TABS.map(tab => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
@@ -220,13 +220,14 @@ export default function App() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   aria-label={`切換到${tab.label}`}
-                  className={`flex flex-col items-center justify-center rounded-[1.5rem] p-3 w-[64px] h-[64px] -mt-8 shadow-2xl active:scale-95 transition-all duration-300 ease-out
+                  className={`mx-auto flex h-[62px] w-[62px] flex-col items-center justify-center rounded-[1.5rem] p-3 -mt-8 shadow-2xl active:scale-95 transition-all duration-300 ease-out
                     ${isActive
                       ? 'bg-gradient-to-br from-primary to-primary-container text-white ring-[6px] ring-background'
                       : 'bg-surface-container-highest text-on-surface hover:bg-primary/90 hover:text-white border-[6px] border-background'
                     }`}
                 >
                   <Icon size={26} strokeWidth={isActive ? 2.5 : 2} />
+                  <span className="mt-0.5 max-w-full truncate text-[10px] font-bold leading-none">{tab.label}</span>
                 </button>
               );
             }
@@ -236,14 +237,14 @@ export default function App() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 aria-label={`切換到${tab.label}`}
-                className={`flex flex-col items-center justify-center p-2 pt-1 transition-all duration-300 ease-out active:scale-90
+                className={`flex min-w-0 flex-col items-center justify-center p-1.5 pt-1 transition-all duration-300 ease-out active:scale-90
                   ${isActive ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface'}
                 `}
               >
-                <div className={`relative px-4 py-1.5 rounded-2xl transition-colors ${isActive ? 'bg-secondary-container' : 'bg-transparent'}`}>
+                <div className={`relative px-3 py-1.5 rounded-2xl transition-colors ${isActive ? 'bg-secondary-container' : 'bg-transparent'}`}>
                   <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
                 </div>
-                <span className="font-label font-bold text-[10px] uppercase tracking-wider mt-1 text-center">
+                <span className="mt-1 max-w-full truncate text-center font-label text-[10px] font-bold">
                   {tab.label}
                 </span>
               </button>

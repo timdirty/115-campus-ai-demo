@@ -30,7 +30,7 @@ export function BottomSheet({ isOpen, onClose, title, children, fullScreen = fal
             role="dialog"
             aria-modal="true"
             aria-label={title ?? '彈出面板'}
-            className={`fixed ${fullScreen ? 'inset-4 rounded-[2rem]' : 'bottom-0 left-0 right-0 max-h-[92vh] rounded-t-[2.5rem] pb-safe'} bg-surface-container-lowest z-[101] overflow-hidden flex flex-col max-w-md md:max-w-2xl mx-auto shadow-2xl`}
+            className={`fixed ${fullScreen ? 'inset-3 rounded-[1.5rem] sm:inset-4 sm:rounded-[2rem]' : 'bottom-0 left-0 right-0 max-h-[92vh] rounded-t-[1.75rem] pb-safe sm:rounded-t-[2.5rem]'} bg-surface-container-lowest z-[101] overflow-hidden flex flex-col w-full max-w-[min(42rem,calc(100vw-1rem))] mx-auto shadow-2xl`}
           >
             {title && (
               <div className="flex items-center justify-between px-6 py-5 border-b border-outline-variant/20 shrink-0 bg-surface-container-lowest relative">

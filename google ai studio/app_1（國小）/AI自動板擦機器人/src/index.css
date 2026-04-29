@@ -46,6 +46,12 @@ body {
   overflow-x: hidden;
 }
 
+html,
+#root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body::before {
   content: none;
 }
@@ -123,4 +129,28 @@ select:focus-visible {
 ::selection {
   background-color: var(--color-primary-container);
   color: var(--color-on-primary-container);
+}
+
+@media (max-width: 640px) {
+  .app1-shell,
+  .app1-shell * {
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .glass-pill {
+    background: rgba(255, 255, 255, 0.94);
+    border-color: rgba(105, 117, 112, 0.18);
+  }
+
+  .rounded-3xl {
+    border-radius: 1.25rem !important;
+  }
+
+  .app1-shell h1,
+  .app1-shell h2,
+  .app1-shell h3,
+  .app1-shell p {
+    overflow-wrap: anywhere;
+  }
 }

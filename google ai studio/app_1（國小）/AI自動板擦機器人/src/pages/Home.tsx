@@ -214,7 +214,7 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary">3 分鐘評審展示模式</p>
-                <h2 className="mt-2 text-2xl font-extrabold text-primary">白板內容進來，教師決策出去，機器人支線可選配。</h2>
+                <h2 className="mt-2 text-xl font-extrabold leading-snug text-primary sm:text-2xl">白板內容進來，教師決策出去，機器人支線可選配。</h2>
                 <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-on-surface-variant">
                   現場不用擔心 API key 或硬體：Gemini 未設定時自動走本機教學範例，UNO R4 未連線時保留可送出的任務紀錄。
                 </p>

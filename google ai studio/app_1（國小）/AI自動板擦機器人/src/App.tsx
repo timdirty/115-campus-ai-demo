@@ -77,7 +77,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen relative overflow-x-hidden bg-surface">
+    <div className="app1-shell flex flex-col min-h-screen relative overflow-x-hidden bg-surface">
       <div className="noise-overlay" />
       {/* TopAppBar */}
       <header className="sticky top-0 w-full z-30 flex items-center justify-between px-4 sm:px-6 py-2.5 sm:py-4 bg-surface/90 backdrop-blur-xl transition-all border-b border-outline-variant/10">
@@ -117,15 +117,15 @@ export default function App() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col w-full relative pb-28 md:pb-10">
+      <main className="flex-1 flex flex-col w-full relative pb-44 md:pb-10">
         <AnimatePresence mode="wait" initial={false}>
           {getPage()}
         </AnimatePresence>
       </main>
 
       {/* Mobile NavBar - Floating Pill */}
-      <div className="md:hidden fixed bottom-6 left-0 w-full z-[100] flex justify-center px-6 pointer-events-none">
-        <nav className="w-full max-w-[25rem] flex justify-around items-center p-1.5 glass-pill rounded-[100px] pointer-events-auto shrink-0">
+      <div className="md:hidden fixed bottom-3 left-3 right-3 z-[100] flex justify-center pointer-events-none">
+        <nav className="w-full max-w-[27rem] grid grid-cols-3 gap-1.5 p-2 glass-pill rounded-[1.75rem] pointer-events-auto shrink-0">
           <NavButton icon={HomeIcon} label="首頁" isActive={currentTab === 'home'} onClick={() => setCurrentTab('home')} />
           <NavButton icon={LayoutDashboard} label="教師" isActive={currentTab === 'teacher'} onClick={() => setCurrentTab('teacher')} />
           <NavButton icon={Bot} label="機器人" isActive={currentTab === 'robot'} onClick={() => setCurrentTab('robot')} />
@@ -226,14 +226,14 @@ function NavButton({ icon: Icon, label, isActive, onClick }: any) {
     <button
       onClick={onClick}
       aria-label={`切換到${label}`}
-      className={`relative flex min-w-0 flex-1 flex-col items-center justify-center px-1 py-1 transition-all duration-300 ease-out active:scale-95 ${
-        isActive ? 'text-primary' : 'text-on-surface/50 hover:text-primary'
+      className={`relative flex min-h-14 min-w-0 flex-col items-center justify-center rounded-2xl px-1.5 py-1.5 transition-all duration-300 ease-out active:scale-95 ${
+        isActive ? 'bg-primary/10 text-primary' : 'text-on-surface/50 hover:bg-primary/5 hover:text-primary'
       }`}
     >
-      <div className={`p-2 rounded-full transition-all duration-300 ${isActive ? 'bg-primary/10' : ''}`}>
+      <div className="rounded-full transition-all duration-300">
         <Icon className={`w-5 h-5 transition-all duration-300 ${isActive ? 'scale-110' : ''}`} />
       </div>
-      <span className="font-headline text-[9px] font-extrabold tracking-widest mt-0.5">{label}</span>
+      <span className="mt-1 max-w-full truncate font-headline text-[10px] font-extrabold leading-none">{label}</span>
     </button>
   );
 }
