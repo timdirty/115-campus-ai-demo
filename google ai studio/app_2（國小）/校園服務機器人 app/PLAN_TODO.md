@@ -15,6 +15,7 @@
 - 已補強 localStorage 壞資料恢復測試，避免現場瀏覽器資料破損造成展示中斷。
 - 設定面板已提供展示 state JSON 匯出/匯入；讀到半壞資料時會修復並寫回 localStorage，同時保留有效訂單。
 - 行動版已解除主畫面 `max-w-md` 手機殼限制，改成可吃滿螢幕的中控台版面；子頁與 bottom sheet 也改為手機優先寬度。
+- 已新增根目錄 `scripts/mobile-layout-check.mjs`，可用 390px 手機 viewport 量測水平溢出、截字與過小按鈕。
 
 ## Demo 腳本
 

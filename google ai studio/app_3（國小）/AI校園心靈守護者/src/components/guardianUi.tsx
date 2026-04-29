@@ -22,7 +22,7 @@ export function AlertRow({alert, onOpen}: {key?: unknown; alert: GuardianAlert; 
           <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-slate-500">{alert.status === 'new' ? '新提醒' : alert.status === 'processing' ? '處理中' : '已結案'}</span>
         </div>
         <p className="mt-2 text-sm font-bold text-slate-700">{alert.type}</p>
-        <p className="mt-1 line-clamp-2 text-xs font-semibold leading-5 text-slate-500">{alert.description}</p>
+        <p className="mt-1 text-xs font-semibold leading-5 text-slate-500 sm:line-clamp-2">{alert.description}</p>
       </div>
       <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-teal-700">{alert.location}</span>
     </button>
@@ -66,7 +66,7 @@ export function AlertDetail({alert, dispatch, onHardwareCommand}: {alert: Guardi
         <button onClick={() => {
           dispatch({type: 'DEPLOY_INTERVENTION', payload: {area: alert.location}});
           onHardwareCommand?.('CARE_DEPLOYED', `care:${alert.id}`);
-        }} className="rounded-2xl bg-teal-600 px-4 py-3 text-sm font-black text-white">佈署關懷</button>
+        }} className="min-h-11 rounded-2xl bg-teal-600 px-4 py-3 text-sm font-black text-white">佈署關懷</button>
         <button onClick={() => dispatch({type: 'UPDATE_ALERT_STATUS', payload: {id: alert.id, status: 'resolved'}})} className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white">標記結案</button>
       </div>
     </div>

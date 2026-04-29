@@ -17,6 +17,7 @@
 - 已接上 App 1 共用 Node/Serial bridge，預警處理、佈署關懷與節點重新連線會送出 UNO R4 硬體提示指令。
 - 已新增 `hardwareEvents`，總覽可持續顯示硬體提示 sent/fallback 紀錄，匯出 JSON 也會包含該證據。
 - 行動版 header 已改為雙列操作區，匯出、匯入、重置在手機上不再互相擠壓；卡片與節點地圖在小螢幕會降低圓角與 padding。
+- 已新增根目錄 `scripts/mobile-layout-check.mjs`，可用 390px 手機 viewport 量測水平溢出、截字與過小按鈕。
 
 ## Demo 腳本
 

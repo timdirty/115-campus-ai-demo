@@ -160,7 +160,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
                  <span className="w-2 h-2 bg-primary rounded-full"></span>
                  <p className="text-[10px] font-extrabold text-primary tracking-[0.25em] uppercase font-mono">任務執行中</p>
                </div>
-               <h3 className="font-headline text-3xl font-bold tracking-tight truncate mb-1">{activeRobot.task}</h3>
+               <h3 className="mb-1 font-headline text-2xl font-bold leading-tight tracking-tight sm:text-3xl">{activeRobot.task}</h3>
                <p className="text-on-surface-variant font-bold text-[11px] font-mono uppercase tracking-[0.1em] opacity-60">計時預計完成: {activeRobot.eta}</p>
              </div>
           </div>
@@ -176,7 +176,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
                     actions.setRobotRunning(activeRobot.id, !activeRobot.isRunning);
                     showToast(activeRobot.isRunning ? '已暫停設備運作' : `${activeRobot.id} 任務已恢復`);
                   }}
-                  className={`text-[10px] font-bold px-4 py-2 rounded-xl shadow-md transition-all cursor-pointer active:scale-95 uppercase tracking-widest ${activeRobot.isRunning ? 'bg-surface-container-highest text-on-surface hover:bg-outline-variant/30' : 'bg-primary text-white shadow-primary/30'}`}
+                  className={`min-h-10 rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-widest shadow-md transition-all cursor-pointer active:scale-95 ${activeRobot.isRunning ? 'bg-surface-container-highest text-on-surface hover:bg-outline-variant/30' : 'bg-primary text-white shadow-primary/30'}`}
                 >
                   {activeRobot.isRunning ? '暫停執行' : '繼續執行'}
                 </button>

@@ -36,6 +36,13 @@ App 2、App 3 是完整 local-first 前端。App 1 在 GitHub Pages 會使用瀏
 zsh scripts/demo-check.sh
 ```
 
+手機版 UI 量測可在 Pages bundle 生成後執行：
+
+```zsh
+node scripts/build-github-pages.mjs
+node scripts/mobile-layout-check.mjs
+```
+
 這會一次跑完：
 
 - App 1 `npm run check`
@@ -111,5 +118,6 @@ npm run dev
 - `docs/templates/`：Cloud 模式起始範本。
 - `scripts/demo-check.sh`：三個 app 加 firmware 的總驗收。
 - `scripts/github-prepublish-check.mjs`：發布前檢查 secret、placeholder 與必要檔案。
+- `scripts/mobile-layout-check.mjs`：用 390px 手機 viewport 檢查 Pages 入口和三個 app 是否水平爆版、截字或出現過小按鈕。
 - `scripts/verify-command-catalog.mjs`：確認 App 1 bridge 指令表與 UNO R4 firmware 指令一致。
 - `.codex/skills/arduino-uno-r4-vibecoding/SKILL.md`：專案本地 AI 協作規範。

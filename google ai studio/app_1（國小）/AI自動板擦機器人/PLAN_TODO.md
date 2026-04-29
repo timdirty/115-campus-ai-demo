@@ -15,6 +15,7 @@
 - 白板紀錄 localStorage 會逐筆正規化，壞資料會補齊安全欄位；`npm run check` 已納入恢復測試。
 - 已清掉紀錄本 filter 的型別繞過，搜尋/篩選/開啟筆記流程維持正式 TypeScript 型別。
 - 行動版不再硬塞原本單列 6 tab；手機底部導覽改為 3x2 操作區，保留清楚文字與安全點擊高度。
+- 已新增根目錄 `scripts/mobile-layout-check.mjs`，可用 390px 手機 viewport 量測水平溢出、截字與過小按鈕。
 
 ## Demo 腳本
 

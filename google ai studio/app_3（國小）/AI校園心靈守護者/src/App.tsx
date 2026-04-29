@@ -280,7 +280,7 @@ export default function App() {
                     <button onClick={() => {
                       dispatch({type: 'DEPLOY_INTERVENTION', payload: {area: '全校'}});
                       sendHardwareCue('CARE_DEPLOYED', 'app3:dashboard');
-                    }} className="rounded-2xl bg-teal-600 px-4 py-2 text-sm font-extrabold text-white active:scale-95">
+                    }} className="min-h-11 rounded-2xl bg-teal-600 px-4 py-2 text-sm font-extrabold text-white active:scale-95">
                       佈署關懷
                     </button>
                   </div>

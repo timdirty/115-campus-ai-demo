@@ -148,7 +148,7 @@ export default function App() {
       <header className="fixed top-0 w-full z-50 bg-background/85 backdrop-blur-2xl border-b border-outline-variant/10 flex justify-between items-center gap-3 px-4 h-[72px] left-0 right-0 shadow-[0_4px_32px_rgba(0,0,0,0.02)] md:left-[260px] md:right-0 md:max-w-none md:mx-0 md:px-8">
         <button
           onClick={() => showToast('核心系統診斷正常...')}
-          className="flex min-w-0 items-center gap-2.5 text-primary hover:opacity-80 transition-opacity"
+          className="flex min-h-10 min-w-0 items-center gap-2.5 text-primary hover:opacity-80 transition-opacity"
         >
           <div className="bg-primary/10 p-1.5 rounded-xl border border-primary/20">
              <Bot size={24} />
