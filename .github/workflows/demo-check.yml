@@ -25,4 +25,4 @@ jobs:
         run: node scripts/github-prepublish-check.mjs
 
       - name: Full demo check
-        run: zsh scripts/demo-check.sh
+        run: bash scripts/demo-check.sh
