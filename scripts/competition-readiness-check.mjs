@@ -34,6 +34,14 @@ const steps = [
   },
 ];
 
+if (process.env.CHECK_PUBLIC_URLS === '1') {
+  steps.push({
+    name: 'Public deployed URL check',
+    command: 'node',
+    args: ['scripts/public-url-check.mjs'],
+  });
+}
+
 for (const [index, step] of steps.entries()) {
   console.log(`\n== ${index + 1}/${steps.length} ${step.name} ==`);
   const result = spawnSync(step.command, step.args, {
@@ -60,4 +68,7 @@ Public URLs:
   https://timdirty.github.io/115-campus-ai-demo/app1-guide.html
   https://timdirty.github.io/115-campus-ai-demo/app2-guide.html
   https://timdirty.github.io/115-campus-ai-demo/app3-guide.html
+
+After GitHub Pages deploys, run:
+  CHECK_PUBLIC_URLS=1 node scripts/competition-readiness-check.mjs
 `);

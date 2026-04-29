@@ -5,13 +5,13 @@
 ## 必跑自動檢查
 
 1. `node scripts/competition-readiness-check.mjs` 通過。
-2. `node scripts/build-github-pages.mjs` 通過。
-3. `node scripts/pages-artifact-check.mjs` 通過。
-4. `node scripts/mobile-layout-check.mjs` 通過。
-5. `node scripts/github-prepublish-check.mjs` 通過。
-6. GitHub Actions `Demo Check` 成功。
-7. GitHub Actions `Deploy Student App URLs` 成功。
-8. 公開總入口回傳 200。
+2. `CHECK_PUBLIC_URLS=1 node scripts/competition-readiness-check.mjs` 在部署後通過。
+3. `node scripts/build-github-pages.mjs` 通過。
+4. `node scripts/pages-artifact-check.mjs` 通過。
+5. `node scripts/mobile-layout-check.mjs` 通過。
+6. `node scripts/github-prepublish-check.mjs` 通過。
+7. GitHub Actions `Demo Check` 成功。
+8. GitHub Actions `Deploy Student App URLs` 成功。
 9. 三個 App 公開網址回傳 200。
 10. 三個學生講稿頁公開網址回傳 200。
 

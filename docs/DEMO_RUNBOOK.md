@@ -26,6 +26,14 @@ node scripts/competition-readiness-check.mjs
 
 全部通過後，作品才算可以帶到現場展示。
 
+GitHub Pages 部署完成後，再跑一次公開網址驗收：
+
+```zsh
+CHECK_PUBLIC_URLS=1 node scripts/competition-readiness-check.mjs
+```
+
+這會額外確認總入口、三個 App 和三個學生講稿頁都回傳 200，且頁面內含有預期標題或關鍵內容。
+
 三個展示服務都開好後，再執行：
 
 ```zsh

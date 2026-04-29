@@ -53,6 +53,12 @@ node scripts/pages-artifact-check.mjs
 node scripts/mobile-layout-check.mjs
 ```
 
+GitHub Pages 部署完成後，再跑公開網址驗收：
+
+```zsh
+CHECK_PUBLIC_URLS=1 node scripts/competition-readiness-check.mjs
+```
+
 這會一次跑完：
 
 - App 1 `npm run check`
@@ -134,6 +140,7 @@ npm run dev
 - `scripts/competition-readiness-check.mjs`：比賽前一鍵驗收，串起安全掃描、三 App 檢查、Pages build、artifact 檢查與手機版檢查。
 - `scripts/github-prepublish-check.mjs`：發布前檢查 secret、placeholder 與必要檔案。
 - `scripts/pages-artifact-check.mjs`：確認 GitHub Pages bundle 內有三個 App、三個學生講稿頁與入口連結。
+- `scripts/public-url-check.mjs`：部署後確認公開總入口、三個 App 與三個學生講稿頁都回傳 200 且含有預期內容。
 - `scripts/mobile-layout-check.mjs`：用 390px 手機 viewport 檢查 Pages 入口、三個 app 與三個學生講稿頁是否水平爆版、截字或出現過小按鈕。
 - `scripts/verify-command-catalog.mjs`：確認 App 1 bridge 指令表與 UNO R4 firmware 指令一致。
 - `.codex/skills/arduino-uno-r4-vibecoding/SKILL.md`：專案本地 AI 協作規範。
