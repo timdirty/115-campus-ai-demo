@@ -18,8 +18,11 @@
 - 已新增 `hardwareEvents`，總覽可持續顯示硬體提示 sent/fallback 紀錄，匯出 JSON 也會包含該證據。
 - 行動版 header 已改為雙列操作區，匯出、匯入、重置在手機上不再互相擠壓；卡片與節點地圖在小螢幕會降低圓角與 padding。
 - 已新增根目錄 `scripts/mobile-layout-check.mjs`，可用 390px 手機 viewport 量測水平溢出、截字與過小按鈕。
+- 已新增 `STUDENT_DEMO_GUIDE.md`，提供學生操作入口、上台分工、3 分鐘講稿、評審問答與 Arduino 連動後續計畫。
 
 ## Demo 腳本
+
+學生講解版請看 `STUDENT_DEMO_GUIDE.md`。
 
 1. 總覽頁說明校園穩定度、匿名展示與待關懷提醒。
 2. 預警中心選一筆提醒，勾選處置清單。

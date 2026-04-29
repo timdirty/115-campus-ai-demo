@@ -97,6 +97,8 @@ Then open `http://localhost:3200` and check `/api/ready`.
 
 ## 3 分鐘評審 Demo
 
+學生可直接照著操作與報告的版本請看 `STUDENT_DEMO_GUIDE.md`。
+
 1. 首頁說明「白板內容進來，教師決策出去，機器人支線可選配」。
 2. 使用攝影機或範例內容產生白板分析，確認 Gemini 未設定時會顯示本機展示模式。
 3. 到教師看板標記保留/可清空區塊，先保存課堂決策。
@@ -115,5 +117,6 @@ Then open `http://localhost:3200` and check `/api/ready`.
 - 首頁、教師看板、機器人控制與搜尋紀錄串成同一條可講解流程。
 - Gemini 與 Serial 都是可選配能力；未連線時呈現「展示模式」而不是錯誤。
 - 重要資料可匯出、備份、還原，production bridge 可用 `/api/ready` 快速驗收。
+- `STUDENT_DEMO_GUIDE.md` 已整理學生上台分工、逐字講稿、操作步驟卡與後續機器人連動說法。
 
 The full three-app competition flow is documented in `../../../docs/DEMO_RUNBOOK.md`.

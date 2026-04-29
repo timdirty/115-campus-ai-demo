@@ -105,7 +105,7 @@ await send('Emulation.setDeviceMetricsOverride', {
   mobile: true,
 }, sessionId);
 
-const routes = ['/', '/app1/', '/app2/', '/app3/'];
+const routes = ['/', '/app1/', '/app2/', '/app3/', '/app1-guide.html', '/app2-guide.html', '/app3-guide.html'];
 const failures = [];
 
 for (const route of routes) {

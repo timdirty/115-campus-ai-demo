@@ -4,6 +4,8 @@
 
 ## 共同驗收
 
+學生操作、分組講稿與評審問答包請先看 `docs/STUDENT_PRESENTATION_PACK.md`。各 App 也有自己的 `STUDENT_DEMO_GUIDE.md`。
+
 十輪巡檢清單請看 `docs/TEN_ROUND_ACCEPTANCE.md`。
 
 比賽前先在根目錄執行：

@@ -16,8 +16,11 @@
 - 已清掉紀錄本 filter 的型別繞過，搜尋/篩選/開啟筆記流程維持正式 TypeScript 型別。
 - 行動版不再硬塞原本單列 6 tab；手機底部導覽改為 3x2 操作區，保留清楚文字與安全點擊高度。
 - 已新增根目錄 `scripts/mobile-layout-check.mjs`，可用 390px 手機 viewport 量測水平溢出、截字與過小按鈕。
+- 已新增 `STUDENT_DEMO_GUIDE.md`，提供學生操作入口、上台分工、3 分鐘講稿、評審問答與 Arduino 連動後續計畫。
 
 ## Demo 腳本
+
+學生講解版請看 `STUDENT_DEMO_GUIDE.md`。
 
 1. 首頁拍白板或使用範例內容產生筆記。
 2. 教師看板檢查保留/可擦區塊。

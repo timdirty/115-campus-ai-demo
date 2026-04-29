@@ -16,8 +16,11 @@
 - 設定面板已提供展示 state JSON 匯出/匯入；讀到半壞資料時會修復並寫回 localStorage，同時保留有效訂單。
 - 行動版已解除主畫面 `max-w-md` 手機殼限制，改成可吃滿螢幕的中控台版面；子頁與 bottom sheet 也改為手機優先寬度。
 - 已新增根目錄 `scripts/mobile-layout-check.mjs`，可用 390px 手機 viewport 量測水平溢出、截字與過小按鈕。
+- 已新增 `STUDENT_DEMO_GUIDE.md`，提供學生操作入口、上台分工、3 分鐘講稿、評審問答與 Arduino 連動後續計畫。
 
 ## Demo 腳本
+
+學生講解版請看 `STUDENT_DEMO_GUIDE.md`。
 
 1. 首頁看機隊狀態與 UNO R4 bridge 指令。
 2. 配送頁下單，確認庫存、訂單、任務、機器人狀態與指令 log 同步。

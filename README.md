@@ -28,6 +28,14 @@ https://timdirty.github.io/115-campus-ai-demo/app2/
 https://timdirty.github.io/115-campus-ai-demo/app3/
 ```
 
+學生講稿與操作卡也會一起部署：
+
+```text
+https://timdirty.github.io/115-campus-ai-demo/app1-guide.html
+https://timdirty.github.io/115-campus-ai-demo/app2-guide.html
+https://timdirty.github.io/115-campus-ai-demo/app3-guide.html
+```
+
 App 2、App 3 是完整 local-first 前端。App 1 在 GitHub Pages 會使用瀏覽器展示模式，仍可操作白板分析、課堂紀錄、教師決策、匯出與模擬機器人指令；需要真 Arduino Serial 時再啟動本機 App 1 bridge。
 
 比賽前在根目錄執行：
@@ -55,6 +63,7 @@ node scripts/mobile-layout-check.mjs
 
 ```text
 docs/DEMO_RUNBOOK.md
+docs/STUDENT_PRESENTATION_PACK.md
 docs/ARDUINO_CONNECTION_READY.md
 docs/GITHUB_STUDENT_PUBLISH.md
 ```
@@ -115,9 +124,10 @@ npm run dev
 - `docs/ARDUINO_CLOUD.md`：未來 Arduino Cloud 對接計畫。
 - `docs/ARDUINO_CONNECTION_READY.md`：三隊共用 bridge 與實機驗收步驟。
 - `docs/GITHUB_STUDENT_PUBLISH.md`：GitHub 發布、安全預檢與學生操作說明。
+- `docs/STUDENT_PRESENTATION_PACK.md`：三隊學生操作網址、分組講稿索引、評審問答與 Arduino 連動說法。
 - `docs/templates/`：Cloud 模式起始範本。
 - `scripts/demo-check.sh`：三個 app 加 firmware 的總驗收。
 - `scripts/github-prepublish-check.mjs`：發布前檢查 secret、placeholder 與必要檔案。
-- `scripts/mobile-layout-check.mjs`：用 390px 手機 viewport 檢查 Pages 入口和三個 app 是否水平爆版、截字或出現過小按鈕。
+- `scripts/mobile-layout-check.mjs`：用 390px 手機 viewport 檢查 Pages 入口、三個 app 與三個學生講稿頁是否水平爆版、截字或出現過小按鈕。
 - `scripts/verify-command-catalog.mjs`：確認 App 1 bridge 指令表與 UNO R4 firmware 指令一致。
 - `.codex/skills/arduino-uno-r4-vibecoding/SKILL.md`：專案本地 AI 協作規範。
