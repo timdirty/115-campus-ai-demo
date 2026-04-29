@@ -1,0 +1,126 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #246b5b;
+  --color-primary-dim: #1d594b;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #d7eee8;
+  --color-on-primary-container: #17483d;
+  --color-secondary: #315f7a;
+  --color-secondary-dim: #284f66;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #d8eaf4;
+  --color-on-secondary-container: #1f465d;
+  --color-tertiary: #9a5a16;
+  --color-tertiary-dim: #7f4810;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #f3dfc7;
+  --color-on-tertiary-container: #5a3208;
+  --color-surface: #f8faf9;
+  --color-on-surface: #17201d;
+  --color-on-surface-variant: #4a5551;
+  --color-surface-container-highest: #dfe7e4;
+  --color-surface-container-high: #eaf0ee;
+  --color-surface-container: #f0f5f3;
+  --color-surface-container-low: #f6f8f7;
+  --color-surface-container-lowest: #ffffff;
+  --color-outline: #697570;
+  --color-outline-variant: #c5d0cc;
+
+  --font-headline: "Plus Jakarta Sans", "Noto Sans TC", sans-serif;
+  --font-body: "Manrope", "Noto Sans TC", sans-serif;
+  --font-label: "Manrope", "Noto Sans TC", sans-serif;
+
+  --shadow-premium: 0 10px 40px -10px rgba(80, 107, 79, 0.12);
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: none;
+}
+
+/* Subtle Noise Texture */
+.noise-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.02;
+  z-index: 1000;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-headline);
+  letter-spacing: 0;
+}
+
+button,
+[role="button"],
+input,
+textarea,
+select {
+  touch-action: manipulation;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.glass-pill {
+  background: rgba(253, 253, 250, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(200, 200, 188, 0.3);
+  box-shadow: var(--shadow-glass);
+}
+
+.editorial-shadow {
+  box-shadow: 0 8px 32px rgba(56, 56, 48, 0.06);
+}
+
+/* 完美融入美學的自訂滾動條 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-container-highest);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-outline-variant);
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 優雅的反白選取顏色 */
+::selection {
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+}

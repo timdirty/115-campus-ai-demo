@@ -1,0 +1,91 @@
+export type ViewType = 'dashboard' | 'alerts' | 'self-care' | 'nodes';
+export type RiskLevel = 'high' | 'medium' | 'low';
+export type AlertStatus = 'new' | 'processing' | 'resolved';
+export type MoodType = 'happy' | 'steady' | 'tired' | 'worried';
+export type NodeStatus = 'online' | 'attention' | 'offline';
+
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+export interface GuardianAlert {
+  id: string;
+  studentAlias: string;
+  className: string;
+  location: string;
+  time: string;
+  type: string;
+  description: string;
+  riskLevel: RiskLevel;
+  category: string;
+  status: AlertStatus;
+  checklist: ChecklistItem[];
+}
+
+export interface GuardianNode {
+  id: string;
+  name: string;
+  location: string;
+  status: NodeStatus;
+  latencyMs: number;
+  load: number;
+  signal: number;
+  lastEvent: string;
+}
+
+export interface MoodLog {
+  id: string;
+  mood: MoodType;
+  label: string;
+  note: string;
+  createdAt: string;
+}
+
+export interface SupportMessage {
+  id: string;
+  role: 'student' | 'guardian';
+  content: string;
+  createdAt: string;
+}
+
+export interface ForestPost {
+  id: string;
+  content: string;
+  type: 'thought' | 'gratitude' | 'support';
+  likes: number;
+  createdAt: string;
+}
+
+export interface Intervention {
+  id: string;
+  title: string;
+  description: string;
+  status: 'running' | 'planned' | 'completed';
+  area: string;
+  updatedAt: string;
+}
+
+export interface HardwareEvent {
+  id: string;
+  command: string;
+  source: string;
+  status: 'sent' | 'fallback';
+  message: string;
+  createdAt: string;
+}
+
+export interface GuardianState {
+  stabilityScore: number;
+  teacherWellbeingScore: number;
+  privacyMode: boolean;
+  alerts: GuardianAlert[];
+  nodes: GuardianNode[];
+  moodLogs: MoodLog[];
+  supportMessages: SupportMessage[];
+  forestPosts: ForestPost[];
+  interventions: Intervention[];
+  hardwareEvents: HardwareEvent[];
+  lastUpdated: string;
+}

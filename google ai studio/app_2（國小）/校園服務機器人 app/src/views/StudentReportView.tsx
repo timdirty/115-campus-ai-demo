@@ -1,0 +1,115 @@
+import React from 'react';
+import { motion } from 'motion/react';
+import { ArrowLeft, User, BarChart3, Clock, AlertTriangle, Lightbulb, CheckCircle2 } from 'lucide-react';
+import { useAppState } from '../state/AppStateProvider';
+import { openPrintableReport } from '../services/reports';
+import type { StudentReport } from '../state/appState';
+
+export function StudentReportView({ goBack, showToast, name = "李小明", studentId }: any) {
+  const state = useAppState();
+  const report =
+    (studentId ? state.studentReports[studentId] : undefined) ??
+    (Object.values(state.studentReports) as StudentReport[]).find((item) => item.name === name) ??
+    state.studentReports['05'];
+  const displayName = report?.name ?? name;
+
+  const handleSendReport = async () => {
+    await openPrintableReport({
+      state,
+      kind: 'student',
+      title: `${displayName} 個人學習力報告`,
+      studentId: report?.studentId,
+    });
+    showToast('已開啟可列印個人報告');
+    goBack();
+  };
+
+  return (
+    <div className="min-h-screen bg-background pb-24">
+      <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b border-outline-variant/20 px-4 py-4 flex items-center justify-between">
+        <button onClick={goBack} className="p-2 rounded-full bg-surface-container-low active:scale-95 transition-transform text-on-surface">
+          <ArrowLeft size={24} />
+        </button>
+        <h1 className="font-headline font-bold text-xl absolute left-1/2 -translate-x-1/2">個人學習力報告</h1>
+        <div className="w-10"></div>
+      </header>
+
+      <main className="p-6 space-y-6">
+        <div className="flex items-center gap-5 bg-surface-container-low p-6 rounded-[2rem] border border-outline-variant/20 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
+          <div className="w-16 h-16 rounded-3xl bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0 shadow-inner">
+             <User size={32} />
+          </div>
+          <div className="relative z-10">
+             <div className="flex items-center gap-2 mb-1">
+                <h2 className="font-headline font-bold text-2xl">{displayName}</h2>
+                <span className="bg-[#87d46c]/20 text-[#87d46c] text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase tracking-widest border border-[#87d46c]/30">Live</span>
+             </div>
+             <p className="text-sm font-medium text-on-surface-variant">2026 春季學期 · 綜合評估</p>
+          </div>
+        </div>
+
+        <section className="grid grid-cols-2 gap-5">
+           <div className="bg-surface-container-lowest border border-outline-variant/30 p-6 rounded-[1.75rem] shadow-sm flex flex-col justify-between h-36">
+             <div className="flex items-center justify-between">
+               <span className="text-xs text-on-surface-variant font-bold tracking-widest uppercase">Avg Focus</span>
+               <BarChart3 className="text-primary" size={24} />
+             </div>
+             <p className="text-5xl font-headline font-bold text-primary tracking-tighter">{report?.averageFocus ?? 78}<span className="text-xl text-on-surface-variant ml-1 font-sans">%</span></p>
+           </div>
+           <div className="bg-surface-container-lowest border border-outline-variant/30 p-6 rounded-[1.75rem] shadow-sm flex flex-col justify-between h-36">
+             <div className="flex items-center justify-between">
+               <span className="text-xs text-on-surface-variant font-bold tracking-widest uppercase">Distract</span>
+               <AlertTriangle className="text-tertiary" size={24} />
+             </div>
+             <p className="text-5xl font-headline font-bold font-mono tracking-tighter text-on-surface">{report?.distractRate ?? 3.2}<span className="text-sm text-on-surface-variant ml-1.5 font-sans font-bold tracking-wider">次/時</span></p>
+           </div>
+        </section>
+
+        <section>
+          <h3 className="font-bold text-on-surface-variant text-sm px-2 mb-4 tracking-widest uppercase font-mono">AI 學習模式分析</h3>
+          <div className="bg-surface-container-low p-7 rounded-[2rem] border border-outline-variant/30 shadow-sm space-y-7 relative overflow-hidden">
+
+             <div className="flex gap-5 relative z-10">
+                <div className="w-12 h-12 rounded-[1.25rem] bg-primary/10 flex items-center justify-center shrink-0">
+                  <Lightbulb size={24} className="text-primary" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-lg mb-1.5 tracking-wide">{report?.learningStyle ?? '視覺型學習者'}</h4>
+                  <p className="text-[15px] text-on-surface-variant leading-relaxed">學生在觀看圖表與實體演示時，眼球追蹤數據顯示專注度大幅提升至 92%。建議指派更多視覺化教材。</p>
+                </div>
+             </div>
+
+             <div className="flex gap-5 relative z-10">
+                <div className="w-12 h-12 rounded-[1.25rem] bg-tertiary/10 flex items-center justify-center shrink-0">
+                  <Clock size={24} className="text-tertiary" />
+                </div>
+                <div>
+                   <h4 className="font-bold text-lg mb-1.5 tracking-wide">能量衰退期</h4>
+                   <p className="text-[15px] text-on-surface-variant leading-relaxed">課程進行 25 分鐘後，姿勢變化頻率上升 40%。建議在課程中段安排簡短的互動問答以重新喚醒注意力。</p>
+                </div>
+             </div>
+
+             <div className="relative z-10 rounded-[1.5rem] bg-surface-container-lowest p-5 border border-outline-variant/20">
+                <h4 className="font-bold text-lg mb-3 tracking-wide">近期處理紀錄</h4>
+                <div className="space-y-2">
+                  {(report?.events ?? ['尚無事件紀錄']).slice(0, 4).map((event, index) => (
+                    <p key={index} className="text-[13px] font-medium leading-relaxed text-on-surface-variant">
+                      {event}
+                    </p>
+                  ))}
+                </div>
+             </div>
+          </div>
+        </section>
+      </main>
+
+      <div className="fixed bottom-0 left-0 right-0 z-50 p-5 bg-background/95 backdrop-blur-3xl border-t border-outline-variant/30 pb-safe pb-6">
+         <button onClick={handleSendReport} className="w-full max-w-md mx-auto flex items-center justify-center gap-3 bg-secondary-container text-on-secondary-container font-bold text-[17px] py-5 rounded-[1.5rem] active:scale-[0.98] transition-transform shadow-md">
+            <CheckCircle2 size={24} />
+            開啟可列印分析報告
+         </button>
+      </div>
+    </div>
+  );
+}
