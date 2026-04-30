@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -65,13 +66,23 @@ function* walk(dir) {
   }
 }
 
+function isGitTracked(rel) {
+  const result = spawnSync('git', ['ls-files', '--error-unmatch', rel], {
+    cwd: rootDir,
+    stdio: 'ignore',
+  });
+  return result.status === 0;
+}
+
 for (const file of walk(rootDir)) {
   const rel = path.relative(rootDir, file);
   if (rel.endsWith('.png') || rel.endsWith('.jpg') || rel.endsWith('.jpeg') || rel.endsWith('.gif') || rel.endsWith('.ico')) {
     continue;
   }
   if (/(^|\/)\.env(\.|$)/.test(rel) && !rel.endsWith('.env.example')) {
-    failures.push(`local env file would be publish-risky: ${rel}`);
+    if (isGitTracked(rel)) {
+      failures.push(`tracked env file would publish secrets: ${rel}`);
+    }
     continue;
   }
   if (rel.endsWith('.log')) {
