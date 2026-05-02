@@ -1108,9 +1108,20 @@ function CarePanel({
         <div className="mt-4 flex h-80 flex-col rounded-xl border border-slate-200 bg-slate-50">
           <div className="flex-1 space-y-3 overflow-y-auto p-3">
             {state.supportMessages.map((item) => (
-              <div key={item.id} className={`max-w-[86%] rounded-xl px-4 py-3 text-sm font-semibold leading-6 ${item.role === 'student' ? 'ml-auto bg-teal-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>
-                {item.content}
-              </div>
+              item.role === 'student' ? (
+                <div key={item.id} className="ml-auto max-w-[86%] rounded-xl px-4 py-3 text-sm font-semibold leading-6 bg-teal-600 text-white">
+                  {item.content}
+                </div>
+              ) : (
+                <div key={item.id} className="flex items-start gap-2 max-w-[86%]">
+                  <div className="shrink-0 w-7 h-7 rounded-full bg-teal-100 flex items-center justify-center text-sm">
+                    🤝
+                  </div>
+                  <div className="border border-teal-200 bg-teal-50 text-slate-700 rounded-xl px-3 py-2 text-sm font-semibold leading-6 flex-1">
+                    {item.content}
+                  </div>
+                </div>
+              )
             ))}
             {chatBusy && <div className="w-fit rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-500">整理回覆中...</div>}
           </div>
