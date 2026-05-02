@@ -252,7 +252,7 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
 
         <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
           <StatusTile icon={Radio} label="本機硬體" value={health?.ok ? '可展示' : '未連線'} ok={Boolean(health?.ok)} />
-          <StatusTile icon={Bot} label="Gemini" value={health?.geminiConfigured ? '伺服器端已設定' : '本機展示模式'} ok={true} />
+          <StatusTile icon={Bot} label="Gemini" value={health?.geminiConfigured ? '伺服器端已設定' : '本機展示模式'} ok={health?.geminiConfigured ?? false} />
           <StatusTile icon={Video} label="攝影機" value={media.cameraReady ? '已開啟' : '待授權'} ok={media.cameraReady} />
           <StatusTile icon={Database} label="紀錄本" value={latestNote ? `${latestNote.subject} 已同步` : '等待課堂紀錄'} ok={Boolean(latestNote)} />
         </motion.section>
