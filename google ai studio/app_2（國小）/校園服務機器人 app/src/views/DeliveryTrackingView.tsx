@@ -30,7 +30,7 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
       }
       showToast('機器人已抵達，請取件！');
     }
-  }, [phase]);
+  }, [phase, activeOrder, actions, showToast]);
 
   return (
     <div className="min-h-screen bg-background pb-32">

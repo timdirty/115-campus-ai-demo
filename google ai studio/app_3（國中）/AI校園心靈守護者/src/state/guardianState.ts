@@ -283,12 +283,12 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
             id: uid('int'),
             title: 'AI 關懷小隊已佈署',
             description: '已建立老師提醒、節點觀察與安心角落三段式流程，先關心、再紀錄、必要時轉介。',
-            status: 'running',
+            status: 'running' as Intervention['status'],
             area: action.payload.area,
             updatedAt: timeLabel(now),
           },
           ...state.interventions,
-        ],
+        ].slice(0, 50),
         alerts: state.alerts.map((alert) =>
           action.payload.area.trim() && (alert.location.includes(action.payload.area) || action.payload.area === '全校')
             ? {...alert, status: alert.status === 'new' ? 'processing' : alert.status}
@@ -370,7 +370,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
             description: `本機麥克風只做即時音量與波動運算，未儲存原始聲音。音量指標 ${action.payload.volumeIndex}、波動 ${action.payload.volatility}。${action.payload.summary}`,
             riskLevel: acousticRisk(action.payload.level),
             category: '環境聲量',
-            status: 'new',
+            status: 'new' as AlertStatus,
             checklist: [
               {id: uid('sound-check-observe'), text: '由值週老師到場觀察，不公開點名', completed: false},
               {id: uid('sound-check-verify'), text: '確認是否只是正常下課活動或社團練習', completed: false},
@@ -378,7 +378,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
             ],
           },
           ...state.alerts,
-        ],
+        ].slice(0, 50),
         lastUpdated: now,
       };
 
@@ -396,7 +396,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
             description: `${action.payload.description} 主動巡查分數：${action.payload.score}。`,
             riskLevel: action.payload.riskLevel,
             category: '多來源融合',
-            status: 'new',
+            status: 'new' as AlertStatus,
             checklist: [
               {id: uid('proactive-check-1'), text: '先查看近期心情簽到、聲量與節點紀錄', completed: false},
               {id: uid('proactive-check-2'), text: '由導師或值週老師低壓巡查，不公開點名', completed: false},
@@ -404,7 +404,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
             ],
           },
           ...state.alerts,
-        ],
+        ].slice(0, 50),
         lastUpdated: now,
       };
 
@@ -647,7 +647,7 @@ export function normalizeGuardianState(input: unknown): GuardianState {
   };
 }
 
-function acousticRisk(level: AcousticLevel) {
+function acousticRisk(level: AcousticLevel): RiskLevel {
   if (level === 'elevated') return 'medium';
   if (level === 'active') return 'low';
   return 'low';

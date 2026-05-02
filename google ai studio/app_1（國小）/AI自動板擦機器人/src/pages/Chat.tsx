@@ -79,10 +79,15 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
     }
   };
 
+  useEffect(() => {
+    if (copiedId === null) return;
+    const timer = setTimeout(() => setCopiedId(null), 2000);
+    return () => clearTimeout(timer);
+  }, [copiedId]);
+
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const submitMessage = async (text: string) => {
