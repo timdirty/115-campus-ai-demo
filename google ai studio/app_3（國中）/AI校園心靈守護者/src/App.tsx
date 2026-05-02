@@ -389,7 +389,7 @@ export default function App() {
         onCreateAcousticAlert={createAcousticAlert}
         onCreateProactiveAlert={createProactiveAlert}
         onDemoSound={() => {
-          const demo = describeAcousticSignal(82, 39);
+          const demo = describeAcousticSignal(55 + Math.floor(Math.random() * 35), 18 + Math.floor(Math.random() * 28));
           setCurrentAcoustic(demo);
           recordAcousticSignal({source: 'demo', location: acousticLocation, ...demo});
         }}

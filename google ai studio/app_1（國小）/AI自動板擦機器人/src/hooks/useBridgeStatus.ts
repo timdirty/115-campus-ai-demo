@@ -27,7 +27,7 @@ export function useBridgeStatus() {
       setLatestNote(notes[0] ?? null);
       setNotice(nextHealth.geminiConfigured ? 'Gemini 已在本機橋接端就緒' : 'Gemini Key 未設定，正在使用本機示範分析');
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : '無法同步本機硬體狀態');
+      setNotice('本機橋接服務未啟動，使用本機展示模式');
     } finally {
       setStatusBusy(false);
     }

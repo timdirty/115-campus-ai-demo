@@ -337,7 +337,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
                         </div>
                       )}
                       <div className="mt-4 p-3 rounded-xl bg-surface-container text-xs text-on-surface-variant">
-                        {selectedNote.audioUrl ? '可播放老師講解片段。' : '尚未匯入音訊檔，先以逐字稿呈現，不假裝播放。'}
+                        {selectedNote.audioUrl ? '可播放老師講解片段。' : '尚未匯入音訊，課堂講解以逐字稿呈現。'}
                       </div>
                     </div>
                   </div>
