@@ -1,3 +1,4 @@
+import ReactMarkdown from 'react-markdown';
 import { Cast, Sparkles, Bot, Copy, Trash2, Check, ArrowDownCircle, FileText, Volume2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useRef, useEffect } from 'react';
@@ -190,8 +191,14 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
                       <Bot className="text-secondary w-4 h-4" />
                     </div>
                   )}
-                  <div className={`p-4 sm:p-5 lg:p-6 rounded-2xl lg:rounded-[1.5rem] shadow-sm relative group-hover:shadow-md transition-shadow whitespace-pre-wrap ${msg.role === 'ai' ? 'bg-surface-container rounded-bl-sm border border-outline-variant/10 text-on-surface' : 'bg-primary text-on-primary rounded-br-sm font-medium'}`}>
-                    <div className="text-[14px] lg:text-[15px] leading-relaxed">{msg.text}</div>
+                  <div className={`p-4 sm:p-5 lg:p-6 rounded-2xl lg:rounded-[1.5rem] shadow-sm relative group-hover:shadow-md transition-shadow ${msg.role === 'ai' ? 'bg-surface-container rounded-bl-sm border border-outline-variant/10 text-on-surface' : 'bg-primary text-on-primary rounded-br-sm font-medium whitespace-pre-wrap'}`}>
+                    <div className="text-[14px] lg:text-[15px] leading-relaxed">
+                      {msg.role === 'ai' ? (
+                        <div className="prose prose-sm max-w-none">
+                          <ReactMarkdown>{msg.text}</ReactMarkdown>
+                        </div>
+                      ) : msg.text}
+                    </div>
 
                     {msg.role === 'ai' && (
                       <div className="absolute right-2 -bottom-4 lg:-right-4 lg:bottom-4 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 z-20">
