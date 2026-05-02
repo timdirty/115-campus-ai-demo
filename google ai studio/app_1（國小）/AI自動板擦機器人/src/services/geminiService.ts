@@ -152,14 +152,32 @@ export async function summarizeNote(noteId: number, fallbackContent: string) {
   }
 }
 
+function normalizeQuizQuestion(q: unknown, index: number): QuizQuestion | null {
+  if (!q || typeof q !== 'object') return null;
+  const item = q as Record<string, unknown>;
+  const options = Array.isArray(item.options) ? item.options.filter((o): o is string => typeof o === 'string') : [];
+  if (options.length < 2) return null;
+  const ans = typeof item.ans === 'number' && Number.isInteger(item.ans) && item.ans >= 0 && item.ans < options.length ? item.ans : 0;
+  return {
+    q: typeof item.q === 'string' && item.q.trim() ? item.q.trim() : `第 ${index + 1} 題`,
+    options,
+    ans,
+    explanation: typeof item.explanation === 'string' ? item.explanation : '',
+  };
+}
+
 export async function generateQuizFromNote(noteId: number, fallbackContent: string): Promise<QuizQuestion[]> {
   try {
-    const result = await apiRequest<{quiz?: QuizQuestion[]}>('/api/ai/review', {
+    const result = await apiRequest<{quiz?: unknown[]}>('/api/ai/review', {
       method: 'POST',
       body: JSON.stringify({noteId, mode: 'quiz'}),
       timeoutMs: 30000,
     });
-    return Array.isArray(result.quiz) && result.quiz.length ? result.quiz : localQuiz(fallbackContent);
+    if (Array.isArray(result.quiz) && result.quiz.length) {
+      const normalized = result.quiz.map(normalizeQuizQuestion).filter((q): q is QuizQuestion => q !== null);
+      if (normalized.length) return normalized;
+    }
+    return localQuiz(fallbackContent);
   } catch {
     return localQuiz(fallbackContent);
   }
