@@ -69,8 +69,12 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
         <div className="flex justify-between items-start">
           <h2 className="font-headline text-4xl font-bold text-on-surface tracking-tight">校園生活智慧中心</h2>
           <motion.div
+            role="button"
+            tabIndex={0}
+            aria-label="查看系統日誌"
             whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
             onClick={() => setModal('logs')}
+            onKeyDown={(e) => e.key === 'Enter' && setModal('logs')}
             className="bg-surface-container-low p-2 rounded-2xl border border-outline-variant/30 shadow-sm cursor-pointer hover:bg-surface-container transition-all flex items-center justify-center group"
           >
              <Terminal size={20} className="text-on-surface-variant group-hover:text-primary transition-colors" />

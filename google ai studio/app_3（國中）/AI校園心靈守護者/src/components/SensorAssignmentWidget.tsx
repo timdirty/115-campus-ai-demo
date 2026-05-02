@@ -79,7 +79,7 @@ export function SensorAssignmentWidget({ports, onAssigned}: SensorAssignmentWidg
               <Cpu className="h-4 w-4 text-amber-700" />
               <p className="text-sm font-black text-amber-800">感測板指派</p>
             </div>
-            <button onClick={() => setOpen(false)} className="text-amber-500 hover:text-amber-800">
+            <button aria-label="關閉感測板指派" onClick={() => setOpen(false)} className="text-amber-500 hover:text-amber-800">
               <X className="h-4 w-4" />
             </button>
           </div>
