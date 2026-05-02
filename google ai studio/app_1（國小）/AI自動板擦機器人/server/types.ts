@@ -100,5 +100,5 @@ export type BoardAnalysisResult = {
 export type RobotCommandInfo = {
   command: string;
   label: string;
-  group: 'display' | 'hardware' | 'task';
+  group: 'display' | 'hardware' | 'task' | 'sensor';
 };
