@@ -218,7 +218,10 @@ export default function App() {
     setMessage('');
     dispatch({type: 'ADD_SUPPORT_MESSAGE', payload: {role: 'student', content: text}});
     setChatBusy(true);
-    const reply = await generateSupportReply(text, selectedMood);
+    const alertSummary = viewModel.openAlerts?.length > 0
+      ? `${viewModel.openAlerts.length} 則待處理警報`
+      : undefined;
+    const reply = await generateSupportReply(text, selectedMood, acousticLocation, alertSummary);
     dispatch({type: 'ADD_SUPPORT_MESSAGE', payload: {role: 'guardian', content: reply}});
     setChatBusy(false);
   };
