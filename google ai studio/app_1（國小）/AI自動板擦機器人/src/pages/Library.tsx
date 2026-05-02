@@ -32,7 +32,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
   });
 
   useEffect(() => {
-    const refresh = () => loadNotesAsync().then((loaded) => { setNotes(loaded); setIsLoading(false); });
+    const refresh = () => loadNotesAsync().then((loaded) => { setNotes(loaded); setIsLoading(false); }).catch(() => setIsLoading(false));
     refresh();
     window.addEventListener('whiteboard-notes-updated', refresh);
     return () => window.removeEventListener('whiteboard-notes-updated', refresh);
@@ -73,7 +73,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
 
   const deleteNote = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    deleteNoteAsync(id).then(setNotes);
+    deleteNoteAsync(id).then(setNotes).catch(() => setEditError('刪除失敗，請稍後再試'));
   };
 
   useEffect(() => {

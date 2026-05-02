@@ -290,7 +290,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
           ...state.interventions,
         ],
         alerts: state.alerts.map((alert) =>
-          alert.location.includes(action.payload.area) || action.payload.area === '全校'
+          action.payload.area.trim() && (alert.location.includes(action.payload.area) || action.payload.area === '全校')
             ? {...alert, status: alert.status === 'new' ? 'processing' : alert.status}
             : alert,
         ),
