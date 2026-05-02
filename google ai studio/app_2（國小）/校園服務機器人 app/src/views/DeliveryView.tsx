@@ -175,8 +175,12 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
             <div className="w-20 h-20 bg-surface-container rounded-full flex items-center justify-center mx-auto mb-6">
                <Package size={40} className="opacity-20" />
             </div>
-            <p className="font-bold text-xl tracking-tight text-on-surface">找不到相符的商品</p>
-            <p className="text-sm mt-2 opacity-60">請嘗試更換搜尋關鍵字或分類</p>
+            <p className="font-bold text-xl tracking-tight text-on-surface">
+              {searchQuery ? '無相符搜尋結果' : activeCategory !== 'all' ? '此分類目前無商品' : '找不到商品'}
+            </p>
+            <p className="text-sm mt-2 opacity-60">
+              {searchQuery ? `找不到「${searchQuery}」，請嘗試其他關鍵字` : '請切換分類或清除篩選'}
+            </p>
           </div>
         ) : (
           <motion.div

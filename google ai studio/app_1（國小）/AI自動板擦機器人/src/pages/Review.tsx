@@ -185,11 +185,11 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
                      </div>
                    </div>
 
-                   <button onClick={handleGenerate} disabled={notes.length === 0} className="w-full mt-10 bg-primary text-on-primary font-extrabold text-lg py-5 rounded-[1.5rem] shadow-premium hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 group overflow-hidden relative disabled:opacity-50">
+                   <button onClick={handleGenerate} disabled={notes.length === 0} className="w-full mt-10 bg-primary text-on-primary font-extrabold text-lg py-5 rounded-[1.5rem] shadow-premium hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 group overflow-hidden relative disabled:opacity-50 disabled:cursor-not-allowed">
                      <div className="absolute inset-0 bg-white/10 translate-y-full hover:translate-y-0 transition-transform duration-500"></div>
                      <Sparkles className="w-5 h-5 fill-current relative z-10" />
-                     <span className="relative z-10">開始生成</span>
-                     <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
+                     <span className="relative z-10">{notes.length === 0 ? '尚無課堂紀錄' : '開始生成'}</span>
+                     {notes.length > 0 && <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />}
                    </button>
                  </div>
               </div>
@@ -199,12 +199,15 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
 
         {viewState === 'quiz_play' && (
           <motion.div key="quiz" initial={{opacity:0, x:20}} animate={{opacity:1, x:0}} exit={{opacity:0, x:-20}} className="max-w-3xl mx-auto">
-             <div className="flex items-center justify-between mb-8">
+             <div className="flex items-center justify-between mb-4">
                <div className="flex items-center gap-4">
                  <button onClick={reset} className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-highest transition-colors"><RotateCcw className="w-4 h-4"/></button>
                  <span className="font-bold text-on-surface-variant">第 {currentQ + 1} 題 / 共 {quizQuestions.length} 題</span>
                </div>
                <div className="px-4 py-1.5 bg-primary-container text-primary text-xs font-black rounded-full shadow-sm">來源：{notes.find((note) => note.id === activeRecord)?.subject ?? '課堂紀錄'}</div>
+             </div>
+             <div className="h-1.5 bg-surface-container rounded-full mb-6 overflow-hidden">
+               <div className="h-full bg-primary rounded-full transition-all duration-500" style={{width: `${((currentQ + 1) / Math.max(1, quizQuestions.length)) * 100}%`}} />
              </div>
 
              <div className="bg-surface-container-lowest rounded-[2.5rem] p-8 sm:p-12 border border-outline-variant/10 shadow-premium relative min-h-[400px] flex flex-col">

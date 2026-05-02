@@ -12,7 +12,10 @@ export function TaskScheduleView({ goBack, showToast }: any) {
   const [area, setArea] = useState(schedule?.area ?? '所有走廊與公共區');
 
   const toggleDay = (d: number) => {
-    setSelectedDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
+    setSelectedDays(prev => {
+      if (prev.includes(d) && prev.length === 1) return prev;
+      return prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d];
+    });
   };
 
   return (

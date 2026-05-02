@@ -71,7 +71,7 @@ function pickTemplate(templates: string[], seed: string): string {
 
 function selectLocalFallback(text: string, mood?: string): string {
   // Crisis always wins regardless of mood
-  if (/想死|活不下去|自殺|不想活|消失|傷害自己/.test(text)) {
+  if (/想死|活不下去|自殺|不想活|消失|傷害自己|尋死|割腕|跳樓|喝農藥|結束生命|不想存在/.test(text)) {
     return pickTemplate(CRISIS_TEMPLATES, text);
   }
 

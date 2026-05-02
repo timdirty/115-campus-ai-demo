@@ -263,7 +263,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
              {state.robots.length} / {state.robots.length} 在線
            </div>
         </div>
-        <div className="grid grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
              {state.robots.map(bot => {
              const isActive = activeRobotId === bot.id;
              let bgClass = 'bg-surface-container-lowest border-outline-variant/30';

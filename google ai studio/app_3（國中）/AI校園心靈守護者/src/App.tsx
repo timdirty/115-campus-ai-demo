@@ -93,7 +93,7 @@ function getRobotStageProgress(stage: RobotDispatchStage | undefined) {
   return 0;
 }
 
-const CRISIS_KEYWORDS_UI = ['不想活', '想死', '自殺', '消失', '傷害自己', '活不下去'];
+const CRISIS_KEYWORDS_UI = ['不想活', '想死', '自殺', '消失', '傷害自己', '活不下去', '尋死', '割腕', '跳樓', '喝農藥', '結束生命', '不想存在'];
 
 function isCrisisMessage(text: string): boolean {
   return CRISIS_KEYWORDS_UI.some((k) => text.includes(k));
@@ -1177,7 +1177,7 @@ function CarePanel({
       <GlassPanel>
         <h3 className="text-xl font-black text-slate-950">安全空間聊天</h3>
         <div className="mt-4 flex h-80 flex-col rounded-xl border border-slate-200 bg-slate-50">
-          <div className="flex-1 space-y-3 overflow-y-auto p-3">
+          <ChatScrollContainer messages={state.supportMessages}>
             {state.supportMessages.map((item, index) => (
               item.role === 'student' ? (
                 <div key={item.id} className="ml-auto max-w-[86%] rounded-xl px-4 py-3 text-sm font-semibold leading-6 bg-teal-600 text-white">
@@ -1222,7 +1222,7 @@ function CarePanel({
               )
             ))}
             {chatBusy && <div className="w-fit rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-500">整理回覆中...</div>}
-          </div>
+          </ChatScrollContainer>
           <div className="flex gap-2 border-t border-slate-200 p-3">
             <div className="flex flex-col flex-1">
               <input value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && onSendMessage()} maxLength={300} className="min-h-11 w-full rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-teal-100" placeholder="輸入今天想說的心情..." />
@@ -1274,6 +1274,9 @@ function NodesPanel({state, zones, robotFeedback, onRestartNode, onDispatchRobot
       <GlassPanel>
         <h3 className="text-xl font-black text-slate-950">節點狀態</h3>
         <div className="mt-4 space-y-3">
+          {state.nodes.length === 0 && (
+            <p className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-5 text-center text-sm font-semibold text-slate-400">尚無節點</p>
+          )}
           {state.nodes.map((node) => (
             <NodeRow key={node.id} node={node} onRestart={() => onRestartNode(node.id)} />
           ))}
@@ -1398,6 +1401,19 @@ function Toast({message}: {message: string | null}) {
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+function ChatScrollContainer({messages, children}: {messages: unknown[]; children: ReactNode}) {
+  const endRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({behavior: 'smooth'});
+  }, [messages.length]);
+  return (
+    <div className="flex-1 space-y-3 overflow-y-auto p-3">
+      {children}
+      <div ref={endRef} />
+    </div>
   );
 }
 
