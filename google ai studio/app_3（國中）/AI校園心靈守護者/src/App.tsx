@@ -196,6 +196,8 @@ export default function App() {
         payload: {command, source, status: result.ok ? 'sent' : 'fallback', message: result.message},
       });
       showToast(result.ok ? `硬體已接收：${command}` : `硬體備援：${result.message}`);
+    }).catch(() => {
+      showToast('硬體指令發送失敗，使用備援模式');
     });
   };
 
@@ -1376,7 +1378,7 @@ function DemoGuide({open, onClose}: {open: boolean; onClose: () => void}) {
                 <p className="text-xs font-black text-teal-700">操作導覽</p>
                 <h2 className="mt-2 text-2xl font-black">10 秒上手主流程</h2>
               </div>
-              <button onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50">
+              <button onClick={onClose} aria-label="關閉面板" className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50">
                 <X className="h-5 w-5" />
               </button>
             </div>

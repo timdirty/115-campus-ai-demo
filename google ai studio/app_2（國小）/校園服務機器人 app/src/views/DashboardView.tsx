@@ -431,12 +431,12 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
       <BottomSheet isOpen={modal === 'robot' || modal === 'radar'} onClose={() => setModal(null)} title="系統診斷">
         <div className="p-4 space-y-4">
           {[
-            { n: '環境掃描', s: '正常', t: '即時回傳' },
-            { n: '避障感測', s: '正常', t: '路線安全' },
-            { n: '任務判斷', s: '正常', t: '狀態穩定' },
-            { n: '移動模組', s: '正常', t: '輸出穩定' }
+            { id: 'env-scan', n: '環境掃描', s: '正常', t: '即時回傳' },
+            { id: 'obstacle', n: '避障感測', s: '正常', t: '路線安全' },
+            { id: 'task-judge', n: '任務判斷', s: '正常', t: '狀態穩定' },
+            { id: 'motion-mod', n: '移動模組', s: '正常', t: '輸出穩定' }
           ].map((s, i) => (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }} key={i} className="flex justify-between items-center p-5 bg-surface-container-low rounded-2xl border border-outline-variant/10 shadow-sm hover:shadow transition-shadow">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }} key={s.id} className="flex justify-between items-center p-5 bg-surface-container-low rounded-2xl border border-outline-variant/10 shadow-sm hover:shadow transition-shadow">
               <span className="font-bold text-sm tracking-wide text-on-surface">{s.n}</span>
               <div className="text-right">
                 <span className="text-[10px] text-[#87d46c] font-bold">{s.s}</span>
