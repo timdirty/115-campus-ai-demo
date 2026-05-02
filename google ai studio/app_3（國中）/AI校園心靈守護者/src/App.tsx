@@ -35,6 +35,7 @@ import {evaluateProactiveGuardianState, ProactiveInsight} from './services/proac
 import {buildSchoolZoneStatuses, SchoolZoneStatus} from './services/schoolSpaces';
 import {sendGuardianHardwareCommand} from './services/hardwareBridge';
 import {AlertDetail, AlertRow, MetricCard, NodeRow, RiskPill} from './components/guardianUi';
+import {CampusMapSvg} from './components/CampusMapSvg';
 
 type ActivePanel = 'alerts' | 'sensing' | 'care' | 'nodes' | 'logs' | null;
 type RobotDispatchFeedback = {zoneId: string; zoneName: string; stage: '指令送出' | '前往現場' | '老師確認'; createdAt: number; missionId: string} | null;
@@ -540,7 +541,7 @@ function CampusMap2D({
         </div>
       </div>
       <div className="relative min-h-[25rem] overflow-hidden rounded-2xl border border-slate-200 bg-[linear-gradient(135deg,#f8fafc,#eef7f8)] sm:min-h-[28rem]">
-        <MapGrid2D />
+        <CampusMapSvg />
         <div className="absolute left-[10%] top-[12%] h-2 w-[72%] -rotate-6 rounded-full bg-teal-200/70 shadow-sm" />
         <div className="absolute left-[18%] top-[59%] h-2 w-[60%] rotate-3 rounded-full bg-teal-200/70 shadow-sm" />
         <div className="absolute left-[48%] top-[15%] h-[65%] w-2 rounded-full bg-teal-200/70 shadow-sm" />
@@ -1247,18 +1248,6 @@ function Toast({message}: {message: string | null}) {
         </motion.div>
       )}
     </AnimatePresence>
-  );
-}
-
-function MapGrid2D() {
-  return (
-    <>
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(15,23,42,.045)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,.045)_1px,transparent_1px)] bg-[size:32px_32px]" />
-      <div className="absolute left-[8%] top-[10%] h-[28%] w-[26%] -skew-y-3 rounded-xl border border-slate-200 bg-white/70 shadow-sm" />
-      <div className="absolute left-[8%] bottom-[10%] h-[32%] w-[27%] skew-y-2 rounded-xl border border-slate-200 bg-white/70 shadow-sm" />
-      <div className="absolute right-[8%] top-[18%] h-[62%] w-[22%] -skew-y-2 rounded-xl border border-slate-200 bg-white/70 shadow-sm" />
-      <div className="absolute left-[40%] top-[28%] h-[28%] w-[17%] skew-y-1 rounded-xl border border-slate-200 bg-white/60 shadow-sm" />
-    </>
   );
 }
 
