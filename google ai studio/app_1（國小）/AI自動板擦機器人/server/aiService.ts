@@ -158,34 +158,52 @@ function localQuiz(note: WhiteboardNote): QuizQuestion[] {
     .map((line) => line.replace(/^[-\d.、\s]+/, '').trim())
     .filter((line) => line.length >= 6);
   const source = pool.length ? pool : [note.title, note.desc, note.ocrText ?? note.subject].filter(Boolean);
+  const ansPositions = [0, 2, 1, 3];
+  const padOptions = ['先不用看題目，直接猜答案', '這和今天的白板內容沒有關係', '只要背起來，不需要理解'];
 
-  return source.slice(0, 5).map((line, index) => ({
-    q: `看完「${note.title}」，第 ${index + 1} 個重點最接近哪一句？`,
-    options: [
-      line.slice(0, 48),
-      '先不用看題目，直接猜答案',
-      '這和今天的白板內容沒有關係',
-      '只要背起來，不需要理解',
-    ],
-    ans: 0,
-    explanation: `可以回到課堂紀錄這一句：「${line}」。`,
-  }));
+  return source.slice(0, 5).map((line, index) => {
+    const correct = line.slice(0, 48);
+    const distractors = source.filter((_, j) => j !== index).slice(0, 3).map((d) => d.slice(0, 48));
+    while (distractors.length < 3) distractors.push(padOptions[distractors.length]);
+    const ansPos = ansPositions[index % ansPositions.length];
+    const options = [...distractors];
+    options.splice(ansPos, 0, correct);
+    return {
+      q: `看完「${note.title}」，第 ${index + 1} 個重點最接近哪一句？`,
+      options: options.slice(0, 4),
+      ans: ansPos,
+      explanation: `可以回到課堂紀錄這一句：「${correct}」。`,
+    };
+  });
 }
 
 function localChatReply(message: string, notes: WhiteboardNote[]) {
   const note = notes[0];
   const context = note ? `我會優先參考「${note.title}」。` : '目前沒有指定課堂紀錄，我會用國小課堂小老師方式回答。';
-  return [
-    '目前使用本機國小小老師 fallback，尚未設定 Gemini API Key。',
-    '',
-    context,
-    '',
-    `針對你的問題：「${message}」`,
-    '',
-    '- 先用一句孩子聽得懂的話說明重點。',
-    '- 再加一個生活例子或畫圖活動。',
-    '- 最後用 2 到 3 題小檢核確認孩子真的會了。',
-  ].join('\n');
+  const lines: string[] = ['目前使用本機國小小老師 fallback，尚未設定 Gemini API Key。', '', context, ''];
+  if (/孩子|聽得懂|簡單/.test(message)) {
+    lines.push('### 改成孩子版說法');
+    lines.push('1. 把抽象名詞換成生活中看得到、摸得到的例子。');
+    lines.push('2. 用「就像⋯⋯一樣」的比喻開頭。');
+    lines.push('3. 先問孩子「你有沒有看過⋯⋯」，再引導到概念。');
+  } else if (/測驗|題目|練習題|小考/.test(message)) {
+    lines.push('### 小測驗設計方向');
+    lines.push('1. 先從是非題開始，讓孩子建立信心。');
+    lines.push('2. 再出一題填空或看圖說明。');
+    lines.push('3. 最後一題「用自己的話說明」，確認深度理解。');
+  } else if (/分組|活動|討論|設計/.test(message)) {
+    lines.push('### 分組活動設計');
+    lines.push('1. 每組 3–4 人，分工：說明員、記錄員、報告員。');
+    lines.push('2. 給每組 5 分鐘討論，再輪流用 1 分鐘報告。');
+    lines.push('3. 讓其他組提一個問題或補充，互評學習。');
+  } else {
+    lines.push(`針對你的問題：「${message}」`);
+    lines.push('');
+    lines.push('- 先用一句孩子聽得懂的話說明重點。');
+    lines.push('- 再加一個生活例子或畫圖活動。');
+    lines.push('- 最後用 2 到 3 題小檢核確認孩子真的會了。');
+  }
+  return lines.join('\n');
 }
 
 async function notesByIds(noteIds: number[]) {
