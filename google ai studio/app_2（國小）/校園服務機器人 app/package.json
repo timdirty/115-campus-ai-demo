@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "test": "tsx src/state/appState.test.ts && tsx src/__tests__/localAi.test.ts",
+    "test": "npx tsx src/state/appState.test.ts && npx tsx src/__tests__/localAi.test.ts",
     "check": "npm run test && npm run lint && npm run build"
   },
   "dependencies": {

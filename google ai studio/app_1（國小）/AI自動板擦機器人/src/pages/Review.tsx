@@ -214,7 +214,7 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
                   {quizQuestions[currentQ]?.options.map((opt, i) => (
                     <button
                       key={i} onClick={() => !ansd && setSelOpt(i)}
-                      className={`text-left p-6 rounded-2xl border-2 font-bold text-lg transition-all ${selOpt === i ? 'bg-primary/5 border-primary ring-4 ring-primary/10' : 'bg-surface border-outline-variant/20 hover:border-outline-variant/50'} ${ansd && i === quizQuestions[currentQ].ans ? 'bg-primary/10 border-primary' : ansd && i === selOpt ? 'bg-error/10 border-error' : ''}`}
+                      className={`text-left p-6 rounded-2xl border-2 font-bold text-lg transition-all ${selOpt === i ? 'bg-primary/5 border-primary ring-4 ring-primary/10' : 'bg-surface border-outline-variant/20 hover:border-outline-variant/50'} ${ansd && i === quizQuestions[currentQ]?.ans ? 'bg-primary/10 border-primary' : ansd && i === selOpt ? 'bg-error/10 border-error' : ''}`}
                     >
                       <div className="flex items-center gap-4">
                         <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${selOpt === i ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant'}`}>{String.fromCharCode(65 + i)}</span>

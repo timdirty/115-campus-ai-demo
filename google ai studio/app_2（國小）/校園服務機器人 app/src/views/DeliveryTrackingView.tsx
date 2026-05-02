@@ -60,12 +60,12 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
               </div>
             )}
 
-            <h3 className="font-headline font-bold text-3xl mb-3 tracking-tight">
+            <h3 className={`font-headline font-bold text-3xl mb-3 tracking-tight ${!displayStatus ? 'text-on-surface-variant' : phase === 'delivered' ? 'text-[#3d9a2b]' : 'text-on-surface'}`}>
                {!displayStatus ? '等待指令發佈' :
                    (phase === 'delivered' ? '已順利抵達' : '機器人正在移動中')}
             </h3>
 
-            <span className="inline-block text-xs font-extrabold text-primary bg-primary/10 px-4 py-1.5 rounded-xl border border-primary/10">
+            <span className={`inline-block text-xs font-extrabold px-4 py-1.5 rounded-xl border ${!displayStatus ? 'text-on-surface-variant bg-surface-container border-outline-variant/20' : phase === 'delivered' ? 'text-[#3d9a2b] bg-[#87d46c]/15 border-[#87d46c]/30' : 'text-primary bg-primary/10 border-primary/10'}`}>
               {displayStatus || '系統待命'}
             </span>
 
