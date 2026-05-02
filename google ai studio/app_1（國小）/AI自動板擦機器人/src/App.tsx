@@ -154,6 +154,9 @@ export default function App() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="搜尋課堂紀錄"
             className="fixed inset-0 z-50 bg-surface/95 backdrop-blur-sm px-6 py-6"
           >
             <div className="max-w-3xl mx-auto">

@@ -286,7 +286,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value.slice(0, 500))}
-                onKeyDown={(e) => e.key === 'Enter' && handleSendChat()}
+                onKeyDown={(e) => e.key === 'Enter' && !isTyping && handleSendChat()}
                 maxLength={500}
                 className="flex-1 rounded-[1.75rem] bg-surface-container border border-outline-variant/50 px-6 py-5 text-[16px] focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium placeholder-on-surface-variant/60"
                 placeholder="輸入 AI 輔助回覆..."
