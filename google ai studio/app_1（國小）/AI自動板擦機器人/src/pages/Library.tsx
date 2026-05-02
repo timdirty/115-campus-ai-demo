@@ -73,6 +73,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
 
   const deleteNote = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!window.confirm('確定要刪除這筆課堂紀錄嗎？')) return;
     deleteNoteAsync(id).then(setNotes).catch(() => setEditError('刪除失敗，請稍後再試'));
   };
 
@@ -119,6 +120,8 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
       setNotes((current) => current.map((note) => note.id === updated.id ? updated : note));
       setSelectedNote(updated);
       setIsEditing(false);
+    } catch {
+      setEditError('保存失敗，請稍後再試');
     } finally {
       setSavingEdit(false);
     }

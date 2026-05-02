@@ -243,7 +243,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
         forestPosts: [
           {id: action.payload.id, content: action.payload.content, type: action.payload.type, likes: 0, createdAt: timeLabel(now)},
           ...state.forestPosts,
-        ],
+        ].slice(0, 50),
         lastUpdated: now,
       };
 
@@ -453,7 +453,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
 
     case 'RESTORE_DEMO_STATE':
       return {
-        ...action.payload.state,
+        ...normalizeGuardianState(action.payload.state),
         lastUpdated: now,
       };
 
