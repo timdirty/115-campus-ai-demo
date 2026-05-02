@@ -146,9 +146,9 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
                 橋接器離線 · 本機模式
               </span>
             )}
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-surface shadow-sm cursor-pointer hover:scale-105 active:scale-95 flex items-center justify-center transition-transform">
-               <Cast className="text-primary w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
+            <button type="button" onClick={() => onNavigate('library')} aria-label="切換至課堂紀錄" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-surface shadow-sm cursor-pointer hover:scale-105 active:scale-95 flex items-center justify-center transition-transform">
+               <Cast className="text-primary w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
+            </button>
           </div>
           <div className="space-y-0.5 relative z-10">
             <h2 className="font-headline font-extrabold text-lg sm:text-xl text-on-surface tracking-tight line-clamp-2" title={relatedNote?.title}>{relatedNote?.title ?? '尚無關聯紀錄'}</h2>
@@ -223,7 +223,7 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
 
                     {msg.role === 'ai' && (
                       <div className="absolute right-2 -bottom-4 lg:-right-4 lg:bottom-4 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 z-20">
-                        <button onClick={() => copyToClipboard(msg.text, msg.id)} className="p-2 bg-surface rounded-full shadow-md text-on-surface-variant hover:text-primary transition-colors border border-outline-variant/10">
+                        <button onClick={() => copyToClipboard(msg.text, msg.id)} aria-label={copiedId === msg.id ? '已複製到剪貼板' : '複製回覆'} className="p-2 bg-surface rounded-full shadow-md text-on-surface-variant hover:text-primary transition-colors border border-outline-variant/10">
                           {copiedId === msg.id ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
                         </button>
                       </div>

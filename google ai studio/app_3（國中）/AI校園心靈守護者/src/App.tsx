@@ -113,6 +113,7 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [robotFeedback, setRobotFeedback] = useState<RobotDispatchFeedback>(null);
   const [micActive, setMicActive] = useState(false);
+  const [micStarting, setMicStarting] = useState(false);
   const [micError, setMicError] = useState('');
   const [acousticLocation, setAcousticLocation] = useState('穿堂');
   const [currentAcoustic, setCurrentAcoustic] = useState(defaultAcoustic);
@@ -311,34 +312,43 @@ export default function App() {
       stopAcousticMonitor();
       return;
     }
+    if (micStarting) return;
+    setMicStarting(true);
     try {
       setMicError('');
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {echoCancellation: true, noiseSuppression: false, autoGainControl: false},
       });
-      const AudioContextCtor = window.AudioContext || (window as typeof window & {webkitAudioContext?: typeof AudioContext}).webkitAudioContext;
-      if (!AudioContextCtor) throw new Error('AudioContext unavailable');
-      const audioContext = new AudioContextCtor();
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 1024;
-      audioContext.createMediaStreamSource(stream).connect(analyser);
-      mediaStreamRef.current = stream;
-      audioContextRef.current = audioContext;
-      analyserRef.current = analyser;
-      setMicActive(true);
+      try {
+        const AudioContextCtor = window.AudioContext || (window as typeof window & {webkitAudioContext?: typeof AudioContext}).webkitAudioContext;
+        if (!AudioContextCtor) throw new Error('AudioContext unavailable');
+        const audioContext = new AudioContextCtor();
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 1024;
+        audioContext.createMediaStreamSource(stream).connect(analyser);
+        mediaStreamRef.current = stream;
+        audioContextRef.current = audioContext;
+        analyserRef.current = analyser;
+        setMicActive(true);
 
-      const buffer = new Uint8Array(analyser.fftSize);
-      const tick = () => {
-        analyser.getByteTimeDomainData(buffer);
-        const reading = analyzeAcousticFrame(buffer, volumeHistoryRef.current);
-        volumeHistoryRef.current = [...volumeHistoryRef.current.slice(-24), reading.volumeIndex];
-        setCurrentAcoustic(reading);
-        animationFrameRef.current = requestAnimationFrame(tick);
-      };
-      tick();
+        const buffer = new Uint8Array(analyser.fftSize);
+        const tick = () => {
+          analyser.getByteTimeDomainData(buffer);
+          const reading = analyzeAcousticFrame(buffer, volumeHistoryRef.current);
+          volumeHistoryRef.current = [...volumeHistoryRef.current.slice(-24), reading.volumeIndex];
+          setCurrentAcoustic(reading);
+          animationFrameRef.current = requestAnimationFrame(tick);
+        };
+        tick();
+      } catch (setupError) {
+        stream.getTracks().forEach((track) => track.stop());
+        throw setupError;
+      }
     } catch {
       setMicError('麥克風不可用（請確認瀏覽器權限或裝置硬體），可改用示範訊號。');
       showToast('麥克風權限未開啟，可改用示範聲量');
+    } finally {
+      setMicStarting(false);
     }
   };
 

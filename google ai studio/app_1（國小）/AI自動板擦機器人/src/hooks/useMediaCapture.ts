@@ -97,6 +97,7 @@ export function useMediaCapture() {
         } finally {
           audioStreamRef.current?.getTracks().forEach((track) => track.stop());
           audioStreamRef.current = null;
+          recorderRef.current = null;
           setMediaBusy('');
         }
       };
