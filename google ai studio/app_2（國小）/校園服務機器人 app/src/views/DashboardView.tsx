@@ -10,20 +10,19 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
   const actions = useAppActions();
   const [modal, setModal] = useState<string | null>(null);
   const [speed, setSpeed] = useState(1.2);
-  const [progress, setProgress] = useState(64);
   const [activeRobotId, setActiveRobotId] = useState('4號');
 
   const activeRobot = state.robots.find((robot) => robot.id === activeRobotId) ?? state.robots[0];
   const demoSteps = getDemoSteps(state);
   const demoHealth = getDemoHealth(state);
 
-  useEffect(() => {
-    if (!activeRobot?.isRunning) return;
-    const interval = setInterval(() => {
-      setProgress(p => Math.min(100, p + (Math.random() > 0.7 ? 0 : 0.5)));
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [activeRobot?.isRunning]);
+  // Derive progress from task state: completed tasks / total tasks for active robot
+  const robotTasks = state.tasks.filter((t) => t.robotId === activeRobot?.id);
+  const completedTasks = robotTasks.filter((t) => t.status === 'completed').length;
+  const totalTasks = robotTasks.length;
+  const derivedProgress = totalTasks > 0
+    ? Math.round((completedTasks / totalTasks) * 100)
+    : activeRobot?.isRunning ? 64 : 0;
 
   useEffect(() => {
     if (activeRobot) setSpeed(activeRobot.speed);
@@ -178,7 +177,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
           <div>
             <div className="flex justify-between items-end mb-4">
               <span className="text-xs font-extrabold text-primary bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">
-                {activeRobot.status === '充電' || activeRobot.status === '待命' ? '0.00' : progress.toFixed(2)}% 已完成
+                {activeRobot.status === '充電' || activeRobot.status === '待命' ? '0' : derivedProgress}% 已完成
               </span>
               <div className="flex items-center gap-3">
                 <button
@@ -198,7 +197,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
             <div className="h-4 w-full bg-surface-container-high rounded-full overflow-hidden shadow-inner p-1">
               <motion.div
                 className={`h-full bg-gradient-to-r ${activeRobot.status === '充電' ? 'from-[#f6d365] to-[#d4a017]' : 'from-primary to-primary-container shadow-[0_0_15px_rgba(var(--color-primary),0.4)]'} rounded-full relative`}
-                animate={{ width: activeRobot.status === '充電' || activeRobot.status === '待命' ? '0%' : `${progress}%` }}
+                animate={{ width: activeRobot.status === '充電' || activeRobot.status === '待命' ? '0%' : `${derivedProgress}%` }}
                 transition={{ type: "spring", bounce: 0, duration: 1 }}
               >
                 <motion.div
