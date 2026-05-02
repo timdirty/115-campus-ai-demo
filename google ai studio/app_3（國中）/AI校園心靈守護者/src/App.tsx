@@ -91,6 +91,12 @@ function getRobotStageProgress(stage: RobotDispatchStage | undefined) {
   return 0;
 }
 
+const CRISIS_KEYWORDS_UI = ['不想活', '想死', '自殺', '消失', '傷害自己', '活不下去'];
+
+function isCrisisMessage(text: string): boolean {
+  return CRISIS_KEYWORDS_UI.some((k) => text.includes(k));
+}
+
 export default function App() {
   const [state, dispatch] = useReducer(guardianReducer, undefined, loadGuardianState);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
@@ -1065,6 +1071,7 @@ function CarePanel({
   onSendMessage,
   chatBusy,
 }: Parameters<typeof DetailDrawer>[0]) {
+  const [counselingInfoVisible, setCounselingInfoVisible] = useState(false);
   return (
     <div className="space-y-4">
       <GlassPanel>
@@ -1107,19 +1114,46 @@ function CarePanel({
         <h3 className="text-xl font-black text-slate-950">安全空間聊天</h3>
         <div className="mt-4 flex h-80 flex-col rounded-xl border border-slate-200 bg-slate-50">
           <div className="flex-1 space-y-3 overflow-y-auto p-3">
-            {state.supportMessages.map((item) => (
+            {state.supportMessages.map((item, index) => (
               item.role === 'student' ? (
                 <div key={item.id} className="ml-auto max-w-[86%] rounded-xl px-4 py-3 text-sm font-semibold leading-6 bg-teal-600 text-white">
                   {item.content}
                 </div>
               ) : (
-                <div key={item.id} className="flex items-start gap-2 max-w-[86%]">
-                  <div className="shrink-0 w-7 h-7 rounded-full bg-teal-100 flex items-center justify-center text-sm">
-                    🤝
+                <div key={item.id} className="max-w-[86%]">
+                  <div className="flex items-start gap-2">
+                    <div className="shrink-0 w-7 h-7 rounded-full bg-teal-100 flex items-center justify-center text-sm">
+                      🤝
+                    </div>
+                    <div className="border border-teal-200 bg-teal-50 text-slate-700 rounded-xl px-3 py-2 text-sm font-semibold leading-6 flex-1">
+                      {item.content}
+                    </div>
                   </div>
-                  <div className="border border-teal-200 bg-teal-50 text-slate-700 rounded-xl px-3 py-2 text-sm font-semibold leading-6 flex-1">
-                    {item.content}
-                  </div>
+                  {isCrisisMessage(state.supportMessages[index - 1]?.content ?? '') && (
+                    <div className="mt-2 ml-9 rounded-xl border border-red-200 bg-red-50 p-3 text-sm">
+                      <p className="font-semibold text-red-700 mb-2">🆘 需要立即幫助？</p>
+                      <div className="flex flex-col gap-1.5">
+                        <a
+                          href="tel:1925"
+                          className="flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-white font-medium hover:bg-red-700 transition-colors"
+                        >
+                          📞 撥打安心專線 1925
+                        </a>
+                        <button
+                          type="button"
+                          className="flex items-center gap-2 rounded-lg bg-white border border-red-300 px-3 py-2 text-red-700 font-medium hover:bg-red-50 transition-colors"
+                          onClick={() => setCounselingInfoVisible((v) => !v)}
+                        >
+                          🏫 前往輔導室尋求幫助
+                        </button>
+                        {counselingInfoVisible && (
+                          <p className="rounded-lg bg-white border border-red-200 px-3 py-2 text-xs text-red-700 font-medium">
+                            輔導室在教學大樓 2 樓，老師隨時歡迎你來談談。
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             ))}
