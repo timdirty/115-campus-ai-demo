@@ -738,7 +738,14 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       if (!action.payload.reply?.trim()) return state;
       const signal = state.teachingSignals.find((item) => item.id === action.payload.signalId);
       if (!signal) return state;
-      const report = state.studentReports[signal.studentId];
+      const report = state.studentReports[signal.studentId] ?? {
+        studentId: signal.studentId,
+        name: signal.name,
+        averageFocus: 80,
+        distractRate: 1.5,
+        learningStyle: '待分析',
+        events: [],
+      };
 
       return withRobotCommandLog(
         {
@@ -750,7 +757,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
               ...report,
               events: [
                 `${stampTime(now)} 教師回覆：「${action.payload.reply}」`,
-                ...(report?.events ?? []),
+                ...report.events,
               ].slice(0, 12),
             },
           },
@@ -1100,12 +1107,12 @@ export function normalizePersistedState(input: unknown): AppState {
             if (!isRecord(item)) return null;
             const order: Order = fallback.orders[index % Math.max(1, fallback.orders.length)] ?? {
               id: `recovered-order-${index + 1}`,
-              productId: fallback.products[0].id,
-              productName: fallback.products[0].name,
+              productId: fallback.products[0]?.id ?? 1,
+              productName: fallback.products[0]?.name ?? '未知商品',
               quantity: 1,
               destination: '總務處',
               status: 'in_transit',
-              robotId: fallback.robots[0].id,
+              robotId: fallback.robots[0]?.id ?? 'R001',
               createdAt: fallback.lastUpdated,
             };
             return {
