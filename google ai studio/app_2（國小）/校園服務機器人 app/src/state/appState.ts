@@ -245,7 +245,7 @@ export function createInitialAppState(): AppState {
     robots: [
       {
         id: '1號',
-        serial: 'RBT-ALPHA-01',
+        serial: '服務機-01',
         status: '待命',
         position: '總控制中心基地',
         battery: 100,
@@ -257,7 +257,7 @@ export function createInitialAppState(): AppState {
       },
       {
         id: '2號',
-        serial: 'RBT-BETA-02',
+        serial: '服務機-02',
         status: '充電',
         position: 'B棟充電站',
         battery: 20,
@@ -269,7 +269,7 @@ export function createInitialAppState(): AppState {
       },
       {
         id: '3號',
-        serial: 'RBT-GAMMA-03',
+        serial: '服務機-03',
         status: '導診',
         position: '保健中心前',
         battery: 55,
@@ -281,7 +281,7 @@ export function createInitialAppState(): AppState {
       },
       {
         id: '4號',
-        serial: 'RBT-DELTA-04',
+        serial: '服務機-04',
         status: '清掃',
         position: '五年級走廊',
         battery: 82,
