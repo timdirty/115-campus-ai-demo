@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "test": "tsx src/state/guardianState.test.ts",
+    "test": "tsx src/state/guardianState.test.ts && tsx src/__tests__/localGuardianAi.test.ts",
     "check": "npm run test && npm run lint && npm run build"
   },
   "dependencies": {

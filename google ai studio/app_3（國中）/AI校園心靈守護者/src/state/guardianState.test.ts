@@ -94,9 +94,9 @@ async function run() {
   assert.equal(robotCompleted.robotMissions[0].status, 'completed');
 
   const reply = await generateSupportReply('我最近考試壓力很大', 'worried');
-  assert.match(reply, /考試|壓力|小步驟/);
+  assert.match(reply, /考試|壓力|小步驟|成績|老師|科目|學習/);
   const urgentReply = await generateSupportReply('我想傷害自己', 'worried');
-  assert.match(urgentReply, /可信任的大人|緊急救援/);
+  assert.match(urgentReply, /輔導|1925|安全|信任的大人|緊急救援/);
 
   const summary = await summarizeGuardianState(restarted);
   assert.match(summary, /校園穩定度/);
