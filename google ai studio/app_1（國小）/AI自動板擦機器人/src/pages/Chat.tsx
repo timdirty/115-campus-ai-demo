@@ -70,7 +70,7 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
       }).catch(() => {
       });
     }
-  }, [messages, isTyping]);
+  }, [messages]);
 
   const autoResize = () => {
     if (textareaRef.current) {
@@ -151,7 +151,7 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
             </div>
           </div>
           <div className="space-y-0.5 relative z-10">
-            <h2 className="font-headline font-extrabold text-lg sm:text-xl text-on-surface tracking-tight">{relatedNote?.title ?? '尚無關聯紀錄'}</h2>
+            <h2 className="font-headline font-extrabold text-lg sm:text-xl text-on-surface tracking-tight line-clamp-2" title={relatedNote?.title}>{relatedNote?.title ?? '尚無關聯紀錄'}</h2>
             <p className="text-on-surface-variant text-[11px] sm:text-[12px] font-medium opacity-80">{relatedNote ? `${relatedNote.subject} • ${relatedNote.date} ${relatedNote.time}` : '請先新增課堂紀錄'}</p>
           </div>
           <div className="mt-1 aspect-video rounded-xl sm:rounded-[1.25rem] overflow-hidden relative shadow-inner border border-outline-variant/10 cursor-pointer hidden sm:block" onClick={() => onNavigate('library')}>
@@ -168,7 +168,7 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
             <div className="flex items-center gap-2 text-primary font-bold text-xs tracking-widest uppercase mb-2">
               <FileText className="w-4 h-4" /> 情境復現
             </div>
-            <p className="text-xs text-on-surface-variant leading-relaxed line-clamp-4">{relatedNote?.ocrText || relatedNote?.content || '等待關聯課堂紀錄。'}</p>
+            <p className="text-xs text-on-surface-variant leading-relaxed line-clamp-4" title={relatedNote?.ocrText || relatedNote?.content}>{relatedNote?.ocrText || relatedNote?.content || '等待關聯課堂紀錄。'}</p>
             <div className="mt-3 flex items-center gap-2 text-xs text-on-surface-variant">
               <Volume2 className="w-4 h-4" />
               {relatedNote?.audioUrl ? '已連結老師講解片段' : '尚未匯入音訊，顯示逐字稿'}

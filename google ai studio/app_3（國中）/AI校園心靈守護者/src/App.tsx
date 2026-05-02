@@ -232,6 +232,7 @@ export default function App() {
   };
 
   const createAcousticAlert = () => {
+    if (!acousticLocation.trim()) { showToast('請先輸入感測位置再建立提醒'); return; }
     dispatch({
       type: 'CREATE_ACOUSTIC_ALERT',
       payload: {
@@ -1093,7 +1094,7 @@ function SensingPanel({
           <MiniMetric label="狀態" value={currentAcoustic.level === 'elevated' ? '偏高' : currentAcoustic.level === 'active' ? '活動' : '平穩'} />
         </div>
         <p className="mt-4 text-sm font-semibold leading-6 text-slate-600">{currentAcoustic.summary}</p>
-        <input value={acousticLocation} onChange={(event) => setAcousticLocation(event.target.value)} className="mt-4 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />
+        <input value={acousticLocation} onChange={(event) => setAcousticLocation(event.target.value)} aria-label="感測位置" placeholder="例：穿堂、教室等位置" className="mt-4 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />
         <div className="mt-3 grid grid-cols-3 gap-2">
           <button onClick={() => onRecordAcoustic({source: micActive ? 'microphone' : 'demo', location: acousticLocation, ...currentAcoustic})} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-700">
             記錄
@@ -1161,7 +1162,7 @@ function CarePanel({
         </div>
         <textarea value={postContent} onChange={(event) => setPostContent(event.target.value)} maxLength={500} className="mt-3 min-h-24 w-full rounded-xl border border-slate-200 bg-white p-4 text-sm font-semibold outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="匿名寫下一句支持自己的話..." />
         <p className="text-right text-xs text-gray-400 mt-0.5">{postContent.length} / 500</p>
-        <button onClick={onAddPost} className="mt-3 min-h-11 w-full rounded-xl bg-teal-600 text-sm font-black text-white">發表葉子</button>
+        <button onClick={onAddPost} disabled={!postContent.trim()} className="mt-3 min-h-11 w-full rounded-xl bg-teal-600 text-sm font-black text-white disabled:opacity-50 disabled:cursor-not-allowed">發表葉子</button>
         <div className="mt-4 space-y-2">
           {state.forestPosts.length === 0 && (
             <div className="text-center py-8 text-gray-400">

@@ -12,7 +12,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
   const [speed, setSpeed] = useState(1.2);
   const [activeRobotId, setActiveRobotId] = useState('4號');
 
-  const activeRobot = state.robots.find((robot) => robot.id === activeRobotId) ?? state.robots[0];
+  const activeRobot = state.robots.find((robot) => robot.id === activeRobotId) ?? state.robots[0] ?? null;
   const demoSteps = getDemoSteps(state);
   const demoHealth = getDemoHealth(state);
 
@@ -27,6 +27,8 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
   useEffect(() => {
     if (activeRobot) setSpeed(activeRobot.speed);
   }, [activeRobot?.id, activeRobot?.speed]);
+
+  if (!activeRobot) return null;
 
   return (
     <div className="space-y-6 pb-6">
@@ -170,7 +172,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
                  <span className="w-2 h-2 bg-primary rounded-full"></span>
                  <p className="text-xs font-extrabold text-primary">任務執行中</p>
                </div>
-               <h3 className="mb-1 font-headline text-2xl font-bold leading-tight tracking-tight sm:text-3xl">{activeRobot.task}</h3>
+               <h3 className="mb-1 font-headline text-2xl font-bold leading-tight tracking-tight sm:text-3xl line-clamp-2">{activeRobot.task}</h3>
                <p className="text-on-surface-variant font-bold text-xs opacity-70">預計完成：{activeRobot.eta}</p>
              </div>
           </div>
@@ -233,8 +235,8 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
           {state.robotCommandLogs.slice(0, 4).map((item) => (
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-2xl bg-surface-container-low px-4 py-3 border border-outline-variant/10">
               <div className="min-w-0">
-                <p className="truncate text-sm font-extrabold">{item.label}</p>
-                <p className="mt-0.5 truncate text-[10px] font-bold text-on-surface-variant/60">
+                <p className="truncate text-sm font-extrabold" title={item.label}>{item.label}</p>
+                <p className="mt-0.5 truncate text-[10px] font-bold text-on-surface-variant/60" title={item.target}>
                   {item.target}
                 </p>
               </div>
