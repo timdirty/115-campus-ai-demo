@@ -1,3 +1,4 @@
+import type React from 'react';
 import type {ZoneSensorReading} from '../types';
 
 interface ZoneData {
@@ -70,13 +71,16 @@ export function CampusMapSvg({zones = [], selectedZoneId, onZoneClick}: CampusMa
   const classroomSensor = zones.find((z) => z.id === 'zone-classroom')?.sensor;
 
   const zoneClick = (id: string) => onZoneClick?.(id);
+  const zoneKey = (id: string) => (e: React.KeyboardEvent<SVGGElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); zoneClick(id); }
+  };
 
   return (
     <svg
       viewBox="0 0 400 320"
       className="absolute inset-0 h-full w-full"
-      role="img"
-      aria-label="校園平面示意圖"
+      role="application"
+      aria-label="校園安全監控地圖"
     >
       <title>校園安全監控地圖</title>
 
@@ -88,6 +92,8 @@ export function CampusMapSvg({zones = [], selectedZoneId, onZoneClick}: CampusMa
         .risk-pulse { animation: pulse-ring 1.5s ease-out infinite; }
         .zone-clickable { cursor: pointer; }
         .zone-clickable:hover rect { filter: brightness(0.93); }
+        .zone-clickable:focus-visible { outline: none; }
+        .zone-clickable:focus-visible rect:first-of-type { stroke: #0d9488; stroke-width: 3; }
       `}</style>
 
       {/* background */}
@@ -100,7 +106,7 @@ export function CampusMapSvg({zones = [], selectedZoneId, onZoneClick}: CampusMa
       <rect x="0" y="0" width="400" height="320" fill="url(#campusGrid)" />
 
       {/* 圖書館 */}
-      <g aria-label="圖書館" className="zone-clickable" onClick={() => zoneClick('zone-library')}>
+      <g aria-label="圖書館" role="button" tabIndex={0} className="zone-clickable" onClick={() => zoneClick('zone-library')} onKeyDown={zoneKey('zone-library')}>
         <rect x="10" y="10" width="100" height="70" rx="8" fill={library.fill} stroke={library.stroke} strokeWidth="1.5" />
         <text x="60" y="43" textAnchor="middle" fontSize="12" fill="#1e40af" fontWeight="700">圖書館</text>
         <line x1="22" y1="55" x2="78" y2="55" stroke={library.stroke} strokeWidth="1" />
@@ -114,7 +120,7 @@ export function CampusMapSvg({zones = [], selectedZoneId, onZoneClick}: CampusMa
       </g>
 
       {/* 穿堂 */}
-      <g aria-label="穿堂" className="zone-clickable" onClick={() => zoneClick('zone-hall')}>
+      <g aria-label="穿堂" role="button" tabIndex={0} className="zone-clickable" onClick={() => zoneClick('zone-hall')} onKeyDown={zoneKey('zone-hall')}>
         <rect x="120" y="10" width="80" height="70" rx="8" fill={hall.fill} stroke={hall.stroke} strokeWidth="1.5" />
         <text x="160" y="49" textAnchor="middle" fontSize="12" fill="#065f46" fontWeight="700">穿堂</text>
         {zones.find((z) => z.id === 'zone-hall')?.riskLevel === 'high' && (
@@ -125,7 +131,7 @@ export function CampusMapSvg({zones = [], selectedZoneId, onZoneClick}: CampusMa
       </g>
 
       {/* 操場 */}
-      <g aria-label="操場" className="zone-clickable" onClick={() => zoneClick('zone-field')}>
+      <g aria-label="操場" role="button" tabIndex={0} className="zone-clickable" onClick={() => zoneClick('zone-field')} onKeyDown={zoneKey('zone-field')}>
         <rect x="300" y="10" width="90" height="200" rx="8" fill={field.fill} stroke={field.stroke} strokeWidth="1.5" />
         <text x="345" y="30" textAnchor="middle" fontSize="12" fill="#713f12" fontWeight="700">操場</text>
         <ellipse cx="345" cy="118" rx="34" ry="72" fill="none" stroke="#f59e0b" strokeWidth="2" strokeDasharray="4 3" />
@@ -143,7 +149,7 @@ export function CampusMapSvg({zones = [], selectedZoneId, onZoneClick}: CampusMa
       </g>
 
       {/* 九年級教室 */}
-      <g aria-label="九年級教室" className="zone-clickable" onClick={() => zoneClick('zone-classroom')}>
+      <g aria-label="九年級教室" role="button" tabIndex={0} className="zone-clickable" onClick={() => zoneClick('zone-classroom')} onKeyDown={zoneKey('zone-classroom')}>
         <rect x="10" y="118" width="150" height="80" rx="8" fill={classroom.fill} stroke={classroom.stroke} strokeWidth="1.5" />
         <text x="85" y="154" textAnchor="middle" fontSize="12" fill="#4c1d95" fontWeight="700">九年級教室</text>
         <rect x="20" y="128" width="16" height="11" rx="2" fill="#c4b5fd" opacity="0.7" />
@@ -166,7 +172,7 @@ export function CampusMapSvg({zones = [], selectedZoneId, onZoneClick}: CampusMa
       </g>
 
       {/* 體育館 */}
-      <g aria-label="體育館" className="zone-clickable" onClick={() => zoneClick('zone-gym')}>
+      <g aria-label="體育館" role="button" tabIndex={0} className="zone-clickable" onClick={() => zoneClick('zone-gym')} onKeyDown={zoneKey('zone-gym')}>
         <rect x="170" y="118" width="120" height="80" rx="8" fill={gym.fill} stroke={gym.stroke} strokeWidth="1.5" />
         <text x="230" y="154" textAnchor="middle" fontSize="12" fill="#7c2d12" fontWeight="700">體育館</text>
         <rect x="180" y="130" width="100" height="55" rx="2" fill="none" stroke="#f97316" strokeWidth="1.5" />

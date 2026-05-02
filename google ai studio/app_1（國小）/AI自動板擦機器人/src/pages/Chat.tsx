@@ -31,6 +31,7 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [notes, setNotes] = useState<WhiteboardNote[]>(() => loadNotes());
   const [relatedNote, setRelatedNote] = useState<WhiteboardNote | null>(loadNotes()[0] ?? null);
+  const [syncStatus, setSyncStatus] = useState<'loading' | 'ok' | 'offline'>('loading');
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const didLoadRemoteChat = useRef(false);
@@ -45,8 +46,10 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
         if (Array.isArray(result.messages) && result.messages.length > 0) {
           setMessages(result.messages);
         }
+        setSyncStatus('ok');
       })
       .catch(() => {
+        setSyncStatus('offline');
       })
       .finally(() => {
         didLoadRemoteChat.current = true;
@@ -128,10 +131,24 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
       <aside className="w-full lg:w-[32%] flex flex-col gap-4 sm:gap-6 hide-scrollbar overflow-y-auto lg:pb-8 lg:pr-2 lg:shrink-0">
         <motion.div variants={messageVariants} className="bg-surface-container-low rounded-3xl p-4 sm:p-6 flex flex-col gap-3 sm:gap-4 border border-outline-variant/10 shadow-sm relative overflow-hidden group">
           <div className="flex items-center justify-between relative z-10">
-            <span className="text-primary font-headline font-bold text-[10px] sm:text-xs tracking-[0.2em] uppercase flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-              紀錄本同步中
-            </span>
+            {syncStatus === 'loading' && (
+              <span className="text-primary font-headline font-bold text-[10px] sm:text-xs tracking-[0.2em] uppercase flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                紀錄本同步中
+              </span>
+            )}
+            {syncStatus === 'ok' && (
+              <span className="text-emerald-600 font-headline font-bold text-[10px] sm:text-xs tracking-[0.2em] uppercase flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                已同步
+              </span>
+            )}
+            {syncStatus === 'offline' && (
+              <span className="text-amber-600 font-headline font-bold text-[10px] sm:text-xs tracking-[0.2em] uppercase flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                橋接器離線 · 本機模式
+              </span>
+            )}
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-surface shadow-sm cursor-pointer hover:scale-105 active:scale-95 flex items-center justify-center transition-transform">
                <Cast className="text-primary w-4 h-4 sm:w-5 sm:h-5" />
             </div>
@@ -141,7 +158,14 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
             <p className="text-on-surface-variant text-[11px] sm:text-[12px] font-medium opacity-80">{relatedNote ? `${relatedNote.subject} • ${relatedNote.date} ${relatedNote.time}` : '請先新增課堂紀錄'}</p>
           </div>
           <div className="mt-1 aspect-video rounded-xl sm:rounded-[1.25rem] overflow-hidden relative shadow-inner border border-outline-variant/10 cursor-pointer hidden sm:block" onClick={() => onNavigate('library')}>
-            <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={relatedNote?.imageUrl || relatedNote?.img} alt="Whiteboard" />
+            {relatedNote?.imageUrl || relatedNote?.img ? (
+              <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={relatedNote.imageUrl || relatedNote.img} alt="Whiteboard" />
+            ) : (
+              <div className="w-full h-full bg-surface-container flex flex-col items-center justify-center gap-2 text-on-surface-variant">
+                <span className="text-2xl">📋</span>
+                <span className="text-xs font-bold">點此前往新增紀錄</span>
+              </div>
+            )}
           </div>
           <div className="bg-surface rounded-2xl p-4 border border-outline-variant/10">
             <div className="flex items-center gap-2 text-primary font-bold text-xs tracking-widest uppercase mb-2">

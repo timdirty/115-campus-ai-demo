@@ -149,14 +149,18 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
                     {notes.map((note) => (
                       <RecordItem key={note.id} title={note.title} meta={`${note.date} • ${note.subject}`} active={activeRecord===note.id} onClick={() => setActiveRecord(note.id)} />
                     ))}
-                    {notes.length === 0 && (
-                      <div className="p-6 rounded-[1.5rem] bg-surface border border-outline-variant/20 text-sm text-on-surface-variant">
-                        尚無可生成的課堂紀錄。
-                      </div>
+                    {notes.length === 0 ? (
+                      <button onClick={() => onNavigate('library')} className="w-full p-8 rounded-[1.5rem] bg-primary/5 border-2 border-dashed border-primary/30 flex flex-col items-center gap-3 hover:bg-primary/10 transition-all group/empty">
+                        <span className="text-3xl">📋</span>
+                        <p className="text-sm font-bold text-primary">尚無課堂紀錄</p>
+                        <p className="text-xs text-on-surface-variant text-center">點此前往課堂紀錄本，拍下白板或新增筆記，<br/>再回來生成小測驗或學習單。</p>
+                        <span className="mt-1 text-xs font-extrabold text-primary flex items-center gap-1 group-hover/empty:gap-2 transition-all"><FileSymlink className="w-4 h-4"/> 前往課堂紀錄本</span>
+                      </button>
+                    ) : (
+                      <button onClick={() => onNavigate('library')} className="w-full p-6 border-2 border-dashed border-outline-variant/30 rounded-[1.5rem] text-on-surface-variant font-bold flex items-center justify-center gap-2 hover:bg-surface-container-low transition-all">
+                        <FileSymlink className="w-5 h-5"/> 前往課堂紀錄本新增或選擇內容
+                      </button>
                     )}
-                    <button onClick={() => onNavigate('library')} className="w-full p-6 border-2 border-dashed border-outline-variant/30 rounded-[1.5rem] text-on-surface-variant font-bold flex items-center justify-center gap-2 hover:bg-surface-container-low transition-all">
-                      <FileSymlink className="w-5 h-5"/> 前往課堂紀錄本新增或選擇內容
-                    </button>
                   </div>
                 </div>
               </div>
