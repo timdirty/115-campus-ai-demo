@@ -1026,7 +1026,18 @@ export function loadPersistedState(): AppState {
 
 export function persistState(state: AppState) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    if (error instanceof DOMException && (error.code === 22 || error.name === 'QuotaExceededError')) {
+      try {
+        const trimmed = {...state, logs: state.logs.slice(0, 30), robotCommandLogs: state.robotCommandLogs.slice(0, 30)};
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+      } catch {
+        // give up gracefully — in-memory state is still correct
+      }
+    }
+  }
 }
 
 export function normalizePersistedState(input: unknown): AppState {

@@ -26,8 +26,8 @@ function getZoneFill(zones: ZoneData[], id: string, defaultFill: string): {fill:
 
 function SensorBadge({sensor, x, y}: {sensor: ZoneSensorReading | undefined; x: number; y: number}) {
   if (!sensor?.connected) return null;
-  const temp = sensor.temp !== null ? `${sensor.temp.toFixed(1)}°` : '--';
-  const hum = sensor.hum !== null ? `${sensor.hum}%` : '--';
+  const temp = sensor.temp !== null && isFinite(sensor.temp) ? `${sensor.temp.toFixed(1)}°` : '--';
+  const hum = sensor.hum !== null && isFinite(sensor.hum) ? `${Math.round(sensor.hum)}%` : '--';
   return (
     <g>
       <rect x={x} y={y} width="50" height="22" rx="5" fill="rgba(15,23,42,0.78)" />

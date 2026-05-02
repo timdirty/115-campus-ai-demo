@@ -58,7 +58,11 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
 
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
-    localStorage.setItem(CHAT_KEY, JSON.stringify(messages));
+    try {
+      localStorage.setItem(CHAT_KEY, JSON.stringify(messages));
+    } catch {
+      try { localStorage.setItem(CHAT_KEY, JSON.stringify(messages.slice(-30))); } catch { /* quota full */ }
+    }
     if (didLoadRemoteChat.current) {
       apiRequest('/api/chat', {
         method: 'PUT',
@@ -84,7 +88,8 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
   const submitMessage = async (text: string) => {
     if (!text.trim() || isTyping) return;
 
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', text };
+    const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const userMsg: Message = { id: uid(), role: 'user', text };
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
@@ -95,17 +100,9 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
       setRelatedNote(matchedNote);
       const noteIds = (matchedNote ? [matchedNote.id, ...notes.filter((note) => note.id !== matchedNote.id).map((note) => note.id)] : notes.map((note) => note.id)).slice(0, 3);
       const response = await chatWithAI(text, messages.map(m => ({ role: m.role, text: m.text })), noteIds);
-      setMessages(prev => [...prev, {
-        id: (Date.now()+1).toString(),
-        role: 'ai',
-        text: response
-      }]);
-    } catch (error) {
-      setMessages(prev => [...prev, {
-        id: (Date.now()+1).toString(),
-        role: 'ai',
-        text: "抱歉，AI 小老師暫時休息中，請稍後再試。"
-      }]);
+      setMessages(prev => [...prev, {id: uid(), role: 'ai', text: response}]);
+    } catch {
+      setMessages(prev => [...prev, {id: uid(), role: 'ai', text: '抱歉，AI 小老師暫時休息中，請稍後再試。'}]);
     } finally {
       setIsTyping(false);
     }
