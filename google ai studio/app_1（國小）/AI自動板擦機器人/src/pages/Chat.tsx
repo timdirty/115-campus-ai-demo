@@ -40,7 +40,7 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
     loadNotesAsync().then((loadedNotes) => {
       setNotes(loadedNotes);
       setRelatedNote(loadedNotes[0] ?? null);
-    });
+    }).catch(() => {});
     apiRequest<{messages: Message[]}>('/api/chat')
       .then((result) => {
         if (Array.isArray(result.messages) && result.messages.length > 0) {

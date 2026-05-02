@@ -184,7 +184,7 @@ export function createInitialGuardianState(): GuardianState {
         command: 'SYSTEM_READY',
         source: 'system',
         status: 'fallback',
-        message: '本機橋接服務已就緒；未插 UNO R4 時使用備援狀態，插板後同指令走序列埠。',
+        message: '本機橋接服務已就緒；未連接 UNO R4 時自動切換備援模式，連接後指令將透過序列埠傳輸。',
         createdAt: '今天 08:00',
       },
     ],
