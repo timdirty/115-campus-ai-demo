@@ -53,7 +53,7 @@ export function RegionTaskPanel({analysis, classroom, boardRegions, busy, onSave
             type="button"
             onClick={() => onRunRegionTask(region.status, region.id)}
             disabled={Boolean(busy)}
-            aria-label={`區塊 ${region.id} ${region.status === 'erasable' ? '標記可清空' : '標記保留'}`}
+            aria-label={`區塊 ${region.id} ${region.status === 'erasable' ? '標記可清空' : region.status === 'erased' ? '已清空' : '標記保留'}`}
             className={`absolute rounded-md border-2 p-2 text-left transition-all active:scale-95 disabled:opacity-60 overflow-hidden ${getRegionStyle(region.status)}`}
             style={{left: `${region.x}%`, top: `${region.y}%`, width: `${region.width}%`, height: `${region.height}%`}}
           >
