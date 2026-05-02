@@ -1,4 +1,5 @@
 import React, { Suspense, useRef, useState, useEffect } from 'react';
+import { useProxyHealth } from './hooks/useProxyHealth';
 
 const AVATAR_SVG = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#1d4ed8"/><circle cx="50" cy="36" r="16" fill="#BFDBFE"/><ellipse cx="50" cy="80" rx="28" ry="22" fill="#BFDBFE"/></svg>')}`;
 import { motion, AnimatePresence } from 'motion/react';
@@ -41,6 +42,8 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [subView, setSubView] = useState<{ id: string; props?: any } | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const proxyOnline = useProxyHealth();
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const showToast = (message: string) => {
     setToastMessage({ id: Date.now(), message });
@@ -89,6 +92,19 @@ export default function App() {
 
   return (
     <div className="app2-shell min-h-screen overflow-x-hidden text-on-surface md:flex md:bg-surface-container-low">
+      {/* Proxy Health Banner */}
+      {proxyOnline === false && !bannerDismissed && (
+        <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800">
+          <span>⚠️ AI 橋接伺服器未連線（localhost:3200），智慧功能將使用本地模式</span>
+          <button
+            onClick={() => setBannerDismissed(true)}
+            className="shrink-0 text-amber-600 hover:text-amber-900 font-medium"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (

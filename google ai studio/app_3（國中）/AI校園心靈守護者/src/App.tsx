@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useReducer, useRef, useState} from 'react';
+import {useProxyHealth} from './hooks/useProxyHealth';
 import type {Dispatch, ReactNode} from 'react';
 import {AnimatePresence, motion} from 'motion/react';
 import {
@@ -109,6 +110,8 @@ export default function App() {
   const [currentAcoustic, setCurrentAcoustic] = useState(defaultAcoustic);
   const [zoneSensors, setZoneSensors] = useState<ZoneSensorReading[]>([]);
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const proxyOnline = useProxyHealth();
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const volumeHistoryRef = useRef<number[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -318,6 +321,19 @@ export default function App() {
 
   return (
     <div className="guardian-shell min-h-screen overflow-x-hidden bg-slate-100 text-slate-950">
+      {/* Proxy Health Banner */}
+      {proxyOnline === false && !bannerDismissed && (
+        <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800">
+          <span>⚠️ AI 橋接伺服器未連線（localhost:3200），智慧功能將使用本地模式</span>
+          <button
+            onClick={() => setBannerDismissed(true)}
+            className="shrink-0 text-amber-600 hover:text-amber-900 font-medium"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <input ref={importInputRef} type="file" accept="application/json,.json" className="hidden" onChange={(event) => void importDemoData(event.target.files?.[0])} />
       <Toast message={toastMessage} />
 
