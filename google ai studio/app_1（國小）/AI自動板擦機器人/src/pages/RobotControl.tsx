@@ -277,7 +277,7 @@ export default function RobotControl() {
               <input
                 value={customCommand}
                 onChange={(event) => setCustomCommand(event.target.value.toUpperCase())}
-                onKeyDown={(event) => event.key === 'Enter' && sendCommand(customCommand)}
+                onKeyDown={(event) => event.key === 'Enter' && customCommand.trim() && sendCommand(customCommand)}
                 placeholder="輸入自訂任務，例如：擦除 A 區"
                 className="flex-1 bg-transparent outline-none px-3 text-sm font-bold"
               />

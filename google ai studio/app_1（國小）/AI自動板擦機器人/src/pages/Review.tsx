@@ -32,7 +32,7 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
       if (!activeRecord && loadedNotes[0]) {
         setActiveRecord(loadedNotes[0].id);
       }
-    });
+    }).catch(() => {});
   }, []);
 
   // Auto-select first note whenever the notes list changes and nothing is selected yet
@@ -214,7 +214,7 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
                 <h3 className="text-2xl sm:text-3xl font-extrabold font-headline leading-tight mb-12">{quizQuestions[currentQ]?.q}</h3>
 
                 <div className="grid grid-cols-1 gap-4 flex-1">
-                  {quizQuestions[currentQ]?.options.map((opt, i) => (
+                  {quizQuestions[currentQ]?.options?.map((opt, i) => (
                     <button
                       key={i} onClick={() => !ansd && setSelOpt(i)}
                       className={`text-left p-6 rounded-2xl border-2 font-bold text-lg transition-all ${selOpt === i ? 'bg-primary/5 border-primary ring-4 ring-primary/10' : 'bg-surface border-outline-variant/20 hover:border-outline-variant/50'} ${ansd && i === quizQuestions[currentQ]?.ans ? 'bg-primary/10 border-primary' : ansd && i === selOpt ? 'bg-error/10 border-error' : ''}`}
@@ -235,7 +235,7 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
                   )}
                   {ansd && (
                     <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="mt-10 w-full flex flex-col sm:flex-row items-center justify-between bg-surface-container-low p-6 rounded-3xl border border-outline-variant/10">
-                      {selOpt === quizQuestions[currentQ].ans ? (
+                      {selOpt === quizQuestions[currentQ]?.ans ? (
                         <span className="text-primary font-extrabold text-xl flex items-center gap-3"><div className="w-10 h-10 bg-primary text-on-primary rounded-full flex items-center justify-center shadow-lg"><CheckCircle2 className="w-6 h-6"/></div> 答對了！</span>
                       ) : (
                         <span className="text-error font-extrabold text-xl flex items-center gap-3"><div className="w-10 h-10 bg-error text-on-error rounded-full flex items-center justify-center shadow-lg"><CheckCircle2 className="w-6 h-6"/></div> 再想一次</span>

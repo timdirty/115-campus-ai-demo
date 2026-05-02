@@ -185,7 +185,7 @@ export default function App() {
   }, [robotFeedback]);
 
   useEffect(() => () => stopAcousticMonitor(), []);
-  useEffect(() => () => { robotTimersRef.current.forEach(clearTimeout); }, []);
+  useEffect(() => () => { robotTimersRef.current.forEach(clearTimeout); robotTimersRef.current = []; }, []);
 
   const showToast = (text: string) => setToastMessage(text);
 
@@ -373,6 +373,7 @@ export default function App() {
           <span>⚠️ AI 橋接伺服器未連線（localhost:3200），智慧功能將使用本地模式</span>
           <button
             onClick={() => setBannerDismissed(true)}
+            aria-label="關閉提示"
             className="shrink-0 w-11 h-11 flex items-center justify-center text-amber-600 hover:text-amber-900 font-medium"
           >
             ✕
@@ -1181,7 +1182,7 @@ function CarePanel({
               </div>
               <div className="flex items-center justify-between mt-1">
                 <p className="text-xs font-black text-teal-700">🌱 {post.likes} 人支持</p>
-                <p className="text-xs text-gray-400">{new Date(post.createdAt).toLocaleTimeString('zh-TW', {hour: '2-digit', minute: '2-digit'})}</p>
+                <p className="text-xs text-gray-400">{post.createdAt}</p>
               </div>
               {post.botReply && (
                 <div className="mt-2 flex items-start gap-1.5 rounded-lg bg-white/70 border border-teal-100 px-2.5 py-2">

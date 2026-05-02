@@ -117,7 +117,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
         </button>
       </section>
 
-      <div className="bg-surface-container-lowest rounded-[2.5rem] p-8 relative overflow-hidden shadow-md border border-outline-variant/30 cursor-pointer hover:bg-surface-container transition-all group active:scale-[0.98]" onClick={() => setModal('chart')}>
+      <div role="button" tabIndex={0} aria-label="開啟班級專注度分析報表" onKeyDown={(e) => e.key === 'Enter' && setModal('chart')} className="bg-surface-container-lowest rounded-[2.5rem] p-8 relative overflow-hidden shadow-md border border-outline-variant/30 cursor-pointer hover:bg-surface-container transition-all group active:scale-[0.98]" onClick={() => setModal('chart')}>
           <div className="flex justify-between items-start mb-8 relative z-10">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-on-surface-variant font-mono">班級專注度評分</p>
@@ -192,7 +192,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       </section>
 
       {/* Video Feed */}
-      <section onClick={() => setModal('video')} className="bg-inverse-surface rounded-[2.5rem] h-[320px] relative overflow-hidden shadow-2xl cursor-pointer group mt-10">
+      <section role="button" tabIndex={0} aria-label="開啟攝影機即時影像" onKeyDown={(e) => e.key === 'Enter' && setModal('video')} onClick={() => setModal('video')} className="bg-inverse-surface rounded-[2.5rem] h-80 relative overflow-hidden shadow-2xl cursor-pointer group mt-10">
         <div className="w-full h-full group-hover:scale-105 transition-transform duration-1000" style={{background: 'linear-gradient(135deg, #0d2137 0%, #1e3a5f 50%, #0a1a2e 100%)'}} />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
         {/* Simulating Bounding Boxes */}
