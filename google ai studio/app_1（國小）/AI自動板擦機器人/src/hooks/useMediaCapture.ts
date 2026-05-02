@@ -51,8 +51,12 @@ export function useMediaCapture() {
           cameraStreamRef.current = null;
           throw playError;
         }
+        setCameraReady(true);
+      } else {
+        stream.getTracks().forEach((t) => t.stop());
+        cameraStreamRef.current = null;
+        throw new Error('攝影機元件尚未就緒');
       }
-      setCameraReady(true);
     } finally {
       setMediaBusy('');
     }
@@ -94,6 +98,8 @@ export function useMediaCapture() {
           const blob = new Blob(audioChunksRef.current, {type: recorder.mimeType || 'audio/webm'});
           const audioBase64 = await blobToDataUrl(blob);
           await onAudioReady({audioBase64, mimeType: blob.type || 'audio/webm'});
+        } catch {
+          // onAudioReady failure is surfaced by the caller's own error handling
         } finally {
           audioStreamRef.current?.getTracks().forEach((track) => track.stop());
           audioStreamRef.current = null;
