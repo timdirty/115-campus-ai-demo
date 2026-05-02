@@ -1174,7 +1174,7 @@ function CarePanel({
             <div key={post.id} className="rounded-xl border border-green-100 bg-linear-to-br from-green-50 to-emerald-50 p-3">
               <div className="flex items-start gap-2">
                 <span className="text-lg leading-none mt-0.5">🌿</span>
-                <p className="text-sm font-semibold leading-6 text-gray-700 flex-1">{post.content}</p>
+                <p className="text-sm font-semibold leading-6 text-gray-700 flex-1 line-clamp-4">{post.content}</p>
               </div>
               <div className="flex items-center justify-between mt-1">
                 <p className="text-xs font-black text-teal-700">🌱 {post.likes} 人支持</p>
@@ -1197,7 +1197,7 @@ function CarePanel({
           <ChatScrollContainer messages={state.supportMessages}>
             {state.supportMessages.map((item, index) => (
               item.role === 'student' ? (
-                <div key={item.id} className="ml-auto max-w-[86%] rounded-xl px-4 py-3 text-sm font-semibold leading-6 bg-teal-600 text-white">
+                <div key={item.id} className="ml-auto max-w-[86%] rounded-xl px-4 py-3 text-sm font-semibold leading-6 bg-teal-600 text-white wrap-break-word">
                   {item.content}
                 </div>
               ) : (
@@ -1206,11 +1206,11 @@ function CarePanel({
                     <div className="shrink-0 w-7 h-7 rounded-full bg-teal-100 flex items-center justify-center text-sm">
                       🤝
                     </div>
-                    <div className="border border-teal-200 bg-teal-50 text-slate-700 rounded-xl px-3 py-2 text-sm font-semibold leading-6 flex-1">
+                    <div className="border border-teal-200 bg-teal-50 text-slate-700 rounded-xl px-3 py-2 text-sm font-semibold leading-6 flex-1 wrap-break-word">
                       {item.content}
                     </div>
                   </div>
-                  {isCrisisMessage(state.supportMessages[index - 1]?.content ?? '') && (
+                  {index > 0 && isCrisisMessage(state.supportMessages[index - 1]?.content ?? '') && (
                     <div className="mt-2 ml-9 rounded-xl border border-red-200 bg-red-50 p-3 text-sm">
                       <p className="font-semibold text-red-700 mb-2">🆘 需要立即幫助？</p>
                       <div className="flex flex-col gap-1.5">
@@ -1328,7 +1328,7 @@ function LogsPanel({state, robotFeedback}: Parameters<typeof DetailDrawer>[0]) {
           {state.hardwareEvents.slice(0, 8).map((event) => (
             <div key={event.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="min-w-0 flex-1 truncate font-black text-slate-950">{event.command}</p>
+                <p className="min-w-0 flex-1 truncate font-black text-slate-950" title={event.command}>{event.command}</p>
                 <span className={`rounded-full px-2 py-1 text-[10px] font-black ${event.status === 'sent' ? 'bg-teal-100 text-teal-700' : 'bg-amber-100 text-amber-700'}`}>
                   {event.status === 'sent' ? '已送' : '備援'}
                 </span>

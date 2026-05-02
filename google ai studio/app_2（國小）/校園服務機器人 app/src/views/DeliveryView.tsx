@@ -275,11 +275,11 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
                </div>
 
                <div className="flex items-center gap-5 bg-surface-container rounded-[2rem] p-2.5 shadow-inner border border-outline-variant/10">
-                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQty(Math.max(1, qty - 1))} className="w-14 h-14 rounded-2xl bg-surface-container-lowest text-on-surface shadow-sm flex items-center justify-center border border-outline-variant/20 hover:bg-white transition-colors active:shadow-inner">
+                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQty(Math.max(1, qty - 1))} disabled={isOrdering} className="w-14 h-14 rounded-2xl bg-surface-container-lowest text-on-surface shadow-sm flex items-center justify-center border border-outline-variant/20 hover:bg-white transition-colors active:shadow-inner disabled:opacity-30">
                     <span className="text-3xl font-bold leading-none">-</span>
                   </motion.button>
                   <span className="font-headline font-bold text-3xl w-10 text-center text-on-surface">{qty}</span>
-                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQty(Math.min(selectedProduct.stock, qty + 1))} className="w-14 h-14 rounded-2xl bg-primary text-white shadow-xl shadow-primary/20 flex items-center justify-center disabled:opacity-30 hover:bg-primary/95 transition-all" disabled={qty >= selectedProduct.stock}>
+                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQty(Math.min(selectedProduct.stock, qty + 1))} className="w-14 h-14 rounded-2xl bg-primary text-white shadow-xl shadow-primary/20 flex items-center justify-center disabled:opacity-30 hover:bg-primary/95 transition-all" disabled={qty >= selectedProduct.stock || isOrdering}>
                     <span className="text-3xl font-bold leading-none">+</span>
                   </motion.button>
                </div>
