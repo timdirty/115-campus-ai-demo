@@ -601,21 +601,45 @@ export async function generateStudentReport(name: string, data: Record<string, u
 }
 
 // ---------------------------------------------------------------------------
-// Legacy functions preserved for existing callers
+// Legacy functions — upgraded to use Gemini proxy with local fallback
 // ---------------------------------------------------------------------------
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-export async function generateClassSummary(state: AppState) {
-  await wait(200);
+export async function generateClassSummary(state: AppState): Promise<string> {
   const alerts = state.teachingSignals.filter((signal) => signal.type === 'alert').length;
   const questions = state.teachingSignals.filter((signal) => signal.type === 'question').length;
   const present = state.attendance.scanned ? `${state.attendance.present}/${state.attendance.total}` : '尚未點名';
+  const runningRobots = state.robots.filter((r) => r.isRunning).length;
+  const pendingTasks = state.tasks.filter((t) => t.status === 'pending').length;
+
+  try {
+    const prompt =
+      `請用1-2句話總結目前校園服務狀況：` +
+      `${runningRobots}台機器人運作中，${pendingTasks}項任務待處理，` +
+      `${alerts}則分心告警，${questions}則課堂提問，出席：${present}。`;
+    const data = await askGemini('/api/ai/teacher-reply', { question: prompt, subject: '綜合' });
+    const reply = data.reply ?? data.text ?? String(Object.values(data)[0] ?? '');
+    if (reply.trim()) return reply;
+  } catch {
+    // fall through to local template
+  }
+
   return `本堂課目前專注度穩定，仍有 ${alerts} 則分心告警與 ${questions} 則課堂提問待處理。出席狀態：${present}。`;
 }
 
-export async function generateStudentInsights(report: StudentReport) {
-  await wait(200);
+export async function generateStudentInsights(report: StudentReport): Promise<string[]> {
+  try {
+    const data = await askGemini('/api/ai/student-report', { name: report.name || '學生', data: report as unknown as Record<string, unknown> });
+    const text = data.report ?? data.text ?? String(Object.values(data)[0] ?? '');
+    if (text.trim()) {
+      // Split on newlines or sentence endings to return an array of insights
+      const lines = text.split(/\n+/).map((s) => s.trim()).filter(Boolean);
+      if (lines.length >= 2) return lines.slice(0, 3);
+      return [text];
+    }
+  } catch {
+    // fall through to local template
+  }
+
   return [
     `${report.name} 屬於${report.learningStyle}，搭配圖像、流程圖或實體示範時專注度較高。`,
     `平均專注度 ${report.averageFocus}%；建議在課程 20-25 分鐘處加入短問答或視覺提示。`,
