@@ -102,7 +102,7 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
           { icon: Activity, label: '環境通風', val: isEmergency?'封閉':'良好', unit: '', color: isEmergency?'text-error':'text-tertiary', bg: 'bg-tertiary/5' }
         ].map((sensor, i) => (
           <motion.div
-            whileHover={{ y: -4, shadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}
+            whileHover={{ y: -4, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}
             whileTap={{ scale: 0.98 }}
             onClick={() => showToast(`正在同步 ${sensor.label} 感測器資料...`)}
             key={sensor.label}
