@@ -201,7 +201,7 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
           <motion.div key="quiz" initial={{opacity:0, x:20}} animate={{opacity:1, x:0}} exit={{opacity:0, x:-20}} className="max-w-3xl mx-auto">
              <div className="flex items-center justify-between mb-4">
                <div className="flex items-center gap-4">
-                 <button onClick={reset} className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-highest transition-colors"><RotateCcw className="w-4 h-4"/></button>
+                 <button aria-label="重新開始測驗" onClick={reset} className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-highest transition-colors"><RotateCcw className="w-4 h-4"/></button>
                  <span className="font-bold text-on-surface-variant">第 {currentQ + 1} 題 / 共 {quizQuestions.length} 題</span>
                </div>
                <div className="px-4 py-1.5 bg-primary-container text-primary text-xs font-black rounded-full shadow-sm">來源：{notes.find((note) => note.id === activeRecord)?.subject ?? '課堂紀錄'}</div>
@@ -275,8 +275,8 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
             <div className="flex items-center justify-between mb-8 px-4">
               <button onClick={reset} className="font-bold text-sm text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-full"><RotateCcw className="w-4 h-4" /> 返回設定</button>
               <div className="flex gap-3">
-                <button className="w-10 h-10 rounded-full bg-surface text-on-surface-variant hover:text-primary flex items-center justify-center hover:bg-primary-container transition-all shadow-sm"><Share2 className="w-4 h-4"/></button>
-                <button onClick={() => downloadTextFile(`${notes.find((note) => note.id === activeRecord)?.title ?? '國小學習單'}.md`, summaryText)} className="w-10 h-10 rounded-full bg-surface text-on-surface-variant hover:text-primary flex items-center justify-center hover:bg-primary-container transition-all shadow-sm"><Download className="w-4 h-4"/></button>
+                <button aria-label="分享摘要" className="w-10 h-10 rounded-full bg-surface text-on-surface-variant hover:text-primary flex items-center justify-center hover:bg-primary-container transition-all shadow-sm"><Share2 className="w-4 h-4"/></button>
+                <button aria-label="下載 Markdown" onClick={() => downloadTextFile(`${notes.find((note) => note.id === activeRecord)?.title ?? '國小學習單'}.md`, summaryText)} className="w-10 h-10 rounded-full bg-surface text-on-surface-variant hover:text-primary flex items-center justify-center hover:bg-primary-container transition-all shadow-sm"><Download className="w-4 h-4"/></button>
               </div>
             </div>
 

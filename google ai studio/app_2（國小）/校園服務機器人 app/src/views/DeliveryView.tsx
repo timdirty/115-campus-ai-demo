@@ -86,7 +86,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
             placeholder="搜尋課程餐盒、文具或實驗室耗材..."
           />
           {searchQuery && (
-            <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} onClick={() => setSearchQuery('')} className="ml-2 bg-surface-container-high rounded-full p-2 hover:bg-surface-container-highest transition-colors flex items-center justify-center shrink-0">
+            <motion.button aria-label="清除搜尋" initial={{ scale: 0 }} animate={{ scale: 1 }} onClick={() => setSearchQuery('')} className="ml-2 bg-surface-container-high rounded-full p-2 hover:bg-surface-container-highest transition-colors flex items-center justify-center shrink-0">
               <X size={16} className="text-on-surface-variant" />
             </motion.button>
           )}

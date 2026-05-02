@@ -35,7 +35,7 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
   return (
     <div className="min-h-screen bg-background pb-32">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-2xl border-b border-outline-variant/30 px-6 py-5 flex items-center justify-between">
-        <button onClick={goBack} className="w-11 h-11 rounded-2xl bg-surface-container-low active:scale-90 transition-all text-on-surface flex items-center justify-center border border-outline-variant/10 shadow-sm">
+        <button aria-label="返回" onClick={goBack} className="w-11 h-11 rounded-2xl bg-surface-container-low active:scale-90 transition-all text-on-surface flex items-center justify-center border border-outline-variant/10 shadow-sm">
           <ArrowLeft size={24} />
         </button>
         <h1 className="font-headline font-bold text-xl absolute left-1/2 -translate-x-1/2 tracking-tight">任務即時追蹤</h1>

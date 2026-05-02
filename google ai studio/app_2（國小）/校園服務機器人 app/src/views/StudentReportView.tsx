@@ -36,7 +36,7 @@ export function StudentReportView({ goBack, showToast, name = "學習訊號 A", 
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b border-outline-variant/20 px-4 py-4 flex items-center justify-between">
-        <button onClick={goBack} className="p-2 rounded-full bg-surface-container-low active:scale-95 transition-transform text-on-surface">
+        <button aria-label="返回" onClick={goBack} className="p-2 rounded-full bg-surface-container-low active:scale-95 transition-transform text-on-surface">
           <ArrowLeft size={24} />
         </button>
         <h1 className="font-headline font-bold text-xl absolute left-1/2 -translate-x-1/2">學習狀態報告</h1>

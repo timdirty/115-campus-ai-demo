@@ -82,7 +82,7 @@ export function DispatchMapView({ goBack, showToast }: any) {
   return (
     <div className="min-h-screen bg-[#f4f8fb] text-slate-950 pb-32">
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-2xl border-b border-slate-200 px-6 py-5 flex items-center justify-between">
-        <button onClick={goBack} className="w-11 h-11 rounded-2xl bg-slate-50 active:scale-90 transition-all flex items-center justify-center border border-slate-200 shadow-sm">
+        <button aria-label="返回" onClick={goBack} className="w-11 h-11 rounded-2xl bg-slate-50 active:scale-90 transition-all flex items-center justify-center border border-slate-200 shadow-sm">
           <ArrowLeft size={24} />
         </button>
         <h1 className="font-headline font-bold text-xl absolute left-1/2 -translate-x-1/2 tracking-tight">校園派遣</h1>

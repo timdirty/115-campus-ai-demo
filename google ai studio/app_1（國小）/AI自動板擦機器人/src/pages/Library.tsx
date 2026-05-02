@@ -204,8 +204,8 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
             <span className="bg-surface-container-high text-on-surface-variant text-sm px-3 py-0.5 rounded-full font-bold">{displayedNotes.length}</span>
           </h3>
           <div className="flex bg-surface-container-low rounded-full p-1 border border-outline-variant/10 shadow-sm">
-            <button onClick={() => setViewMode('list')} className={`p-2 rounded-full transition-all ${viewMode==='list' ? 'bg-surface shadow-md text-primary' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}><List className="w-4 h-4" /></button>
-            <button onClick={() => setViewMode('grid')} className={`p-2 rounded-full transition-all ${viewMode==='grid' ? 'bg-surface shadow-md text-primary' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}><LayoutGrid className="w-4 h-4" /></button>
+            <button aria-label="切換列表檢視" onClick={() => setViewMode('list')} className={`p-2 rounded-full transition-all ${viewMode==='list' ? 'bg-surface shadow-md text-primary' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}><List className="w-4 h-4" /></button>
+            <button aria-label="切換網格檢視" onClick={() => setViewMode('grid')} className={`p-2 rounded-full transition-all ${viewMode==='grid' ? 'bg-surface shadow-md text-primary' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}><LayoutGrid className="w-4 h-4" /></button>
           </div>
         </motion.div>
 
@@ -244,7 +244,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
                       <span className={`text-[10px] font-bold tracking-widest uppercase px-3 py-1 rounded-full ${note.theme === 'primary' ? 'bg-primary-container/80 text-primary' : note.theme === 'secondary' ? 'bg-secondary-container/80 text-secondary-dim' : 'bg-tertiary-container/80 text-tertiary'}`}>
                         {note.subject}
                       </span>
-                      <button onClick={(e) => deleteNote(note.id, e)} className="text-error/50 hover:text-error hover:bg-error-container p-2.5 rounded-full transition-colors active:scale-90 absolute right-0 -top-2 md:opacity-0 md:group-hover:opacity-100 shadow-sm border border-transparent hover:border-error/20">
+                      <button aria-label="刪除課堂紀錄" onClick={(e) => deleteNote(note.id, e)} className="text-error/50 hover:text-error hover:bg-error-container p-2.5 rounded-full transition-colors active:scale-90 absolute right-0 -top-2 md:opacity-0 md:group-hover:opacity-100 shadow-sm border border-transparent hover:border-error/20">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -283,7 +283,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
               initial={{ scale: 0.95, y: 20, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.95, y: 20, opacity: 0 }} onClick={(e) => e.stopPropagation()}
               className="bg-surface w-full max-w-5xl h-[85vh] md:h-auto md:max-h-[85vh] rounded-3xl sm:rounded-[2.5rem] shadow-[0_32px_64px_rgba(0,0,0,0.25)] overflow-hidden flex flex-col md:flex-row relative border border-white/20"
             >
-              <button onClick={() => setSelectedNote(null)} className="absolute top-3 right-3 z-50 w-10 h-10 bg-surface/90 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-surface-container-highest transition-colors shadow-sm">
+              <button aria-label="關閉課堂紀錄" onClick={() => setSelectedNote(null)} className="absolute top-3 right-3 z-50 w-10 h-10 bg-surface/90 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-surface-container-highest transition-colors shadow-sm">
                 <X className="w-5 h-5 text-on-surface" />
               </button>
 
