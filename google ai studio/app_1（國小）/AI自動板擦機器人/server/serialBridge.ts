@@ -14,7 +14,7 @@ app.use((req, res, next) => {
   if (/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-AI-Mode, X-AI-Fallback');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-AI-Mode, X-AI-Fallback, X-Proxy-Key');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   }
   res.setHeader('X-Content-Type-Options', 'nosniff');
