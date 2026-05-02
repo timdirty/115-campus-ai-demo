@@ -1020,7 +1020,7 @@ function DetailDrawer(props: {
                 <p className="text-xs font-black text-teal-700">工作抽屜</p>
                 <h2 className="text-2xl font-black">{panelTitle(panel)}</h2>
               </div>
-              <button onClick={props.onClose} className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700">
+              <button onClick={props.onClose} aria-label="關閉工作面板" className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -1251,7 +1251,7 @@ function CarePanel({
               <input value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && !chatBusy && onSendMessage()} maxLength={300} className="min-h-11 w-full rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-teal-100" placeholder="輸入今天想說的心情..." />
               <p className="text-right text-xs text-gray-400 mt-0.5">{message.length} / 300</p>
             </div>
-            <button onClick={onSendMessage} disabled={chatBusy || !message.trim()} className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-600 text-white disabled:opacity-40">
+            <button onClick={onSendMessage} disabled={chatBusy || !message.trim()} aria-label="傳送訊息" className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-600 text-white disabled:opacity-40">
               <Send className="h-5 w-5" />
             </button>
           </div>

@@ -70,6 +70,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         type: 'MARK_HARDWARE_COMMAND',
         payload: {id: command.id, ok: result.ok, message: result.message},
       });
+    }).catch(() => {
+      dispatch({type: 'MARK_HARDWARE_COMMAND', payload: {id: command.id, ok: false, message: '指令發送失敗'}});
     });
   }, [state.robotCommandLogs]);
 

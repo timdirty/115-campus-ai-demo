@@ -13,19 +13,22 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
   const remindWarning = state.settings.remindWarning;
 
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const sensorsRef = useRef(sensors);
+  useEffect(() => { sensorsRef.current = sensors; }, [sensors]);
 
   useEffect(() => {
-    // Dynamic sensors fluctuation
+    // Dynamic sensors fluctuation — use ref to avoid re-creating interval on every tick
     const intv = setInterval(() => {
+      const s = sensorsRef.current;
       actions.tickSensors({
-        temp: +(sensors.temp + (Math.random() * 0.4 - 0.2)).toFixed(1),
-        hum: Math.max(0, Math.min(100, Math.round(sensors.hum + (Math.random() * 2 - 1)))),
-        aqi: Math.max(0, Math.round(sensors.aqi + (Math.random() * 4 - 2))),
+        temp: +(s.temp + (Math.random() * 0.4 - 0.2)).toFixed(1),
+        hum: Math.max(0, Math.min(100, Math.round(s.hum + (Math.random() * 2 - 1)))),
+        aqi: Math.max(0, Math.round(s.aqi + (Math.random() * 4 - 2))),
       });
       setLastUpdated(new Date());
     }, 3000);
     return () => clearInterval(intv);
-  }, [actions, sensors]);
+  }, [actions]);
   const [robotDispatched, setRobotDispatched] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState('');
   const [editTime, setEditTime] = useState('');
@@ -39,7 +42,11 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
   };
 
   const handleSaveSchedule = () => {
-    actions.saveSchedule({ id: editingSchedule, time: editTime, area: editArea });
+    if (!editTime.trim() || !editArea.trim()) {
+      showToast('時間和區域不能為空');
+      return;
+    }
+    actions.saveSchedule({ id: editingSchedule, time: editTime.trim(), area: editArea.trim() });
     showToast('任務排程設定已更新');
     setModal(null);
   };
