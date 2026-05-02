@@ -538,9 +538,9 @@ function CampusMap2D({
           <h3 className="text-xl font-black text-slate-950">區域狀態</h3>
         </div>
         <div className="flex flex-wrap gap-2 text-[10px] font-black text-slate-500">
-          <LegendDot tone="emerald" label="穩定" />
+          <LegendDot tone="emerald" label="安全" />
           <LegendDot tone="amber" label="注意" />
-          <LegendDot tone="rose" label="危險" />
+          <LegendDot tone="rose" label="高風險" />
         </div>
       </div>
       <div className="relative min-h-[25rem] overflow-hidden rounded-2xl border border-slate-200 bg-[linear-gradient(135deg,#f8fafc,#eef7f8)] sm:min-h-[28rem]">
@@ -1299,7 +1299,7 @@ function StatusLine({label, value, icon: Icon, tone = 'teal'}: {key?: unknown; l
 }
 
 function StatusChip({level}: {level: 'high' | 'medium' | 'low'}) {
-  const label = level === 'high' ? '危險' : level === 'medium' ? '注意' : '穩定';
+  const label = level === 'high' ? '高風險 ⚠' : level === 'medium' ? '注意' : '安全';
   const tone = level === 'high' ? 'border-rose-200 bg-rose-50 text-rose-700' : level === 'medium' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700';
   return <span className={`rounded-full border px-3 py-1 text-xs font-black ${tone}`}>{label}</span>;
 }
