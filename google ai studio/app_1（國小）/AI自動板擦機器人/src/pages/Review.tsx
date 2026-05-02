@@ -258,7 +258,7 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
             <h2 className="text-5xl font-extrabold font-headline mb-4 tracking-tight">小測驗完成！</h2>
             <p className="text-xl font-medium text-on-surface-variant mb-12">可以把結果當成課堂即時檢核，看看哪些重點需要再說一次。</p>
 
-            <div className="bg-surface-container-lowest rounded-[2rem] md:rounded-[3rem] p-8 md:p-12 border border-outline-variant/20 shadow- premium mb-10 md:mb-12 relative overflow-hidden group mx-4 md:mx-0">
+            <div className="bg-surface-container-lowest rounded-[2rem] md:rounded-[3rem] p-8 md:p-12 border border-outline-variant/20 shadow-premium mb-10 md:mb-12 relative overflow-hidden group mx-4 md:mx-0">
               <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
               <span className="text-7xl sm:text-[100px] md:text-[120px] leading-none font-black text-primary font-headline tracking-tighter relative z-10 drop-shadow-md">{score}<span className="text-3xl sm:text-5xl text-on-surface-variant opacity-40 ml-1 md:ml-2">/{quizQuestions.length}</span></span>
             </div>
@@ -275,7 +275,7 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
             <div className="flex items-center justify-between mb-8 px-4">
               <button onClick={reset} className="font-bold text-sm text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-full"><RotateCcw className="w-4 h-4" /> 返回設定</button>
               <div className="flex gap-3">
-                <button aria-label="分享摘要" className="w-10 h-10 rounded-full bg-surface text-on-surface-variant hover:text-primary flex items-center justify-center hover:bg-primary-container transition-all shadow-sm"><Share2 className="w-4 h-4"/></button>
+                <button aria-label="分享摘要" onClick={() => { if (navigator.share) { navigator.share({ title: notes.find((note) => note.id === activeRecord)?.title ?? '國小學習單', text: summaryText }).catch(() => {}); } else { navigator.clipboard.writeText(summaryText).catch(() => {}); } }} className="w-10 h-10 rounded-full bg-surface text-on-surface-variant hover:text-primary flex items-center justify-center hover:bg-primary-container transition-all shadow-sm"><Share2 className="w-4 h-4"/></button>
                 <button aria-label="下載 Markdown" onClick={() => downloadTextFile(`${notes.find((note) => note.id === activeRecord)?.title ?? '國小學習單'}.md`, summaryText)} className="w-10 h-10 rounded-full bg-surface text-on-surface-variant hover:text-primary flex items-center justify-center hover:bg-primary-container transition-all shadow-sm"><Download className="w-4 h-4"/></button>
               </div>
             </div>

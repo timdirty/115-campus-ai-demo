@@ -160,7 +160,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
         <div className="flex items-center justify-between">
             <h3 className="font-headline font-bold text-2xl tracking-wide flex items-center gap-2">即時告警與訊號 <span className="text-xs bg-error/10 text-error px-2 py-0.5 rounded-full font-bold ml-1">{state.teachingSignals.length}</span></h3>
             {state.teachingSignals.length > 3 && (
-              <button className="text-primary text-sm font-bold active:scale-95 transition-all">查看全部</button>
+              <span className="text-primary/60 text-sm font-medium">共 {state.teachingSignals.length} 則</span>
             )}
         </div>
         {state.teachingSignals.length === 0 ? (
@@ -226,7 +226,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
           <div className="p-4 flex flex-col h-[65vh] min-h-[450px]">
             <div className="flex-1 overflow-y-auto space-y-6 pt-3 custom-scrollbar pr-2 mb-2">
               <div className="bg-surface-container p-6 rounded-[1.75rem] rounded-tl-[4px] text-[16px] w-[90%] text-on-surface shadow-sm leading-relaxed border border-outline-variant/30">
-                <span className="text-[11px] text-on-surface-variant font-bold block mb-2 tracking-[0.2em] uppercase font-mono">10:41 AM</span>
+                <span className="text-[11px] text-on-surface-variant font-bold block mb-2 tracking-widest font-mono">{new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(activeStudent.createdAt))}</span>
                 <p className="font-medium">{activeStudent.message}</p>
               </div>
               {isTyping && (
@@ -390,7 +390,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
                <div className="flex justify-between items-end">
                  <div>
                    <h3 className="text-white font-headline font-bold text-xl drop-shadow-md">101 教室 - 前置全景</h3>
-                   <p className="text-white/70 text-sm font-medium mt-1 font-mono">視覺系統運作中 v2.4.1</p>
+                   <p className="text-white/70 text-sm font-medium mt-1 font-mono">視覺系統監控中</p>
                  </div>
                  <div className="bg-error/80 backdrop-blur text-white px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg">
                    <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div> 實況錄製

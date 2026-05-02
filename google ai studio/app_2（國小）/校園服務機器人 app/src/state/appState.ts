@@ -194,6 +194,12 @@ const productImages = {
   pizza: svgUri(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#FFF1F2"/><circle cx="100" cy="100" r="74" fill="#FDE68A"/><circle cx="100" cy="100" r="62" fill="#EF4444"/><circle cx="100" cy="100" r="48" fill="#FBBF24" opacity="0.45"/><circle cx="82" cy="88" r="9" fill="#7F1D1D"/><circle cx="116" cy="92" r="9" fill="#7F1D1D"/><circle cx="98" cy="116" r="9" fill="#7F1D1D"/></svg>`,
   ),
+  pencil: svgUri(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#FFFBEB"/><rect x="86" y="30" width="28" height="120" rx="6" fill="#FDE68A" stroke="#D97706" stroke-width="2"/><polygon points="86,150 114,150 100,178" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="1.5"/><rect x="86" y="30" width="28" height="20" rx="6" fill="#A8A29E"/><rect x="89" y="55" width="4" height="90" rx="2" fill="#D97706" opacity="0.35"/></svg>`,
+  ),
+  tea: svgUri(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#F0FDF4"/><path d="M60 80 Q58 150 100 158 Q142 150 140 80 Z" fill="#D1FAE5" stroke="#6EE7B7" stroke-width="2"/><rect x="60" y="75" width="80" height="12" rx="6" fill="#A7F3D0"/><path d="M140 100 Q162 100 162 115 Q162 130 140 130" fill="none" stroke="#6EE7B7" stroke-width="4" stroke-linecap="round"/><path d="M88 60 Q88 48 96 42" stroke="#86EFAC" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M104 58 Q104 46 112 40" stroke="#86EFAC" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`,
+  ),
 };
 
 const nowIso = () => new Date().toISOString();
@@ -325,7 +331,7 @@ export function createInitialAppState(): AppState {
         name: '2B 考試鉛筆組',
         price: 22,
         desc: '含橡皮擦與削筆器，臨時考試用品快速配送。',
-        img: productImages.toast,
+        img: productImages.pencil,
         category: 'stationery',
         stock: 18,
       },
@@ -334,7 +340,7 @@ export function createInitialAppState(): AppState {
         name: '無糖麥茶',
         price: 20,
         desc: '低溫補給飲品，適合體育課後配送。',
-        img: productImages.egg,
+        img: productImages.tea,
         category: 'drinks',
         stock: 9,
       },

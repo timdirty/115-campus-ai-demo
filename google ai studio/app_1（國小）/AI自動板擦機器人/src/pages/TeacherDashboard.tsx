@@ -216,7 +216,7 @@ export default function TeacherDashboard() {
                   className={`board-robot-marker absolute z-20 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl border bg-surface-container-lowest text-primary shadow-premium ${robotStage !== 'idle' ? 'board-robot-active' : ''} ${robotTarget === 'ALL' ? 'board-robot-sweep' : ''}`}
                 >
                   <Bot className="h-7 w-7" />
-                  <span className="absolute -right-2 -top-2 rounded-full bg-primary px-2 py-0.5 text-[9px] font-black text-on-primary">E-01</span>
+                  <span className="absolute -right-2 -top-2 rounded-full bg-primary px-2 py-0.5 text-[9px] font-black text-on-primary">{robotTaskId || 'E-01'}</span>
                   {robotStage !== 'idle' && <span className="absolute h-20 w-20 rounded-full border-2 border-primary/30" />}
                 </motion.div>
               </div>

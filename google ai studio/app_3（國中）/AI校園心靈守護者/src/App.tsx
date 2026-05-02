@@ -566,7 +566,7 @@ function CommandCenterScreen({
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <p className="text-xs font-black text-teal-700">校園指揮中心</p>
-            <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">地圖先看</h2>
+            <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">校園即時總覽</h2>
           </div>
           <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[24rem]">
             <SignalTile label="守護指數" value={`${state.stabilityScore}%`} tone="teal" />
@@ -680,7 +680,7 @@ function CampusMap2D({
         >
           {activeDispatch && <span className="absolute h-32 w-32 rounded-full border-2 border-teal-300 opacity-70" />}
           <div className="absolute -right-2 -top-2 rounded-full bg-teal-600 px-2 py-1 text-[10px] font-black text-white shadow-sm">
-            R-03
+            {robotFeedback?.missionId ?? 'R-01'}
           </div>
           <div className="grid place-items-center">
             <div className="relative grid h-12 w-12 place-items-center rounded-2xl bg-teal-50">
@@ -1183,7 +1183,7 @@ function CarePanel({
             </button>
           ))}
         </div>
-        <textarea value={postContent} onChange={(event) => setPostContent(event.target.value)} maxLength={500} className="mt-3 min-h-24 w-full rounded-xl border border-slate-200 bg-white p-4 text-sm font-semibold outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="匿名寫下一句支持自己的話..." />
+        <textarea value={postContent} onChange={(event) => setPostContent(event.target.value)} maxLength={500} aria-label="匿名留言" className="mt-3 min-h-24 w-full rounded-xl border border-slate-200 bg-white p-4 text-sm font-semibold outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="匿名寫下一句支持自己的話..." />
         <p className="text-right text-xs text-gray-400 mt-0.5">{postContent.length} / 500</p>
         <button onClick={onAddPost} disabled={!postContent.trim() || postBusy} className="mt-3 min-h-11 w-full rounded-xl bg-teal-600 text-sm font-black text-white disabled:opacity-50 disabled:cursor-not-allowed">發表葉子</button>
         <div className="mt-4 space-y-2">
@@ -1266,7 +1266,7 @@ function CarePanel({
           </ChatScrollContainer>
           <div className="flex gap-2 border-t border-slate-200 p-3">
             <div className="flex flex-col flex-1">
-              <input value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && !chatBusy && !!message.trim() && onSendMessage()} maxLength={300} className="min-h-11 w-full rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-teal-100" placeholder="輸入今天想說的心情..." />
+              <input value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && !chatBusy && !!message.trim() && onSendMessage()} maxLength={300} aria-label="心情輸入" className="min-h-11 w-full rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-teal-100" placeholder="輸入今天想說的心情..." />
               <p className="text-right text-xs text-gray-400 mt-0.5">{message.length} / 300</p>
             </div>
             <button onClick={onSendMessage} disabled={chatBusy || !message.trim()} aria-label="傳送訊息" className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-600 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-opacity">
