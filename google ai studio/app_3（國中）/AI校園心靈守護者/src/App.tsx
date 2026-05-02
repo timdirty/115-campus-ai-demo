@@ -27,13 +27,13 @@ import {
   X,
 } from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
-import {AcousticSignal, GuardianAlert, GuardianState, MoodType} from './types';
+import {AcousticSignal, GuardianAlert, GuardianState, MoodType, ZoneSensorReading} from './types';
 import {guardianReducer, loadGuardianState, normalizeGuardianState, persistGuardianState} from './state/guardianState';
 import {analyzeAcousticFrame, describeAcousticSignal} from './services/acousticGuardian';
 import {generateSupportReply} from './services/localGuardianAi';
 import {evaluateProactiveGuardianState, ProactiveInsight} from './services/proactiveGuardian';
 import {buildSchoolZoneStatuses, SchoolZoneStatus} from './services/schoolSpaces';
-import {sendGuardianHardwareCommand} from './services/hardwareBridge';
+import {fetchZoneSensors, sendGuardianHardwareCommand} from './services/hardwareBridge';
 import {AlertDetail, AlertRow, MetricCard, NodeRow, RiskPill} from './components/guardianUi';
 import {CampusMapSvg} from './components/CampusMapSvg';
 
@@ -107,6 +107,7 @@ export default function App() {
   const [micError, setMicError] = useState('');
   const [acousticLocation, setAcousticLocation] = useState('穿堂');
   const [currentAcoustic, setCurrentAcoustic] = useState(defaultAcoustic);
+  const [zoneSensors, setZoneSensors] = useState<ZoneSensorReading[]>([]);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const volumeHistoryRef = useRef<number[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -114,13 +115,27 @@ export default function App() {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
-  const viewModel = useMemo(() => buildCommandCenterViewModel(state), [state]);
+  const viewModel = useMemo(() => buildCommandCenterViewModel(state, zoneSensors), [state, zoneSensors]);
   const selectedZone = viewModel.zones.find((zone) => zone.id === selectedZoneId) ?? viewModel.highestZone;
   const latestMood = state.moodLogs[0];
 
   useEffect(() => {
     persistGuardianState(state);
   }, [state]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      const readings = await fetchZoneSensors();
+      if (!cancelled && readings.length > 0) setZoneSensors(readings);
+    };
+    poll();
+    const timer = setInterval(poll, 8000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -412,8 +427,8 @@ export default function App() {
   );
 }
 
-function buildCommandCenterViewModel(state: GuardianState): CommandCenterViewModel {
-  const zones = buildSchoolZoneStatuses(state);
+function buildCommandCenterViewModel(state: GuardianState, sensorReadings: ZoneSensorReading[] = []): CommandCenterViewModel {
+  const zones = buildSchoolZoneStatuses(state, sensorReadings);
   const highestZone = [...zones].sort((a, b) => b.riskScore - a.riskScore)[0] ?? zones[0];
   const dispatchableZones = zones.filter((zone) => zone.riskLevel !== 'low');
   const proactiveInsight = evaluateProactiveGuardianState(state);
@@ -544,7 +559,7 @@ function CampusMap2D({
         </div>
       </div>
       <div className="relative min-h-[25rem] overflow-hidden rounded-2xl border border-slate-200 bg-[linear-gradient(135deg,#f8fafc,#eef7f8)] sm:min-h-[28rem]">
-        <CampusMapSvg zones={zones.map((z) => ({id: z.id, riskLevel: z.riskLevel}))} />
+        <CampusMapSvg zones={zones.map((z) => ({id: z.id, riskLevel: z.riskLevel, sensor: z.sensor}))} />
         <div className="absolute left-[10%] top-[12%] h-2 w-[72%] -rotate-6 rounded-full bg-teal-200/70 shadow-sm" />
         <div className="absolute left-[18%] top-[59%] h-2 w-[60%] rotate-3 rounded-full bg-teal-200/70 shadow-sm" />
         <div className="absolute left-[48%] top-[15%] h-[65%] w-2 rounded-full bg-teal-200/70 shadow-sm" />
@@ -1059,7 +1074,8 @@ function CarePanel({
             </button>
           ))}
         </div>
-        <textarea value={postContent} onChange={(event) => setPostContent(event.target.value)} className="mt-3 min-h-24 w-full rounded-xl border border-slate-200 bg-white p-4 text-sm font-semibold outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="匿名寫下一句支持自己的話..." />
+        <textarea value={postContent} onChange={(event) => setPostContent(event.target.value)} maxLength={500} className="mt-3 min-h-24 w-full rounded-xl border border-slate-200 bg-white p-4 text-sm font-semibold outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="匿名寫下一句支持自己的話..." />
+        <p className="text-right text-xs text-gray-400 mt-0.5">{postContent.length} / 500</p>
         <button onClick={onAddPost} className="mt-3 min-h-11 w-full rounded-xl bg-teal-600 text-sm font-black text-white">發表葉子</button>
         <div className="mt-4 space-y-2">
           {state.forestPosts.slice(0, 3).map((post) => (
@@ -1083,7 +1099,10 @@ function CarePanel({
             {chatBusy && <div className="w-fit rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-500">整理回覆中...</div>}
           </div>
           <div className="flex gap-2 border-t border-slate-200 p-3">
-            <input value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && onSendMessage()} className="min-h-11 flex-1 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-teal-100" placeholder="輸入今天想說的心情..." />
+            <div className="flex flex-col flex-1">
+              <input value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && onSendMessage()} maxLength={300} className="min-h-11 w-full rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-teal-100" placeholder="輸入今天想說的心情..." />
+              <p className="text-right text-xs text-gray-400 mt-0.5">{message.length} / 300</p>
+            </div>
             <button onClick={onSendMessage} disabled={chatBusy || !message.trim()} className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-600 text-white disabled:opacity-40">
               <Send className="h-5 w-5" />
             </button>
