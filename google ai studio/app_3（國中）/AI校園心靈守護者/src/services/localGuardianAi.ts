@@ -69,11 +69,13 @@ function pickTemplate(templates: string[], seed: string): string {
   return templates[seed.length % templates.length];
 }
 
-function selectLocalFallback(text: string): string {
-  // Check categories in priority order: crisis first
+function selectLocalFallback(text: string, mood?: string): string {
+  // Crisis always wins regardless of mood
   if (/想死|活不下去|自殺|不想活|消失|傷害自己/.test(text)) {
     return pickTemplate(CRISIS_TEMPLATES, text);
   }
+
+  // Check text keywords first (most specific signal)
   if (/被欺負|霸凌|嘲笑|排擠|孤立|打我|罵我/.test(text)) {
     return pickTemplate(BULLYING_TEMPLATES, text);
   }
@@ -89,6 +91,24 @@ function selectLocalFallback(text: string): string {
   if (/開心|感謝|很棒|成功|進步|高興|快樂/.test(text)) {
     return pickTemplate(POSITIVE_GRATITUDE_TEMPLATES, text);
   }
+
+  // Mood fallback when no keyword matches
+  if (mood) {
+    const moodCategory: Record<string, string> = {
+      'anxious': 'academic_stress',  // 焦慮
+      'sad': 'social_isolation',     // 難過
+      'angry': 'bullying',           // 憤怒
+      'tired': 'general_tired',      // 疲憊
+      'happy': 'positive_gratitude', // 開心
+    };
+    const category = moodCategory[mood];
+    if (category === 'academic_stress') return pickTemplate(ACADEMIC_STRESS_TEMPLATES, text);
+    if (category === 'social_isolation') return pickTemplate(SOCIAL_ISOLATION_TEMPLATES, text);
+    if (category === 'bullying') return pickTemplate(BULLYING_TEMPLATES, text);
+    if (category === 'general_tired') return pickTemplate(GENERAL_TIRED_TEMPLATES, text);
+    if (category === 'positive_gratitude') return pickTemplate(POSITIVE_GRATITUDE_TEMPLATES, text);
+  }
+
   return pickTemplate(GENERAL_TEMPLATES, text);
 }
 
@@ -118,7 +138,7 @@ export async function generateSupportReply(
     throw new Error('empty proxy reply');
   } catch {
     // Proxy unavailable or returned empty — use local fallback
-    return selectLocalFallback(trimmed);
+    return selectLocalFallback(trimmed, mood);
   }
 }
 
