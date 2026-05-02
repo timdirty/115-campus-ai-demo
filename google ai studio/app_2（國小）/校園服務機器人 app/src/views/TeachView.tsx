@@ -15,6 +15,8 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
   const [chatReply, setChatReply] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [currentSubject, setCurrentSubject] = useState<string>('');
+  const SUBJECTS = ['數學', '語文', '自然', '社會', '英語', '體育', '藝術'];
   const [focusScore, setFocusScore] = useState(87);
   const [waveData, setWaveData] = useState([40, 60, 85, 70, 90, 55, 45, 30]);
 
@@ -41,7 +43,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
     const question = chatInput;
     setChatInput('');
     setIsTyping(true);
-    const reply = await generateTeacherReply(question);
+    const reply = await generateTeacherReply(question, currentSubject || undefined);
     setIsTyping(false);
     setChatReply(reply);
     actions.addTeacherReply({ signalId: activeStudent.id, reply });
@@ -254,6 +256,22 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
                 ))}
               </div>
             )}
+
+            <div className="flex flex-wrap gap-1 mb-2">
+              {SUBJECTS.map(s => (
+                <button
+                  key={s}
+                  onClick={() => setCurrentSubject(prev => prev === s ? '' : s)}
+                  className={`px-2 py-0.5 text-xs rounded-full border transition-colors ${
+                    currentSubject === s
+                      ? 'bg-indigo-500 text-white border-indigo-500'
+                      : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
 
             <div className="flex gap-3 pt-4 border-t border-outline-variant/30 items-center">
               <input
