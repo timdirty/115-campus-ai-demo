@@ -541,7 +541,7 @@ function CampusMap2D({
         </div>
       </div>
       <div className="relative min-h-[25rem] overflow-hidden rounded-2xl border border-slate-200 bg-[linear-gradient(135deg,#f8fafc,#eef7f8)] sm:min-h-[28rem]">
-        <CampusMapSvg />
+        <CampusMapSvg zones={zones.map((z) => ({id: z.id, riskLevel: z.riskLevel}))} />
         <div className="absolute left-[10%] top-[12%] h-2 w-[72%] -rotate-6 rounded-full bg-teal-200/70 shadow-sm" />
         <div className="absolute left-[18%] top-[59%] h-2 w-[60%] rotate-3 rounded-full bg-teal-200/70 shadow-sm" />
         <div className="absolute left-[48%] top-[15%] h-[65%] w-2 rounded-full bg-teal-200/70 shadow-sm" />
