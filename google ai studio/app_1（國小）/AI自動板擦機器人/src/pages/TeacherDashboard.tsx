@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {motion} from 'motion/react';
 import {AlertTriangle, Bot, Brain, CheckCircle2, ClipboardCheck, Eraser, Loader2, Pause, Radio, RefreshCw, ShieldCheck, Sparkles, Users} from 'lucide-react';
 import {BoardRegion, ClassroomSession, loadClassroomSession, saveClassroomSession, sendRobotTask} from '../services/classroomApi';
@@ -29,6 +29,13 @@ export default function TeacherDashboard() {
   const [robotTaskId, setRobotTaskId] = useState('');
   const [hardwareNotice, setHardwareNotice] = useState('硬體控制是選配展示：沒有接 UNO R4 WiFi 時會保留操作紀錄，不會中斷課堂流程。');
   const [notice, setNotice] = useState('正在讀取課堂狀態...');
+  const robotResetTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (robotResetTimerRef.current) clearTimeout(robotResetTimerRef.current);
+    };
+  }, []);
 
   const loadSession = async () => {
     try {
@@ -126,7 +133,8 @@ export default function TeacherDashboard() {
       setNotice(`課堂決策仍可展示；${message}`);
     } finally {
       setHardwareBusy('');
-      window.setTimeout(() => {
+      if (robotResetTimerRef.current) clearTimeout(robotResetTimerRef.current);
+      robotResetTimerRef.current = window.setTimeout(() => {
         setRobotStage('idle');
         setRobotTarget(undefined);
         setRobotTaskId('');

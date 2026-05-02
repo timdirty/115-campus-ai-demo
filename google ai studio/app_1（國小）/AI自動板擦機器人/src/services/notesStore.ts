@@ -180,7 +180,11 @@ export function loadNotes(): WhiteboardNote[] {
 }
 
 export function saveNotes(notes: WhiteboardNote[]) {
-  localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+  try {
+    localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+  } catch {
+    // QuotaExceededError or storage disabled — best-effort
+  }
   window.dispatchEvent(new CustomEvent('whiteboard-notes-updated'));
 }
 

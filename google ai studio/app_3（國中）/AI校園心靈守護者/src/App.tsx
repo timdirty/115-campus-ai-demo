@@ -110,6 +110,7 @@ export default function App() {
   const [postContent, setPostContent] = useState('');
   const [postType, setPostType] = useState<'thought' | 'gratitude' | 'support'>('support');
   const [chatBusy, setChatBusy] = useState(false);
+  const [postBusy, setPostBusy] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [robotFeedback, setRobotFeedback] = useState<RobotDispatchFeedback>(null);
   const [micActive, setMicActive] = useState(false);
@@ -261,7 +262,8 @@ export default function App() {
 
   const addPost = async () => {
     const content = postContent.trim();
-    if (!content) return;
+    if (!content || postBusy) return;
+    setPostBusy(true);
     const postId = `post-${Date.now().toString(36)}-${Math.floor(Math.random() * 900 + 100)}`;
     dispatch({type: 'ADD_FOREST_POST', payload: {id: postId, content, type: postType}});
     setPostContent('');
@@ -271,6 +273,8 @@ export default function App() {
       dispatch({type: 'SET_FOREST_POST_REPLY', payload: {id: postId, botReply: reply}});
     } catch {
       // silent — bot reply is a bonus, not critical
+    } finally {
+      setPostBusy(false);
     }
   };
 
@@ -477,6 +481,7 @@ export default function App() {
         postType={postType}
         setPostType={setPostType}
         chatBusy={chatBusy}
+        postBusy={postBusy}
         micActive={micActive}
         micError={micError}
         currentAcoustic={currentAcoustic}
@@ -984,6 +989,7 @@ function DetailDrawer(props: {
   postType: 'thought' | 'gratitude' | 'support';
   setPostType: (value: 'thought' | 'gratitude' | 'support') => void;
   chatBusy: boolean;
+  postBusy: boolean;
   micActive: boolean;
   micError: string;
   currentAcoustic: ReturnType<typeof describeAcousticSignal>;
@@ -1145,6 +1151,7 @@ function CarePanel({
   postContent,
   setPostContent,
   onAddPost,
+  postBusy,
   message,
   setMessage,
   onSendMessage,
@@ -1178,7 +1185,7 @@ function CarePanel({
         </div>
         <textarea value={postContent} onChange={(event) => setPostContent(event.target.value)} maxLength={500} className="mt-3 min-h-24 w-full rounded-xl border border-slate-200 bg-white p-4 text-sm font-semibold outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="匿名寫下一句支持自己的話..." />
         <p className="text-right text-xs text-gray-400 mt-0.5">{postContent.length} / 500</p>
-        <button onClick={onAddPost} disabled={!postContent.trim()} className="mt-3 min-h-11 w-full rounded-xl bg-teal-600 text-sm font-black text-white disabled:opacity-50 disabled:cursor-not-allowed">發表葉子</button>
+        <button onClick={onAddPost} disabled={!postContent.trim() || postBusy} className="mt-3 min-h-11 w-full rounded-xl bg-teal-600 text-sm font-black text-white disabled:opacity-50 disabled:cursor-not-allowed">發表葉子</button>
         <div className="mt-4 space-y-2">
           {state.forestPosts.length === 0 && (
             <div className="text-center py-8 text-gray-400">

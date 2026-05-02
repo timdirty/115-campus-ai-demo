@@ -291,7 +291,11 @@ function readJson<T>(key: string, fallback: T): T {
 }
 
 function writeJson(key: string, value: unknown) {
-  localStorage.setItem(key, JSON.stringify(value));
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // QuotaExceededError or storage disabled — best-effort
+  }
 }
 
 function loadLocalSession(): ClassroomSession {

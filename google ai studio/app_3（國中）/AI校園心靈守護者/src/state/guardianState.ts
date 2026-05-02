@@ -427,12 +427,12 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
             id: uid('int'),
             title: '機器人已派遣',
             description: `已指派機器人前往 ${action.payload.zoneName}，先做燈號/語音提示並通知老師到場確認。`,
-            status: 'running',
+            status: 'running' as Intervention['status'],
             area: action.payload.zoneName,
             updatedAt: timeLabel(now),
           },
           ...state.interventions,
-        ],
+        ].slice(0, 50),
         lastUpdated: now,
       };
 
