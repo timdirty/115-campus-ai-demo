@@ -64,9 +64,13 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
   };
 
   const downloadReport = async () => {
-    await openPrintableReport({ state, kind: 'class', title: '101 教室歷史課報告' });
-    showToast('已開啟可列印報表');
-    setModal(null);
+    try {
+      await openPrintableReport({ state, kind: 'class', title: '101 教室歷史課報告' });
+      showToast('已開啟可列印報表');
+      setModal(null);
+    } catch {
+      showToast('報表匯出失敗，請稍後再試');
+    }
   };
 
   const handleRollCall = () => {

@@ -42,7 +42,7 @@ export function CapturePanel({
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
+    if (file && !analyzing) {
       onUploadImage(file);
       // Reset so the same file can be re-selected if needed
       event.target.value = '';

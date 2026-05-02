@@ -314,5 +314,5 @@ export function downloadTextFile(filename: string, content: string) {
   anchor.href = url;
   anchor.download = filename;
   anchor.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
 }

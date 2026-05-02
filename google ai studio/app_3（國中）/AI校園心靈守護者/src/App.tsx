@@ -286,6 +286,7 @@ export default function App() {
       const reply = await generateSupportReply(text, selectedMood, acousticLocation, alertSummary);
       dispatch({type: 'ADD_SUPPORT_MESSAGE', payload: {role: 'guardian', content: reply}});
     } catch {
+      dispatch({type: 'ADD_SUPPORT_MESSAGE', payload: {role: 'guardian', content: '暫時無法回應，請稍後再試。'}});
       showToast('守護者暫時無法回應，請稍後再試');
     } finally {
       setChatBusy(false);
