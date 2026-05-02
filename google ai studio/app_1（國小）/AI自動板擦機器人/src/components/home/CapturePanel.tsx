@@ -1,5 +1,5 @@
-import type {RefObject} from 'react';
-import {Camera, CircleStop, Loader2, Mic, Sparkles} from 'lucide-react';
+import type {ChangeEvent, RefObject} from 'react';
+import {Camera, CircleStop, Loader2, Mic, Sparkles, Upload} from 'lucide-react';
 
 type CapturePanelProps = {
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -16,6 +16,7 @@ type CapturePanelProps = {
   onToggleCamera: () => void;
   onCaptureAndAnalyze: () => void;
   onToggleRecording: () => void;
+  onUploadImage: (file: File) => void;
 };
 
 export function CapturePanel({
@@ -33,10 +34,20 @@ export function CapturePanel({
   onToggleCamera,
   onCaptureAndAnalyze,
   onToggleRecording,
+  onUploadImage,
 }: CapturePanelProps) {
   const cameraBusy = mediaBusy === 'camera';
   const transcriptionBusy = mediaBusy === 'transcribe';
   const analyzing = busy === 'analyze';
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      onUploadImage(file);
+      // Reset so the same file can be re-selected if needed
+      event.target.value = '';
+    }
+  };
 
   return (
     <section className="xl:col-span-7 bg-surface-container-lowest rounded-lg p-4 sm:p-5 border border-outline-variant/20 shadow-premium">
@@ -70,10 +81,28 @@ export function CapturePanel({
       <div className="relative aspect-video rounded-lg bg-on-surface overflow-hidden border border-outline-variant/30">
         <video ref={videoRef} muted playsInline className={`absolute inset-0 w-full h-full object-cover ${cameraReady ? 'opacity-100' : 'opacity-0'}`} />
         {!cameraReady && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-on-primary p-8">
-            <Camera className="w-12 h-12 mb-4 opacity-80" aria-hidden="true" />
-            <p className="text-lg font-extrabold">攝影機尚未開啟</p>
-            <p className="text-sm opacity-70 mt-2">開啟後可拍下白板，做成國小課堂紀錄。</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-on-primary p-8 gap-4">
+            <div>
+              <Camera className="w-12 h-12 mb-4 opacity-80 mx-auto" aria-hidden="true" />
+              <p className="text-lg font-extrabold">攝影機尚未開啟</p>
+              <p className="text-sm opacity-70 mt-2">開啟後可拍下白板，做成國小課堂紀錄。</p>
+            </div>
+            <div className="rounded-xl border-2 border-dashed border-amber-400 bg-amber-500/20 px-6 py-4 flex flex-col items-center gap-2">
+              <p className="text-xs font-bold text-amber-200">相機無法使用？改上傳圖片</p>
+              <label className="cursor-pointer">
+                <span className="inline-flex items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-400 active:scale-95 transition-all px-4 py-2 text-sm font-extrabold text-white shadow">
+                  <Upload className="w-4 h-4" aria-hidden="true" />
+                  上傳黑板照片分析
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={handleFileChange}
+                  disabled={analyzing}
+                />
+              </label>
+            </div>
           </div>
         )}
         {previewImage && (

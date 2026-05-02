@@ -96,6 +96,27 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
     }
   };
 
+  const handleImageUpload = async (file: File) => {
+    setBusy('analyze');
+    try {
+      const reader = new FileReader();
+      const imageBase64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('圖片讀取失敗'));
+        reader.readAsDataURL(file);
+      });
+      setPreviewImage(imageBase64);
+      const result = await analyzeBoardCapture({imageBase64, transcript, subjectHint});
+      setAnalysis(result);
+      setClassroom(result.session);
+      setNotice(result.aiMode === 'gemini' ? '白板分析完成，已整理成國小課堂建議' : '白板分析完成，目前使用本機示範分析');
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : '圖片上傳分析失敗');
+    } finally {
+      setBusy('');
+    }
+  };
+
   const saveAnalysisNote = async () => {
     if (!analysis) {
       return;
@@ -277,6 +298,7 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
             onToggleCamera={handleToggleCamera}
             onCaptureAndAnalyze={captureAndAnalyze}
             onToggleRecording={handleToggleRecording}
+            onUploadImage={handleImageUpload}
           />
           <RegionTaskPanel
             analysis={analysis}
