@@ -251,7 +251,7 @@ export function createInitialAppState(): AppState {
         battery: 100,
         task: '無',
         eta: '--',
-        phase: 'IDLE',
+        phase: '待命中',
         isRunning: false,
         speed: 1.1,
       },
@@ -263,7 +263,7 @@ export function createInitialAppState(): AppState {
         battery: 20,
         task: '充電中',
         eta: '--',
-        phase: 'CHARGING',
+        phase: '充電中',
         isRunning: false,
         speed: 0.8,
       },
@@ -274,8 +274,8 @@ export function createInitialAppState(): AppState {
         position: '保健中心前',
         battery: 55,
         task: '引導至保健中心',
-        eta: '5 MINS',
-        phase: 'GUIDING',
+        eta: '5分鐘',
+        phase: '引導中',
         isRunning: true,
         speed: 1.0,
       },
@@ -286,8 +286,8 @@ export function createInitialAppState(): AppState {
         position: '五年級走廊',
         battery: 82,
         task: '打掃 507 教室',
-        eta: '12 MINS',
-        phase: 'PHASE_2',
+        eta: '12分鐘',
+        phase: '執行任務',
         isRunning: true,
         speed: 1.2,
       },
@@ -538,8 +538,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
                   status: '配送',
                   position: '配送中心出發',
                   task: task.title,
-                  eta: '4 MINS',
-                  phase: 'DELIVERY',
+                  eta: '4分鐘',
+                  phase: '配送中',
                   isRunning: true,
                 }
               : robot,
@@ -583,7 +583,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
                   position: order.destination,
                   task: '等待下一個任務',
                   eta: '--',
-                  phase: 'READY',
+                  phase: '就緒',
                   isRunning: false,
                 }
               : robot,
@@ -627,7 +627,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
                   position: transitOrder.destination,
                   task: '等待下一個任務',
                   eta: '--',
-                  phase: 'READY',
+                  phase: '就緒',
                   isRunning: false,
                 }
               : robot,
@@ -870,8 +870,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
                   status,
                   position: `區域 ${action.payload.zone}`,
                   task: sourceTitle,
-                  eta: '6 MINS',
-                  phase: action.payload.taskType === 'broadcast' ? 'BROADCAST' : 'PATROL',
+                  eta: '6分鐘',
+                  phase: action.payload.taskType === 'broadcast' ? '廣播中' : '巡邏中',
                   isRunning: true,
                 }
               : robot,
@@ -906,7 +906,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         }),
         robots: state.robots.map((robot) =>
           robot.id === robotId
-            ? {...robot, status: '待命', task: '回到待命點', eta: '完成', phase: 'READY', isRunning: false}
+            ? {...robot, status: '待命', task: '回到待命點', eta: '完成', phase: '就緒', isRunning: false}
             : robot,
         ),
         logs: addLog(state, `派遣中心：區域 ${action.payload.zone} ${sourceTitle}已完成`, 'info', now),

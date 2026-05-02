@@ -387,7 +387,7 @@ export default function App() {
       {/* Proxy Health Banner */}
       {proxyOnline === false && !bannerDismissed && (
         <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800">
-          <span>⚠️ AI 橋接伺服器未連線（localhost:3200），智慧功能將使用本地模式</span>
+          <span>⚠️ AI 橋接伺服器未連線，智慧功能將使用本機模式運作</span>
           <button
             onClick={() => setBannerDismissed(true)}
             aria-label="關閉提示"
@@ -794,7 +794,7 @@ function RobotReadinessCard({state, robotFeedback}: {state: GuardianState; robot
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-black text-slate-500">機器人連動</p>
-          <h3 className="mt-1 text-lg font-black text-slate-950">{robotFeedback ? `${robotFeedback.zoneName}：${robotFeedback.stage}` : connected ? '硬體已接收' : '展示備援就緒'}</h3>
+          <h3 className="mt-1 text-lg font-black text-slate-950">{robotFeedback ? `${robotFeedback.zoneName}：${robotFeedback.stage}` : connected ? '硬體已接收' : '系統就緒'}</h3>
           <p className="mt-1 text-xs font-bold text-slate-500">{meta.detail}</p>
         </div>
         <span className={`rounded-full px-3 py-1 text-[10px] font-black ${connected ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
@@ -1335,7 +1335,7 @@ function LogsPanel({state, robotFeedback}: Parameters<typeof DetailDrawer>[0]) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-black text-slate-500">連動狀態</p>
-            <h3 className="mt-1 text-xl font-black text-slate-950">{robotFeedback ? `${robotFeedback.zoneName} 派遣中` : latestHardware?.status === 'sent' ? '硬體已接收' : '備援流程可展示'}</h3>
+            <h3 className="mt-1 text-xl font-black text-slate-950">{robotFeedback ? `${robotFeedback.zoneName} 派遣中` : latestHardware?.status === 'sent' ? '硬體已接收' : '智慧派遣就緒'}</h3>
           </div>
           <Bot className={`h-6 w-6 ${robotFeedback ? 'animate-pulse text-teal-700' : 'text-slate-400'}`} />
         </div>
