@@ -12,6 +12,8 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
   const isEmergency = state.campusStatus.isEmergency;
   const remindWarning = state.settings.remindWarning;
 
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
   useEffect(() => {
     // Dynamic sensors fluctuation
     const intv = setInterval(() => {
@@ -20,6 +22,7 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
         hum: Math.max(0, Math.min(100, Math.round(sensors.hum + (Math.random() * 2 - 1)))),
         aqi: Math.max(0, Math.round(sensors.aqi + (Math.random() * 4 - 2))),
       });
+      setLastUpdated(new Date());
     }, 3000);
     return () => clearInterval(intv);
   }, [actions, sensors]);
@@ -82,6 +85,9 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
 
       {/* Environmental Sensors */}
       <section className="grid grid-cols-2 gap-5 mb-8 px-1">
+        <p className="col-span-2 text-xs text-gray-400 text-right -mb-2">
+          更新於 {lastUpdated.getHours().toString().padStart(2, '0')}:{lastUpdated.getMinutes().toString().padStart(2, '0')}
+        </p>
         {[
           { icon: Thermometer, label: '室內溫度', val: sensors.temp, unit: '°C', color: isEmergency?'text-error':'text-primary', bg: 'bg-primary/5' },
           { icon: Droplets, label: '環境濕度', val: sensors.hum, unit: '%', color: isEmergency?'text-error':'text-[#4a80db]', bg: 'bg-primary/5' },

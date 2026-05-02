@@ -1101,10 +1101,23 @@ function CarePanel({
         <p className="text-right text-xs text-gray-400 mt-0.5">{postContent.length} / 500</p>
         <button onClick={onAddPost} className="mt-3 min-h-11 w-full rounded-xl bg-teal-600 text-sm font-black text-white">發表葉子</button>
         <div className="mt-4 space-y-2">
+          {state.forestPosts.length === 0 && (
+            <div className="text-center py-8 text-gray-400">
+              <p className="text-3xl mb-2">🌳</p>
+              <p className="text-sm">心靈森林正在生長...</p>
+              <p className="text-xs mt-1">分享一個感受，種下第一片葉子</p>
+            </div>
+          )}
           {state.forestPosts.slice(0, 3).map((post) => (
-            <div key={post.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p className="text-sm font-semibold leading-6 text-slate-700">{post.content}</p>
-              <p className="mt-2 text-xs font-black text-teal-700">支持 · {post.likes}</p>
+            <div key={post.id} className="rounded-xl border border-green-100 bg-linear-to-br from-green-50 to-emerald-50 p-3">
+              <div className="flex items-start gap-2">
+                <span className="text-lg leading-none mt-0.5">🌿</span>
+                <p className="text-sm font-semibold leading-6 text-gray-700 flex-1">{post.content}</p>
+              </div>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-xs font-black text-teal-700">支持 · {post.likes}</p>
+                <p className="text-xs text-gray-400">{new Date(post.createdAt).toLocaleTimeString('zh-TW', {hour: '2-digit', minute: '2-digit'})}</p>
+              </div>
             </div>
           ))}
         </div>

@@ -20,6 +20,7 @@ interface AppActions {
   dispatch: React.Dispatch<AppAction>;
   createDeliveryOrder: (payload: { productId: number; quantity: number; destination: string }) => void;
   completeOrder: (orderId: string) => void;
+  autoCompleteInTransit: () => void;
   saveSchedule: (payload: { id: string; time: string; area: string }) => void;
   scanAttendance: () => void;
   resolveTeachingSignal: (payload: { signalId: string; action: string }) => void;
@@ -73,6 +74,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       dispatch,
       createDeliveryOrder: (payload) => dispatch(createDeliveryOrder(payload)),
       completeOrder: (orderId) => dispatch(completeOrder(orderId)),
+      autoCompleteInTransit: () => dispatch({ type: 'AUTO_COMPLETE_IN_TRANSIT' }),
       saveSchedule: (payload) => dispatch(saveSchedule(payload)),
       scanAttendance: () => dispatch({ type: 'SET_ATTENDANCE_SCANNED' }),
       resolveTeachingSignal: (payload) => dispatch(resolveTeachingSignal(payload)),

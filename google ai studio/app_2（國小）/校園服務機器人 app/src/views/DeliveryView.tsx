@@ -51,6 +51,11 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
       showToast(`預約成功！機器人即將前往 ${dest}`);
       setIsOrdering(false);
       setModal(null);
+      // Auto-complete the order after 35 seconds for demo purposes
+      setTimeout(() => {
+        actions.autoCompleteInTransit();
+        showToast('✅ 配送完成！機器人已送達目的地');
+      }, 35000);
       setTimeout(() => navigateTo('delivery-tracking'), 600);
     }, 1200);
   };

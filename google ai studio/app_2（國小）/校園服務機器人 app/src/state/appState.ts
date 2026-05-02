@@ -179,6 +179,7 @@ export type AppAction =
   | { type: 'CLEAR_LOCAL_CACHE'; now?: string }
   | { type: 'MARK_HARDWARE_COMMAND'; payload: { id: string; ok: boolean; message: string }; now?: string }
   | { type: 'RESTORE_DEMO_STATE'; payload: { state: AppState }; now?: string }
+  | { type: 'AUTO_COMPLETE_IN_TRANSIT'; now?: string }
   | { type: 'RESET_DEMO'; now?: string };
 
 const svgUri = (svg: string) => `data:image/svg+xml,${encodeURIComponent(svg)}`;
@@ -598,6 +599,50 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           target: order.destination,
           source: 'delivery',
           note: `${order.robotId} 完成取件確認，回到待命狀態。`,
+        },
+      );
+    }
+
+    case 'AUTO_COMPLETE_IN_TRANSIT': {
+      const transitOrder = state.orders.find((item) => item.status === 'in_transit');
+      if (!transitOrder) return state;
+      const linkedTaskTitle = `配送 ${transitOrder.productName} x${transitOrder.quantity}`;
+
+      return withRobotCommandLog(
+        {
+          ...state,
+          orders: state.orders.map((item) =>
+            item.id === transitOrder.id ? { ...item, status: 'delivered', deliveredAt: now } : item,
+          ),
+          tasks: state.tasks.map((task) =>
+            task.robotId === transitOrder.robotId && task.title === linkedTaskTitle
+              ? { ...task, status: 'completed', completedAt: now, detail: '已送達並完成取件確認' }
+              : task,
+          ),
+          robots: state.robots.map((robot) =>
+            robot.id === transitOrder.robotId
+              ? {
+                  ...robot,
+                  status: '待命',
+                  position: transitOrder.destination,
+                  task: '等待下一個任務',
+                  eta: '--',
+                  phase: 'READY',
+                  isRunning: false,
+                }
+              : robot,
+          ),
+          logs: addLog(state, `配送完成：${transitOrder.productName} 已送達 ${transitOrder.destination}`, 'info', now),
+          lastUpdated: now,
+        },
+        state,
+        now,
+        {
+          command: 'DELIVERY_DONE',
+          label: `送達 ${transitOrder.productName}`,
+          target: transitOrder.destination,
+          source: 'delivery',
+          note: `${transitOrder.robotId} 完成取件確認，回到待命狀態。`,
         },
       );
     }
