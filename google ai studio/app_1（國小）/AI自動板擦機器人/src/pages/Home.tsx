@@ -88,7 +88,7 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
       const result = await analyzeBoardCapture({imageBase64, transcript, subjectHint});
       setAnalysis(result);
       setClassroom(result.session);
-      setNotice(result.aiMode === 'gemini' ? '白板分析完成，已整理成國小課堂建議' : '白板分析完成，目前使用國小本機 fallback');
+      setNotice(result.aiMode === 'gemini' ? '白板分析完成，已整理成國小課堂建議' : '白板分析完成，目前使用本機示範分析');
     } catch (error) {
       setNotice(error instanceof Error ? error.message : '白板分析失敗');
     } finally {
@@ -184,9 +184,9 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
 
   const boardRegions = analysis?.boardRegions ?? classroom?.boardRegions ?? [];
   const demoSteps = [
-    {label: '1. 拍白板', detail: '用攝影機或本機 fallback 取得課堂內容'},
-    {label: '2. 教師決策', detail: '保留重點、標記可擦區塊'},
-    {label: '3. 送機器人', detail: '有 UNO R4 就送出，沒硬體也保留紀錄'},
+    {label: '拍白板', detail: '取畫面'},
+    {label: '選區塊', detail: '保留或擦除'},
+    {label: '派機器人', detail: '送出任務'},
   ];
 
   return (
@@ -194,9 +194,9 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-8 pb-36">
         <motion.section variants={itemVariants} className="mb-6 flex flex-col lg:flex-row lg:items-end justify-between gap-4">
           <div>
-            <p className="text-[10px] sm:text-xs font-bold text-primary uppercase mb-2">Elementary Classroom Console</p>
+            <p className="text-xs font-bold text-primary mb-2">國小課堂中控</p>
             <h1 className="text-3xl sm:text-5xl font-extrabold">國小 AI 白板助教</h1>
-            <p className="text-on-surface-variant mt-3 max-w-2xl leading-relaxed">把白板、老師講解、課堂紀錄本、AI 小老師與學習單生成集中在同一個操作面。</p>
+            <p className="text-on-surface-variant mt-3 max-w-2xl leading-relaxed">拍白板、選區塊、派機器人。</p>
           </div>
           <button
             type="button"
@@ -213,11 +213,9 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
           <div className="rounded-3xl border border-primary/10 bg-primary-container/50 p-5 sm:p-6 shadow-sm">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary">3 分鐘評審展示模式</p>
-                <h2 className="mt-2 text-xl font-extrabold leading-snug text-primary sm:text-2xl">白板內容進來，教師決策出去，機器人支線可選配。</h2>
-                <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-on-surface-variant">
-                  現場不用擔心 API key 或硬體：Gemini 未設定時自動走本機教學範例，UNO R4 未連線時保留可送出的任務紀錄。
-                </p>
+                <p className="text-xs font-black text-primary">主流程</p>
+                <h2 className="mt-2 text-xl font-extrabold leading-snug text-primary sm:text-2xl">看白板，決定擦哪裡。</h2>
+                <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-on-surface-variant">沒有硬體也能留下派遣紀錄。</p>
               </div>
               <button onClick={() => onNavigate('teacher')} className="min-h-11 shrink-0 rounded-2xl bg-primary px-4 text-sm font-extrabold text-on-primary transition active:scale-95 flex items-center justify-center gap-2">
                 前往教師決策
@@ -245,15 +243,15 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
               </div>
             </div>
             <div className="mt-4 space-y-2 text-sm font-bold text-on-surface-variant">
-              <p>Gemini：{health?.geminiConfigured ? '伺服器端已設定' : '本機 fallback 已啟用'}</p>
-              <p>Bridge：{health?.ok ? `已連線 localhost:${health.bridgePort}` : '未連線時保留瀏覽器紀錄'}</p>
-              <p>Serial：選配，未連線不影響教師決策流程</p>
+              <p>AI：{health?.geminiConfigured ? '雲端分析可用' : '本機示範可用'}</p>
+              <p>機器人：{health?.ok ? '可連動' : '未連線仍可展示'}</p>
+              <p>紀錄：決策與派遣都會保存</p>
             </div>
           </div>
         </motion.section>
 
         <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
-          <StatusTile icon={Radio} label="Bridge" value={health?.ok ? `localhost:${health.bridgePort}` : '未連線'} ok={Boolean(health?.ok)} />
+          <StatusTile icon={Radio} label="本機硬體" value={health?.ok ? '可展示' : '未連線'} ok={Boolean(health?.ok)} />
           <StatusTile icon={Bot} label="Gemini" value={health?.geminiConfigured ? '伺服器端已設定' : '本機展示模式'} ok={true} />
           <StatusTile icon={Video} label="攝影機" value={media.cameraReady ? '已開啟' : '待授權'} ok={media.cameraReady} />
           <StatusTile icon={Database} label="紀錄本" value={latestNote ? `${latestNote.subject} 已同步` : '等待課堂紀錄'} ok={Boolean(latestNote)} />

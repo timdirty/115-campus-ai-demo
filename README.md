@@ -1,12 +1,12 @@
 # 115 資通訊比賽作品工作區
 
-這個工作區整理三隊國小組作品與同一套 Arduino UNO R4 WiFi firmware。目標是比賽現場可穩定展示的本機完整 Demo：功能要能點、狀態要能串、資料要能重置，沒有真硬體、真雲端或 Gemini key 時也要能順順講完；插上 UNO R4 並上傳韌體後，三個 App 會共用同一個本機 bridge 送 Serial 指令。
+這個工作區整理兩隊國小組與一隊國中組作品，以及同一套 Arduino UNO R4 WiFi firmware。目標是比賽現場可穩定展示的本機完整 Demo：功能要能點、狀態要能串、資料要能重置，沒有真硬體、真雲端或 Gemini key 時也要能順順講完；插上 UNO R4 並上傳韌體後，三個 App 會共用同一個本機 bridge 送 Serial 指令。
 
 ## 三隊作品
 
 - `google ai studio/app_1（國小）/AI自動板擦機器人`：白板拍照、語音逐字稿、AI 摘要、教師決策、筆記複習與 UNO R4 Serial 控制。
 - `google ai studio/app_2（國小）/校園服務機器人 app`：福利社配送、清潔排程、教學輔助、放學引導、鐘聲廣播與校園中控台。
-- `google ai studio/app_3（國小）/AI校園心靈守護者`：校園情緒關懷、預警處理、自我照護、匿名心情牆與節點監控。
+- `google ai studio/app_3（國中）/AI校園心靈守護者`：校園情緒關懷、預警處理、自我照護、匿名心情牆與節點監控。
 
 每隊 app 根目錄都有 `PLAN_TODO.md`，記錄作品定位、展示腳本、Arduino R4 WiFi 對接方向與驗收指令。
 
@@ -123,7 +123,7 @@ npm run dev
 App 3 local demo：
 
 ```zsh
-cd "google ai studio/app_3（國小）/AI校園心靈守護者"
+cd "google ai studio/app_3（國中）/AI校園心靈守護者"
 npm run dev
 ```
 

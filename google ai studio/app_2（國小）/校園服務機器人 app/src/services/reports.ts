@@ -67,7 +67,7 @@ export function createPrintableReportHtml({
       <div>
         <div class="label">校園服務機器人</div>
         <h1>${escapeHtml(title)}</h1>
-        <p class="meta">產生時間：${escapeHtml(generatedAt)}<br />報表類型：${kind === 'student' ? '個人學習力報告' : '班級與任務摘要'}</p>
+        <p class="meta">產生時間：${escapeHtml(generatedAt)}<br />報表類型：${kind === 'student' ? '學習狀態報告' : '班級與任務摘要'}</p>
       </div>
       <div class="meta">資料來源：本機展示資料<br />狀態版本：${escapeHtml(state.lastUpdated)}</div>
     </header>
@@ -80,10 +80,10 @@ export function createPrintableReportHtml({
 
     <h2>AI 摘要</h2>
     <div class="card">
-      <p>${report ? escapeHtml(`${report.name}：${report.learningStyle}，平均專注度 ${report.averageFocus}%，分心頻率 ${report.distractRate} 次/時。`) : '本堂課專注度、配送與派遣紀錄已完成彙整，可供評審檢視完整流程。'}</p>
+      <p>${report ? escapeHtml(`${report.name}：${report.learningStyle}。本次紀錄彙整課堂參與、服務配送與任務回饋，供老師快速安排下一步協助。`) : '本堂課的服務配送、校園派遣與任務回饋已完成彙整，可直接展示完整流程。'}</p>
     </div>
 
-    <h2>${report ? '學生事件紀錄' : '任務紀錄'}</h2>
+    <h2>${report ? '學習訊號紀錄' : '任務紀錄'}</h2>
     ${
       report
         ? `<ul>${report.events.map((event) => `<li>${escapeHtml(event)}</li>`).join('')}</ul>`
@@ -98,8 +98,8 @@ export function createPrintableReportHtml({
     <h2>處理建議</h2>
     <ul>
       <li>持續保留機器人任務與課堂事件的時間序，方便回溯。</li>
-      <li>展示時建議依序操作：點名、處理告警、下單配送、派遣任務、匯出報表。</li>
-      <li>若需正式上線，下一階段可接後端資料庫與硬體 API。</li>
+      <li>展示時建議依序操作：點名、處理提醒、下單配送、派遣任務、匯出報表。</li>
+      <li>實體設備接上後，會沿用同一套任務紀錄與回饋流程。</li>
     </ul>
 
     <div class="actions">

@@ -45,9 +45,9 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
       throw error;
     }
     if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new ApiClientError('本機 bridge 回應逾時', 0);
+      throw new ApiClientError('本機硬體連線回應逾時', 0);
     }
-    throw new ApiClientError(error instanceof Error ? error.message : '無法連接本機 bridge', 0);
+    throw new ApiClientError(error instanceof Error ? error.message : '無法連接本機硬體服務', 0);
   } finally {
     window.clearTimeout(timeout);
   }

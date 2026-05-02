@@ -74,8 +74,8 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
         >
           <div className="w-2.5 h-2.5 bg-[#87d46c] rounded-full animate-pulse shadow-[0_0_10px_rgba(135,212,108,0.8)]"></div>
           <div className="flex flex-col">
-            <span className="text-[9px] uppercase font-bold text-on-surface-variant/60 tracking-widest block font-mono">系統認證</span>
-            <span className="text-xs font-bold font-headline tracking-wide uppercase">中央控制核心 A-12 • 在線</span>
+            <span className="text-[9px] font-bold text-on-surface-variant/60 tracking-widest block">系統狀態</span>
+            <span className="text-xs font-bold font-headline tracking-wide">校園服務中控 • 在線</span>
           </div>
         </motion.div>
       </section>
@@ -116,8 +116,8 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
                  <AlertOctagon size={36} strokeWidth={2.5} />
                </div>
                <div>
-                  <h3 className={`font-headline text-2xl font-bold tracking-tight leading-none mb-2 ${isEmergency ? 'text-white' : 'text-on-surface'}`}>全校安全封鎖</h3>
-                  <p className={`text-xs font-bold uppercase tracking-widest font-mono ${isEmergency ? 'text-white/80' : 'text-on-surface-variant/40'}`}>{isEmergency ? '系統鎖定' : '待命部署'}</p>
+                  <h3 className={`font-headline text-2xl font-bold tracking-tight leading-none mb-2 ${isEmergency ? 'text-white' : 'text-on-surface'}`}>全校安全應變</h3>
+                  <p className={`text-xs font-bold tracking-widest ${isEmergency ? 'text-white/80' : 'text-on-surface-variant/40'}`}>{isEmergency ? '應變啟動' : '待命部署'}</p>
                </div>
              </div>
              <button
@@ -265,14 +265,14 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
               <div className="pt-5 border-t border-white/10">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse shadow-[0_0_8px_rgba(var(--color-primary),1)]"></div>
-                  <span className="text-[9px] font-extrabold text-primary uppercase tracking-[0.2em] font-mono">人臉識別比對成功</span>
+                  <span className="text-[9px] font-extrabold text-primary tracking-[0.2em]">場域狀態已更新</span>
                 </div>
                 <div className="bg-white/5 rounded-2xl border border-white/10 p-4 relative overflow-hidden group-hover/cam:bg-white/10 transition-colors">
                   <div className="flex items-center gap-4 relative z-10">
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center shrink-0 shadow-lg border border-white/10"><span className="font-bold text-xs font-mono">XM</span></div>
                     <div>
-                      <p className="text-sm font-bold text-white tracking-wide">已識別單體: 李小明</p>
-                      <p className="text-[10px] text-white/40 font-bold font-mono mt-1 uppercase tracking-widest leading-none">Class: A-G3 • ID: 1120054</p>
+                      <p className="text-sm font-bold text-white tracking-wide">人流密度：偏高</p>
+                      <p className="text-[10px] text-white/40 font-bold mt-1 tracking-widest leading-none">不辨識身分，只看場域狀態</p>
                     </div>
                   </div>
                 </div>
@@ -284,28 +284,28 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
               className="w-full py-5 px-8 rounded-3xl font-headline font-bold text-base shadow-2xl flex items-center justify-center gap-4 transition-all z-10 relative bg-primary text-white border-b-4 border-primary-container hover:shadow-[0_0_30px_rgba(var(--color-primary),0.5)] active:translate-y-1 active:border-b-0"
             >
               <Route size={22} className="group-hover:rotate-12 transition-transform" />
-              開啟行動派遣中心
+              開啟校園派遣
             </button>
           </div>
         </div>
       </section>
 
       {/* Modals */}
-      <BottomSheet isOpen={modal === 'logs'} onClose={() => setModal(null)} title="核心系統終端日誌">
+      <BottomSheet isOpen={modal === 'logs'} onClose={() => setModal(null)} title="系統紀錄">
          <div className="p-6 bg-[#0c121d] rounded-[2.5rem] mx-4 mb-10 mt-2 font-mono text-[11px] text-[#a9b1d6] leading-relaxed h-[50vh] overflow-y-auto custom-scrollbar shadow-2xl relative border-4 border-surface-container-low">
            <div className="flex items-center justify-between mb-6 sticky top-0 bg-[#0c121d]/90 backdrop-blur-xl pb-3 z-10 border-b border-white/10">
               <div className="flex items-center gap-3">
                  <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary border border-primary/20"><Terminal size={16}/></div>
-                 <span className="text-white font-extrabold uppercase tracking-widest text-[10px]">核心數據湖：日誌</span>
+                 <span className="text-white font-extrabold tracking-widest text-[10px]">派遣與硬體紀錄</span>
               </div>
               <div className="flex items-center gap-2 px-3 py-1 bg-[#87d46c]/10 rounded-full border border-[#87d46c]/20">
                  <div className="w-1.5 h-1.5 bg-[#87d46c] rounded-full animate-pulse shadow-[0_0_8px_rgba(135,212,108,1)]"></div>
-                 <span className="text-[9px] text-[#87d46c] font-extrabold uppercase tracking-[0.2em] font-mono">Streaming_Live</span>
+                 <span className="text-[9px] text-[#87d46c] font-extrabold tracking-[0.2em] font-mono">即時更新</span>
               </div>
            </div>
 
            <div className="space-y-2">
-             <div className="text-[10px] text-primary/40 font-bold mb-4 italic px-2">-- START OF SESSION --</div>
+             <div className="text-[10px] text-primary/40 font-bold mb-4 italic px-2">本次展示紀錄</div>
              {state.logs.map((log, i) => (
                 <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} key={i} className={`flex gap-3 group/log p-2 rounded-lg transition-colors hover:bg-white/5 ${log.type === 'warn' ? 'text-tertiary shadow-[inset_4px_0_0_rgba(var(--color-tertiary),1)]' : log.type === 'error' ? 'text-error shadow-[inset_4px_0_0_rgba(var(--color-error),1)]' : 'text-[#a9b1d6] shadow-[inset_4px_0_0_rgba(255,255,255,0.1)]'}`}>
                    <span className="opacity-30 font-bold shrink-0">{log.time}</span>
@@ -345,15 +345,12 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
                 <div className="w-3 h-3 bg-error rounded-full animate-pulse"></div>
                 <span className="text-white font-mono font-bold tracking-[0.4em] text-sm uppercase italic">REC_04:12:30_B4</span>
              </div>
-             <div className="text-[10px] text-white/30 font-mono tracking-widest font-bold ml-6 uppercase">延遲：12ms • 狀態：鎖定</div>
+             <div className="text-[10px] text-white/30 font-mono tracking-widest font-bold ml-6">延遲：12ms • 狀態：追蹤中</div>
           </div>
 
           <div className="absolute top-0 inset-x-0 h-48 bg-gradient-to-b from-[#050912] to-transparent z-10 pointer-events-none opacity-80"></div>
           <div className="absolute inset-0 bg-[#0c121d]">
-            <img
-              src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=1200&q=80"
-              className="w-full h-full object-cover opacity-50 mix-blend-screen scale-110"
-            />
+            <div className="w-full h-full scale-110" style={{background: 'linear-gradient(180deg, #0c1829 0%, #1a2d4a 50%, #0a1525 100%)'}} />
           </div>
 
           <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden opacity-30">
@@ -384,8 +381,8 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
                   <div className="flex items-center gap-4">
                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center shrink-0 shadow-2xl border border-white/20 font-bold font-mono text-xl">XM</div>
                      <div>
-                        <p className="text-[10px] text-primary font-extrabold uppercase tracking-[0.3em] font-mono mb-1">識別對象</p>
-                        <p className="text-white text-3xl font-bold tracking-tight">李小明 (1120054)</p>
+                        <p className="text-[10px] text-primary font-extrabold tracking-[0.3em] mb-1">場域狀態</p>
+                        <p className="text-white text-3xl font-bold tracking-tight">走廊人流偏高</p>
                      </div>
                   </div>
                   <div className="text-right">

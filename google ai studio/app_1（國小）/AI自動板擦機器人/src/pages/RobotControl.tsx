@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import {motion} from 'motion/react';
-import {Activity, BatteryMedium, Cable, ClipboardCheck, Loader2, Play, Radio, RotateCw, Send, Sparkles, Square, Zap} from 'lucide-react';
+import {Activity, BatteryMedium, Bot, Cable, ClipboardCheck, Loader2, Play, Radio, RotateCw, Send, Sparkles, Square, Zap} from 'lucide-react';
 import {loadRobotCommands, loadRobotStatus, RobotCommandInfo, RobotStatus, sendRobotCommand, sendRobotTask, TaskLogItem} from '../services/classroomApi';
 
 type SerialPortInfo = {
@@ -48,6 +48,21 @@ function iconForCommand(command: string) {
   return Send;
 }
 
+function commandDisplayName(command: string) {
+  if (command.includes('ERASE_REGION')) return `擦除 ${command.slice(-1)} 區`;
+  if (command.includes('KEEP_REGION')) return `保留 ${command.slice(-1)} 區`;
+  if (command === 'CLEAN_START') return '開始清潔';
+  if (command === 'CLEAN_STOP') return '清潔完成';
+  if (command === 'SHOW_ON') return '開始展示';
+  if (command === 'SHOW_OFF') return '停止展示';
+  if (command === 'FIREWORK') return '成功動畫';
+  if (command === 'RESET') return '重置狀態';
+  if (command === 'STOP') return '停止任務';
+  if (command.includes('LED')) return command.includes('ON') ? '提示燈開啟' : '提示燈關閉';
+  if (command.includes('SERVO')) return '板擦角度調整';
+  return command.replace(/_/g, ' ');
+}
+
 export default function RobotControl() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('等待連線');
@@ -57,6 +72,7 @@ export default function RobotControl() {
   const [robotStatus, setRobotStatus] = useState<RobotStatus | null>(null);
   const [taskLog, setTaskLog] = useState<TaskLogItem[]>([]);
   const [commands, setCommands] = useState<RobotCommandInfo[]>(fallbackCommands);
+  const [activeFeedback, setActiveFeedback] = useState({title: '板擦機器人待命', detail: '選擇任務後，這裡會即時顯示動作與結果。', ok: true, working: false});
 
   const refreshPorts = async () => {
     try {
@@ -72,9 +88,9 @@ export default function RobotControl() {
       setRobotStatus(robot.status);
       setTaskLog(robot.taskLog);
       setActivePort(robot.status.activePort || result.activePath || result.ports?.[0]?.path || '');
-      setStatus(robot.status.connected ? '已偵測到 Arduino 連線' : '展示模式：尚未偵測到 Arduino，指令會保留為任務紀錄');
+      setStatus(robot.status.connected ? '已偵測到實體機器人' : '展示模式：尚未偵測到實體機器人，指令會保留為任務紀錄');
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : '無法連線到本機 bridge');
+      setStatus(error instanceof Error ? error.message : '無法連線到本機硬體服務');
     }
   };
 
@@ -87,17 +103,26 @@ export default function RobotControl() {
     if (!trimmedCommand) return;
 
     setBusy(true);
-    setStatus(`送出 ${trimmedCommand}...`);
+    const displayName = commandDisplayName(trimmedCommand);
+    setStatus(`正在建立「${displayName}」任務...`);
+    setActiveFeedback({title: displayName, detail: '正在送出任務，等待回饋。', ok: true, working: true});
 
     try {
       const result = await sendRobotCommand(trimmedCommand, 'robot-control', activePort || undefined);
       setRobotStatus(result.status);
       setTaskLog(result.taskLog ?? []);
       setActivePort(result.status.activePort);
-      setStatus(result.ok ? `${trimmedCommand} 已送出` : `展示模式已保留指令：${result.error || result.status.lastResponse}`);
+      setStatus(result.ok ? `${displayName} 已送出` : `已保留展示紀錄：${result.error || result.status.lastResponse}`);
+      setActiveFeedback({
+        title: result.ok ? `${displayName} 已接收` : `${displayName} 已記錄`,
+        detail: result.ok ? '實體機器人已收到指令。' : '目前使用展示備援，任務仍會出現在紀錄中。',
+        ok: result.ok,
+        working: false,
+      });
       setCustomCommand('');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : '無法送出指令');
+      setActiveFeedback({title: `${displayName} 未送出`, detail: error instanceof Error ? error.message : '請稍後再試。', ok: false, working: false});
     } finally {
       setBusy(false);
     }
@@ -105,15 +130,25 @@ export default function RobotControl() {
 
   const sendTask = async (action: string, regionId?: string) => {
     setBusy(true);
-    setStatus(`送出 ${action}${regionId ? ` ${regionId}` : ''}...`);
+    const taskName = regionId ? `區塊 ${regionId}` : '全板';
+    setStatus(`正在建立${taskName}任務...`);
+    setActiveFeedback({title: `${taskName}任務`, detail: '正在整理擦除範圍與保留重點。', ok: true, working: true});
     try {
       const result = await sendRobotTask(action, regionId, 'robot-control', activePort || undefined);
       setRobotStatus(result.status);
       setTaskLog(result.taskLog ?? []);
       setActivePort(result.status.activePort);
-      setStatus(result.ok ? `${result.command} 已送出` : `展示模式已保留任務：${result.error || result.status.lastResponse}`);
+      const displayName = commandDisplayName(result.command);
+      setStatus(result.ok ? `${displayName} 已送出` : `已保留展示紀錄：${result.error || result.status.lastResponse}`);
+      setActiveFeedback({
+        title: result.ok ? `${displayName} 已排程` : `${displayName} 已記錄`,
+        detail: result.ok ? '板擦機器人會依照區塊執行。' : '展示模式會保留任務流程，方便評審看見互動結果。',
+        ok: result.ok,
+        working: false,
+      });
     } catch (error) {
       setStatus(error instanceof Error ? error.message : '無法送出任務');
+      setActiveFeedback({title: `${taskName}任務未送出`, detail: error instanceof Error ? error.message : '請稍後再試。', ok: false, working: false});
     } finally {
       setBusy(false);
     }
@@ -124,9 +159,9 @@ export default function RobotControl() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-10 pb-36">
         <motion.section variants={itemVariants} className="mb-6 sm:mb-8 flex flex-col lg:flex-row lg:items-end justify-between gap-4">
           <div>
-            <p className="text-[10px] sm:text-xs font-bold tracking-[0.24em] text-primary uppercase mb-2">Robot Command Center</p>
-            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight">機器人控制</h1>
-            <p className="text-on-surface-variant mt-3 max-w-2xl leading-relaxed">透過本機 USB Serial 控制 UNO R4 WiFi；未接硬體時自動進入展示模式，仍可完整呈現教師決策如何轉成可送出的機器人指令。</p>
+            <p className="text-xs font-bold text-primary mb-2">機器人指令台</p>
+            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight">板擦任務台</h1>
+            <p className="text-on-surface-variant mt-3 max-w-2xl leading-relaxed">選任務、看回饋、留紀錄。</p>
           </div>
           <button onClick={refreshPorts} className="h-11 px-4 rounded-full bg-surface-container-high hover:bg-primary hover:text-on-primary transition-all active:scale-95 flex items-center justify-center gap-2 font-bold">
             <RotateCw className="w-4 h-4" />
@@ -149,7 +184,7 @@ export default function RobotControl() {
               <span className={`w-3 h-3 rounded-full mt-2 ${ports.length ? 'bg-primary animate-pulse' : 'bg-outline-variant'}`} />
             </div>
 
-            <label className="block text-xs font-bold tracking-widest text-on-surface-variant uppercase mb-2">Serial Port</label>
+            <label className="block text-xs font-bold tracking-widest text-on-surface-variant mb-2">連接埠</label>
             <select
               value={activePort}
               onChange={(event) => setActivePort(event.target.value)}
@@ -164,10 +199,30 @@ export default function RobotControl() {
             </select>
 
             <div className="mt-6 grid grid-cols-2 gap-3">
-              <StatusMetric icon={Cable} label="橋接" value="localhost:3200" />
-              <StatusMetric icon={BatteryMedium} label="鮑率" value="115200" />
+              <StatusMetric icon={Cable} label="硬體服務" value={ports.length ? '已偵測' : '展示備援'} />
+              <StatusMetric icon={BatteryMedium} label="傳輸狀態" value={ports.length ? '可送出' : '先記錄'} />
               <StatusMetric icon={Activity} label="最後指令" value={robotStatus?.lastCommand || '尚無'} />
               <StatusMetric icon={Sparkles} label="最後回應" value={robotStatus?.lastResponse || '尚無'} />
+            </div>
+
+            <div className={`mt-5 overflow-hidden rounded-3xl border p-5 transition ${activeFeedback.ok ? 'border-primary/15 bg-primary-container/40' : 'border-tertiary/20 bg-tertiary/10'}`}>
+              <div className="flex items-center gap-4">
+                <div className={`robot-board-avatar grid h-20 w-20 place-items-center rounded-3xl bg-surface text-primary shadow-lg ${activeFeedback.working ? 'robot-board-active' : ''}`}>
+                  {activeFeedback.working ? <Loader2 className="h-9 w-9 animate-spin" /> : activeFeedback.ok ? <Bot className="h-10 w-10" /> : <Square className="h-9 w-9" />}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-on-surface-variant">即時回饋</p>
+                  <h3 className="mt-1 text-xl font-extrabold leading-tight">{activeFeedback.title}</h3>
+                  <p className="mt-1 text-sm font-bold leading-6 text-on-surface-variant">{activeFeedback.detail}</p>
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[10px] font-bold">
+                {['建立', '送出', '紀錄'].map((step, index) => (
+                  <div key={step} className={`rounded-xl px-2 py-2 ${activeFeedback.working ? index === 0 ? 'bg-primary text-on-primary' : 'bg-surface text-on-surface-variant' : activeFeedback.ok ? 'bg-primary text-on-primary' : index === 2 ? 'bg-tertiary text-on-tertiary' : 'bg-surface text-on-surface-variant'}`}>
+                    {step}
+                  </div>
+                ))}
+              </div>
             </div>
           </motion.section>
 
@@ -175,7 +230,7 @@ export default function RobotControl() {
             <div className="flex items-center justify-between gap-4 mb-5">
               <div>
                 <h2 className="text-xl font-extrabold">快速指令</h2>
-                <p className="text-sm text-on-surface-variant mt-1">按一下就送到 Arduino firmware 的 `handleCommand()`。</p>
+                <p className="text-sm text-on-surface-variant mt-1">每個按鈕都會更新狀態、留下任務紀錄，接上硬體後沿用同一流程。</p>
               </div>
               {busy && <Loader2 className="w-5 h-5 animate-spin text-primary" />}
             </div>
@@ -192,7 +247,7 @@ export default function RobotControl() {
                 >
                   <Icon className="w-5 h-5" />
                   <span className="text-sm">{item.label}</span>
-                  <span className="text-[10px] opacity-60">{item.command}</span>
+                  <span className="text-[10px] opacity-60">{commandDisplayName(item.command)}</span>
                 </button>
                 );
               })}
@@ -223,7 +278,7 @@ export default function RobotControl() {
                 value={customCommand}
                 onChange={(event) => setCustomCommand(event.target.value.toUpperCase())}
                 onKeyDown={(event) => event.key === 'Enter' && sendCommand(customCommand)}
-                placeholder="輸入自訂指令，例如 SERVO_180"
+                placeholder="輸入自訂任務，例如：擦除 A 區"
                 className="flex-1 bg-transparent outline-none px-3 text-sm font-bold"
               />
               <button
@@ -246,8 +301,8 @@ export default function RobotControl() {
             ) : taskLog.slice(0, 12).map((item) => (
               <div key={item.id} className="bg-surface rounded-2xl p-4 border border-outline-variant/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <p className="font-extrabold">{item.command} <span className={`text-xs ${item.ok ? 'text-primary' : 'text-tertiary'}`}>{item.ok ? 'OK' : 'FAILED'}</span></p>
-                  <p className="text-xs text-on-surface-variant mt-1">{item.source} · {item.message}</p>
+                  <p className="font-extrabold">{commandDisplayName(item.command)} <span className={`text-xs ${item.ok ? 'text-primary' : 'text-tertiary'}`}>{item.ok ? '已送出' : '備援紀錄'}</span></p>
+                  <p className="text-xs text-on-surface-variant mt-1">{item.message}</p>
                 </div>
                 <p className="text-xs text-on-surface-variant">{new Date(item.createdAt).toLocaleTimeString('zh-TW', {hour: '2-digit', minute: '2-digit'})}</p>
               </div>
@@ -263,7 +318,7 @@ function StatusMetric({icon: Icon, label, value}: any) {
   return (
     <div className="bg-surface rounded-2xl p-4 border border-outline-variant/10">
       <Icon className="w-5 h-5 text-primary mb-3" />
-      <p className="text-[10px] font-bold tracking-widest text-on-surface-variant uppercase">{label}</p>
+      <p className="text-[10px] font-bold text-on-surface-variant">{label}</p>
       <p className="text-sm font-extrabold mt-1 break-words">{value}</p>
     </div>
   );

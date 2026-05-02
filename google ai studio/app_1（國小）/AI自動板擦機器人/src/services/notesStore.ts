@@ -37,6 +37,20 @@ export type WhiteboardNote = {
 const NOTES_KEY = 'whiteboard-notes:elementary:v1';
 const THEMES: NoteTheme[] = ['primary', 'secondary', 'tertiary'];
 
+const svgUri = (svg: string) => `data:image/svg+xml,${encodeURIComponent(svg)}`;
+const WHITEBOARD_MATH = svgUri(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" fill="#F8FAFB"/><rect width="400" height="6" fill="#4a80db"/><line x1="40" y1="50" x2="360" y2="50" stroke="#E2E8F0" stroke-width="1"/><line x1="40" y1="80" x2="360" y2="80" stroke="#E2E8F0" stroke-width="1"/><line x1="40" y1="110" x2="360" y2="110" stroke="#E2E8F0" stroke-width="1"/><line x1="40" y1="140" x2="360" y2="140" stroke="#E2E8F0" stroke-width="1"/><rect x="40" y="56" width="180" height="14" rx="3" fill="#CBD5E1"/><rect x="40" y="86" width="240" height="14" rx="3" fill="#CBD5E1"/><rect x="40" y="116" width="200" height="14" rx="3" fill="#CBD5E1"/><rect x="60" y="146" width="160" height="14" rx="3" fill="#E2E8F0"/><text x="40" y="276" font-family="system-ui" font-size="13" fill="#94A3B8">1/4 + 2/4 = 3/4</text></svg>`,
+);
+const WHITEBOARD_SCIENCE = svgUri(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" fill="#F8FAFB"/><rect width="400" height="6" fill="#F59E0B"/><line x1="40" y1="50" x2="360" y2="50" stroke="#E2E8F0" stroke-width="1"/><line x1="40" y1="80" x2="360" y2="80" stroke="#E2E8F0" stroke-width="1"/><line x1="40" y1="110" x2="360" y2="110" stroke="#E2E8F0" stroke-width="1"/><rect x="40" y="56" width="200" height="14" rx="3" fill="#CBD5E1"/><rect x="40" y="86" width="280" height="14" rx="3" fill="#CBD5E1"/><rect x="40" y="116" width="220" height="14" rx="3" fill="#CBD5E1"/><ellipse cx="200" cy="210" rx="80" ry="48" fill="none" stroke="#F59E0B" stroke-width="2" stroke-dasharray="8 4"/><text x="162" y="214" font-family="system-ui" font-size="13" fill="#F59E0B">水循環</text></svg>`,
+);
+const WHITEBOARD_LANGUAGE = svgUri(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" fill="#F8FAFB"/><rect width="400" height="6" fill="#246b5b"/><line x1="40" y1="50" x2="360" y2="50" stroke="#E2E8F0" stroke-width="1"/><line x1="40" y1="80" x2="360" y2="80" stroke="#E2E8F0" stroke-width="1"/><line x1="40" y1="110" x2="360" y2="110" stroke="#E2E8F0" stroke-width="1"/><line x1="40" y1="140" x2="360" y2="140" stroke="#E2E8F0" stroke-width="1"/><line x1="40" y1="170" x2="360" y2="170" stroke="#E2E8F0" stroke-width="1"/><rect x="40" y="56" width="220" height="14" rx="3" fill="#CBD5E1"/><rect x="60" y="86" width="180" height="14" rx="3" fill="#CBD5E1"/><rect x="60" y="116" width="200" height="14" rx="3" fill="#CBD5E1"/><rect x="60" y="146" width="160" height="14" rx="3" fill="#E2E8F0"/><rect x="60" y="176" width="140" height="14" rx="3" fill="#E2E8F0"/><text x="40" y="216" font-family="system-ui" font-size="11" fill="#94A3B8">① 角色  ② 時間  ③ 地點</text></svg>`,
+);
+const WHITEBOARD_DEFAULT = svgUri(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" fill="#F8FAFB"/><rect width="400" height="6" fill="#64748B"/><line x1="40" y1="50" x2="360" y2="50" stroke="#E2E8F0" stroke-width="1"/><line x1="40" y1="80" x2="360" y2="80" stroke="#E2E8F0" stroke-width="1"/><line x1="40" y1="110" x2="360" y2="110" stroke="#E2E8F0" stroke-width="1"/><rect x="40" y="56" width="200" height="14" rx="3" fill="#CBD5E1"/><rect x="40" y="86" width="260" height="14" rx="3" fill="#CBD5E1"/><rect x="40" y="116" width="180" height="14" rx="3" fill="#E2E8F0"/></svg>`,
+);
+
 export const DEFAULT_NOTES: WhiteboardNote[] = [
   {
     id: 1,
@@ -52,8 +66,8 @@ export const DEFAULT_NOTES: WhiteboardNote[] = [
     date: '4月29日',
     time: '上午 09:20',
     theme: 'secondary',
-    img: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=1200&auto=format&fit=crop',
-    imageUrl: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=1200&auto=format&fit=crop',
+    img: WHITEBOARD_MATH,
+    imageUrl: WHITEBOARD_MATH,
     createdAt: '2026-04-29T09:20:00+08:00',
   },
   {
@@ -70,8 +84,8 @@ export const DEFAULT_NOTES: WhiteboardNote[] = [
     date: '4月28日',
     time: '下午 01:35',
     theme: 'tertiary',
-    img: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1200&auto=format&fit=crop',
-    imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1200&auto=format&fit=crop',
+    img: WHITEBOARD_SCIENCE,
+    imageUrl: WHITEBOARD_SCIENCE,
     createdAt: '2026-04-28T13:35:00+08:00',
   },
   {
@@ -88,8 +102,8 @@ export const DEFAULT_NOTES: WhiteboardNote[] = [
     date: '4月27日',
     time: '上午 10:10',
     theme: 'primary',
-    img: 'https://images.unsplash.com/photo-1519682337058-a94d519337bc?q=80&w=1200&auto=format&fit=crop',
-    imageUrl: 'https://images.unsplash.com/photo-1519682337058-a94d519337bc?q=80&w=1200&auto=format&fit=crop',
+    img: WHITEBOARD_LANGUAGE,
+    imageUrl: WHITEBOARD_LANGUAGE,
     createdAt: '2026-04-27T10:10:00+08:00',
   },
 ];
@@ -191,7 +205,7 @@ export function addNote(input: Pick<WhiteboardNote, 'title' | 'subject' | 'conte
     date: now.toLocaleDateString('zh-TW', {month: 'long', day: 'numeric'}),
     time: now.toLocaleTimeString('zh-TW', {hour: '2-digit', minute: '2-digit'}),
     theme: input.theme ?? 'primary',
-    img: input.img ?? 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1200&auto=format&fit=crop',
+    img: input.img ?? WHITEBOARD_DEFAULT,
     createdAt: now.toISOString(),
   };
 

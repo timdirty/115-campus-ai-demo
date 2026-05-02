@@ -32,12 +32,12 @@ export function TaskScheduleView({ goBack, showToast }: any) {
               <Wind size={36} />
             </div>
             <div className="py-2">
-              <p className="font-mono text-[11px] text-primary uppercase tracking-[0.2em] font-bold mb-1.5">New Schedule</p>
-              <h2 className="text-3xl font-headline font-bold text-on-surface tracking-tight">教室定時消毒</h2>
+              <p className="text-xs text-primary font-bold mb-1.5">新增排程</p>
+              <h2 className="text-3xl font-headline font-bold text-on-surface tracking-tight">教室定時清潔</h2>
             </div>
           </div>
 
-          <h3 className="font-bold text-on-surface-variant text-xs px-2 uppercase tracking-widest font-mono">執行區域</h3>
+          <h3 className="font-bold text-on-surface-variant text-xs px-2">執行區域</h3>
           <div className="bg-surface-container-low rounded-[1.75rem] p-6 border border-outline-variant/20 flex justify-between items-center shadow-sm">
              <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/10">
@@ -53,34 +53,34 @@ export function TaskScheduleView({ goBack, showToast }: any) {
         </section>
 
         <section className="space-y-4 pt-2">
-          <h3 className="font-bold text-on-surface-variant text-xs px-2 uppercase tracking-widest font-mono">執行時間</h3>
+          <h3 className="font-bold text-on-surface-variant text-xs px-2">執行時間</h3>
           <div className="grid grid-cols-2 gap-5">
              <div className="bg-surface-container-lowest p-6 rounded-[1.75rem] border border-outline-variant/30 shadow-sm relative overflow-hidden group hover:border-primary/30 transition-colors">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full pointer-events-none transition-transform group-hover:scale-110"></div>
-                <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest mb-3 relative z-10">開始時間</p>
+                <p className="text-[11px] font-bold text-on-surface-variant mb-3 relative z-10">開始時間</p>
                 <div className="flex items-center gap-3 relative z-10">
                    <Clock className="text-primary" size={24} />
                    <input
                      type="time"
                      value={startTime}
                      onChange={(event) => setStartTime(event.target.value)}
-                     className="w-32 bg-transparent font-mono text-3xl font-bold tracking-tighter outline-none"
+                     className="w-32 bg-transparent text-3xl font-bold tracking-tight outline-none"
                      aria-label="開始時間"
                    />
                 </div>
              </div>
              <div className="bg-surface-container-lowest p-6 rounded-[1.75rem] border border-outline-variant/30 shadow-sm relative overflow-hidden group hover:border-outline-variant/50 transition-colors">
-                <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest mb-3 relative z-10">結束時間</p>
+                <p className="text-[11px] font-bold text-on-surface-variant mb-3 relative z-10">結束時間</p>
                 <div className="flex items-center gap-3 relative z-10">
                    <Clock className="text-on-surface-variant/40" size={24} />
-                   <span className="font-mono text-3xl font-bold tracking-tighter text-on-surface-variant/70">18:00</span>
+                   <span className="text-3xl font-bold tracking-tight text-on-surface-variant/70">18:00</span>
                 </div>
              </div>
           </div>
         </section>
 
         <section className="space-y-4 pt-2">
-          <h3 className="font-bold text-on-surface-variant text-xs px-2 uppercase tracking-widest font-mono">區域快速切換</h3>
+          <h3 className="font-bold text-on-surface-variant text-xs px-2">區域快速切換</h3>
           <select
             value={area}
             onChange={(event) => setArea(event.target.value)}
@@ -93,7 +93,7 @@ export function TaskScheduleView({ goBack, showToast }: any) {
         </section>
 
         <section className="space-y-4 pt-2">
-          <h3 className="font-bold text-on-surface-variant text-xs px-2 uppercase tracking-widest font-mono">重複頻率</h3>
+          <h3 className="font-bold text-on-surface-variant text-xs px-2">重複頻率</h3>
           <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-[1.75rem] border border-outline-variant/20 shadow-sm">
              {['日', '一', '二', '三', '四', '五', '六'].map((day, i) => (
                 <button

@@ -1,0 +1,55 @@
+import {GuardianState, RiskLevel, SchoolZone} from '../types';
+
+export interface SchoolZoneStatus extends SchoolZone {
+  nodeStatus: string;
+  stability: number;
+  soundIndex: number;
+  alertCount: number;
+  riskScore: number;
+  riskLevel: RiskLevel;
+  summary: string;
+}
+
+export const schoolZones: SchoolZone[] = [
+  {id: 'zone-library', name: '圖書館', location: '圖書館走廊', nodeId: 'node-library', x: 9, y: 12},
+  {id: 'zone-hall', name: '穿堂', location: '行政大樓 1F', nodeId: 'node-hall', x: 47, y: 13},
+  {id: 'zone-classroom', name: '九年級教室', location: '三樓教室', nodeId: 'node-hall', x: 12, y: 56},
+  {id: 'zone-gym', name: '體育館', location: '體育館入口', nodeId: 'node-gym', x: 51, y: 57},
+  {id: 'zone-field', name: '操場', location: '操場', nodeId: 'node-restroom', x: 75, y: 35},
+];
+
+export function buildSchoolZoneStatuses(state: GuardianState): SchoolZoneStatus[] {
+  return schoolZones.map((zone) => {
+    const node = state.nodes.find((item) => item.id === zone.nodeId);
+    const zoneAlerts = state.alerts.filter((alert) => alert.status !== 'resolved' && matchesZone(alert.location, zone));
+    const sound = state.acousticSignals.find((signal) => matchesZone(signal.location, zone));
+    const soundIndex = sound?.volumeIndex ?? Math.max(18, Math.min(92, node?.load ?? 30));
+    const alertWeight = zoneAlerts.reduce((total, alert) => total + (alert.riskLevel === 'high' ? 22 : alert.riskLevel === 'medium' ? 14 : 7), 0);
+    const nodeWeight = node?.status === 'offline' ? 18 : node?.status === 'attention' ? 12 : 0;
+    const soundWeight = sound?.level === 'elevated' ? 18 : sound?.level === 'active' ? 9 : 0;
+    const riskScore = Math.max(0, Math.min(100, Math.round(20 + alertWeight + nodeWeight + soundWeight + soundIndex * 0.28)));
+    const riskLevel: RiskLevel = riskScore >= 72 ? 'high' : riskScore >= 48 ? 'medium' : 'low';
+    const stability = Math.max(0, 100 - riskScore);
+    const summary =
+      riskLevel === 'high'
+        ? '建議立即派老師或機器人前往提示與引導。'
+        : riskLevel === 'medium'
+          ? '建議值週老師觀察，必要時派機器人前往。'
+          : '維持一般巡查。';
+
+    return {
+      ...zone,
+      nodeStatus: node?.status ?? 'unknown',
+      stability,
+      soundIndex,
+      alertCount: zoneAlerts.length,
+      riskScore,
+      riskLevel,
+      summary,
+    };
+  });
+}
+
+function matchesZone(location: string, zone: SchoolZone) {
+  return location.includes(zone.name) || zone.location.includes(location) || location.includes(zone.location);
+}

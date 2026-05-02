@@ -1,8 +1,10 @@
-export type ViewType = 'dashboard' | 'alerts' | 'self-care' | 'nodes';
+export type ViewType = 'dashboard' | 'alerts' | 'self-care' | 'sensing' | 'nodes';
 export type RiskLevel = 'high' | 'medium' | 'low';
 export type AlertStatus = 'new' | 'processing' | 'resolved';
 export type MoodType = 'happy' | 'steady' | 'tired' | 'worried';
 export type NodeStatus = 'online' | 'attention' | 'offline';
+export type AcousticLevel = 'calm' | 'active' | 'elevated';
+export type RobotMissionStatus = 'dispatching' | 'arrived' | 'completed';
 
 export interface ChecklistItem {
   id: string;
@@ -33,6 +35,15 @@ export interface GuardianNode {
   load: number;
   signal: number;
   lastEvent: string;
+}
+
+export interface SchoolZone {
+  id: string;
+  name: string;
+  location: string;
+  nodeId: string;
+  x: number;
+  y: number;
 }
 
 export interface MoodLog {
@@ -76,6 +87,26 @@ export interface HardwareEvent {
   createdAt: string;
 }
 
+export interface AcousticSignal {
+  id: string;
+  source: 'microphone' | 'demo';
+  location: string;
+  level: AcousticLevel;
+  volumeIndex: number;
+  volatility: number;
+  summary: string;
+  createdAt: string;
+}
+
+export interface RobotMission {
+  id: string;
+  zoneName: string;
+  riskScore: number;
+  status: RobotMissionStatus;
+  command: string;
+  createdAt: string;
+}
+
 export interface GuardianState {
   stabilityScore: number;
   teacherWellbeingScore: number;
@@ -87,5 +118,7 @@ export interface GuardianState {
   forestPosts: ForestPost[];
   interventions: Intervention[];
   hardwareEvents: HardwareEvent[];
+  acousticSignals: AcousticSignal[];
+  robotMissions: RobotMission[];
   lastUpdated: string;
 }

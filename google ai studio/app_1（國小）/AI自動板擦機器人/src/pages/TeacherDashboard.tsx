@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 import {motion} from 'motion/react';
-import {AlertTriangle, Brain, CheckCircle2, ClipboardCheck, Eraser, Loader2, Pause, Radio, RefreshCw, ShieldCheck, Sparkles, Users} from 'lucide-react';
+import {AlertTriangle, Bot, Brain, CheckCircle2, ClipboardCheck, Eraser, Loader2, Pause, Radio, RefreshCw, ShieldCheck, Sparkles, Users} from 'lucide-react';
 import {BoardRegion, ClassroomSession, loadClassroomSession, saveClassroomSession, sendRobotTask} from '../services/classroomApi';
 
 const containerVariants: any = {
@@ -24,6 +24,9 @@ export default function TeacherDashboard() {
   const [session, setSession] = useState<ClassroomSession | null>(null);
   const [busyCommand, setBusyCommand] = useState('');
   const [hardwareBusy, setHardwareBusy] = useState('');
+  const [robotStage, setRobotStage] = useState<'idle' | 'sending' | 'done' | 'fallback'>('idle');
+  const [robotTarget, setRobotTarget] = useState<string | undefined>();
+  const [robotTaskId, setRobotTaskId] = useState('');
   const [hardwareNotice, setHardwareNotice] = useState('硬體控制是選配展示：沒有接 UNO R4 WiFi 時會保留操作紀錄，不會中斷課堂流程。');
   const [notice, setNotice] = useState('正在讀取課堂狀態...');
 
@@ -45,6 +48,17 @@ export default function TeacherDashboard() {
     if (!session) return 100;
     return session.focusPercent + session.confusedPercent + session.tiredPercent;
   }, [session]);
+  const activeRobotRegion = useMemo(() => {
+    if (!session || !robotTarget || robotTarget === 'ALL') return null;
+    return session.boardRegions.find((region) => region.id === robotTarget) ?? null;
+  }, [robotTarget, session]);
+  const robotMarkerPosition = robotStage === 'idle'
+    ? {left: '92%', top: '14%'}
+    : activeRobotRegion
+      ? {left: `${activeRobotRegion.x + activeRobotRegion.width / 2}%`, top: `${activeRobotRegion.y + activeRobotRegion.height / 2}%`}
+      : {left: '50%', top: '50%'};
+  const robotProgress = robotStage === 'idle' ? 0 : robotStage === 'sending' ? 54 : 100;
+  const robotTargetLabel = robotTarget === 'ALL' ? '全板' : robotTarget ? `區塊 ${robotTarget}` : '待命';
 
   const updateRegionStatus = async (regionId: string, status: BoardRegion['status']) => {
     if (!session) return;
@@ -87,11 +101,19 @@ export default function TeacherDashboard() {
   };
 
   const sendTaskToRobot = async (action: string, regionId: string | undefined, label: string) => {
+    if (hardwareBusy) {
+      setHardwareNotice('上一個機器人任務正在處理，請等任務回饋完成。');
+      return;
+    }
     const busyKey = `robot-${action}-${regionId ?? 'all'}`;
     setHardwareBusy(busyKey);
-    setHardwareNotice(`準備送出「${label}」到 UNO R4 WiFi...`);
+    setRobotTarget(regionId ?? 'ALL');
+    setRobotStage('sending');
+    setRobotTaskId(`E-${Date.now().toString().slice(-4)}`);
+    setHardwareNotice(`正在建立「${label}」任務，板擦機器人會先確認目標區再執行。`);
     try {
       const result = await sendRobotTask(action, regionId, 'teacher-dashboard');
+      setRobotStage(result.ok ? 'done' : 'fallback');
       const message = result.ok
         ? `已送到機器人：${label}（${result.command}）`
         : `已保留展示紀錄，硬體尚未連線：${result.error || result.status.lastResponse}`;
@@ -99,10 +121,16 @@ export default function TeacherDashboard() {
       setNotice(message);
     } catch (error) {
       const message = error instanceof Error ? error.message : '無法送出機器人任務';
+      setRobotStage('fallback');
       setHardwareNotice(`已保留課堂決策，但硬體送出失敗：${message}`);
       setNotice(`課堂決策仍可展示；${message}`);
     } finally {
       setHardwareBusy('');
+      window.setTimeout(() => {
+        setRobotStage('idle');
+        setRobotTarget(undefined);
+        setRobotTaskId('');
+      }, 3200);
     }
   };
 
@@ -111,9 +139,9 @@ export default function TeacherDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-8 pb-36">
         <motion.section variants={itemVariants} className="mb-6 flex flex-col lg:flex-row lg:items-end justify-between gap-4">
           <div>
-            <p className="text-[10px] sm:text-xs font-bold tracking-[0.24em] text-primary uppercase mb-2">Elementary Teacher Dashboard</p>
+            <p className="text-xs font-bold text-primary mb-2">教師決策台</p>
             <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight">國小教師看板</h1>
-            <p className="text-on-surface-variant mt-3 max-w-2xl leading-relaxed">整合孩子學習狀態、白板區塊與 AI 小老師建議；預設先保存教師決策，確認後可選擇送到 UNO R4 WiFi 機器人。</p>
+            <p className="text-on-surface-variant mt-3 max-w-2xl leading-relaxed">看狀態、選區塊、送機器人。沒接硬體也會留下備援紀錄。</p>
           </div>
           <button onClick={loadSession} className="h-11 px-4 rounded-full bg-surface-container-high hover:bg-primary hover:text-on-primary transition-all active:scale-95 flex items-center justify-center gap-2 font-bold">
             <RefreshCw className="w-4 h-4" />
@@ -131,7 +159,7 @@ export default function TeacherDashboard() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-extrabold">班級學習狀態</h2>
-                  <p className="text-sm text-on-surface-variant mt-1">由白板分析結果彙整的國小課堂觀察</p>
+                  <p className="text-sm text-on-surface-variant mt-1">白板分析彙整</p>
                 </div>
                 <Users className="w-8 h-8 text-primary" />
               </div>
@@ -152,7 +180,7 @@ export default function TeacherDashboard() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-extrabold">白板區塊決策</h2>
-                  <p className="text-sm text-on-surface-variant mt-1">綠色保留給孩子看，橘色可清空，灰色已清空。</p>
+                  <p className="text-sm text-on-surface-variant mt-1">點區塊，送板擦機器人。</p>
                 </div>
                 <ClipboardCheck className="w-7 h-7 text-primary" />
               </div>
@@ -163,13 +191,26 @@ export default function TeacherDashboard() {
                   <button
                     key={region.id}
                     onClick={() => updateRegionStatus(region.id, region.status === 'keep' ? 'erasable' : 'keep')}
-                    className={`absolute rounded-2xl border-2 p-3 text-left transition-all active:scale-95 ${region.status === 'keep' ? 'bg-primary-container/80 border-primary text-primary' : region.status === 'erasable' ? 'bg-tertiary-container/80 border-tertiary text-tertiary' : 'bg-surface-container-highest border-outline-variant text-on-surface-variant opacity-70'}`}
+                    className={`absolute rounded-2xl border-2 p-3 text-left transition-all active:scale-95 ${robotTarget === region.id ? 'robot-region-focus' : ''} ${region.status === 'keep' ? 'bg-primary-container/80 border-primary text-primary' : region.status === 'erasable' ? 'bg-tertiary-container/80 border-tertiary text-tertiary' : 'bg-surface-container-highest border-outline-variant text-on-surface-variant opacity-70'}`}
                     style={{left: `${region.x}%`, top: `${region.y}%`, width: `${region.width}%`, height: `${region.height}%`}}
                   >
                     <span className="text-xs font-black tracking-widest">區塊 {region.id}</span>
                     <span className="block text-sm font-extrabold mt-1">{region.label}</span>
                   </button>
                 ))}
+                <motion.div
+                  animate={{
+                    left: robotMarkerPosition.left,
+                    top: robotMarkerPosition.top,
+                    scale: robotStage === 'sending' ? 1.12 : 1,
+                  }}
+                  transition={{type: 'spring', damping: 18, stiffness: 120}}
+                  className={`board-robot-marker absolute z-20 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl border bg-surface-container-lowest text-primary shadow-premium ${robotStage !== 'idle' ? 'board-robot-active' : ''} ${robotTarget === 'ALL' ? 'board-robot-sweep' : ''}`}
+                >
+                  <Bot className="h-7 w-7" />
+                  <span className="absolute -right-2 -top-2 rounded-full bg-primary px-2 py-0.5 text-[9px] font-black text-on-primary">E-01</span>
+                  {robotStage !== 'idle' && <span className="absolute h-20 w-20 rounded-full border-2 border-primary/30" />}
+                </motion.div>
               </div>
 
               <div className="mt-5 space-y-3">
@@ -181,14 +222,14 @@ export default function TeacherDashboard() {
                         <p className="text-xs text-on-surface-variant mt-1">{region.reason}</p>
                       </div>
                       <div className="flex flex-wrap gap-2 justify-end">
-                        <button onClick={() => updateRegionStatus(region.id, 'keep')} className="h-9 px-3 rounded-full bg-primary-container text-primary text-xs font-bold hover:bg-primary hover:text-on-primary transition-colors">保留給孩子</button>
-                        <button onClick={() => runTask(region.status === 'erasable' ? 'erase' : 'keep', region.id, region.status === 'erasable' ? `區塊 ${region.id} 已標記為可清空` : `區塊 ${region.id} 已標記保留`)} className="h-9 px-3 rounded-full bg-surface-container-high text-xs font-bold hover:bg-primary hover:text-on-primary transition-colors">套用決策</button>
+                        <button onClick={() => updateRegionStatus(region.id, 'keep')} className="h-9 px-3 rounded-full bg-primary-container text-primary text-xs font-bold hover:bg-primary hover:text-on-primary transition-colors">保留</button>
+                        <button onClick={() => runTask(region.status === 'erasable' ? 'erase' : 'keep', region.id, region.status === 'erasable' ? `區塊 ${region.id} 已標記為可清空` : `區塊 ${region.id} 已標記保留`)} className="h-9 px-3 rounded-full bg-surface-container-high text-xs font-bold hover:bg-primary hover:text-on-primary transition-colors">保存</button>
                         <button
                           onClick={() => sendTaskToRobot(region.status === 'erasable' || region.status === 'erased' ? 'erase' : 'keep', region.id, `${region.status === 'erasable' || region.status === 'erased' ? '擦除' : '保留'}區塊 ${region.id}`)}
                           disabled={Boolean(hardwareBusy)}
                           className="h-9 px-3 rounded-full bg-surface-container-lowest text-xs font-bold border border-primary/20 hover:bg-primary hover:text-on-primary disabled:opacity-50 transition-colors"
                         >
-                          送到機器人
+                          送機器人
                         </button>
                       </div>
                     </div>
@@ -221,23 +262,54 @@ export default function TeacherDashboard() {
               </div>
 
               <div className="mt-5 rounded-2xl border border-primary/15 bg-surface p-4">
-                <div className="flex items-center gap-2 text-sm font-extrabold text-primary">
-                  {hardwareBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Radio className="w-4 h-4" />}
-                  UNO R4 WiFi 選配送出
+                <div className="flex items-start gap-3">
+                  <div className={`robot-board-avatar flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border bg-primary-container text-primary ${robotStage !== 'idle' ? 'robot-board-active' : ''}`}>
+                    {hardwareBusy ? <Loader2 className="w-7 h-7 animate-spin" /> : <Bot className="w-8 h-8" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 text-sm font-extrabold text-primary">
+                      <Radio className="w-4 h-4" />
+                      {robotTarget === 'ALL' ? '正在送出全板任務' : robotTarget ? `正在送出區塊 ${robotTarget}` : '板擦機器人待命'}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <span className="rounded-full bg-primary-container px-2.5 py-1 text-[10px] font-black text-primary">{robotTaskId || '待命'}</span>
+                      <span className="rounded-full bg-surface-container-high px-2.5 py-1 text-[10px] font-black text-on-surface-variant">{robotTargetLabel}</span>
+                    </div>
+                    <p className="mt-2 text-xs leading-relaxed text-on-surface-variant">{hardwareNotice}</p>
+                  </div>
                 </div>
-                <p className="mt-2 text-xs leading-relaxed text-on-surface-variant">{hardwareNotice}</p>
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  {[
+                    ['建單', robotStage !== 'idle'],
+                    ['前往', robotStage === 'sending' || robotStage === 'done' || robotStage === 'fallback'],
+                    [robotStage === 'fallback' ? '備援' : '完成', robotStage === 'done' || robotStage === 'fallback'],
+                  ].map(([label, active]) => (
+                    <div key={String(label)} className={`rounded-xl border px-2 py-2 text-center text-[10px] font-black ${active ? 'border-primary/30 bg-primary-container text-primary' : 'border-outline-variant/20 bg-surface-container-low text-on-surface-variant'}`}>
+                      {label}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 rounded-2xl border border-outline-variant/10 bg-surface-container-low p-3">
+                  <div className="flex items-center justify-between text-[11px] font-black text-on-surface-variant">
+                    <span>{robotTaskId || '尚未建立任務'}</span>
+                    <span>{robotTargetLabel}</span>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-container-highest">
+                    <motion.div animate={{width: `${robotProgress}%`}} className="h-full rounded-full bg-primary" />
+                  </div>
+                </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <button
                     onClick={() => sendTaskToRobot('erase', undefined, '一鍵全擦')}
                     disabled={Boolean(hardwareBusy)}
-                    className="h-10 rounded-xl bg-primary-container text-primary text-xs font-bold hover:bg-primary hover:text-on-primary disabled:opacity-50 transition-colors"
+                    className="min-h-11 rounded-xl bg-primary-container px-3 text-xs font-bold text-primary transition-colors hover:bg-primary hover:text-on-primary disabled:opacity-50"
                   >
                     送出全擦
                   </button>
                   <button
                     onClick={() => sendTaskToRobot('pause', undefined, '暫停等待學生抄寫')}
                     disabled={Boolean(hardwareBusy)}
-                    className="h-10 rounded-xl bg-surface-container-high text-xs font-bold hover:bg-primary hover:text-on-primary disabled:opacity-50 transition-colors"
+                    className="min-h-11 rounded-xl bg-surface-container-high px-3 text-xs font-bold transition-colors hover:bg-primary hover:text-on-primary disabled:opacity-50"
                   >
                     暫停機器人
                   </button>
@@ -246,7 +318,7 @@ export default function TeacherDashboard() {
 
               <div className="mt-6 flex items-start gap-2 text-xs text-on-surface-variant bg-surface-container p-4 rounded-2xl">
                 <AlertTriangle className="w-4 h-4 shrink-0 text-tertiary" />
-                本頁主流程會先保存國小課堂與白板決策；送到機器人是比賽展示支線，無硬體時仍會清楚顯示 fallback。
+                本頁主流程會先保存國小課堂與白板決策；送到機器人是比賽展示支線，無硬體時仍會清楚顯示備援紀錄。
               </div>
             </motion.section>
           </div>
@@ -275,7 +347,7 @@ function SmallStat({icon: Icon, label, value}: any) {
   return (
     <div className="bg-surface rounded-2xl p-4 border border-outline-variant/10">
       <Icon className="w-5 h-5 text-primary mb-3" />
-      <p className="text-[10px] font-bold tracking-widest text-on-surface-variant uppercase">{label}</p>
+      <p className="text-[10px] font-bold text-on-surface-variant">{label}</p>
       <p className="font-extrabold mt-1">{value}</p>
     </div>
   );

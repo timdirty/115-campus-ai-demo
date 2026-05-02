@@ -24,7 +24,7 @@ BRIDGE_PORT=3200 NODE_ENV=production npm run start
 cd "/Volumes/Tim aaddtional/Download/115資通訊/tedt/google ai studio/app_2（國小）/校園服務機器人 app"
 npm run preview -- --host 0.0.0.0 --port 3201
 
-cd "/Volumes/Tim aaddtional/Download/115資通訊/tedt/google ai studio/app_3（國小）/AI校園心靈守護者"
+cd "/Volumes/Tim aaddtional/Download/115資通訊/tedt/google ai studio/app_3（國中）/AI校園心靈守護者"
 npm run preview -- --host 0.0.0.0 --port 3202
 ```
 

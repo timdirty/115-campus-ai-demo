@@ -28,6 +28,7 @@ interface AppActions {
   setNotifications: (enabled: boolean) => void;
   setRemindWarning: (enabled: boolean) => void;
   addDispatchTask: (payload: { zone: string; taskType: DispatchTaskType }) => void;
+  completeDispatchTask: (payload: { zone: string; taskType: DispatchTaskType }) => void;
   setRobotRunning: (robotId: string, running: boolean) => void;
   setRobotSpeed: (robotId: string, speed: number) => void;
   tickSensors: (sensors: SensorsState) => void;
@@ -80,6 +81,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setNotifications: (enabled) => dispatch({ type: 'SET_NOTIFICATIONS', payload: { enabled } }),
       setRemindWarning: (enabled) => dispatch({ type: 'SET_REMIND_WARNING', payload: { enabled } }),
       addDispatchTask: (payload) => dispatch({ type: 'ADD_DISPATCH_TASK', payload }),
+      completeDispatchTask: (payload) => dispatch({ type: 'COMPLETE_DISPATCH_TASK', payload }),
       setRobotRunning: (robotId, running) =>
         dispatch({ type: 'SET_ROBOT_RUNNING', payload: { robotId, running } }),
       setRobotSpeed: (robotId, speed) => dispatch({ type: 'SET_ROBOT_SPEED', payload: { robotId, speed } }),
