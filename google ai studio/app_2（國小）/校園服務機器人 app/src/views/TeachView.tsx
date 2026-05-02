@@ -43,11 +43,17 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
     const question = chatInput;
     setChatInput('');
     setIsTyping(true);
-    const reply = await generateTeacherReply(question, currentSubject || undefined);
-    setIsTyping(false);
-    setChatReply(reply);
-    actions.addTeacherReply({ signalId: activeStudent.id, reply });
-    showToast('本地 AI 已產生並發送回覆');
+    try {
+      const reply = await generateTeacherReply(question, currentSubject || undefined);
+      setIsTyping(false);
+      setChatReply(reply);
+      actions.addTeacherReply({ signalId: activeStudent.id, reply });
+      showToast('本地 AI 已產生並發送回覆');
+    } catch (err) {
+      setIsTyping(false);
+      // show user-visible error in the chat
+      setChatReply('AI 暫時無法回應，請稍後再試。');
+    }
   };
 
   const handleAlertAction = (actionMsg: string) => {
