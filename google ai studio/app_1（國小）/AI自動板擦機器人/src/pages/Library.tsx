@@ -133,7 +133,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
         {/* Top Header */}
         <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-end gap-5 mb-5 sm:mb-8">
           <div>
-            <span className="text-primary font-bold tracking-widest text-[9px] sm:text-xs uppercase font-label">Class Record Book</span>
+            <span className="text-primary font-bold tracking-widest text-[9px] sm:text-xs font-label">課堂紀錄</span>
             <h2 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-on-surface font-headline mt-0.5 sm:mt-3">課堂紀錄本</h2>
           </div>
 
@@ -182,7 +182,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
                 <div className="w-full h-2 sm:h-3 bg-surface-container-highest rounded-full overflow-hidden mt-1 sm:mt-2 mb-3 sm:mb-4 shadow-inner relative">
                   <motion.div initial={{width:0}} animate={{width:`${Math.min(100, notes.length * 12)}%`}} className="h-full bg-gradient-to-r from-primary to-tertiary rounded-full shadow-[0_0_12px_rgba(80,107,79,0.5)]"></motion.div>
                 </div>
-                <p className="text-[10px] sm:text-xs text-on-surface-variant leading-relaxed">優先保存到本機 JSON；bridge 不可用時會暫存在瀏覽器，孩子的原始錄音不會被保存。</p>
+                <p className="text-[10px] sm:text-xs text-on-surface-variant leading-relaxed">優先保存到本機資料；硬體服務不可用時會暫存在瀏覽器，孩子的原始錄音不會被保存。</p>
               </div>
             </div>
           </motion.div>
@@ -337,7 +337,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
                         </div>
                       )}
                       <div className="mt-4 p-3 rounded-xl bg-surface-container text-xs text-on-surface-variant">
-                        {selectedNote.audioUrl ? '可播放老師講解片段。' : '尚未匯入音訊檔，先以逐字稿呈現，不假裝播放。'}
+                        {selectedNote.audioUrl ? '可播放老師講解片段。' : '尚未匯入音訊，課堂講解以逐字稿呈現。'}
                       </div>
                     </div>
                   </div>

@@ -112,16 +112,16 @@ export default function SystemSettingsPanel({onClose}: SystemSettingsPanelProps)
       </button>
 
       <div className="pr-12">
-        <p className="text-xs font-bold tracking-widest uppercase text-primary">Production Console</p>
+        <p className="text-xs font-bold tracking-widest text-primary">展示維運</p>
         <h2 className="text-2xl sm:text-3xl font-headline font-extrabold mt-2">系統設定與資料維運</h2>
-        <p className="text-sm text-on-surface-variant mt-2">管理本機 bridge、Gemini 狀態、JSON 資料備份與匯入。</p>
+        <p className="text-sm text-on-surface-variant mt-2">管理本機硬體、AI 狀態、資料備份與匯入。</p>
       </div>
 
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <StatusBlock
           icon={Server}
-          title="Bridge"
-          value={ready ? `:${ready.bridgePort}` : '檢查中'}
+          title="本機硬體"
+          value={ready ? '可展示' : '檢查中'}
           ok={Boolean(ready)}
           loading={loadingReady}
         />
@@ -135,14 +135,14 @@ export default function SystemSettingsPanel({onClose}: SystemSettingsPanelProps)
         <StatusBlock
           icon={KeyRound}
           title="Gemini"
-          value={ready?.geminiConfigured ? '已設定' : '本機 fallback'}
+          value={ready?.geminiConfigured ? '已設定' : '本機示範'}
           ok={true}
           loading={loadingReady}
         />
         <StatusBlock
           icon={Database}
-          title="Production Build"
-          value={ready?.staticBuild.available ? `${ready.staticBuild.assetCount} assets` : '尚未 build'}
+          title="展示包"
+          value={ready?.staticBuild.available ? `${ready.staticBuild.assetCount} 個檔案` : '尚未產生'}
           ok={ready?.staticBuild.available}
           loading={loadingReady}
         />
@@ -176,7 +176,7 @@ export default function SystemSettingsPanel({onClose}: SystemSettingsPanelProps)
         <ActionButton
           icon={RefreshCw}
           title="重新檢查"
-          desc="更新 bridge 與資料目錄狀態"
+          desc="更新硬體與資料目錄狀態"
           onClick={refreshReady}
           busy={loadingReady}
         />
@@ -234,7 +234,7 @@ function StatusBlock({icon: Icon, title, value, ok, loading}: {
             <Icon className="w-5 h-5 text-on-surface-variant" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-bold tracking-widest uppercase text-on-surface-variant">{title}</p>
+            <p className="text-xs font-bold text-on-surface-variant">{title}</p>
             <p className="text-sm font-extrabold truncate">{value}</p>
           </div>
         </div>

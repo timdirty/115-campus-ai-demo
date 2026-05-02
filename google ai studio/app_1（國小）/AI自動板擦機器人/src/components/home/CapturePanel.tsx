@@ -86,7 +86,7 @@ export function CapturePanel({
 
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-[12rem_1fr] gap-3">
         <label className="block">
-          <span className="text-xs font-bold text-on-surface-variant uppercase">年級 / 科目</span>
+          <span className="text-xs font-bold text-on-surface-variant">年級 / 科目</span>
           <input
             value={subjectHint}
             onChange={(event) => onSubjectHintChange(event.target.value)}
@@ -95,7 +95,7 @@ export function CapturePanel({
         </label>
         <div className="rounded-md bg-surface-container p-3 border border-outline-variant/20">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="text-xs font-bold text-on-surface-variant uppercase">老師講解逐字稿</span>
+            <span className="text-xs font-bold text-on-surface-variant">老師講解逐字稿</span>
             <button
               type="button"
               onClick={onToggleRecording}

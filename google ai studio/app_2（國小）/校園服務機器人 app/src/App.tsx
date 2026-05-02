@@ -1,17 +1,19 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { Suspense, useRef, useState, useEffect } from 'react';
+
+const AVATAR_SVG = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#1d4ed8"/><circle cx="50" cy="36" r="16" fill="#BFDBFE"/><ellipse cx="50" cy="80" rx="28" ry="22" fill="#BFDBFE"/></svg>')}`;
 import { motion, AnimatePresence } from 'motion/react';
 import { Bot, LayoutDashboard, GraduationCap, Truck, Building2, CheckCircle2, Download, Upload } from 'lucide-react';
-import { DashboardView } from './views/DashboardView';
-import { TeachView } from './views/TeachView';
-import { DeliveryView } from './views/DeliveryView';
-import { LifeView } from './views/LifeView';
 import { BottomSheet } from './components/ui';
-
-import { TaskScheduleView } from './views/TaskScheduleView';
-import { StudentReportView } from './views/StudentReportView';
-import { DeliveryTrackingView } from './views/DeliveryTrackingView';
-import { DispatchMapView } from './views/DispatchMapView';
 import { useAppActions, useAppState } from './state/AppStateProvider';
+
+const DashboardView = React.lazy(() => import('./views/DashboardView').then((module) => ({default: module.DashboardView})));
+const TeachView = React.lazy(() => import('./views/TeachView').then((module) => ({default: module.TeachView})));
+const DeliveryView = React.lazy(() => import('./views/DeliveryView').then((module) => ({default: module.DeliveryView})));
+const LifeView = React.lazy(() => import('./views/LifeView').then((module) => ({default: module.LifeView})));
+const TaskScheduleView = React.lazy(() => import('./views/TaskScheduleView').then((module) => ({default: module.TaskScheduleView})));
+const StudentReportView = React.lazy(() => import('./views/StudentReportView').then((module) => ({default: module.StudentReportView})));
+const DeliveryTrackingView = React.lazy(() => import('./views/DeliveryTrackingView').then((module) => ({default: module.DeliveryTrackingView})));
+const DispatchMapView = React.lazy(() => import('./views/DispatchMapView').then((module) => ({default: module.DispatchMapView})));
 
 const TABS = [
   { id: 'dashboard', icon: LayoutDashboard, label: '首頁' },
@@ -19,6 +21,17 @@ const TABS = [
   { id: 'delivery', icon: Truck, label: '配送', isPrimary: true },
   { id: 'life', icon: Building2, label: '生活' },
 ];
+
+function ScreenFallback({label = '載入中'}: {label?: string}) {
+  return (
+    <div className="grid min-h-[22rem] place-items-center rounded-[2rem] border border-outline-variant/20 bg-surface-container-low">
+      <div className="text-center">
+        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+        <p className="mt-4 text-sm font-black text-on-surface-variant">{label}</p>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   const state = useAppState();
@@ -132,6 +145,16 @@ export default function App() {
         <div className="mt-auto rounded-2xl border border-outline-variant/20 bg-surface-container-low p-4">
           <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-on-surface-variant">展示狀態</p>
           <p className="mt-2 text-sm font-bold">{state.tasks.filter((task) => task.status === 'in_progress').length} 個任務進行中</p>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+            <div className="rounded-xl bg-surface-container-lowest px-2 py-2">
+              <p className="text-lg font-black text-primary">{state.tasks.filter((task) => task.status === 'completed').length}</p>
+              <p className="text-[10px] font-bold text-on-surface-variant">已完成</p>
+            </div>
+            <div className="rounded-xl bg-surface-container-lowest px-2 py-2">
+              <p className="text-lg font-black text-tertiary">{state.robotCommandLogs.length}</p>
+              <p className="text-[10px] font-bold text-on-surface-variant">指令紀錄</p>
+            </div>
+          </div>
           <button
             onClick={() => {
               actions.resetDemo();
@@ -163,7 +186,7 @@ export default function App() {
           className="w-10 h-10 rounded-full bg-surface-container-high overflow-hidden border border-outline-variant/30 hover:ring-2 hover:ring-primary/50 transition-all active:scale-95 flex items-center justify-center shadow-sm"
         >
           <img
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAFLMrOzzbl7TlA_AexPyf4-a6MT831xM_82rT_JMRsXBAO2ji7mPHgRTPaZKEaYEypzYv1NiVRmn6l9_W3dF9L9Z6lZ6CRhUkGXUxx6jYEHZKAEviNdoCkGrdM-CNtBwzrEfYQApLCJt8FU9k401DnXsJRJjiAp_xWa19RIT5RvGzj6E0fS6t5-mR8VNsumbJ7EOR8KiuLYabHo5Qyo5yoMP8AIa6xeXtxoSGOZfRa91jFXR4QP92FRGsfo6PewP_UzCF4YwNSVEQ"
+            src={AVATAR_SVG}
             alt="User"
             className="w-full h-full object-cover"
           />
@@ -180,10 +203,12 @@ export default function App() {
             exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
             transition={{ duration: 0.25, ease: "easeOut" }}
           >
-            {activeTab === 'dashboard' && <DashboardView showToast={showToast} navigateTo={navigateTo} />}
-            {activeTab === 'teach' && <TeachView showToast={showToast} navigateTo={navigateTo} />}
-            {activeTab === 'delivery' && <DeliveryView showToast={showToast} navigateTo={navigateTo} />}
-            {activeTab === 'life' && <LifeView showToast={showToast} navigateTo={navigateTo} />}
+            <Suspense fallback={<ScreenFallback label="正在載入頁面" />}>
+              {activeTab === 'dashboard' && <DashboardView showToast={showToast} navigateTo={navigateTo} />}
+              {activeTab === 'teach' && <TeachView showToast={showToast} navigateTo={navigateTo} />}
+              {activeTab === 'delivery' && <DeliveryView showToast={showToast} navigateTo={navigateTo} />}
+              {activeTab === 'life' && <LifeView showToast={showToast} navigateTo={navigateTo} />}
+            </Suspense>
           </motion.div>
         </AnimatePresence>
       </main>
@@ -199,10 +224,12 @@ export default function App() {
             transition={{ type: 'spring', damping: 26, stiffness: 220 }}
             className="fixed inset-0 z-[100] bg-background overflow-y-auto scrollbar-hide shadow-2xl md:left-[260px]"
           >
-            {subView.id === 'task-schedule' && <TaskScheduleView goBack={goBack} showToast={showToast} {...subView.props} />}
-            {subView.id === 'student-report' && <StudentReportView goBack={goBack} showToast={showToast} {...subView.props} />}
-            {subView.id === 'delivery-tracking' && <DeliveryTrackingView goBack={goBack} showToast={showToast} {...subView.props} />}
-            {subView.id === 'dispatch-map' && <DispatchMapView goBack={goBack} showToast={showToast} {...subView.props} />}
+            <Suspense fallback={<div className="p-5"><ScreenFallback label="正在開啟功能" /></div>}>
+              {subView.id === 'task-schedule' && <TaskScheduleView goBack={goBack} showToast={showToast} {...subView.props} />}
+              {subView.id === 'student-report' && <StudentReportView goBack={goBack} showToast={showToast} {...subView.props} />}
+              {subView.id === 'delivery-tracking' && <DeliveryTrackingView goBack={goBack} showToast={showToast} {...subView.props} />}
+              {subView.id === 'dispatch-map' && <DispatchMapView goBack={goBack} showToast={showToast} {...subView.props} />}
+            </Suspense>
           </motion.div>
         )}
       </AnimatePresence>
@@ -259,11 +286,11 @@ export default function App() {
           <div className="flex items-center gap-6 bg-surface-container-low p-6 rounded-[2rem] border border-outline-variant/20 shadow-sm relative overflow-hidden">
              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none"></div>
              <img
-               src="https://lh3.googleusercontent.com/aida-public/AB6AXuAFLMrOzzbl7TlA_AexPyf4-a6MT831xM_82rT_JMRsXBAO2ji7mPHgRTPaZKEaYEypzYv1NiVRmn6l9_W3dF9L9Z6lZ6CRhUkGXUxx6jYEHZKAEviNdoCkGrdM-CNtBwzrEfYQApLCJt8FU9k401DnXsJRJjiAp_xWa19RIT5RvGzj6E0fS6t5-mR8VNsumbJ7EOR8KiuLYabHo5Qyo5yoMP8AIa6xeXtxoSGOZfRa91jFXR4QP92FRGsfo6PewP_UzCF4YwNSVEQ"
+               src={AVATAR_SVG}
                className="w-20 h-20 rounded-[1.25rem] object-cover ring-4 ring-background shadow-md relative z-10"
              />
              <div className="relative z-10 py-1">
-                <p className="font-headline font-bold text-3xl tracking-tight">李老師</p>
+                <p className="font-headline font-bold text-3xl tracking-tight">值班老師</p>
                 <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-[0.2em] mt-2 bg-surface-container-high/80 backdrop-blur-md px-3 py-1 rounded-md inline-block shadow-inner">最高權限管理員</p>
              </div>
           </div>

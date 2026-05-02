@@ -46,7 +46,7 @@ ARDUINO_PORT=/dev/cu.usbmodemXXXX BRIDGE_PORT=3200 NODE_ENV=production npm run s
 ```zsh
 npm run check --prefix "google ai studio/app_1（國小）/AI自動板擦機器人"
 npm run check --prefix "google ai studio/app_2（國小）/校園服務機器人 app"
-npm run check --prefix "google ai studio/app_3（國小）/AI校園心靈守護者"
+npm run check --prefix "google ai studio/app_3（國中）/AI校園心靈守護者"
 node scripts/verify-command-catalog.mjs
 pio run
 node scripts/full-demo-smoke.mjs

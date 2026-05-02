@@ -33,7 +33,7 @@ export async function generateStudentInsights(report: StudentReport) {
 export async function generateDispatchRecommendation(zone: string, taskType: DispatchTaskType) {
   await wait(200);
   if (taskType === 'broadcast') {
-    return `建議派遣 3 號機前往區域 ${zone} 執行疏導廣播，先提示學生往開放走廊移動，再回傳現場影像。`;
+    return `建議派遣 3 號機前往區域 ${zone} 執行疏導廣播，先引導人流往開放走廊移動，再回傳現場狀態。`;
   }
   return `建議派遣 1 號機前往區域 ${zone} 自動巡邏，沿主要通道繞行一圈並回傳熱區人流。`;
 }

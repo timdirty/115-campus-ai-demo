@@ -22,7 +22,7 @@ export async function sendHardwareCommand(command: string, source: string): Prom
     return {
       ok: false,
       statusCode: 0,
-      message: error instanceof Error ? error.message : '無法連接 Arduino bridge',
+      message: error instanceof Error ? error.message : '無法連接硬體橋接',
     };
   }
 }

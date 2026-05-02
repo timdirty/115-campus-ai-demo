@@ -14,7 +14,7 @@ export function StatusTile({icon: Icon, label, value, ok}: StatusTileProps) {
         <Icon className="w-5 h-5" aria-hidden="true" />
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] font-bold text-on-surface-variant uppercase">{label}</p>
+        <p className="text-[10px] font-bold text-on-surface-variant">{label}</p>
         <p className="font-extrabold text-sm truncate">{value}</p>
       </div>
     </div>

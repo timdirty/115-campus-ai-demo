@@ -1,4 +1,6 @@
 import {
+  AcousticSignal,
+  AcousticLevel,
   AlertStatus,
   ForestPost,
   GuardianAlert,
@@ -7,6 +9,8 @@ import {
   GuardianState,
   Intervention,
   MoodType,
+  RiskLevel,
+  RobotMission,
   SupportMessage,
 } from '../types';
 
@@ -35,18 +39,23 @@ export type GuardianAction =
   | {type: 'DEPLOY_INTERVENTION'; payload: {area: string}}
   | {type: 'RESTART_NODE'; payload: {id: string}}
   | {type: 'RECORD_HARDWARE_EVENT'; payload: Omit<HardwareEvent, 'id' | 'createdAt'>}
+  | {type: 'RECORD_ACOUSTIC_SIGNAL'; payload: Omit<AcousticSignal, 'id' | 'createdAt'>}
+  | {type: 'CREATE_ACOUSTIC_ALERT'; payload: Omit<AcousticSignal, 'id' | 'createdAt' | 'source'>}
+  | {type: 'CREATE_PROACTIVE_ALERT'; payload: {location: string; title: string; description: string; riskLevel: RiskLevel; score: number}}
+  | {type: 'DISPATCH_ROBOT'; payload: {zoneName: string; riskScore: number; command: string}}
+  | {type: 'UPDATE_ROBOT_MISSION_STATUS'; payload: {zoneName: string; status: RobotMission['status']}}
   | {type: 'RESTORE_DEMO_STATE'; payload: {state: GuardianState}}
   | {type: 'RESET_DEMO'};
 
 const alerts: GuardianAlert[] = [
   {
     id: 'alert-a1',
-    studentAlias: '學生 A',
+    studentAlias: '匿名關懷訊號 A',
     className: '八年一班',
     location: '圖書館走廊',
     time: '今天 10:45',
     type: '關懷提醒',
-    description: '系統偵測到該學生連續兩節下課都獨自停留，互動次數比平常少。建議老師先用溫和方式關心近況。',
+    description: '匿名場域與自填訊號顯示，圖書館走廊連續兩節下課互動偏低。建議老師先用溫和方式關心近況。',
     riskLevel: 'high',
     category: '同儕互動',
     status: 'new',
@@ -58,7 +67,7 @@ const alerts: GuardianAlert[] = [
   },
   {
     id: 'alert-a2',
-    studentAlias: '學生 B',
+    studentAlias: '匿名關懷訊號 B',
     className: '九年三班',
     location: '三樓教室',
     time: '今天 13:20',
@@ -74,7 +83,7 @@ const alerts: GuardianAlert[] = [
   },
   {
     id: 'alert-a3',
-    studentAlias: '學生 C',
+    studentAlias: '匿名關懷訊號 C',
     className: '七年二班',
     location: '操場',
     time: '昨天 16:05',
@@ -122,6 +131,30 @@ const interventions: Intervention[] = [
   },
 ];
 
+const acousticSignals: AcousticSignal[] = [
+  {
+    id: 'sound-1',
+    source: 'demo',
+    location: '穿堂',
+    level: 'active',
+    volumeIndex: 58,
+    volatility: 18,
+    summary: '下課人流經過，環境聲量有活動感，持續觀察即可。',
+    createdAt: '今天 10:10',
+  },
+];
+
+const robotMissions: RobotMission[] = [
+  {
+    id: 'mission-1',
+    zoneName: '圖書館',
+    riskScore: 74,
+    status: 'arrived',
+    command: 'CARE_DEPLOYED',
+    createdAt: '今天 10:52',
+  },
+];
+
 export function createInitialGuardianState(): GuardianState {
   const createdAt = '2026-04-29T08:00:00.000+08:00';
   return {
@@ -150,10 +183,12 @@ export function createInitialGuardianState(): GuardianState {
         command: 'SYSTEM_READY',
         source: 'system',
         status: 'fallback',
-        message: '本機 bridge 已就緒；未插 UNO R4 時使用 fallback，插板後同指令走 Serial。',
+        message: '本機橋接服務已就緒；未插 UNO R4 時使用備援狀態，插板後同指令走序列埠。',
         createdAt: '今天 08:00',
       },
     ],
+    acousticSignals,
+    robotMissions,
     lastUpdated: createdAt,
   };
 }
@@ -257,7 +292,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
         ...state,
         nodes: state.nodes.map((node) =>
           node.id === action.payload.id
-            ? {...node, status: 'online', latencyMs: 10, load: 24, signal: 94, lastEvent: '已由本機 Demo 重新連線'}
+            ? {...node, status: 'online', latencyMs: 10, load: 24, signal: 94, lastEvent: '已由本機示範重新連線'}
             : node,
         ),
         lastUpdated: now,
@@ -279,6 +314,132 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
         ].slice(0, 20),
         lastUpdated: now,
       };
+
+    case 'RECORD_ACOUSTIC_SIGNAL': {
+      const attention = action.payload.level === 'elevated';
+      return {
+        ...state,
+        acousticSignals: [
+          {
+            id: uid('sound'),
+            source: action.payload.source,
+            location: action.payload.location,
+            level: action.payload.level,
+            volumeIndex: action.payload.volumeIndex,
+            volatility: action.payload.volatility,
+            summary: action.payload.summary,
+            createdAt: timeLabel(now),
+          },
+          ...state.acousticSignals,
+        ].slice(0, 20),
+        nodes: state.nodes.map((node) =>
+          node.id === 'node-hall'
+            ? {
+                ...node,
+                status: attention ? 'attention' : node.status === 'offline' ? 'offline' : 'online',
+                load: Math.max(node.load, Math.min(96, action.payload.volumeIndex)),
+                lastEvent: `本機聲量分析：${action.payload.summary}`,
+              }
+            : node,
+        ),
+        lastUpdated: now,
+      };
+    }
+
+    case 'CREATE_ACOUSTIC_ALERT':
+      return {
+        ...state,
+        alerts: [
+          {
+            id: uid('alert-sound'),
+            studentAlias: '場域訊號',
+            className: '匿名場域',
+            location: action.payload.location,
+            time: timeLabel(now),
+            type: '環境聲量提醒',
+            description: `本機麥克風只做即時音量與波動運算，未儲存原始聲音。音量指標 ${action.payload.volumeIndex}、波動 ${action.payload.volatility}。${action.payload.summary}`,
+            riskLevel: acousticRisk(action.payload.level),
+            category: '環境聲量',
+            status: 'new',
+            checklist: [
+              {id: uid('sound-check'), text: '由值週老師到場觀察，不公開點名', completed: false},
+              {id: uid('sound-check'), text: '確認是否只是正常下課活動或社團練習', completed: false},
+              {id: uid('sound-check'), text: '若伴隨求助按鈕或學生回報，再轉入導師關懷流程', completed: false},
+            ],
+          },
+          ...state.alerts,
+        ],
+        lastUpdated: now,
+      };
+
+    case 'CREATE_PROACTIVE_ALERT':
+      return {
+        ...state,
+        alerts: [
+          {
+            id: uid('alert-proactive'),
+            studentAlias: 'AI 主動巡查',
+            className: '多來源匿名訊號',
+            location: action.payload.location,
+            time: timeLabel(now),
+            type: action.payload.title,
+            description: `${action.payload.description} 主動巡查分數：${action.payload.score}。`,
+            riskLevel: action.payload.riskLevel,
+            category: '多來源融合',
+            status: 'new',
+            checklist: [
+              {id: uid('proactive-check'), text: '先查看近期心情簽到、聲量與節點紀錄', completed: false},
+              {id: uid('proactive-check'), text: '由導師或值週老師低壓巡查，不公開點名', completed: false},
+              {id: uid('proactive-check'), text: '若學生主動求助，再啟動語音/聊天關懷分析', completed: false},
+            ],
+          },
+          ...state.alerts,
+        ],
+        lastUpdated: now,
+      };
+
+    case 'DISPATCH_ROBOT':
+      return {
+        ...state,
+        robotMissions: [
+          {
+            id: uid('mission'),
+            zoneName: action.payload.zoneName,
+            riskScore: action.payload.riskScore,
+            status: 'dispatching' as const,
+            command: action.payload.command,
+            createdAt: timeLabel(now),
+          },
+          ...state.robotMissions,
+        ].slice(0, 20),
+        interventions: [
+          {
+            id: uid('int'),
+            title: '機器人已派遣',
+            description: `已指派機器人前往 ${action.payload.zoneName}，先做燈號/語音提示並通知老師到場確認。`,
+            status: 'running',
+            area: action.payload.zoneName,
+            updatedAt: timeLabel(now),
+          },
+          ...state.interventions,
+        ],
+        lastUpdated: now,
+      };
+
+    case 'UPDATE_ROBOT_MISSION_STATUS': {
+      let updated = false;
+      return {
+        ...state,
+        robotMissions: state.robotMissions.map((mission) => {
+          if (updated || mission.zoneName !== action.payload.zoneName || mission.status === 'completed') {
+            return mission;
+          }
+          updated = true;
+          return {...mission, status: action.payload.status};
+        }),
+        lastUpdated: now,
+      };
+    }
 
     case 'RESTORE_DEMO_STATE':
       return {
@@ -430,6 +591,32 @@ export function normalizeGuardianState(input: unknown): GuardianState {
     };
   };
 
+  const normalizeAcousticSignal = (item: unknown, fallbackSignal: AcousticSignal) => {
+    if (!isRecord(item)) return null;
+    return {
+      id: text(item.id, fallbackSignal.id),
+      source: item.source === 'microphone' || item.source === 'demo' ? item.source : fallbackSignal.source,
+      location: text(item.location, fallbackSignal.location),
+      level: item.level === 'calm' || item.level === 'active' || item.level === 'elevated' ? item.level : fallbackSignal.level,
+      volumeIndex: number(item.volumeIndex, fallbackSignal.volumeIndex),
+      volatility: number(item.volatility, fallbackSignal.volatility),
+      summary: text(item.summary, fallbackSignal.summary),
+      createdAt: text(item.createdAt, fallbackSignal.createdAt),
+    };
+  };
+
+  const normalizeRobotMission = (item: unknown, fallbackMission: RobotMission): RobotMission | null => {
+    if (!isRecord(item)) return null;
+    return {
+      id: text(item.id, fallbackMission.id),
+      zoneName: text(item.zoneName, fallbackMission.zoneName),
+      riskScore: number(item.riskScore, fallbackMission.riskScore),
+      status: item.status === 'dispatching' || item.status === 'arrived' || item.status === 'completed' ? item.status : fallbackMission.status,
+      command: text(item.command, fallbackMission.command),
+      createdAt: text(item.createdAt, fallbackMission.createdAt),
+    };
+  };
+
   return {
     ...fallback,
     ...parsed,
@@ -443,6 +630,14 @@ export function normalizeGuardianState(input: unknown): GuardianState {
     forestPosts: normalizeList(parsed.forestPosts, fallback.forestPosts, normalizePost),
     interventions: normalizeList(parsed.interventions, fallback.interventions, normalizeIntervention),
     hardwareEvents: normalizeList(parsed.hardwareEvents, fallback.hardwareEvents, normalizeHardwareEvent),
+    acousticSignals: normalizeList(parsed.acousticSignals, fallback.acousticSignals, normalizeAcousticSignal),
+    robotMissions: normalizeList(parsed.robotMissions, fallback.robotMissions, normalizeRobotMission),
     lastUpdated: typeof parsed.lastUpdated === 'string' ? parsed.lastUpdated : fallback.lastUpdated,
   };
+}
+
+function acousticRisk(level: AcousticLevel) {
+  if (level === 'elevated') return 'medium';
+  if (level === 'active') return 'low';
+  return 'low';
 }

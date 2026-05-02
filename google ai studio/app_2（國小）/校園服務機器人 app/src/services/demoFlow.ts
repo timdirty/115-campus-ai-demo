@@ -25,7 +25,7 @@ export function getDemoSteps(state: AppState): DemoStep[] {
     {id: 'tracking', label: '送達追蹤', detail: '完成取件後機器人回待命', done: hasCompletedDelivery},
     {id: 'teaching', label: '教學互動', detail: '點名、提問、分心提醒入紀錄', done: hasTeachingAction},
     {id: 'dispatch', label: '校園派遣', detail: '巡邏或廣播任務進入機隊', done: hasDispatch},
-    {id: 'report', label: '報表收尾', detail: '日誌與 UNO R4 bridge 狀態可說明', done: hasReportReady},
+    {id: 'report', label: '報表收尾', detail: '日誌與硬體狀態可說明', done: hasReportReady},
   ];
 }
 
@@ -34,6 +34,6 @@ export function getDemoHealth(state: AppState): DemoHealthStatus[] {
     {label: '本機資料', value: `${state.tasks.length} 任務 / ${state.logs.length} 日誌`, ok: state.tasks.length > 0},
     {label: 'UNO R4 指令', value: `${state.robotCommandLogs.length} 筆紀錄`, ok: state.robotCommandLogs.length > 0},
     {label: '機隊狀態', value: `${state.robots.filter((robot) => robot.isRunning).length} 台執行中`, ok: state.robots.length >= 4},
-    {label: 'Bridge 狀態', value: state.hardwareMode === 'serial-ready' ? 'Serial ready' : 'Fallback ready', ok: true},
+    {label: '橋接狀態', value: state.hardwareMode === 'serial-ready' ? '已送達' : '示範就緒', ok: true},
   ];
 }

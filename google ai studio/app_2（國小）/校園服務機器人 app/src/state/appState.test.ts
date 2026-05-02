@@ -95,6 +95,11 @@ async function run() {
   });
   assert.equal(dispatched.campusStatus.activeZone, 'B');
   assert.equal(dispatched.robotCommandLogs[0]?.command, 'BROADCAST_START');
+  const completedDispatch = appReducer(dispatched, {
+    type: 'COMPLETE_DISPATCH_TASK',
+    payload: { zone: 'B', taskType: 'broadcast' },
+  });
+  assert.equal(completedDispatch.tasks[0].status, 'completed');
 
   const locked = appReducer(dispatched, { type: 'SET_EMERGENCY', payload: { enabled: true } });
   assert.equal(locked.campusStatus.safetyMode, 'lockdown');
@@ -121,7 +126,7 @@ async function run() {
     products: [null, {id: 99, name: '展示鉛筆', price: -4, category: 'unknown', stock: 3}],
     orders: [null, {id: 'order-live', productName: '展示鉛筆', quantity: 2, destination: '507 教室', status: 'in_transit'}],
     tasks: [null, {id: 'task-x', title: '臨時任務', status: 'stuck', source: 'unknown', area: ''}],
-    attendance: {scanned: 'yes', present: 9999, absentNames: ['王同學', 7]},
+    attendance: {scanned: 'yes', present: 9999, absentNames: ['座號 12', 7]},
     sensors: {temp: 200, hum: -2, aqi: 'bad'},
     robotCommandLogs: [null, {id: 'cmd-x', command: 'DEMO', source: 'unknown', mode: 'bad', status: 'bad'}],
   });
@@ -137,7 +142,7 @@ async function run() {
   assert.equal(partiallyRecovered.orders[0].destination, '507 教室');
   assert.equal(partiallyRecovered.tasks[0].status, initial.tasks[0].status);
   assert.equal(partiallyRecovered.attendance.present, 999);
-  assert.deepEqual(partiallyRecovered.attendance.absentNames, ['王同學']);
+  assert.deepEqual(partiallyRecovered.attendance.absentNames, ['座號 12']);
   assert.equal(partiallyRecovered.sensors.temp, 80);
   assert.equal(partiallyRecovered.sensors.hum, 0);
   assert.equal(partiallyRecovered.robotCommandLogs[0].status, 'demo-only');

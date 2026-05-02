@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
+import {describeAcousticSignal} from '../services/acousticGuardian';
 import {generateSupportReply, summarizeGuardianState} from '../services/localGuardianAi';
+import {evaluateProactiveGuardianState} from '../services/proactiveGuardian';
+import {buildSchoolZoneStatuses} from '../services/schoolSpaces';
 import {createInitialGuardianState, guardianReducer, normalizeGuardianState} from './guardianState';
 
 async function run() {
@@ -8,6 +11,8 @@ async function run() {
   assert.ok(initial.alerts.length >= 3);
   assert.ok(initial.nodes.some((node) => node.status === 'offline'));
   assert.ok(initial.hardwareEvents.some((event) => event.command === 'SYSTEM_READY'));
+  assert.ok(initial.acousticSignals.some((signal) => signal.source === 'demo'));
+  assert.ok(initial.robotMissions.some((mission) => mission.zoneName === '圖書館'));
 
   const mooded = guardianReducer(initial, {
     type: 'ADD_MOOD',
@@ -47,6 +52,47 @@ async function run() {
   assert.equal(hardwareRecorded.hardwareEvents[0].command, 'NODE_RESTART');
   assert.equal(hardwareRecorded.hardwareEvents[0].status, 'fallback');
 
+  const acoustic = describeAcousticSignal(84, 38);
+  assert.equal(acoustic.level, 'elevated');
+  const acousticRecorded = guardianReducer(hardwareRecorded, {
+    type: 'RECORD_ACOUSTIC_SIGNAL',
+    payload: {source: 'microphone', location: '穿堂', ...acoustic},
+  });
+  assert.equal(acousticRecorded.acousticSignals[0].level, 'elevated');
+  assert.match(acousticRecorded.nodes.find((node) => node.id === 'node-hall')?.lastEvent ?? '', /本機聲量分析/);
+
+  const acousticAlerted = guardianReducer(acousticRecorded, {
+    type: 'CREATE_ACOUSTIC_ALERT',
+    payload: {location: '穿堂', ...acoustic},
+  });
+  assert.equal(acousticAlerted.alerts[0].type, '環境聲量提醒');
+  assert.equal(acousticAlerted.alerts[0].riskLevel, 'medium');
+
+  const proactive = evaluateProactiveGuardianState(acousticAlerted);
+  assert.ok(proactive.score >= 4);
+  const proactiveAlerted = guardianReducer(acousticAlerted, {
+    type: 'CREATE_PROACTIVE_ALERT',
+    payload: proactive,
+  });
+  assert.equal(proactiveAlerted.alerts[0].studentAlias, 'AI 主動巡查');
+  assert.equal(proactiveAlerted.alerts[0].category, '多來源融合');
+
+  const zones = buildSchoolZoneStatuses(proactiveAlerted);
+  assert.ok(zones.some((zone) => zone.name === '穿堂' && zone.riskScore > 0));
+  const hallZone = zones.find((zone) => zone.name === '穿堂');
+  assert.ok(hallZone);
+  const robotDispatched = guardianReducer(proactiveAlerted, {
+    type: 'DISPATCH_ROBOT',
+    payload: {zoneName: hallZone.name, riskScore: hallZone.riskScore, command: 'ROBOT_DISPATCH'},
+  });
+  assert.equal(robotDispatched.robotMissions[0].zoneName, '穿堂');
+  assert.equal(robotDispatched.robotMissions[0].status, 'dispatching');
+  const robotCompleted = guardianReducer(robotDispatched, {
+    type: 'UPDATE_ROBOT_MISSION_STATUS',
+    payload: {zoneName: '穿堂', status: 'completed'},
+  });
+  assert.equal(robotCompleted.robotMissions[0].status, 'completed');
+
   const reply = await generateSupportReply('我最近考試壓力很大', 'worried');
   assert.match(reply, /考試|壓力|小步驟/);
   const urgentReply = await generateSupportReply('我想傷害自己', 'worried');
@@ -82,6 +128,8 @@ async function run() {
     nodes: [null, {id: 'node-x', name: '臨時節點', status: 'lost', latencyMs: -10}],
     supportMessages: [null, {role: 'student', content: '需要幫忙'}],
     hardwareEvents: [null, {command: 'CARE_DEPLOYED', source: 'test', status: 'bad', message: 'ok'}],
+    acousticSignals: [null, {source: 'microphone', location: '穿堂', level: 'elevated', volumeIndex: 140, volatility: -2, summary: '聲量偏高'}],
+    robotMissions: [null, {zoneName: '穿堂', riskScore: 120, status: 'bad', command: 'ROBOT_DISPATCH'}],
   });
   assert.equal(partiallyRecovered.stabilityScore, 100);
   assert.equal(partiallyRecovered.alerts.length, 1);
@@ -94,6 +142,12 @@ async function run() {
   assert.equal(partiallyRecovered.supportMessages[0].content, '需要幫忙');
   assert.equal(partiallyRecovered.hardwareEvents[0].command, 'CARE_DEPLOYED');
   assert.equal(partiallyRecovered.hardwareEvents[0].status, initial.hardwareEvents[0].status);
+  assert.equal(partiallyRecovered.acousticSignals[0].source, 'microphone');
+  assert.equal(partiallyRecovered.acousticSignals[0].volumeIndex, 100);
+  assert.equal(partiallyRecovered.acousticSignals[0].volatility, 0);
+  assert.equal(partiallyRecovered.robotMissions[0].zoneName, '穿堂');
+  assert.equal(partiallyRecovered.robotMissions[0].riskScore, 100);
+  assert.equal(partiallyRecovered.robotMissions[0].status, initial.robotMissions[0].status);
 
   const restored = guardianReducer(initial, {
     type: 'RESTORE_DEMO_STATE',

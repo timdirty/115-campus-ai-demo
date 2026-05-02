@@ -166,7 +166,7 @@ const fallbackSession: ClassroomSession = {
   tiredPercent: 6,
   teacherPace: 'normal',
   savedMinutes: 3.1,
-  currentRecommendation: 'GitHub Pages 展示模式：白板重點與教師決策會保存在這台瀏覽器，接上本機 bridge 後可再送到 UNO R4。',
+  currentRecommendation: '本機展示模式：白板重點與教師決策會保存在這台瀏覽器，接上本機橋接後可再送到 UNO R4。',
   boardRegions: [
     {id: 'A', label: '圖解與例題', x: 8, y: 18, width: 38, height: 58, status: 'keep', reason: '孩子還需要看圖說明自己的想法'},
     {id: 'B', label: '練習作答區', x: 54, y: 20, width: 34, height: 50, status: 'erasable', reason: '練習已保存，可換下一題'},
@@ -179,7 +179,7 @@ const fallbackRobotStatus: RobotStatus = {
   connected: false,
   activePort: '',
   lastCommand: '',
-  lastResponse: 'GitHub Pages 展示模式：尚未連到本機 Arduino bridge',
+  lastResponse: '靜態展示模式：尚未連到本機硬體橋接',
   lastUpdatedAt: new Date().toISOString(),
 };
 
@@ -258,7 +258,7 @@ function appendLocalTask(command: string, source: string): RobotCommandResult {
     ...loadLocalRobotStatus(),
     connected: false,
     lastCommand: command,
-    lastResponse: 'GitHub Pages 展示模式：已記錄指令，接上本機 bridge 後可送到 UNO R4',
+    lastResponse: '本機展示模式：已記錄指令，接上實體板擦機器人後可直接送出',
     lastUpdatedAt: now,
   };
   const taskLog = [
@@ -267,7 +267,7 @@ function appendLocalTask(command: string, source: string): RobotCommandResult {
       command,
       source,
       ok: false,
-      message: '靜態展示模式已保留指令，未送出 Serial',
+      message: '本機展示模式已保留指令，實體機器人連線後會送出',
       createdAt: now,
     },
     ...loadLocalTaskLog(),
@@ -285,16 +285,16 @@ function localReadyStatus(): ReadyStatus {
   return {
     ok: true,
     generatedAt: new Date().toISOString(),
-    environment: 'github-pages-demo',
+    environment: 'local-showcase',
     bridgePort: 3200,
     baudRate: 115200,
     dataDir: 'browser localStorage',
     geminiConfigured: false,
     storage: {writable: true, message: '瀏覽器 localStorage 可用'},
-    staticBuild: {available: true, indexHtml: 'GitHub Pages', assetCount: 0},
+    staticBuild: {available: true, indexHtml: '靜態展示頁', assetCount: 0},
     checks: [
-      {name: 'static-page', ok: true, message: 'GitHub Pages 展示模式可操作'},
-      {name: 'bridge', ok: true, message: '未連本機 bridge，硬體指令會保留為展示紀錄'},
+      {name: 'static-page', ok: true, message: '靜態展示模式可操作'},
+      {name: 'hardware-link', ok: true, message: '未連實體機器人，硬體指令會保留為展示紀錄'},
     ],
   };
 }
@@ -302,7 +302,7 @@ function localReadyStatus(): ReadyStatus {
 function localExportPayload(): AppDataExport {
   return {
     schemaVersion: 1,
-    app: 'ai-whiteboard-assistant-static-demo',
+    app: 'ai-whiteboard-assistant-showcase',
     exportedAt: new Date().toISOString(),
     notes: loadNotes(),
     chat: chatMessages(),
@@ -333,7 +333,7 @@ function localBoardAnalysis(input: {imageBase64: string; transcript?: string; su
     noteDraft: {
       title: `${subject} 白板重點`,
       subject,
-      period: 'GitHub Pages 展示',
+      period: '本機展示',
       desc: '由靜態展示模式產生的國小白板紀錄。',
       content,
       captureSource: 'camera',
@@ -394,7 +394,7 @@ export async function backupAppData(): Promise<BackupResult> {
       ok: true,
       backup: {
         filePath: 'browser localStorage',
-        filename: `github-pages-backup-${exportedAt.replace(/[:.]/g, '-')}.json`,
+        filename: `showcase-backup-${exportedAt.replace(/[:.]/g, '-')}.json`,
         exportedAt,
         notes: loadNotes().length,
         chat: chatMessages().length,
@@ -515,7 +515,7 @@ export async function transcribeAudio(input: {audioBase64: string; mimeType: str
     });
   } catch {
     return {
-      transcript: `靜態展示逐字稿：已收到 ${input.mimeType} 錄音，GitHub Pages 模式會先使用本機範例文字。`,
+      transcript: `靜態展示逐字稿：已收到 ${input.mimeType} 錄音，系統會先使用本機範例文字。`,
       aiMode: 'local-fallback',
     };
   }

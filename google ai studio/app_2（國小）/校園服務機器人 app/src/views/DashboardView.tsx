@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BottomSheet } from '../components/ui';
-import { BatteryCharging, MapPin, Activity, Navigation, Wind, Building2, Route, Terminal, CheckCircle2, CircleDashed, FileText } from 'lucide-react';
+import { BatteryCharging, MapPin, Activity, Navigation, Wind, Building2, Route, Terminal, CheckCircle2, CircleDashed, FileText, Bot, ArrowRight } from 'lucide-react';
 import { useAppActions, useAppState } from '../state/AppStateProvider';
 import { getDemoHealth, getDemoSteps } from '../services/demoFlow';
 
@@ -34,16 +34,14 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
       <section className="rounded-[2.5rem] border border-primary/10 bg-surface-container-lowest p-6 shadow-sm">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-primary font-mono">3 分鐘評審展示模式</p>
-            <h2 className="mt-2 font-headline text-3xl font-bold tracking-tight">從福利社配送一路串到校園中控台</h2>
-            <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-on-surface-variant">
-              每一次操作都會同步更新庫存、任務、機器人狀態、系統日誌與 UNO R4 bridge 指令；沒有硬體時仍可完整展示資料流。
-            </p>
+            <p className="text-xs font-extrabold text-primary">任務中控</p>
+            <h2 className="mt-2 font-headline text-3xl font-bold tracking-tight">派單到回報</h2>
+            <p className="mt-2 max-w-2xl text-sm font-bold leading-6 text-on-surface-variant">從派遣到回報，一屏完成。</p>
           </div>
           <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4 lg:w-[28rem]">
             {demoHealth.map((item) => (
               <div key={item.label} className="rounded-2xl border border-outline-variant/10 bg-surface-container-low p-3">
-                <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-on-surface-variant/60">{item.label}</p>
+                <p className="text-[10px] font-extrabold text-on-surface-variant/60">{item.label}</p>
                 <p className={`mt-1 text-sm font-black ${item.ok ? 'text-primary' : 'text-error'}`}>{item.value}</p>
               </div>
             ))}
@@ -65,6 +63,18 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
             </button>
           ))}
         </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <button onClick={() => navigateTo('dispatch-map')} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-black text-white shadow-lg shadow-primary/20 active:scale-95">
+            校園派遣
+            <ArrowRight size={18} />
+          </button>
+          <button onClick={() => navigateTo('delivery')} className="flex min-h-12 items-center justify-center rounded-2xl border border-outline-variant/20 bg-surface-container-low px-4 text-sm font-black text-on-surface active:scale-95">
+            物品配送
+          </button>
+          <button onClick={() => navigateTo('task-schedule')} className="flex min-h-12 items-center justify-center rounded-2xl border border-outline-variant/20 bg-surface-container-low px-4 text-sm font-black text-on-surface active:scale-95">
+            排程清潔
+          </button>
+        </div>
       </section>
 
       <section className="grid grid-cols-2 gap-5">
@@ -79,19 +89,22 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
               <div>
                 <h2 className="font-headline text-4xl font-bold mb-2 tracking-tight">{activeRobotId}機</h2>
                 {activeRobot.status === '待命' || activeRobot.status === '充電' ? (
-                  <span className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-surface-container-highest text-on-surface-variant rounded-lg text-[10px] font-bold tracking-[0.2em] shadow-sm uppercase font-mono">
+                  <span className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-surface-container-highest text-on-surface-variant rounded-lg text-xs font-bold shadow-sm">
                     <span className="w-2 h-2 bg-on-surface-variant/40 rounded-full" />{activeRobot.status}
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-primary/10 text-primary rounded-lg text-[10px] font-bold tracking-[0.2em] shadow-sm uppercase font-mono border border-primary/20">
+                  <span className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold shadow-sm border border-primary/20">
                     <span className="w-2 h-2 bg-[#87d46c] rounded-full animate-pulse shadow-[0_0_10px_rgba(135,212,108,0.8)]" />{activeRobot.status}中
                   </span>
                 )}
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest mb-1 font-mono">序列號</p>
-                <p className="text-sm font-bold font-mono">{activeRobot.serial}</p>
+                <p className="text-[10px] font-bold text-on-surface-variant/60 mb-1">機身代號</p>
+                <p className="text-sm font-bold">{activeRobot.serial}</p>
               </div>
+            </div>
+            <div className="absolute right-8 top-1/2 hidden -translate-y-1/2 text-primary/10 sm:block">
+              <Bot size={136} strokeWidth={1.4} />
             </div>
 
             <div className="grid grid-cols-2 gap-8">
@@ -100,8 +113,8 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
                   <BatteryCharging className="text-primary" size={26} />
                 </div>
                 <div>
-                  <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest font-mono mb-1 text-primary/80">當前電量</p>
-                  <p className="text-2xl font-headline font-bold font-mono tracking-tighter">{activeRobot.battery}<span className="text-sm ml-0.5 opacity-60">%</span></p>
+                  <p className="text-[10px] text-on-surface-variant font-bold mb-1 text-primary/80">電量</p>
+                  <p className="text-2xl font-headline font-bold">{activeRobot.battery}<span className="text-sm ml-0.5 opacity-60">%</span></p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
@@ -109,7 +122,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
                   <MapPin className="text-primary" size={26} />
                 </div>
                 <div>
-                  <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest font-mono mb-1 text-primary/80">地理位置</p>
+                  <p className="text-[10px] text-on-surface-variant font-bold mb-1 text-primary/80">位置</p>
                   <p className="text-xl font-headline font-bold tracking-tight">{activeRobot.position}</p>
                 </div>
               </div>
@@ -117,9 +130,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
           </div>
           <div className="absolute -right-20 -bottom-20 w-80 h-80 opacity-5 blur-[80px] rounded-full bg-primary pointer-events-none group-hover:opacity-10 transition-opacity"></div>
 
-          {/* Technical Deco */}
-          <div className="absolute top-0 right-0 w-32 h-32 opacity-5 pointer-events-none" style={{ backgroundImage: 'linear-gradient(45deg, var(--color-primary) 1.5px, transparent 1.5px)', backgroundSize: '16px 16px' }}></div>
-          <div className="absolute left-8 bottom-4 text-[8px] font-mono opacity-20 tracking-tighter uppercase pointer-events-none">韌體版本: V2.4.8-CORE_READY</div>
+          <div className="absolute left-8 bottom-4 text-[10px] font-bold opacity-20 pointer-events-none">狀態已同步</div>
         </motion.div>
 
         {/* Mini Cards */}
@@ -131,7 +142,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
             <Activity className="text-primary" size={20} />
           </div>
           <div className="relative z-10">
-            <p className="text-[10px] font-bold text-on-surface-variant/60 font-mono tracking-widest uppercase mb-1">光達探測系統</p>
+            <p className="text-[10px] font-bold text-on-surface-variant/60 mb-1">環境掃描</p>
             <p className="text-2xl font-headline font-bold text-primary tracking-tight">運作中</p>
           </div>
         </motion.div>
@@ -141,8 +152,8 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
             <Navigation className="text-secondary" size={20} />
           </div>
           <div className="relative z-10">
-            <p className="text-[10px] font-bold text-on-surface-variant/60 font-mono tracking-widest uppercase mb-1">當前時速</p>
-            <p className="text-2xl font-headline font-bold font-mono tracking-tighter text-on-surface">{speed.toFixed(1)} <span className="text-xs font-sans opacity-50 uppercase tracking-widest ml-1 font-bold">m/s</span></p>
+            <p className="text-[10px] font-bold text-on-surface-variant/60 mb-1">巡航速度</p>
+            <p className="text-2xl font-headline font-bold text-on-surface">{speed.toFixed(1)} <span className="text-xs opacity-50 ml-1 font-bold">速度</span></p>
           </div>
         </motion.div>
       </section>
@@ -158,15 +169,15 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
              <div className="flex-1 min-w-0 py-1">
                <div className="flex items-center gap-2 mb-2">
                  <span className="w-2 h-2 bg-primary rounded-full"></span>
-                 <p className="text-[10px] font-extrabold text-primary tracking-[0.25em] uppercase font-mono">任務執行中</p>
+                 <p className="text-xs font-extrabold text-primary">任務執行中</p>
                </div>
                <h3 className="mb-1 font-headline text-2xl font-bold leading-tight tracking-tight sm:text-3xl">{activeRobot.task}</h3>
-               <p className="text-on-surface-variant font-bold text-[11px] font-mono uppercase tracking-[0.1em] opacity-60">計時預計完成: {activeRobot.eta}</p>
+               <p className="text-on-surface-variant font-bold text-xs opacity-70">預計完成：{activeRobot.eta}</p>
              </div>
           </div>
           <div>
             <div className="flex justify-between items-end mb-4">
-              <span className="text-xs font-extrabold font-mono text-primary bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">
+              <span className="text-xs font-extrabold text-primary bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">
                 {activeRobot.status === '充電' || activeRobot.status === '待命' ? '0.00' : progress.toFixed(2)}% 已完成
               </span>
               <div className="flex items-center gap-3">
@@ -176,12 +187,12 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
                     actions.setRobotRunning(activeRobot.id, !activeRobot.isRunning);
                     showToast(activeRobot.isRunning ? '已暫停設備運作' : `${activeRobot.id} 任務已恢復`);
                   }}
-                  className={`min-h-10 rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-widest shadow-md transition-all cursor-pointer active:scale-95 ${activeRobot.isRunning ? 'bg-surface-container-highest text-on-surface hover:bg-outline-variant/30' : 'bg-primary text-white shadow-primary/30'}`}
+                  className={`min-h-10 rounded-xl px-4 py-2 text-xs font-bold shadow-md transition-all cursor-pointer active:scale-95 ${activeRobot.isRunning ? 'bg-surface-container-highest text-on-surface hover:bg-outline-variant/30' : 'bg-primary text-white shadow-primary/30'}`}
                 >
                   {activeRobot.isRunning ? '暫停執行' : '繼續執行'}
                 </button>
                 <div className="h-8 w-[1px] bg-outline-variant/30 hidden sm:block mx-2"></div>
-                <span className="text-[10px] font-bold text-on-surface-variant/60 border border-outline-variant/30 bg-surface-container-high px-3 py-2 rounded-xl uppercase tracking-[0.15em] font-mono">{activeRobot.phase}</span>
+                <span className="text-[10px] font-bold text-on-surface-variant/60 border border-outline-variant/30 bg-surface-container-high px-3 py-2 rounded-xl">{activeRobot.phase}</span>
               </div>
             </div>
             <div className="h-4 w-full bg-surface-container-high rounded-full overflow-hidden shadow-inner p-1">
@@ -201,7 +212,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
         </motion.div>
       </section>
 
-      {/* UNO R4 Command Queue */}
+      {/* Hardware command queue */}
       <section className="bg-surface-container-lowest rounded-[2.5rem] p-6 border border-outline-variant/30 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
         <div className="flex items-start justify-between gap-4 mb-5">
           <div className="flex items-center gap-3">
@@ -209,9 +220,9 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
               <Terminal size={24} />
             </div>
             <div>
-              <h3 className="font-headline text-xl font-bold tracking-tight">UNO R4 bridge 指令</h3>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant/60 font-mono">
-                {state.hardwareMode === 'serial-ready' ? 'Serial Ready，bridge 已送達' : 'Fallback Ready，等待插板'}
+              <h3 className="font-headline text-xl font-bold tracking-tight">機器人任務紀錄</h3>
+              <p className="text-[10px] font-bold text-on-surface-variant/60">
+                {state.hardwareMode === 'serial-ready' ? '已接收' : '展示紀錄就緒'}
               </p>
             </div>
           </div>
@@ -224,8 +235,8 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-2xl bg-surface-container-low px-4 py-3 border border-outline-variant/10">
               <div className="min-w-0">
                 <p className="truncate text-sm font-extrabold">{item.label}</p>
-                <p className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[0.12em] text-on-surface-variant/60 font-mono">
-                  {item.command} · {item.target}
+                <p className="mt-0.5 truncate text-[10px] font-bold text-on-surface-variant/60">
+                  {item.target}
                 </p>
               </div>
               <span className={`shrink-0 rounded-full px-2.5 py-1 text-[9px] font-extrabold ${
@@ -237,7 +248,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
                       ? 'bg-secondary text-white'
                       : 'bg-surface-container-high text-on-surface-variant'
               }`}>
-                {item.status === 'sent' ? '已送' : item.status === 'failed' ? '未連線' : item.status === 'queued' ? '待送' : 'Demo'}
+                {item.status === 'sent' ? '已送' : item.status === 'failed' ? '未連線' : item.status === 'queued' ? '待送' : '示範'}
               </span>
             </div>
           ))}
@@ -247,8 +258,8 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
       {/* Fleet Overview */}
       <section className="pt-2">
         <div className="flex justify-between items-center px-2 mb-5">
-           <h4 className="font-headline text-xl font-bold tracking-tight">機隊監控陣列</h4>
-           <div className="flex items-center gap-1.5 text-[9px] text-primary font-bold bg-primary/10 px-3 py-1.5 rounded-full uppercase tracking-widest border border-primary/20">
+           <h4 className="font-headline text-xl font-bold tracking-tight">機隊狀態</h4>
+           <div className="flex items-center gap-1.5 text-[10px] text-primary font-bold bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20">
              <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></div>
              {state.robots.length} / {state.robots.length} 在線
            </div>
@@ -273,7 +284,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
                  className={`rounded-2xl py-4 px-2 text-center cursor-pointer transition-all border ${bgClass} ${isActive ? '' : 'hover:bg-surface-container'}`}
                >
                   <p className={`font-headline font-bold text-lg tracking-tight ${!isActive ? (bot.status === '充電' ? 'text-[#d4a017]' : bot.status === '配送' ? 'text-primary' : 'text-on-surface-variant') : ''}`}>{bot.id}</p>
-                  <p className={`text-[10px] font-bold mt-1 opacity-60 uppercase tracking-widest font-mono ${!isActive ? (bot.status === '充電' ? 'text-[#d4a017]' : bot.status === '配送' ? 'text-primary' : 'text-on-surface-variant') : ''}`}>{bot.status}</p>
+                  <p className={`text-[10px] font-bold mt-1 opacity-60 ${!isActive ? (bot.status === '充電' ? 'text-[#d4a017]' : bot.status === '配送' ? 'text-primary' : 'text-on-surface-variant') : ''}`}>{bot.status}</p>
                </motion.div>
              );
            })}
@@ -294,7 +305,23 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
             </div>
             <div className="flex-1">
                <p className="text-base font-bold tracking-tight">智能教室清掃</p>
-               <p className="text-[11px] text-on-surface-variant font-bold uppercase tracking-widest mt-1 opacity-60 font-mono">計畫清掃方案</p>
+               <p className="text-xs text-on-surface-variant font-bold mt-1 opacity-70">安排清掃路線</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-primary/40 group-hover:text-primary transition-colors">
+              <Route size={20} />
+            </div>
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.01, x: 4 }} whileTap={{ scale: 0.98 }}
+            onClick={() => navigateTo('dispatch-map')}
+            className="flex items-center gap-5 p-5 bg-surface-container-lowest border border-outline-variant/30 rounded-[1.75rem] text-left shadow-[0_4px_15px_rgba(0,0,0,0.02)] hover:shadow-md hover:border-primary/40 transition-all group"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 text-primary border border-primary/10 group-hover:bg-primary group-hover:text-white transition-colors">
+              <Bot size={28} />
+            </div>
+            <div className="flex-1">
+              <p className="text-base font-bold tracking-tight">校園即時派遣</p>
+              <p className="text-xs text-on-surface-variant font-bold mt-1 opacity-70">選區域並派 S-01</p>
             </div>
             <div className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-primary/40 group-hover:text-primary transition-colors">
               <Route size={20} />
@@ -310,7 +337,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
             </div>
             <div className="flex-1">
               <p className="text-base font-bold tracking-tight">展示報表中心</p>
-              <p className="text-[11px] text-on-surface-variant font-bold uppercase tracking-widest mt-1 opacity-60 font-mono">輸出任務、教學與指令證據</p>
+              <p className="text-xs text-on-surface-variant font-bold mt-1 opacity-70">輸出任務與教學紀錄</p>
             </div>
             <div className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-primary/40 group-hover:text-primary transition-colors">
               <Route size={20} />
@@ -323,16 +350,16 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
       <BottomSheet isOpen={modal === 'speed'} onClose={() => setModal(null)} title="巡航速度校準">
         <div className="p-6 space-y-10 pb-10">
           <div className="text-center bg-surface-container rounded-[2rem] py-12 border border-outline-variant/10 shadow-inner">
-            <p className="text-7xl font-headline font-bold text-primary font-mono tracking-tighter">
+            <p className="text-7xl font-headline font-bold text-primary tracking-tight">
               {speed.toFixed(1)} <span className="text-2xl text-on-surface-variant/60 font-sans tracking-tight font-medium">m/s</span>
             </p>
             <div className="flex items-center justify-center gap-2 mt-4">
               <span className="w-2 h-2 bg-[#87d46c] rounded-full animate-pulse"></span>
-              <p className="text-[11px] text-on-surface-variant font-bold uppercase tracking-[0.2em] font-mono">巡航連線穩定</p>
+              <p className="text-xs text-on-surface-variant font-bold">巡航穩定</p>
             </div>
           </div>
           <div className="px-4">
-            <div className="flex justify-between text-[10px] text-on-surface-variant font-extrabold mb-4 font-mono tracking-widest uppercase opacity-60">
+            <div className="flex justify-between text-[10px] text-on-surface-variant font-extrabold mb-4 opacity-60">
               <span>下限</span>
               <span>理論上限</span>
             </div>
@@ -341,9 +368,9 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
               onChange={(e)=>setSpeed(Number(e.target.value))}
               className="w-full h-8 bg-surface-container-highest rounded-full appearance-none cursor-pointer accent-primary border-[6px] border-surface-container shadow-inner"
             />
-            <div className="flex justify-between text-[11px] text-primary font-bold mt-4 font-mono tracking-widest">
-              <span className="bg-primary/5 px-2 py-0.5 rounded">0.5 [未核准]</span>
-              <span className="bg-primary/5 px-2 py-0.5 rounded text-error/60">2.5 [極限]</span>
+            <div className="flex justify-between text-[11px] text-primary font-bold mt-4">
+              <span className="bg-primary/5 px-2 py-0.5 rounded">低速</span>
+              <span className="bg-primary/5 px-2 py-0.5 rounded text-error/60">高速</span>
             </div>
           </div>
           <button
@@ -386,14 +413,14 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
              </motion.div>
 
              {/* Map Labels */}
-             <div className="absolute top-8 left-8 text-[9px] font-mono text-blue-400/50 uppercase tracking-[0.2em] font-bold">網格區域: B41</div>
-             <div className="absolute bottom-8 right-8 text-[9px] font-mono text-blue-400/50 uppercase tracking-[0.2em] font-bold">模式: 導航 V5</div>
+             <div className="absolute top-8 left-8 text-[10px] font-bold text-blue-400/60">B 棟路線</div>
+             <div className="absolute bottom-8 right-8 text-[10px] font-bold text-blue-400/60">自動導航</div>
            </div>
 
            <div className="mt-10 w-full bg-surface-container-lowest p-7 rounded-[2rem] border border-outline-variant/30 shadow-sm">
              <div className="flex justify-between items-center mb-4">
                 <h4 className="text-2xl font-bold font-headline tracking-tight">507 教室 (B棟西側)</h4>
-                <span className="text-[10px] bg-primary/10 text-primary font-mono px-3 py-1 rounded-full font-bold uppercase tracking-widest border border-primary/20">執行中</span>
+                <span className="text-[10px] bg-primary/10 text-primary px-3 py-1 rounded-full font-bold border border-primary/20">執行中</span>
              </div>
              <p className="text-sm text-on-surface-variant font-medium leading-relaxed">AI 正在計算動態避障路徑。目前環境清潔度預估已提升至 84%。</p>
            </div>
@@ -403,16 +430,16 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
       <BottomSheet isOpen={modal === 'robot' || modal === 'radar'} onClose={() => setModal(null)} title="系統診斷">
         <div className="p-4 space-y-4">
           {[
-            { n: '光學雷達 (LiDAR)', s: '在線', t: '12ms 延遲' },
-            { n: '超聲波避障', s: '在線', t: '5ms 延遲' },
-            { n: '邊緣運算模組', s: '最佳狀態', t: '溫度: 42°C' },
-            { n: '驅動馬達', s: '輸出穩定', t: '功率: 68W' }
+            { n: '環境掃描', s: '正常', t: '即時回傳' },
+            { n: '避障感測', s: '正常', t: '路線安全' },
+            { n: '任務判斷', s: '正常', t: '狀態穩定' },
+            { n: '移動模組', s: '正常', t: '輸出穩定' }
           ].map((s, i) => (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }} key={i} className="flex justify-between items-center p-5 bg-surface-container-low rounded-2xl border border-outline-variant/10 shadow-sm hover:shadow transition-shadow">
               <span className="font-bold text-sm tracking-wide text-on-surface">{s.n}</span>
               <div className="text-right">
-                <span className="text-[10px] text-[#87d46c] font-mono tracking-widest">{s.s}</span>
-                <p className="text-[11px] text-on-surface-variant font-medium mt-1 font-mono uppercase tracking-wider">{s.t}</p>
+                <span className="text-[10px] text-[#87d46c] font-bold">{s.s}</span>
+                <p className="text-[11px] text-on-surface-variant font-medium mt-1">{s.t}</p>
               </div>
             </motion.div>
           ))}

@@ -44,7 +44,7 @@ cd "google ai studio/app_2（國小）/校園服務機器人 app"
 npm install
 npm run dev
 
-cd "google ai studio/app_3（國小）/AI校園心靈守護者"
+cd "google ai studio/app_3（國中）/AI校園心靈守護者"
 npm install
 npm run dev
 ```

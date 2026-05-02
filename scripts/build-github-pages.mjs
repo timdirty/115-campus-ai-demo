@@ -30,8 +30,8 @@ const apps = [
   {
     id: 'app3',
     name: 'AI 校園心靈守護者',
-    path: 'google ai studio/app_3（國小）/AI校園心靈守護者',
-    guide: 'google ai studio/app_3（國小）/AI校園心靈守護者/STUDENT_DEMO_GUIDE.md',
+    path: 'google ai studio/app_3（國中）/AI校園心靈守護者',
+    guide: 'google ai studio/app_3（國中）/AI校園心靈守護者/STUDENT_DEMO_GUIDE.md',
     desc: '匿名關懷、預警處理、自我照護、聊天與節點監控。',
     accent: '#0f766e',
     flow: ['看總覽', '處理提醒', '自我照護'],

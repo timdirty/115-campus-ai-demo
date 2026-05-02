@@ -14,7 +14,7 @@ export const signInWithGoogle = async () => {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Firebase Google sign-in unavailable';
-    throw new Error(`Firebase sign-in unavailable in local demo mode: ${message}`);
+    const message = error instanceof Error ? error.message : 'Google 登入暫時無法使用';
+    throw new Error(`本機展示模式暫時無法登入：${message}`);
   }
 };

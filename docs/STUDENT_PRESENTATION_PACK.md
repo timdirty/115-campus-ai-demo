@@ -18,7 +18,7 @@ App 3 講稿：https://timdirty.github.io/115-campus-ai-demo/app3-guide.html
 
 - App 1：`../google ai studio/app_1（國小）/AI自動板擦機器人/STUDENT_DEMO_GUIDE.md`
 - App 2：`../google ai studio/app_2（國小）/校園服務機器人 app/STUDENT_DEMO_GUIDE.md`
-- App 3：`../google ai studio/app_3（國小）/AI校園心靈守護者/STUDENT_DEMO_GUIDE.md`
+- App 3：`../google ai studio/app_3（國中）/AI校園心靈守護者/STUDENT_DEMO_GUIDE.md`
 
 ## 共用開場說法
 

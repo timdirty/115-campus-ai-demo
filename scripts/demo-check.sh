@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 APP1_DIR="${ROOT_DIR}/google ai studio/app_1（國小）/AI自動板擦機器人"
 APP2_DIR="${ROOT_DIR}/google ai studio/app_2（國小）/校園服務機器人 app"
-APP3_DIR="${ROOT_DIR}/google ai studio/app_3（國小）/AI校園心靈守護者"
+APP3_DIR="${ROOT_DIR}/google ai studio/app_3（國中）/AI校園心靈守護者"
 
 step() {
   printf '\n== %s ==\n' "$1"
@@ -65,7 +65,7 @@ App 2 local demo:
   open the Vite URL shown in the terminal
 
 App 3 local demo:
-  cd "google ai studio/app_3（國小）/AI校園心靈守護者"
+  cd "google ai studio/app_3（國中）/AI校園心靈守護者"
   npm run dev
   open the Vite URL shown in the terminal
 

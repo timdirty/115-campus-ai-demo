@@ -1,5 +1,12 @@
 import type {ClassroomSession, RobotCommandInfo, RobotStatus, WhiteboardNote} from './types';
 
+function svgUri(svg: string) { return `data:image/svg+xml,${encodeURIComponent(svg)}`; }
+
+const WHITEBOARD_MATH = svgUri('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240"><rect width="400" height="240" fill="#d8eaf4"/><rect x="20" y="20" width="360" height="200" rx="6" fill="#fff" stroke="#315f7a" stroke-width="2"/><text x="200" y="75" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#315f7a" font-weight="bold">1/4 + 2/4 = 3/4</text><circle cx="120" cy="155" r="50" fill="none" stroke="#246b5b" stroke-width="2"/><line x1="70" y1="155" x2="170" y2="155" stroke="#246b5b" stroke-width="1.5"/><line x1="120" y1="105" x2="120" y2="205" stroke="#246b5b" stroke-width="1.5"/><path d="M120 105 A50 50 0 0 1 170 155" stroke="#9a5a16" stroke-width="3" fill="none"/><circle cx="285" cy="120" r="12" fill="#315f7a" opacity="0.25"/><text x="285" y="125" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#315f7a">3/4</text><path d="M260 95 L310 95 L310 190 L260 190 Z" fill="none" stroke="#c5d0cc" stroke-width="1"/><text x="285" y="155" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#697570">練習區</text></svg>');
+const WHITEBOARD_SCIENCE = svgUri('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240"><rect width="400" height="240" fill="#d7eee8"/><rect x="20" y="20" width="360" height="200" rx="6" fill="#fff" stroke="#246b5b" stroke-width="2"/><text x="200" y="52" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#246b5b" font-weight="bold">水循環</text><ellipse cx="200" cy="90" rx="50" ry="18" fill="#315f7a" opacity="0.18"/><text x="200" y="95" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#315f7a">蒸發↑</text><path d="M200 108 Q230 60 310 80" stroke="#315f7a" stroke-width="2" fill="none" stroke-dasharray="5 3"/><circle cx="320" cy="82" r="16" fill="#315f7a" opacity="0.25"/><text x="320" y="87" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#315f7a">凝結</text><path d="M310 98 Q260 150 80 170" stroke="#315f7a" stroke-width="2" fill="none" stroke-dasharray="5 3"/><text x="195" y="148" font-family="sans-serif" font-size="11" fill="#246b5b">降水↓</text><ellipse cx="80" cy="180" rx="50" ry="14" fill="#246b5b" opacity="0.2"/><text x="80" y="185" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#246b5b">大海/河流</text></svg>');
+const WHITEBOARD_LANGUAGE = svgUri('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240"><rect width="400" height="240" fill="#f3dfc7"/><rect x="20" y="20" width="360" height="200" rx="6" fill="#fff" stroke="#9a5a16" stroke-width="2"/><text x="200" y="52" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#9a5a16" font-weight="bold">故事六要素</text><rect x="35" y="65" width="155" height="145" rx="4" fill="#fdf4ec"/><text x="45" y="88" font-family="sans-serif" font-size="13" fill="#5a3208">① 角色</text><text x="45" y="111" font-family="sans-serif" font-size="13" fill="#5a3208">② 時間</text><text x="45" y="134" font-family="sans-serif" font-size="13" fill="#5a3208">③ 地點</text><text x="45" y="157" font-family="sans-serif" font-size="13" fill="#5a3208">④ 起因</text><text x="45" y="180" font-family="sans-serif" font-size="13" fill="#5a3208">⑤ 經過</text><text x="45" y="200" font-family="sans-serif" font-size="13" fill="#5a3208">⑥ 結果</text><rect x="215" y="65" width="155" height="145" rx="4" fill="#fdf4ec"/><line x1="225" y1="95" x2="360" y2="95" stroke="#d4a574" stroke-width="1"/><line x1="225" y1="120" x2="360" y2="120" stroke="#d4a574" stroke-width="1"/><line x1="225" y1="145" x2="360" y2="145" stroke="#d4a574" stroke-width="1"/><line x1="225" y1="170" x2="360" y2="170" stroke="#d4a574" stroke-width="1"/><line x1="225" y1="195" x2="360" y2="195" stroke="#d4a574" stroke-width="1"/></svg>');
+const WHITEBOARD_DEFAULT = svgUri('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240"><rect width="400" height="240" fill="#eaf0ee"/><rect x="20" y="20" width="360" height="200" rx="6" fill="#fff" stroke="#697570" stroke-width="2"/><line x1="40" y1="70" x2="360" y2="70" stroke="#c5d0cc" stroke-width="1.5"/><line x1="40" y1="100" x2="360" y2="100" stroke="#c5d0cc" stroke-width="1.5"/><line x1="40" y1="130" x2="360" y2="130" stroke="#c5d0cc" stroke-width="1.5"/><line x1="40" y1="160" x2="200" y2="160" stroke="#c5d0cc" stroke-width="1.5"/><line x1="40" y1="190" x2="150" y2="190" stroke="#c5d0cc" stroke-width="1.5"/><rect x="270" y="75" width="90" height="110" rx="4" fill="#f0f5f3" stroke="#c5d0cc" stroke-width="1"/></svg>');
+
 export const defaultNotes: WhiteboardNote[] = [
   {
     id: 1,
@@ -11,7 +18,7 @@ export const defaultNotes: WhiteboardNote[] = [
     captureSource: 'seed',
     ocrText: '同分母分數加法、分母不變、分子相加、1/4 + 2/4 = 3/4',
     transcript: '老師用披薩切片說明分母和分子的意思，請孩子先看圖，再把圖轉成算式。',
-    imageUrl: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=1200&auto=format&fit=crop',
+    imageUrl: WHITEBOARD_MATH,
     audioUrl: '',
     keywords: ['國小', '數學', '分數', '披薩圖', '同分母加法'],
     boardRegions: [
@@ -24,7 +31,7 @@ export const defaultNotes: WhiteboardNote[] = [
     date: '4月29日',
     time: '上午 09:20',
     theme: 'secondary',
-    img: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=1200&auto=format&fit=crop',
+    img: WHITEBOARD_MATH,
     createdAt: '2026-04-29T09:20:00+08:00',
   },
   {
@@ -37,7 +44,7 @@ export const defaultNotes: WhiteboardNote[] = [
     captureSource: 'seed',
     ocrText: '水循環、蒸發、凝結、降水、流回大海',
     transcript: '老師把水滴想像成小旅人，從大海出發到天空，再變成雨回到地面。',
-    imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1200&auto=format&fit=crop',
+    imageUrl: WHITEBOARD_SCIENCE,
     audioUrl: '',
     keywords: ['國小', '自然', '水循環', '蒸發', '凝結', '降水'],
     boardRegions: [
@@ -50,7 +57,7 @@ export const defaultNotes: WhiteboardNote[] = [
     date: '4月28日',
     time: '下午 01:35',
     theme: 'tertiary',
-    img: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1200&auto=format&fit=crop',
+    img: WHITEBOARD_SCIENCE,
     createdAt: '2026-04-28T13:35:00+08:00',
   },
   {
@@ -63,7 +70,7 @@ export const defaultNotes: WhiteboardNote[] = [
     captureSource: 'seed',
     ocrText: '故事六要素、角色、時間、地點、起因、經過、結果',
     transcript: '老師提醒孩子不要只說好玩，要說清楚誰、在哪裡、發生什麼事。',
-    imageUrl: 'https://images.unsplash.com/photo-1519682337058-a94d519337bc?q=80&w=1200&auto=format&fit=crop',
+    imageUrl: WHITEBOARD_LANGUAGE,
     audioUrl: '',
     keywords: ['國小', '國語', '閱讀', '故事六要素', '口語表達'],
     boardRegions: [
@@ -76,7 +83,7 @@ export const defaultNotes: WhiteboardNote[] = [
     date: '4月27日',
     time: '上午 10:10',
     theme: 'primary',
-    img: 'https://images.unsplash.com/photo-1519682337058-a94d519337bc?q=80&w=1200&auto=format&fit=crop',
+    img: WHITEBOARD_LANGUAGE,
     createdAt: '2026-04-27T10:10:00+08:00',
   },
 ];
@@ -180,7 +187,7 @@ export function createNote(input: Partial<WhiteboardNote> & Pick<WhiteboardNote,
     date: input.date ?? now.toLocaleDateString('zh-TW', {month: 'long', day: 'numeric'}),
     time: input.time ?? now.toLocaleTimeString('zh-TW', {hour: '2-digit', minute: '2-digit'}),
     theme: input.theme ?? 'primary',
-    img: input.img ?? 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1200&auto=format&fit=crop',
+    img: input.img ?? WHITEBOARD_DEFAULT,
     createdAt: input.createdAt ?? now.toISOString(),
   };
 }

@@ -66,7 +66,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
     setTimeout(() => {
       actions.scanAttendance();
       setModal(null);
-      showToast('AI 視覺點名已完成：兩人缺席 (李小明、王大雄)');
+      showToast('AI 場域點名已完成：2 個座位待確認');
     }, 2500);
   };
 
@@ -84,7 +84,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       <section className="bg-surface-container-lowest rounded-[2.5rem] p-7 border border-outline-variant/30 shadow-md flex items-center justify-between gap-5 relative overflow-hidden group">
          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
         <div className="flex-1 min-w-0 relative z-10">
-           <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-[0.2em] mb-2 font-mono">出缺席評估 MESH_LIDAR</p>
+           <p className="text-[11px] font-bold text-on-surface-variant tracking-[0.2em] mb-2">出缺席場域評估</p>
            {state.attendance.scanned ? (
              <div className="flex flex-col items-start gap-1.5">
                <div className="flex items-baseline gap-2">
@@ -96,7 +96,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
            ) : (
              <div className="mt-2">
                 <p className="font-headline font-bold text-xl text-on-surface-variant">掃描待命狀態</p>
-                <div className="mt-2 text-[10px] uppercase font-mono text-primary/70 animate-pulse flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span> 掃描待命狀態</div>
+                <div className="mt-2 text-[10px] text-primary/70 animate-pulse flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span> 場域掃描待命</div>
              </div>
            )}
         </div>
@@ -105,7 +105,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
           className="relative z-10 shrink-0 bg-primary hover:bg-primary/95 text-white active:scale-95 transition-all w-24 h-24 rounded-[2rem] shadow-[0_0_30px_rgba(var(--color-primary),0.4)] border-2 border-primary/20 flex flex-col items-center justify-center gap-2 group-hover:shadow-[0_0_40px_rgba(var(--color-primary),0.6)]"
         >
           <Camera size={28} className="drop-shadow-md" />
-          <span className="text-[11px] font-bold tracking-widest text-center shadow-black drop-shadow-md">環場<br/>辨識</span>
+          <span className="text-[11px] font-bold tracking-widest text-center shadow-black drop-shadow-md">環場<br/>確認</span>
         </button>
       </section>
 
@@ -183,14 +183,14 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
 
       {/* Video Feed */}
       <section onClick={() => setModal('video')} className="bg-inverse-surface rounded-[2.5rem] h-[320px] relative overflow-hidden shadow-2xl cursor-pointer group mt-10">
-        <img src="https://images.unsplash.com/photo-1577896851231-70ef18881754?w=800&q=80" alt="Classroom" className="w-full h-full object-cover opacity-60 mix-blend-luminosity group-hover:scale-105 transition-transform duration-1000 group-hover:opacity-80" />
+        <div className="w-full h-full group-hover:scale-105 transition-transform duration-1000" style={{background: 'linear-gradient(135deg, #0d2137 0%, #1e3a5f 50%, #0a1a2e 100%)'}} />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
         {/* Simulating Bounding Boxes */}
         <div className="absolute top-[20%] left-[30%] w-20 h-20 border-[3px] border-primary/50  rounded-xl pointer-events-none group-hover:border-primary transition-colors shadow-[0_0_15px_rgba(var(--color-primary),0.3)]">
-          <div className="absolute -top-6 left-0 bg-primary/90 backdrop-blur-md text-white text-[10px] font-mono px-2.5 py-0.5 rounded-md font-bold tracking-widest shadow-sm">ID:12 專注</div>
+          <div className="absolute -top-6 left-0 bg-primary/90 backdrop-blur-md text-white text-[10px] px-2.5 py-0.5 rounded-md font-bold tracking-widest shadow-sm">區域 A 專注</div>
         </div>
         <div className="absolute top-[35%] right-[25%] w-24 h-24 border-[3px] border-tertiary/50 rounded-xl pointer-events-none group-hover:border-tertiary transition-colors animate-pulse shadow-[0_0_15px_rgba(var(--color-tertiary),0.3)]">
-          <div className="absolute -top-6 left-0 bg-tertiary/90 backdrop-blur-md text-white text-[10px] font-mono px-2.5 py-0.5 rounded-md font-bold tracking-widest shadow-sm">ID:05 低頭</div>
+          <div className="absolute -top-6 left-0 bg-tertiary/90 backdrop-blur-md text-white text-[10px] px-2.5 py-0.5 rounded-md font-bold tracking-widest shadow-sm">區域 B 需確認</div>
         </div>
 
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
@@ -236,14 +236,14 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
                  onClick={() => { setModal(null); navigateTo('student-report', { name: activeStudent.name, studentId: activeStudent.studentId }); }}
                  className="mt-2 text-[15px] font-bold text-primary flex items-center justify-center gap-2 w-full bg-primary/10 py-5 rounded-[1.5rem] hover:bg-primary/20 transition-all active:scale-[0.98] border border-primary/20 shadow-sm"
                >
-                 開啟 {activeStudent.name} 專屬學習報告 <ArrowUpRight size={18} />
+                 開啟此訊號的學習狀態報告 <ArrowUpRight size={18} />
                </button>
             </div>
 
             {/* AI Suggestions */}
             {!isTyping && !chatReply && (
               <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-5 pt-3 -mx-4 px-4 snap-x">
-                {['這三位是達文西、米開朗基羅與拉斐爾。', '請參考教材第 42 頁圖表。', '好問題，稍後全班統一說明！'].map((sug, idx) => (
+                {['好問題！我先簡單說明。', '請大家看黑板這邊的說明。', '好問題，稍後全班統一說明！'].map((sug, idx) => (
                   <button
                     key={idx}
                     onClick={() => setChatInput(sug)}
@@ -280,8 +280,8 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
             <div className="bg-error/10 p-6 rounded-[1.75rem] border border-error/20 flex gap-5 shadow-inner">
                <AlertCircle className="text-error shrink-0 mt-1" size={32} />
                <div>
-                  <h4 className="font-bold text-error mb-2 font-headline tracking-wide text-lg">分心告警</h4>
-                  <p className="text-[15px] font-medium text-error/90 leading-relaxed">系統檢測到該名學生持續未注視螢幕，且裝置處於閒置狀態超過 15 秒。</p>
+                  <h4 className="font-bold text-error mb-2 font-headline tracking-wide text-lg">注意力提醒</h4>
+                  <p className="text-[15px] font-medium text-error/90 leading-relaxed">系統偵測到此學習訊號的互動頻率降低，建議先用低干擾提醒，再由老師確認狀況。</p>
                </div>
             </div>
             <div className="grid grid-cols-1 gap-4">
@@ -293,16 +293,16 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
                 <span className="text-[12px] opacity-80 font-medium mt-1">僅提醒本人，不影響他人</span>
               </button>
               <button
-                onClick={() => handleAlertAction('已將學生裝置鎖定並推播警示')}
+                onClick={() => handleAlertAction('已送出老師確認提醒')}
                 className="py-5 px-6 bg-surface-container border border-error/30 hover:bg-error/5 text-error rounded-[1.75rem] font-bold text-[16px] tracking-wide active:scale-[0.98] transition-all"
               >
-                強制鎖定屏幕並推播警告
+                送出老師確認提醒
               </button>
               <button
                 onClick={() => { setModal(null); navigateTo('student-report', { name: activeStudent.name, studentId: activeStudent.studentId }); }}
                 className="py-5 px-6 bg-primary/10 border border-primary/20 text-primary rounded-[1.75rem] font-bold text-[16px] tracking-wide active:scale-95 flex items-center justify-center gap-2 mt-2 transition-all hover:bg-primary/20"
               >
-                開啟 {activeStudent.name} 深入分析報告 <ArrowUpRight size={20} />
+                開啟此訊號的學習狀態報告 <ArrowUpRight size={20} />
               </button>
             </div>
           </div>
@@ -310,7 +310,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       </BottomSheet>
 
       {/* Attendance Modal */}
-      <BottomSheet isOpen={modal === 'attendance_scan'} onClose={() => setModal(null)} title="AI 視覺辨識點名">
+      <BottomSheet isOpen={modal === 'attendance_scan'} onClose={() => setModal(null)} title="AI 場域點名">
         <div className="p-10 flex flex-col items-center justify-center space-y-12 pb-16">
            <div className="relative w-48 h-48 flex items-center justify-center my-4">
              <div className="absolute inset-0 border-[4px] border-primary/20 rounded-full animate-ping [animation-duration:2.5s] shadow-[0_0_30px_rgba(var(--color-primary),0.3)]"></div>
@@ -323,8 +323,8 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
              </div>
            </div>
            <div className="text-center space-y-3">
-             <p className="font-headline font-bold text-3xl text-primary animate-pulse tracking-widest drop-shadow-sm">掃描辨識特徵中...</p>
-             <p className="text-[12px] font-bold text-on-surface-variant uppercase tracking-[0.4em] font-mono">程序: 網格光達 V2</p>
+             <p className="font-headline font-bold text-3xl text-primary animate-pulse tracking-widest drop-shadow-sm">確認座位狀態中...</p>
+             <p className="text-[12px] font-bold text-on-surface-variant tracking-[0.4em]">不辨識身分，只統計場域</p>
            </div>
         </div>
       </BottomSheet>
@@ -334,7 +334,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
         <div className="w-full h-full bg-black relative flex flex-col justify-center overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-black/90 to-transparent z-10 pointer-events-none"></div>
 
-          <img src="https://images.unsplash.com/photo-1577896851231-70ef18881754?w=1200&q=80" className="w-full h-auto object-contain max-h-full opacity-90 scale-[1.02]" />
+          <div className="w-full h-full min-h-60 scale-[1.02]" style={{background: 'linear-gradient(160deg, #0d2137 0%, #1e3a5f 60%, #0a1a2e 100%)'}} />
 
           {/* AI Scanning FX */}
           <div className="absolute inset-0 pointer-events-none z-10">
@@ -343,12 +343,12 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
               transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
               className="w-full h-[2px] bg-primary/50 shadow-[0_0_10px_rgba(var(--color-primary),1)]"
             />
-            {/* Live Bounding Boxes on Fullscreen */}
+            {/* 場域狀態框 */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="absolute top-[25%] left-[30%] w-[15%] h-[20%] border-2 border-primary/70 rounded-lg">
-               <div className="absolute -top-5 left-0 bg-primary/90 text-white font-mono text-[10px] px-2 py-0.5 rounded">ID:12 [專注:98%]</div>
+               <div className="absolute -top-5 left-0 bg-primary/90 text-white text-[10px] px-2 py-0.5 rounded">區域 A [專注]</div>
             </motion.div>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }} className="absolute top-[38%] right-[22%] w-[12%] h-[18%] border-2 border-tertiary/80 rounded-lg">
-               <div className="absolute -top-5 left-0 bg-tertiary/90 text-white font-mono text-[10px] px-2 py-0.5 rounded">ID:05 [分心中]</div>
+               <div className="absolute -top-5 left-0 bg-tertiary/90 text-white text-[10px] px-2 py-0.5 rounded">區域 B [需確認]</div>
             </motion.div>
           </div>
 

@@ -17,7 +17,7 @@ export async function sendGuardianHardwareCommand(command: string, source: strin
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : '無法連接 Arduino bridge',
+      message: error instanceof Error ? error.message : '無法連接本機硬體服務',
     };
   }
 }

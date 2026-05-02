@@ -64,7 +64,7 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
         setViewState('quiz_play');
       }
     } catch (error) {
-      setErrorText(error instanceof Error ? error.message : '生成失敗，請確認本機 bridge 已啟動。');
+      setErrorText(error instanceof Error ? error.message : '生成失敗，請確認本機展示服務已啟動。');
       setViewState('setup');
     }
   };
@@ -121,7 +121,7 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
             <section className="mb-6 md:mb-14">
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6">
                 <div>
-                  <span className="text-primary font-bold tracking-[0.2em] text-[9px] md:text-xs uppercase mb-1.5 md:mb-3 flex items-center gap-2"><Sparkles className="w-3 h-3"/>Elementary Worksheet Maker</span>
+                  <span className="text-primary font-bold tracking-[0.2em] text-[9px] md:text-xs mb-1.5 md:mb-3 flex items-center gap-2"><Sparkles className="w-3 h-3"/>國小學習單生成</span>
                   <h2 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-on-surface leading-tight font-headline">
                     把白板紀錄變成 <span className="text-primary tracking-tighter">國小學習單。</span>
                   </h2>

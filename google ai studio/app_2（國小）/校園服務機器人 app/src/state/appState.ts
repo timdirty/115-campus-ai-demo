@@ -172,6 +172,7 @@ export type AppAction =
   | { type: 'SET_NOTIFICATIONS'; payload: { enabled: boolean }; now?: string }
   | { type: 'SET_REMIND_WARNING'; payload: { enabled: boolean }; now?: string }
   | { type: 'ADD_DISPATCH_TASK'; payload: { zone: string; taskType: DispatchTaskType }; now?: string }
+  | { type: 'COMPLETE_DISPATCH_TASK'; payload: { zone: string; taskType: DispatchTaskType }; now?: string }
   | { type: 'SET_ROBOT_RUNNING'; payload: { robotId: string; running: boolean }; now?: string }
   | { type: 'SET_ROBOT_SPEED'; payload: { robotId: string; speed: number }; now?: string }
   | { type: 'TICK_SENSORS'; payload: SensorsState; now?: string }
@@ -180,13 +181,18 @@ export type AppAction =
   | { type: 'RESTORE_DEMO_STATE'; payload: { state: AppState }; now?: string }
   | { type: 'RESET_DEMO'; now?: string };
 
+const svgUri = (svg: string) => `data:image/svg+xml,${encodeURIComponent(svg)}`;
+
 const productImages = {
-  toast:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuCyJiSdhIHLuHc8TyD-U7oEtD5XYkmt899rllhPyiGrKxL0Pkx88vtHnk4zpEiZ2F4RjSy3_ynW8vDpIeXn0dOUaf9FjRXz2j3oq5gs-iHEVj9c_hyJUNy5442mlGtJJ3d5JN2FaTOfo_Ud-2BpVR7kKcd3r_yHYQDY3aFq8y4Tu4hN74HB_Ez2gPdqdxwFJbOrdwzoKTgx7y2fODiUJ1Hj9hDdQT5nJApOZsd2FMNsSBnUnKXX2M1iKbXjBqchPNF5M0AbvAOMqeE',
-  egg:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuDc-5tbmzTYqAiA5fQ01bU5l4KNDsGUhIXxh1AuHgonEy0X379BVPeHXSktRsW7ppBVMnO4VXLLMkYSfprGXGDNW7_Db97Q9WwRodW_7NB2wei0wX603dUaqQbiU12iMr2t7qkqu8zXFXGyGfalFj63zMED0L-pVAbm6MT2ynfRQh1rChh9jp9MHodShfeJG5sWZwWSxKrjPQY-glgCTC1ssgt_dMvmvhfm6zIWLRhoAJb7TWuoEwKMeuufLGzXZ3Mw81nMYbh6jVQ',
-  pizza:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuDNaadB8hilt2bQEYiTs7M5vDoe1YqSLyn9WEEOd24n7UTnYY-_Vfh-t8y8IOkdE_EOYH5jHoqYlkCND_qfDJ_QSQF8AfGOW-uDcGHX5zYaPhYU2ob9AOQZZw10PTzsT4q-nDlqi5amT_obrptMGGHwP3eDqacJROICB6pk4acUECU76au584oMXG85lHs3_f5ruBVkl16A_jh4HRjv3PTyh3Xi5vGTLh3ywJwX9XlVLxuScvLY9NLyzW4sRCz0aSM3VPJ6T3EdVuk',
+  toast: svgUri(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#FEF3C7"/><rect x="35" y="50" width="130" height="110" rx="22" fill="#D97706"/><rect x="45" y="60" width="110" height="90" rx="16" fill="#FCD34D"/><rect x="62" y="90" width="76" height="10" rx="5" fill="#D97706" opacity="0.5"/><rect x="62" y="110" width="56" height="10" rx="5" fill="#D97706" opacity="0.35"/></svg>`,
+  ),
+  egg: svgUri(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#FFFBEB"/><ellipse cx="100" cy="108" rx="58" ry="72" fill="#F9FAFB" stroke="#E5E7EB" stroke-width="2"/><ellipse cx="100" cy="115" rx="26" ry="28" fill="#FCD34D"/><ellipse cx="88" cy="76" rx="18" ry="8" fill="rgba(255,255,255,0.55)"/></svg>`,
+  ),
+  pizza: svgUri(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#FFF1F2"/><circle cx="100" cy="100" r="74" fill="#FDE68A"/><circle cx="100" cy="100" r="62" fill="#EF4444"/><circle cx="100" cy="100" r="48" fill="#FBBF24" opacity="0.45"/><circle cx="82" cy="88" r="9" fill="#7F1D1D"/><circle cx="116" cy="92" r="9" fill="#7F1D1D"/><circle cx="98" cy="116" r="9" fill="#7F1D1D"/></svg>`,
+  ),
 };
 
 const nowIso = () => new Date().toISOString();
@@ -353,52 +359,52 @@ export function createInitialAppState(): AppState {
       {
         id: 'sig-12',
         type: 'question',
-        name: '王同學',
+        name: '學習訊號 A',
         studentId: '12',
-        message: '老師，我聽不懂達文西的部分...',
+        message: '老師，我想再聽一次這段...',
         createdAt,
       },
       {
         id: 'sig-05',
         type: 'alert',
-        name: '李同學',
+        name: '學習訊號 B',
         studentId: '05',
-        message: '已經離開視線超過 5 分鐘',
+        message: '座位狀態待老師確認',
         createdAt,
       },
       {
         id: 'sig-08',
         type: 'alert',
-        name: '陳同學',
+        name: '學習訊號 C',
         studentId: '08',
-        message: '持續低頭可能在使用手機',
+        message: '學習狀態需要關注',
         createdAt,
       },
     ],
     studentReports: {
       '05': {
         studentId: '05',
-        name: '李同學',
+        name: '學習訊號 B',
         averageFocus: 78,
         distractRate: 3.2,
         learningStyle: '視覺型學習者',
-        events: ['10:16 系統偵測：離開視線超過 5 分鐘。'],
+        events: ['10:16 系統提示：座位狀態待確認。'],
       },
       '08': {
         studentId: '08',
-        name: '陳同學',
+        name: '學習訊號 C',
         averageFocus: 74,
         distractRate: 2.7,
         learningStyle: '互動型學習者',
-        events: ['10:21 系統偵測：持續低頭，疑似使用手機。'],
+        events: ['10:21 系統提示：學習狀態需要關注。'],
       },
       '12': {
         studentId: '12',
-        name: '王同學',
+        name: '學習訊號 A',
         averageFocus: 86,
         distractRate: 0.8,
         learningStyle: '提問型學習者',
-        events: ['10:41 學生提出課程問題。'],
+        events: ['10:41 收到課程提問訊號。'],
       },
     },
     attendance: {
@@ -417,12 +423,12 @@ export function createInitialAppState(): AppState {
         id: 'cmd-ready',
         time: '04:12',
         command: 'SYSTEM_READY',
-        label: 'UNO R4 bridge 模式啟動',
+        label: '本機硬體模式啟動',
         target: '本機展示',
         source: 'system',
         mode: 'demo',
         status: 'demo-only',
-        note: '已連到本機 bridge；未插板時保留 fallback，插板後同指令走 Serial。',
+        note: '已啟用本機展示服務；未接實體設備時保留示範紀錄，接上後沿用同一任務流程。',
       },
     ],
     logs: [
@@ -524,7 +530,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           label: `配送 ${product.name} x${action.payload.quantity}`,
           target: action.payload.destination,
           source: 'delivery',
-          note: `${robotId} 進入配送流程，bridge 會嘗試送出 Serial 指令。`,
+          note: `${robotId} 進入配送流程，橋接服務會嘗試送到 UNO R4。`,
         },
       );
     }
@@ -598,7 +604,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           label: schedule?.title ?? '預約任務更新',
           target: `${action.payload.time} / ${action.payload.area}`,
           source: 'schedule',
-          note: '排程已同步到本機展示狀態，bridge 會嘗試送出硬體提示。',
+          note: '排程已同步到本機展示狀態，橋接服務會嘗試送出硬體提示。',
         },
       );
     }
@@ -607,8 +613,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return withRobotCommandLog(
         {
           ...state,
-          attendance: { scanned: true, present: 30, absent: 2, total: 32, absentNames: ['李小明', '王大雄'] },
-          logs: addLog(state, '教學系統：AI 視覺點名完成，2 人缺席', 'info', now),
+          attendance: { scanned: true, present: 30, absent: 2, total: 32, absentNames: ['座號 05', '座號 12'] },
+          logs: addLog(state, '教學系統：AI 場域點名完成，2 個座位待確認', 'info', now),
           lastUpdated: now,
         },
         state,
@@ -618,7 +624,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           label: '課堂點名掃描',
           target: '教室視覺節點',
           source: 'teaching',
-          note: '以本機資料模擬 AI Camera 點名，bridge 會送出教學掃描提示。',
+          note: '以本機資料模擬場域點名，橋接服務會送出教學掃描提示。',
         },
       );
 
@@ -653,7 +659,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         {
           command: signal.type === 'alert' ? 'FOCUS_NUDGE' : 'QUESTION_ACK',
           label: `${signal.name} 訊號處理`,
-          target: signal.type === 'alert' ? '教室提醒模組' : '學生提問佇列',
+          target: signal.type === 'alert' ? '教室提醒模組' : '課堂提問佇列',
           source: 'teaching',
           note: action.payload.action,
         },
@@ -809,6 +815,29 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       );
     }
 
+    case 'COMPLETE_DISPATCH_TASK': {
+      const sourceTitle = action.payload.taskType === 'broadcast' ? '群眾疏導' : '自動巡邏';
+      const robotId = action.payload.taskType === 'broadcast' ? '3號' : '1號';
+      let completed = false;
+      return {
+        ...state,
+        tasks: state.tasks.map((task) => {
+          if (completed || task.source !== 'dispatch' || task.area !== `區域 ${action.payload.zone}` || task.status === 'completed') {
+            return task;
+          }
+          completed = true;
+          return {...task, status: 'completed', completedAt: now, detail: `${sourceTitle}已回報完成`};
+        }),
+        robots: state.robots.map((robot) =>
+          robot.id === robotId
+            ? {...robot, status: '待命', task: '回到待命點', eta: '完成', phase: 'READY', isRunning: false}
+            : robot,
+        ),
+        logs: addLog(state, `派遣中心：區域 ${action.payload.zone} ${sourceTitle}已完成`, 'info', now),
+        lastUpdated: now,
+      };
+    }
+
     case 'SET_ROBOT_RUNNING':
       return withRobotCommandLog(
         {
@@ -831,7 +860,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           label: action.payload.running ? '恢復任務' : '暫停任務',
           target: action.payload.robotId,
           source: 'system',
-          note: '中控台任務控制，bridge 會嘗試同步到 Serial。',
+          note: '中控台任務控制，橋接服務會嘗試同步到 UNO R4。',
         },
       );
 
@@ -886,7 +915,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ),
         logs: addLog(
           state,
-          action.payload.ok ? `Arduino：${action.payload.message}` : `Arduino fallback：${action.payload.message}`,
+            action.payload.ok ? `Arduino：${action.payload.message}` : `Arduino 示範紀錄：${action.payload.message}`,
           action.payload.ok ? 'info' : 'warn',
           now,
         ),
