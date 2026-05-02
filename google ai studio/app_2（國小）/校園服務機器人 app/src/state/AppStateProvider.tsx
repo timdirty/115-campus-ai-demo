@@ -61,6 +61,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     if (command.status === 'sent' || command.status === 'failed') return;
 
     sentCommandIds.current.add(command.id);
+    if (sentCommandIds.current.size > 100) {
+      const [oldest] = sentCommandIds.current;
+      sentCommandIds.current.delete(oldest);
+    }
     void sendHardwareCommand(command.command, `app2:${command.source}`).then((result) => {
       dispatch({
         type: 'MARK_HARDWARE_COMMAND',

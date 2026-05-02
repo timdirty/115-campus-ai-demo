@@ -90,6 +90,10 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [toastMessage]);
 
+  useEffect(() => {
+    setToastMessage(null);
+  }, [activeTab]);
+
   return (
     <div className="app2-shell min-h-screen overflow-x-hidden text-on-surface md:flex md:bg-surface-container-low">
       {/* Proxy Health Banner */}
