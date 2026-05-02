@@ -398,9 +398,9 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
             category: '多來源融合',
             status: 'new',
             checklist: [
-              {id: uid('proactive-check'), text: '先查看近期心情簽到、聲量與節點紀錄', completed: false},
-              {id: uid('proactive-check'), text: '由導師或值週老師低壓巡查，不公開點名', completed: false},
-              {id: uid('proactive-check'), text: '若學生主動求助，再啟動語音/聊天關懷分析', completed: false},
+              {id: uid('proactive-check-1'), text: '先查看近期心情簽到、聲量與節點紀錄', completed: false},
+              {id: uid('proactive-check-2'), text: '由導師或值週老師低壓巡查，不公開點名', completed: false},
+              {id: uid('proactive-check-3'), text: '若學生主動求助，再啟動語音/聊天關懷分析', completed: false},
             ],
           },
           ...state.alerts,

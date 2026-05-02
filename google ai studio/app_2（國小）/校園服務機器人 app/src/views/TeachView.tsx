@@ -155,7 +155,9 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       <section className="space-y-5">
         <div className="flex items-center justify-between">
             <h3 className="font-headline font-bold text-2xl tracking-wide flex items-center gap-2">即時告警與訊號 <span className="text-xs bg-error/10 text-error px-2 py-0.5 rounded-full font-bold ml-1">{state.teachingSignals.length}</span></h3>
-            <button className="text-primary text-sm font-bold active:scale-95 transition-all">查看全部</button>
+            {state.teachingSignals.length > 3 && (
+              <button className="text-primary text-sm font-bold active:scale-95 transition-all">查看全部</button>
+            )}
         </div>
         {state.teachingSignals.length === 0 ? (
            <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-[2rem] p-10 text-center text-on-surface-variant font-medium text-[15px] shadow-sm">
@@ -283,16 +285,19 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
               <input
                 type="text"
                 value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
+                onChange={(e) => setChatInput(e.target.value.slice(0, 500))}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendChat()}
+                maxLength={500}
                 className="flex-1 rounded-[1.75rem] bg-surface-container border border-outline-variant/50 px-6 py-5 text-[16px] focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium placeholder-on-surface-variant/60"
                 placeholder="輸入 AI 輔助回覆..."
                 disabled={isTyping}
+                aria-label="輸入 AI 輔助回覆"
               />
               <button
                 onClick={handleSendChat}
-                disabled={isTyping}
-                className={`w-16 h-16 rounded-[1.75rem] flex items-center justify-center shrink-0 transition-colors ${chatInput.trim() && !isTyping ? 'bg-primary text-white shadow-[0_4px_15px_rgba(var(--color-primary),0.3)] active:scale-90 hover:bg-primary/95' : 'bg-surface-container border border-outline-variant/30 text-on-surface-variant'}`}
+                disabled={!chatInput.trim() || isTyping}
+                className={`w-16 h-16 rounded-[1.75rem] flex items-center justify-center shrink-0 transition-colors ${chatInput.trim() && !isTyping ? 'bg-primary text-white shadow-[0_4px_15px_rgba(var(--color-primary),0.3)] active:scale-90 hover:bg-primary/95 cursor-pointer' : 'bg-surface-container border border-outline-variant/30 text-on-surface-variant cursor-not-allowed opacity-50'}`}
+                aria-label="送出 AI 回覆"
               >
                 <Send size={24} className={chatInput.trim() && !isTyping ? "translate-x-[-1px] translate-y-[1px]" : ""} />
               </button>

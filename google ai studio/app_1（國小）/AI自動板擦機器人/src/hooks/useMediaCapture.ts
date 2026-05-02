@@ -44,7 +44,13 @@ export function useMediaCapture() {
       cameraStreamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        try {
+          await videoRef.current.play();
+        } catch (playError) {
+          stream.getTracks().forEach((t) => t.stop());
+          cameraStreamRef.current = null;
+          throw playError;
+        }
       }
       setCameraReady(true);
     } finally {

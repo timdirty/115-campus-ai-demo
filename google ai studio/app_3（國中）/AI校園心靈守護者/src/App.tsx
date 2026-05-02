@@ -138,8 +138,12 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     const poll = async () => {
-      const readings = await fetchZoneSensors();
-      if (!cancelled) setZoneSensors(readings);
+      try {
+        const readings = await fetchZoneSensors();
+        if (!cancelled) setZoneSensors(readings);
+      } catch {
+        // keep last known readings on transient error
+      }
     };
     poll();
     const timer = setInterval(poll, 8000);
@@ -152,8 +156,12 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     const poll = async () => {
-      const ports = await fetchSensorPorts();
-      if (!cancelled) setDetectedPorts(ports);
+      try {
+        const ports = await fetchSensorPorts();
+        if (!cancelled) setDetectedPorts(ports);
+      } catch {
+        // keep last known ports on transient error
+      }
     };
     poll();
     const timer = setInterval(poll, 12000);
@@ -266,12 +274,17 @@ export default function App() {
     setMessage('');
     dispatch({type: 'ADD_SUPPORT_MESSAGE', payload: {role: 'student', content: text}});
     setChatBusy(true);
-    const alertSummary = viewModel.openAlerts?.length > 0
-      ? `${viewModel.openAlerts.length} 則待處理警報`
-      : undefined;
-    const reply = await generateSupportReply(text, selectedMood, acousticLocation, alertSummary);
-    dispatch({type: 'ADD_SUPPORT_MESSAGE', payload: {role: 'guardian', content: reply}});
-    setChatBusy(false);
+    try {
+      const alertSummary = viewModel.openAlerts?.length > 0
+        ? `${viewModel.openAlerts.length} 則待處理警報`
+        : undefined;
+      const reply = await generateSupportReply(text, selectedMood, acousticLocation, alertSummary);
+      dispatch({type: 'ADD_SUPPORT_MESSAGE', payload: {role: 'guardian', content: reply}});
+    } catch {
+      showToast('守護者暫時無法回應，請稍後再試');
+    } finally {
+      setChatBusy(false);
+    }
   };
 
   const stopAcousticMonitor = () => {
