@@ -400,6 +400,12 @@ export function registerRoutes(app: Express) {
         res.json({ok: true, portPath, zoneId});
       }
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      // sensorManager throws descriptive messages for invalid inputs → 400
+      if (msg.includes('not in detected') || msg.includes('Invalid zone ID')) {
+        res.status(400).json({error: msg});
+        return;
+      }
       sendError(res, error);
     }
   });

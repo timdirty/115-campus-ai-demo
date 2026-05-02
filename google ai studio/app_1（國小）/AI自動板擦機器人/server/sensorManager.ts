@@ -30,6 +30,7 @@ const portCache = new Map<string, SerialPort>();
 const sensorCache = new Map<string, ZoneSensorReading>();
 const zoneAssignments = new Map<string, string>(); // zoneId → portPath
 let lastDetectedPorts: PortInfo[] = [];
+let saveChain: Promise<void> = Promise.resolve();
 
 async function loadAssignments(): Promise<void> {
   const saved = await readJsonFile<Record<string, string>>(ASSIGNMENTS_FILE, {});
@@ -41,8 +42,10 @@ async function loadAssignments(): Promise<void> {
   }
 }
 
-async function saveAssignments(): Promise<void> {
-  await writeJsonFile(ASSIGNMENTS_FILE, Object.fromEntries(zoneAssignments));
+function saveAssignments(): Promise<void> {
+  const snapshot = Object.fromEntries(zoneAssignments);
+  saveChain = saveChain.then(() => writeJsonFile(ASSIGNMENTS_FILE, snapshot));
+  return saveChain;
 }
 
 function parseSensorLine(raw: string): {temp: number; hum: number; light: number} | null {
@@ -116,9 +119,10 @@ async function readSensorFromPort(portPath: string): Promise<{temp: number | nul
 }
 
 async function scanArduinoPorts(): Promise<PortInfo[]> {
-  const robotPath = getActivePath();
+  // Also fall back to ARDUINO_PORT env var before the robot port is opened
+  const robotPath = getActivePath() || (process.env.ARDUINO_PORT ?? '');
   const all = await listPorts().catch(() => [] as PortInfo[]);
-  return all.filter(isArduinoLikePort).filter((p) => p.path !== robotPath);
+  return all.filter(isArduinoLikePort).filter((p) => !robotPath || p.path !== robotPath);
 }
 
 async function pollSensors(): Promise<void> {
@@ -167,10 +171,15 @@ async function pollSensors(): Promise<void> {
 
 export async function startSensorPolling(): Promise<void> {
   await loadAssignments();
-  pollSensors().catch(console.error);
-  setInterval(() => {
-    pollSensors().catch(console.error);
-  }, POLL_INTERVAL_MS);
+  const runPoll = async () => {
+    try {
+      await pollSensors();
+    } catch (err) {
+      console.error('[sensorManager] poll error:', err);
+    }
+    setTimeout(runPoll, POLL_INTERVAL_MS);
+  };
+  runPoll();
 }
 
 export function getAllDetectedPorts(): DetectedPort[] {

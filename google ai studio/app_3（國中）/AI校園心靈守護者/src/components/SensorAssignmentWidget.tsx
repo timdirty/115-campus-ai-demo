@@ -21,12 +21,15 @@ export function SensorAssignmentWidget({ports, onAssigned}: SensorAssignmentWidg
   const [busy, setBusy] = useState<string | null>(null);
   const [selections, setSelections] = useState<Record<string, string>>({});
 
-  // Sync selections from current assignments
+  // Rebuild selections from current ports, preserving pending user changes
   useEffect(() => {
     setSelections((prev) => {
-      const next = {...prev};
+      const next: Record<string, string> = {};
       for (const p of ports) {
-        if (p.assignedZone && !next[p.path]) {
+        // Keep user's pending selection if it differs from the assigned zone
+        if (prev[p.path] && prev[p.path] !== (p.assignedZone ?? '')) {
+          next[p.path] = prev[p.path];
+        } else if (p.assignedZone) {
           next[p.path] = p.assignedZone;
         }
       }
