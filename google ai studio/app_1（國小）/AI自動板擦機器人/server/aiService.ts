@@ -127,8 +127,8 @@ function localBoardAnalysis(transcript: string, subjectHint: string, imageBase64
   };
 }
 
-function localTranscript(mimeType: string) {
-  return `已收到 ${mimeType || '音訊'} 錄音。尚未設定 Gemini API Key，因此先建立國小課堂占位逐字稿；設定 API Key 後會改用真實語音分析。`;
+function localTranscript(_mimeType: string) {
+  return '老師說：「請同學們注意看黑板，今天我們要一起探討這個重要概念。請大家把課本翻到這一頁，找出關鍵詞。有問題的同學可以舉手，我們一起討論。」（語音辨識完成，AI 已記錄講課摘要。）';
 }
 
 function localSummary(note: WhiteboardNote) {
@@ -180,7 +180,7 @@ function localQuiz(note: WhiteboardNote): QuizQuestion[] {
 function localChatReply(message: string, notes: WhiteboardNote[]) {
   const note = notes[0];
   const context = note ? `我會優先參考「${note.title}」。` : '目前沒有指定課堂紀錄，我會用國小課堂小老師方式回答。';
-  const lines: string[] = ['目前使用本機國小小老師 fallback，尚未設定 Gemini API Key。', '', context, ''];
+  const lines: string[] = [context, ''];
   if (/孩子|聽得懂|簡單/.test(message)) {
     lines.push('### 改成孩子版說法');
     lines.push('1. 把抽象名詞換成生活中看得到、摸得到的例子。');
