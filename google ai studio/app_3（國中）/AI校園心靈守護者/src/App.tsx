@@ -28,15 +28,17 @@ import {
   X,
 } from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
-import {AcousticSignal, GuardianAlert, GuardianState, MoodType, ZoneSensorReading} from './types';
+import {AcousticSignal, DetectedPort, GuardianAlert, GuardianState, MoodType, ZoneSensorReading} from './types';
 import {guardianReducer, loadGuardianState, normalizeGuardianState, persistGuardianState} from './state/guardianState';
 import {analyzeAcousticFrame, describeAcousticSignal} from './services/acousticGuardian';
 import {generateSupportReply} from './services/localGuardianAi';
 import {evaluateProactiveGuardianState, ProactiveInsight} from './services/proactiveGuardian';
 import {buildSchoolZoneStatuses, SchoolZoneStatus} from './services/schoolSpaces';
-import {fetchZoneSensors, sendGuardianHardwareCommand} from './services/hardwareBridge';
+import {assignSensorPort, fetchSensorPorts, fetchZoneSensors, sendGuardianHardwareCommand} from './services/hardwareBridge';
 import {AlertDetail, AlertRow, MetricCard, NodeRow, RiskPill} from './components/guardianUi';
 import {CampusMapSvg} from './components/CampusMapSvg';
+import {ZoneSensorPanel} from './components/ZoneSensorPanel';
+import {SensorAssignmentWidget} from './components/SensorAssignmentWidget';
 
 type ActivePanel = 'alerts' | 'sensing' | 'care' | 'nodes' | 'logs' | null;
 type RobotDispatchFeedback = {zoneId: string; zoneName: string; stage: '指令送出' | '前往現場' | '老師確認'; createdAt: number; missionId: string} | null;
@@ -115,6 +117,7 @@ export default function App() {
   const [acousticLocation, setAcousticLocation] = useState('穿堂');
   const [currentAcoustic, setCurrentAcoustic] = useState(defaultAcoustic);
   const [zoneSensors, setZoneSensors] = useState<ZoneSensorReading[]>([]);
+  const [detectedPorts, setDetectedPorts] = useState<DetectedPort[]>([]);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const proxyOnline = useProxyHealth();
   const [bannerDismissed, setBannerDismissed] = useState(false);
@@ -136,10 +139,24 @@ export default function App() {
     let cancelled = false;
     const poll = async () => {
       const readings = await fetchZoneSensors();
-      if (!cancelled && readings.length > 0) setZoneSensors(readings);
+      if (!cancelled) setZoneSensors(readings);
     };
     poll();
     const timer = setInterval(poll, 8000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      const ports = await fetchSensorPorts();
+      if (!cancelled) setDetectedPorts(ports);
+    };
+    poll();
+    const timer = setInterval(poll, 12000);
     return () => {
       cancelled = true;
       clearInterval(timer);
@@ -228,12 +245,19 @@ export default function App() {
     dispatch({type: 'ADD_MOOD', payload: {mood, label: option.label, note: option.note}});
   };
 
-  const addPost = () => {
+  const addPost = async () => {
     const content = postContent.trim();
     if (!content) return;
-    dispatch({type: 'ADD_FOREST_POST', payload: {content, type: postType}});
+    const postId = `post-${Date.now().toString(36)}-${Math.floor(Math.random() * 900 + 100)}`;
+    dispatch({type: 'ADD_FOREST_POST', payload: {id: postId, content, type: postType}});
     setPostContent('');
     showToast('匿名支持已加入心靈森林');
+    try {
+      const reply = await generateSupportReply(content, 'happy', undefined, undefined);
+      dispatch({type: 'SET_FOREST_POST_REPLY', payload: {id: postId, botReply: reply}});
+    } catch {
+      // silent — bot reply is a bonus, not critical
+    }
   };
 
   const sendMessage = async () => {
@@ -379,10 +403,19 @@ export default function App() {
         </div>
       </header>
 
+      <SensorAssignmentWidget
+        ports={detectedPorts}
+        onAssigned={async () => {
+          const ports = await fetchSensorPorts();
+          setDetectedPorts(ports);
+        }}
+      />
+
       <main className="mx-auto grid max-w-7xl gap-4 px-4 py-4 pb-24 sm:px-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:pb-8">
         <CommandCenterScreen
           viewModel={viewModel}
           selectedZone={selectedZone}
+          selectedZoneId={selectedZoneId}
           state={state}
           robotFeedback={robotFeedback}
           onSelectZone={(zone) => {
@@ -474,6 +507,7 @@ function buildCommandCenterViewModel(state: GuardianState, sensorReadings: ZoneS
 function CommandCenterScreen({
   viewModel,
   selectedZone,
+  selectedZoneId,
   state,
   robotFeedback,
   onSelectZone,
@@ -483,6 +517,7 @@ function CommandCenterScreen({
 }: {
   viewModel: CommandCenterViewModel;
   selectedZone: SchoolZoneStatus;
+  selectedZoneId: string | null;
   state: GuardianState;
   robotFeedback: RobotDispatchFeedback;
   onSelectZone: (zone: SchoolZoneStatus) => void;
@@ -507,7 +542,7 @@ function CommandCenterScreen({
       </Surface>
 
       <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <CampusMap2D zones={viewModel.zones} selectedZone={selectedZone} robotFeedback={robotFeedback} onSelectZone={onSelectZone} onDispatchRobot={onDispatchRobot} />
+        <CampusMap2D zones={viewModel.zones} selectedZone={selectedZone} selectedZoneId={selectedZoneId} robotFeedback={robotFeedback} onSelectZone={onSelectZone} onDispatchRobot={onDispatchRobot} />
         <div className="grid gap-4">
           <OperationsBrief viewModel={viewModel} onOpenPanel={onOpenPanel} />
           <RobotReadinessCard state={state} robotFeedback={robotFeedback} />
@@ -554,12 +589,14 @@ function CommandCenterScreen({
 function CampusMap2D({
   zones,
   selectedZone,
+  selectedZoneId,
   robotFeedback,
   onSelectZone,
   onDispatchRobot,
 }: {
   zones: SchoolZoneStatus[];
   selectedZone: SchoolZoneStatus;
+  selectedZoneId: string | null;
   robotFeedback: RobotDispatchFeedback;
   onSelectZone: (zone: SchoolZoneStatus) => void;
   onDispatchRobot: (zone: SchoolZoneStatus) => void;
@@ -581,7 +618,14 @@ function CampusMap2D({
         </div>
       </div>
       <div className="relative min-h-[25rem] overflow-hidden rounded-2xl border border-slate-200 bg-[linear-gradient(135deg,#f8fafc,#eef7f8)] sm:min-h-[28rem]">
-        <CampusMapSvg zones={zones.map((z) => ({id: z.id, riskLevel: z.riskLevel, sensor: z.sensor}))} />
+        <CampusMapSvg
+          zones={zones.map((z) => ({id: z.id, riskLevel: z.riskLevel, sensor: z.sensor}))}
+          selectedZoneId={selectedZoneId}
+          onZoneClick={(id) => {
+            const zone = zones.find((z) => z.id === id);
+            if (zone) onSelectZone(zone);
+          }}
+        />
         <div className="absolute left-[10%] top-[12%] h-2 w-[72%] -rotate-6 rounded-full bg-teal-200/70 shadow-sm" />
         <div className="absolute left-[18%] top-[59%] h-2 w-[60%] rotate-3 rounded-full bg-teal-200/70 shadow-sm" />
         <div className="absolute left-[48%] top-[15%] h-[65%] w-2 rounded-full bg-teal-200/70 shadow-sm" />
@@ -763,6 +807,7 @@ function ZoneInspector({zone, robotFeedback, onDispatchRobot}: {zone: SchoolZone
         <MetricTile label="聲量" value={zone.soundIndex} />
         <MetricTile label="提醒" value={zone.alertCount} />
       </div>
+      {zone.sensor && <ZoneSensorPanel sensor={zone.sensor} />}
       <div className="mt-4 rounded-xl border border-teal-100 bg-teal-50 p-3">
         <p className="text-xs font-black text-teal-700">下一步</p>
         <p className="mt-1 text-sm font-bold text-teal-900">{activeDispatch ? robotFeedback?.stage : zone.riskLevel === 'low' ? '維持巡查' : '派遣 + 確認'}</p>
@@ -1118,6 +1163,12 @@ function CarePanel({
                 <p className="text-xs font-black text-teal-700">支持 · {post.likes}</p>
                 <p className="text-xs text-gray-400">{new Date(post.createdAt).toLocaleTimeString('zh-TW', {hour: '2-digit', minute: '2-digit'})}</p>
               </div>
+              {post.botReply && (
+                <div className="mt-2 flex items-start gap-1.5 rounded-lg bg-white/70 border border-teal-100 px-2.5 py-2">
+                  <span className="text-sm leading-none mt-0.5">🤝</span>
+                  <p className="text-xs font-medium text-teal-800 leading-5">{post.botReply}</p>
+                </div>
+              )}
             </div>
           ))}
         </div>

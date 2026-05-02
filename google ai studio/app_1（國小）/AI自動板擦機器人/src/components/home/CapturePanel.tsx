@@ -122,7 +122,7 @@ export function CapturePanel({
                 key={s}
                 type="button"
                 onClick={() => onSubjectHintChange(`國小${s}`)}
-                className={`px-2 py-0.5 text-xs rounded-full border transition-colors ${
+                className={`px-3 py-2 min-h-11 text-xs rounded-full border transition-colors ${
                   subjectHint === `國小${s}`
                     ? 'bg-primary text-on-primary border-primary'
                     : 'bg-white text-on-surface-variant border-outline-variant/50 hover:border-primary'

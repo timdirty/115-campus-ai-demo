@@ -4,6 +4,7 @@ import {access} from 'node:fs/promises';
 import {baudRate, bridgePort, distDir, nodeEnv} from './config';
 import {registerRoutes} from './routes';
 import {registerProxyRoutes} from './proxyRoutes';
+import {startSensorPolling} from './sensorManager';
 
 const app = express();
 const distIndex = path.join(distDir, 'index.html');
@@ -80,4 +81,7 @@ app.listen(bridgePort, () => {
   console.log(`Arduino serial bridge listening on http://localhost:${bridgePort}`);
   console.log(`Baud rate: ${baudRate}`);
   console.log(`Mode: ${nodeEnv}`);
+  if (nodeEnv !== 'test') {
+    startSensorPolling().catch(console.error);
+  }
 });

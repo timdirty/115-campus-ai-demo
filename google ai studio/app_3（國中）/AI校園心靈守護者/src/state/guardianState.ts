@@ -33,8 +33,9 @@ export type GuardianAction =
   | {type: 'UPDATE_ALERT_STATUS'; payload: {id: string; status: AlertStatus}}
   | {type: 'TOGGLE_CHECKLIST'; payload: {alertId: string; itemId: string}}
   | {type: 'ADD_MOOD'; payload: {mood: MoodType; label: string; note: string}}
-  | {type: 'ADD_FOREST_POST'; payload: {content: string; type: ForestPost['type']}}
+  | {type: 'ADD_FOREST_POST'; payload: {id: string; content: string; type: ForestPost['type']}}
   | {type: 'LIKE_FOREST_POST'; payload: {id: string}}
+  | {type: 'SET_FOREST_POST_REPLY'; payload: {id: string; botReply: string}}
   | {type: 'ADD_SUPPORT_MESSAGE'; payload: Omit<SupportMessage, 'id' | 'createdAt'>}
   | {type: 'DEPLOY_INTERVENTION'; payload: {area: string}}
   | {type: 'RESTART_NODE'; payload: {id: string}}
@@ -240,9 +241,18 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
       return {
         ...state,
         forestPosts: [
-          {id: uid('post'), content: action.payload.content, type: action.payload.type, likes: 0, createdAt: timeLabel(now)},
+          {id: action.payload.id, content: action.payload.content, type: action.payload.type, likes: 0, createdAt: timeLabel(now)},
           ...state.forestPosts,
         ],
+        lastUpdated: now,
+      };
+
+    case 'SET_FOREST_POST_REPLY':
+      return {
+        ...state,
+        forestPosts: state.forestPosts.map((post) =>
+          post.id === action.payload.id ? {...post, botReply: action.payload.botReply} : post,
+        ),
         lastUpdated: now,
       };
 
@@ -564,6 +574,7 @@ export function normalizeGuardianState(input: unknown): GuardianState {
       type: item.type === 'thought' || item.type === 'gratitude' || item.type === 'support' ? item.type : fallbackPost.type,
       likes: number(item.likes, fallbackPost.likes, 0, 9999),
       createdAt: text(item.createdAt, fallbackPost.createdAt),
+      botReply: typeof item.botReply === 'string' ? item.botReply : undefined,
     };
   };
 

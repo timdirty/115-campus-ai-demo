@@ -153,6 +153,7 @@ export const commandCatalog: RobotCommandInfo[] = [
   {command: 'ALERT_SIGNAL', label: '關懷提醒訊號', group: 'task'},
   {command: 'CARE_DEPLOYED', label: '佈署關懷', group: 'task'},
   {command: 'NODE_RESTART', label: '節點重啟', group: 'task'},
+  {command: 'READ_SENSORS', label: '感測器讀值', group: 'sensor'},
 ];
 
 export const supportedCommands = new Set(commandCatalog.map((item) => item.command));

@@ -10,6 +10,7 @@ export function DispatchMapView({ goBack, showToast }: any) {
   const [selectedZone, setSelectedZone] = useState('none');
   const [taskType, setTaskType] = useState<DispatchTaskType>('patrol');
   const [recommendation, setRecommendation] = useState('');
+  const [recommendationError, setRecommendationError] = useState(false);
   const [dispatchingZone, setDispatchingZone] = useState('');
   const [dispatchStage, setDispatchStage] = useState<'待命' | '確認區域' | '機器人出勤' | '任務回報'>('待命');
   const [dispatchComplete, setDispatchComplete] = useState(false);
@@ -41,8 +42,14 @@ export function DispatchMapView({ goBack, showToast }: any) {
       setDispatchStage('任務回報');
       setMissionLog((items) => ['現場狀態已回傳，任務可追蹤。', ...items]);
     }, 1350);
-    const message = await generateDispatchRecommendation(selectedZone, dispatchType);
-    setRecommendation(message);
+    try {
+      const message = await generateDispatchRecommendation(selectedZone, dispatchType);
+      setRecommendation(message);
+      setRecommendationError(false);
+    } catch {
+      setRecommendation('AI 暫時無法回應，請稍後再試。');
+      setRecommendationError(true);
+    }
     actions.addDispatchTask({ zone: selectedZone, taskType: dispatchType });
     showToast(`機器人已出發前往區域 ${selectedZone} 執行任務`);
     setTimeout(() => {
@@ -59,6 +66,7 @@ export function DispatchMapView({ goBack, showToast }: any) {
     setMissionId('');
     setSelectedZone('none');
     setRecommendation('');
+    setRecommendationError(false);
     setMissionLog(['S-01 待命，選擇區域後開始服務。']);
   };
 
@@ -221,7 +229,7 @@ export function DispatchMapView({ goBack, showToast }: any) {
                  </div>
 
                  {recommendation && (
-                   <p className="mb-5 rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm font-bold leading-relaxed text-primary">
+                   <p className={`mb-5 rounded-2xl border p-4 text-sm font-bold leading-relaxed ${recommendationError ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-primary/20 bg-primary/10 text-primary'}`}>
                      {recommendation}
                    </p>
                  )}

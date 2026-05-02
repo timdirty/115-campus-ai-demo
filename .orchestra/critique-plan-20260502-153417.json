@@ -1,0 +1,36 @@
+{
+  "verdict": "NEEDS_REVISION",
+  "summary": "The plan is strong on security, robustness, and UI polish, but has a critical configuration flaw in its authentication mechanism and a major architectural issue in its API design that will increase complexity and risk.",
+  "issues": [
+    {
+      "severity": "critical",
+      "description": "The proxy authentication mechanism is incomplete. The plan specifies that App 2 and 3 frontends will send an `X-Proxy-Key` header using `VITE_AI_PROXY_KEY`, but the App 1 backend has no corresponding `AI_PROXY_KEY` defined in its environment to validate against. The server-side `process.env.AI_PROXY_KEY` will be undefined, causing all authenticated requests to fail.",
+      "suggestion": "Add `AI_PROXY_KEY=<shared-secret>` to the App 1 server's `.env` file. This value must be the same secret used for `VITE_AI_PROXY_KEY` in the client apps."
+    },
+    {
+      "severity": "major",
+      "description": "Using a single generic `POST /api/ai/chat` endpoint for multiple, distinct AI functionalities (e.g., teacher replies, student reports, guardian support) creates a complex and brittle backend implementation. The single route handler will need to manage different system prompts, context structures, and validation logic based on the request body, increasing the risk of bugs and 'prompt bleeding' between contexts.",
+      "suggestion": "Create dedicated, purpose-specific endpoints on the AI proxy for each distinct use case. For example: `POST /api/ai/teacher-reply`, `POST /api/ai/student-report`, `POST /api/ai/guardian-chat`. This simplifies the logic, prompting, and validation for each endpoint, making the system more robust and maintainable."
+    },
+    {
+      "severity": "minor",
+      "description": "The plan mentions a pre-demo checklist item to verify a health endpoint (`localhost:3200/health`), but the implementation plan for the App 1 backend does not include the creation of this endpoint.",
+      "suggestion": "Add a task to implement a simple `GET /api/health` endpoint in the App 1 server that returns a 200 OK status. This makes the operational readiness check explicit and verifiable."
+    },
+    {
+      "severity": "minor",
+      "description": "The output schema for `analyze-board` requires `learningStatus` values to sum to 100. An LLM may not always return a perfect sum (e.g., 99 or 101), which would cause the server's Zod validation to fail and trigger a fallback unnecessarily.",
+      "suggestion": "In the `analyze-board` route handler, after receiving a structurally valid response from Gemini, add a normalization step to adjust the `learningStatus` values to ensure they sum exactly to 100 before sending the response to the client."
+    },
+    {
+      "severity": "minor",
+      "description": "The dependency installation command for the App 1 server (`npm install express-rate-limit zod`) is missing the essential Google Generative AI SDK.",
+      "suggestion": "Update the installation command to `npm install @google/generative-ai express-rate-limit zod` to include the necessary SDK for communicating with the Gemini API."
+    },
+    {
+      "severity": "info",
+      "description": "The client-side timeout is 6 seconds and the server-side timeout is 8 seconds. While this is the correct ordering, the 2-second gap might be too tight if there is network latency between the client and the local proxy server, potentially causing the client to time out on a request that the server is still processing and would have completed.",
+      "suggestion": "Consider increasing the gap slightly, for example, by setting the client timeout to 6 seconds and the server-side Gemini call timeout to 10 seconds. This provides a larger buffer for local network transit time."
+    }
+  ]
+}

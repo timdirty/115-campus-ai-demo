@@ -5,6 +5,7 @@ import {commandCatalog, createNote, defaultClassroomSession, defaultNotes, defau
 import {ApiError, getErrorMessage, sendError} from './http';
 import {buildAppExport, getReadyStatus, importAppData, writeBackupFile} from './opsService';
 import {getActivePath, isArduinoLikePort, listPorts, recordUnsupportedTask, resolveTaskCommand, sendSerialCommand} from './robotService';
+import {assignPortToZone, getAllDetectedPorts, getLiveZoneReadings, unassignPort} from './sensorManager';
 import {appendTaskLog, readJsonFile, updateRobotStatus, writeJsonFile} from './storage';
 import type {ChatMessage, ClassroomSession, RobotStatus, TaskLogItem, WhiteboardNote} from './types';
 import {assertMediaPayload, audioPayloadOptions, imagePayloadOptions} from './validation';
@@ -365,6 +366,41 @@ export function registerRoutes(app: Express) {
       });
       const taskLog = await appendTaskLog({command, source, ok: false, message});
       res.status(503).json({error: message, status, taskLog});
+    }
+  });
+
+  app.get('/api/sensors/ports', (_req, res) => {
+    res.json({ports: getAllDetectedPorts()});
+  });
+
+  app.get('/api/sensors/live', (_req, res) => {
+    res.json({zones: getLiveZoneReadings()});
+  });
+
+  app.post('/api/sensors/assign', async (req, res) => {
+    const portPath = String(req.body?.portPath ?? '').trim();
+    const zoneId = String(req.body?.zoneId ?? '').trim();
+    const unassign = req.body?.unassign === true;
+
+    if (!portPath) {
+      res.status(400).json({error: 'portPath is required'});
+      return;
+    }
+
+    try {
+      if (unassign) {
+        await unassignPort(portPath);
+        res.json({ok: true, portPath, zoneId: null});
+      } else {
+        if (!zoneId) {
+          res.status(400).json({error: 'zoneId is required'});
+          return;
+        }
+        await assignPortToZone(portPath, zoneId);
+        res.json({ok: true, portPath, zoneId});
+      }
+    } catch (error) {
+      sendError(res, error);
     }
   });
 
