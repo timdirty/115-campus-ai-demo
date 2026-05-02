@@ -372,9 +372,9 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
             category: '環境聲量',
             status: 'new',
             checklist: [
-              {id: uid('sound-check'), text: '由值週老師到場觀察，不公開點名', completed: false},
-              {id: uid('sound-check'), text: '確認是否只是正常下課活動或社團練習', completed: false},
-              {id: uid('sound-check'), text: '若伴隨求助按鈕或學生回報，再轉入導師關懷流程', completed: false},
+              {id: uid('sound-check-observe'), text: '由值週老師到場觀察，不公開點名', completed: false},
+              {id: uid('sound-check-verify'), text: '確認是否只是正常下課活動或社團練習', completed: false},
+              {id: uid('sound-check-escalate'), text: '若伴隨求助按鈕或學生回報，再轉入導師關懷流程', completed: false},
             ],
           },
           ...state.alerts,

@@ -80,7 +80,8 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
         <div className="group relative flex items-center bg-surface-container-low rounded-[2rem] px-6 py-5 transition-all focus-within:bg-surface-container-lowest focus-within:ring-4 focus-within:ring-primary/5 shadow-inner border border-outline-variant/10">
           <Search className="text-on-surface-variant mr-4 shrink-0 transition-colors group-focus-within:text-primary" size={22} />
           <input
-            type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+            type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value.slice(0, 50))}
+            maxLength={50}
             className="bg-transparent border-none focus:outline-none focus:ring-0 w-full text-base font-bold placeholder:text-on-surface-variant/40"
             placeholder="搜尋課程餐盒、文具或實驗室耗材..."
           />

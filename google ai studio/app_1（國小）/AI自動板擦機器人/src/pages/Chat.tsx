@@ -260,6 +260,7 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
               ref={textareaRef}
               rows={1}
               value={inputValue}
+              maxLength={500}
               onChange={(e) => { setInputValue(e.target.value); autoResize(); }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {

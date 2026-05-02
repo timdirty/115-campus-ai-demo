@@ -98,7 +98,7 @@ export default function App() {
           <span>⚠️ AI 橋接伺服器未連線（localhost:3200），智慧功能將使用本地模式</span>
           <button
             onClick={() => setBannerDismissed(true)}
-            className="shrink-0 text-amber-600 hover:text-amber-900 font-medium"
+            className="shrink-0 w-11 h-11 flex items-center justify-center text-amber-600 hover:text-amber-900 font-medium"
           >
             ✕
           </button>

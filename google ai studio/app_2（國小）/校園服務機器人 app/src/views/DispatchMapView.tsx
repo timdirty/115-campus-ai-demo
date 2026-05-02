@@ -229,9 +229,16 @@ export function DispatchMapView({ goBack, showToast }: any) {
                  </div>
 
                  {recommendation && (
-                   <p className={`mb-5 rounded-2xl border p-4 text-sm font-bold leading-relaxed ${recommendationError ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-primary/20 bg-primary/10 text-primary'}`}>
-                     {recommendation}
-                   </p>
+                   <div className="mb-5">
+                     <p className={`rounded-2xl border p-4 text-sm font-bold leading-relaxed ${recommendationError ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-primary/20 bg-primary/10 text-primary'}`}>
+                       {recommendation}
+                     </p>
+                     {recommendationError && (
+                       <button onClick={handleDispatch} disabled={Boolean(dispatchingZone)} className="mt-2 w-full rounded-2xl border border-primary/20 bg-primary/5 py-2 text-xs font-black text-primary transition hover:bg-primary/10 disabled:opacity-40">
+                         重新取得 AI 建議
+                       </button>
+                     )}
+                   </div>
                  )}
 
                  <div className="mb-5 flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-black text-slate-500">

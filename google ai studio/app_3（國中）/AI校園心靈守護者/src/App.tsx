@@ -318,7 +318,7 @@ export default function App() {
       };
       tick();
     } catch {
-      setMicError('無法啟用麥克風，請確認瀏覽器權限或使用示範訊號。');
+      setMicError('麥克風不可用（請確認瀏覽器權限或裝置硬體），可改用示範訊號。');
       showToast('麥克風權限未開啟，可改用示範聲量');
     }
   };
@@ -357,7 +357,7 @@ export default function App() {
           <span>⚠️ AI 橋接伺服器未連線（localhost:3200），智慧功能將使用本地模式</span>
           <button
             onClick={() => setBannerDismissed(true)}
-            className="shrink-0 text-amber-600 hover:text-amber-900 font-medium"
+            className="shrink-0 w-11 h-11 flex items-center justify-center text-amber-600 hover:text-amber-900 font-medium"
           >
             ✕
           </button>
@@ -1160,7 +1160,7 @@ function CarePanel({
                 <p className="text-sm font-semibold leading-6 text-gray-700 flex-1">{post.content}</p>
               </div>
               <div className="flex items-center justify-between mt-1">
-                <p className="text-xs font-black text-teal-700">支持 · {post.likes}</p>
+                <p className="text-xs font-black text-teal-700">🌱 {post.likes} 人支持</p>
                 <p className="text-xs text-gray-400">{new Date(post.createdAt).toLocaleTimeString('zh-TW', {hour: '2-digit', minute: '2-digit'})}</p>
               </div>
               {post.botReply && (
@@ -1302,10 +1302,13 @@ function LogsPanel({state, robotFeedback}: Parameters<typeof DetailDrawer>[0]) {
       <GlassPanel>
         <h3 className="text-xl font-black text-slate-950">硬體提示紀錄</h3>
         <div className="mt-4 space-y-3">
+          {state.hardwareEvents.length === 0 && (
+            <p className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-5 text-center text-sm font-semibold text-slate-400">尚無硬體事件</p>
+          )}
           {state.hardwareEvents.slice(0, 8).map((event) => (
             <div key={event.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="truncate font-black text-slate-950">{event.command}</p>
+                <p className="min-w-0 flex-1 truncate font-black text-slate-950">{event.command}</p>
                 <span className={`rounded-full px-2 py-1 text-[10px] font-black ${event.status === 'sent' ? 'bg-teal-100 text-teal-700' : 'bg-amber-100 text-amber-700'}`}>
                   {event.status === 'sent' ? '已送' : '備援'}
                 </span>

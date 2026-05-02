@@ -122,7 +122,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
                 </div>
                 <div>
                   <p className="text-[10px] text-on-surface-variant font-bold mb-1 text-primary/80">位置</p>
-                  <p className="text-xl font-headline font-bold tracking-tight">{activeRobot.position}</p>
+                  <p className="text-xl font-headline font-bold tracking-tight line-clamp-2">{activeRobot.position}</p>
                 </div>
               </div>
             </div>
