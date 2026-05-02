@@ -20,6 +20,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
   const [selectedNote, setSelectedNote] = useState<WhiteboardNote | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState('');
   const [editDraft, setEditDraft] = useState({
     title: '',
     subject: '',
@@ -97,10 +98,12 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
   }, [selectedNote]);
 
   const saveSelectedNote = async () => {
-    if (!selectedNote || !editDraft.title.trim() || !editDraft.subject.trim() || !editDraft.content.trim()) {
+    if (!selectedNote) return;
+    if (!editDraft.title.trim() || !editDraft.subject.trim() || !editDraft.content.trim()) {
+      setEditError('標題、科目和內容不可為空');
       return;
     }
-
+    setEditError('');
     setSavingEdit(true);
     try {
       const updated = await updateNoteAsync(selectedNote.id, {
@@ -242,8 +245,8 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                    <h4 className="text-xl font-bold font-headline text-on-surface group-hover:text-primary transition-colors leading-tight line-clamp-2">{note.title}</h4>
-                    <p className="text-[14px] text-on-surface-variant line-clamp-2 leading-relaxed font-body">{note.desc}</p>
+                    <h4 className="text-xl font-bold font-headline text-on-surface group-hover:text-primary transition-colors leading-tight line-clamp-2" title={note.title}>{note.title}</h4>
+                    <p className="text-[14px] text-on-surface-variant line-clamp-2 leading-relaxed font-body" title={note.desc}>{note.desc}</p>
                     {viewMode === 'grid' && (
                       <div className="mt-4 pt-4 border-t border-outline-variant/10 flex justify-between items-center text-xs text-on-surface-variant font-medium">
                          <span>{note.date}</span><span>{note.time}</span>
@@ -350,14 +353,15 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
                   </div>
                 </div>
 
-                <div className="p-5 md:p-6 bg-surface-container-lowest shrink-0 border-t border-outline-variant/10 flex gap-3">
+                <div className="p-5 md:p-6 bg-surface-container-lowest shrink-0 border-t border-outline-variant/10 flex flex-col gap-2">
+                  {editError && <p className="text-xs font-bold text-error px-1">{editError}</p>}
                   {isEditing ? (
-                    <>
-                      <button onClick={() => setIsEditing(false)} className="flex-1 bg-surface-container hover:bg-surface-container-high text-on-surface font-extrabold py-3.5 px-4 rounded-xl transition-colors shadow-sm text-sm">取消</button>
-                      <button onClick={saveSelectedNote} disabled={savingEdit || !editDraft.title.trim() || !editDraft.subject.trim() || !editDraft.content.trim()} className="flex-1 bg-primary text-on-primary font-extrabold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-primary-dim disabled:opacity-50 text-sm">
+                    <div className="flex gap-3">
+                      <button onClick={() => { setIsEditing(false); setEditError(''); }} className="flex-1 bg-surface-container hover:bg-surface-container-high text-on-surface font-extrabold py-3.5 px-4 rounded-xl transition-colors shadow-sm text-sm">取消</button>
+                      <button onClick={saveSelectedNote} disabled={savingEdit} className="flex-1 bg-primary text-on-primary font-extrabold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-primary-dim disabled:opacity-50 text-sm">
                         {savingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} 保存修改
                       </button>
-                    </>
+                    </div>
                   ) : (
                     <>
                       <button onClick={() => { setSelectedNote(null); onNavigate('chat'); }} className="flex-1 bg-surface-container hover:bg-primary-container hover:text-primary text-on-surface font-extrabold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm text-sm">

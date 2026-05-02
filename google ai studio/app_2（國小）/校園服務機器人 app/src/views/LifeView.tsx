@@ -98,7 +98,7 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
             whileHover={{ y: -4, shadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}
             whileTap={{ scale: 0.98 }}
             onClick={() => showToast(`正在同步 ${sensor.label} 感測器資料...`)}
-            key={i}
+            key={sensor.label}
             className={`bg-surface-container-lowest p-6 rounded-[2.2rem] border transition-all cursor-pointer flex flex-col items-start gap-5 relative overflow-hidden group ${isEmergency ? 'border-error/40 bg-error/5 shadow-inner' : 'border-outline-variant/30 shadow-[0_4px_20px_rgba(0,0,0,0.02)]'}`}
           >
              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border border-outline-variant/10 shadow-sm transition-transform group-hover:scale-110 ${sensor.bg} ${sensor.color}`}>
@@ -312,8 +312,8 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
 
            <div className="space-y-2">
              <div className="text-[10px] text-primary/40 font-bold mb-4 italic px-2">本次展示紀錄</div>
-             {state.logs.map((log, i) => (
-                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} key={i} className={`flex gap-3 group/log p-2 rounded-lg transition-colors hover:bg-white/5 ${log.type === 'warn' ? 'text-tertiary shadow-[inset_4px_0_0_rgba(var(--color-tertiary),1)]' : log.type === 'error' ? 'text-error shadow-[inset_4px_0_0_rgba(var(--color-error),1)]' : 'text-[#a9b1d6] shadow-[inset_4px_0_0_rgba(255,255,255,0.1)]'}`}>
+             {state.logs.map((log) => (
+                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} key={log.id} className={`flex gap-3 group/log p-2 rounded-lg transition-colors hover:bg-white/5 ${log.type === 'warn' ? 'text-tertiary shadow-[inset_4px_0_0_rgba(var(--color-tertiary),1)]' : log.type === 'error' ? 'text-error shadow-[inset_4px_0_0_rgba(var(--color-error),1)]' : 'text-[#a9b1d6] shadow-[inset_4px_0_0_rgba(255,255,255,0.1)]'}`}>
                    <span className="opacity-30 font-bold shrink-0">{log.time}</span>
                    <span className="flex-1 font-medium select-all">{log.message}</span>
                 </motion.div>

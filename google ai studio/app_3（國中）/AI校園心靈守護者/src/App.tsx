@@ -262,7 +262,7 @@ export default function App() {
     setPostContent('');
     showToast('匿名支持已加入心靈森林');
     try {
-      const reply = await generateSupportReply(content, 'happy', undefined, undefined);
+      const reply = await generateSupportReply(content, selectedMood, undefined, undefined);
       dispatch({type: 'SET_FOREST_POST_REPLY', payload: {id: postId, botReply: reply}});
     } catch {
       // silent — bot reply is a bonus, not critical
