@@ -491,7 +491,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'CREATE_DELIVERY_ORDER': {
       const product = state.products.find((item) => item.id === action.payload.productId);
-      if (!product || action.payload.quantity <= 0 || product.stock < action.payload.quantity || !action.payload.destination?.trim()) {
+      if (!product || !Number.isInteger(action.payload.quantity) || action.payload.quantity <= 0 || product.stock < action.payload.quantity || !action.payload.destination?.trim()) {
         return {
           ...state,
           logs: addLog(state, '配送中心：訂單建立失敗，庫存不足或商品不存在，硬體未派遣', 'error', now),
