@@ -87,10 +87,26 @@ export function CapturePanel({
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-[12rem_1fr] gap-3">
         <label className="block">
           <span className="text-xs font-bold text-on-surface-variant">年級 / 科目</span>
+          <div className="mt-2 flex flex-wrap gap-1 mb-1.5">
+            {(['數學', '語文', '自然', '社會', '英語', '體育', '藝術'] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => onSubjectHintChange(`國小${s}`)}
+                className={`px-2 py-0.5 text-xs rounded-full border transition-colors ${
+                  subjectHint === `國小${s}`
+                    ? 'bg-primary text-on-primary border-primary'
+                    : 'bg-white text-on-surface-variant border-outline-variant/50 hover:border-primary'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
           <input
             value={subjectHint}
             onChange={(event) => onSubjectHintChange(event.target.value)}
-            className="mt-2 w-full min-h-11 rounded-md bg-surface-container px-3 outline-none border border-outline-variant/30 font-bold"
+            className="mt-1 w-full min-h-11 rounded-md bg-surface-container px-3 outline-none border border-outline-variant/30 font-bold"
           />
         </label>
         <div className="rounded-md bg-surface-container p-3 border border-outline-variant/20">
