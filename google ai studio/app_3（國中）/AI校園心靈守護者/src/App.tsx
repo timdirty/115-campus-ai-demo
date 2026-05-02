@@ -119,6 +119,7 @@ export default function App() {
   const [zoneSensors, setZoneSensors] = useState<ZoneSensorReading[]>([]);
   const [detectedPorts, setDetectedPorts] = useState<DetectedPort[]>([]);
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const robotTimersRef = useRef<number[]>([]);
   const proxyOnline = useProxyHealth();
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const volumeHistoryRef = useRef<number[]>([]);
@@ -184,6 +185,7 @@ export default function App() {
   }, [robotFeedback]);
 
   useEffect(() => () => stopAcousticMonitor(), []);
+  useEffect(() => () => { robotTimersRef.current.forEach(clearTimeout); }, []);
 
   const showToast = (text: string) => setToastMessage(text);
 
@@ -205,15 +207,15 @@ export default function App() {
     }
     const createdAt = Date.now();
     setRobotFeedback({zoneId: zone.id, zoneName: zone.name, stage: '指令送出', createdAt, missionId: `R-${createdAt.toString().slice(-4)}`});
-    window.setTimeout(() => {
+    robotTimersRef.current.push(window.setTimeout(() => {
       setRobotFeedback((current) => current?.createdAt === createdAt ? {...current, stage: '前往現場'} : current);
       dispatch({type: 'UPDATE_ROBOT_MISSION_STATUS', payload: {zoneName: zone.name, status: 'arrived'}});
-    }, 1200);
-    window.setTimeout(() => {
+    }, 1200));
+    robotTimersRef.current.push(window.setTimeout(() => {
       setRobotFeedback((current) => current?.createdAt === createdAt ? {...current, stage: '老師確認'} : current);
       dispatch({type: 'UPDATE_ROBOT_MISSION_STATUS', payload: {zoneName: zone.name, status: 'completed'}});
-    }, 3200);
-    window.setTimeout(() => setRobotFeedback((current) => current?.createdAt === createdAt ? null : current), 7200);
+    }, 3200));
+    robotTimersRef.current.push(window.setTimeout(() => setRobotFeedback((current) => current?.createdAt === createdAt ? null : current), 7200));
     dispatch({type: 'DISPATCH_ROBOT', payload: {zoneName: zone.name, riskScore: zone.riskScore, command: 'ROBOT_DISPATCH'}});
     sendHardwareCue('CARE_DEPLOYED', `app3:robot:${zone.id}`);
     showToast(`已指派機器人前往${zone.name}`);

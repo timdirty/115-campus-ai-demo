@@ -176,7 +176,10 @@ export function ZoneSensorPanel({sensor}: ZoneSensorPanelProps) {
         </div>
       )}
 
-      <p className="text-[9px] text-slate-400 text-right">更新 {new Date(sensor.updatedAt).toLocaleTimeString('zh-TW', {hour: '2-digit', minute: '2-digit', second: '2-digit'})}</p>
+      {temp === null && hum === null && light === null && (
+        <p className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3 text-xs font-black text-slate-400 text-center">感測器暫無數據</p>
+      )}
+      {(() => { const d = new Date(sensor.updatedAt); return isNaN(d.getTime()) ? null : <p className="text-[9px] text-slate-400 text-right">更新 {d.toLocaleTimeString('zh-TW', {hour: '2-digit', minute: '2-digit', second: '2-digit'})}</p>; })()}
     </div>
   );
 }

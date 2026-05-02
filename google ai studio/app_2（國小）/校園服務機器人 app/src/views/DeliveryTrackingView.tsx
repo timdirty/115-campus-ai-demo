@@ -65,7 +65,7 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
                    (phase === 'delivered' ? '已順利抵達' : '機器人正在移動中')}
             </h3>
 
-            <span className={`inline-block text-xs font-extrabold px-4 py-1.5 rounded-xl border ${!displayStatus ? 'text-on-surface-variant bg-surface-container border-outline-variant/20' : phase === 'delivered' ? 'text-[#3d9a2b] bg-[#87d46c]/15 border-[#87d46c]/30' : 'text-primary bg-primary/10 border-primary/10'}`}>
+            <span className={`inline-block max-w-full truncate text-xs font-extrabold px-4 py-1.5 rounded-xl border ${!displayStatus ? 'text-on-surface-variant bg-surface-container border-outline-variant/20' : phase === 'delivered' ? 'text-[#3d9a2b] bg-[#87d46c]/15 border-[#87d46c]/30' : 'text-primary bg-primary/10 border-primary/10'}`} title={displayStatus || undefined}>
               {displayStatus || '系統待命'}
             </span>
 
