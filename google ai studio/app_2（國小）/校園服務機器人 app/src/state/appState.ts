@@ -338,7 +338,30 @@ export function createInitialAppState(): AppState {
         stock: 9,
       },
     ],
-    orders: [],
+    orders: [
+      {
+        id: 'order-demo-001',
+        productId: 1,
+        productName: '特級厚片土司',
+        quantity: 2,
+        destination: '五年級 501 教室',
+        status: 'delivered',
+        robotId: '1號',
+        createdAt: '2026-04-29T07:00:00.000+08:00',
+        deliveredAt: '2026-04-29T07:10:00.000+08:00',
+      },
+      {
+        id: 'order-demo-002',
+        productId: 3,
+        productName: '義式小披薩',
+        quantity: 1,
+        destination: '六年級 602 教室',
+        status: 'delivered',
+        robotId: '2號',
+        createdAt: '2026-04-29T06:00:00.000+08:00',
+        deliveredAt: '2026-04-29T06:12:00.000+08:00',
+      },
+    ],
     tasks: [
       {
         id: 'task-clean-507',
