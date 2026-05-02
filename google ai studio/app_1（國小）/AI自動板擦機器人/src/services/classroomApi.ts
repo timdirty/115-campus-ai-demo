@@ -160,18 +160,83 @@ const ROBOT_STATUS_KEY = 'whiteboard-robot-status:elementary:v1';
 const TASK_LOG_KEY = 'whiteboard-task-log:elementary:v1';
 const CHAT_KEY = 'whiteboard-chat:elementary:v1';
 
+const SUBJECT_LEARNING_STATUS: Record<string, {focus: number; confused: number; tired: number}> = {
+  '數學': {focus: 75, confused: 18, tired: 7},
+  '語文': {focus: 82, confused: 10, tired: 8},
+  '自然': {focus: 85, confused: 9, tired: 6},
+  '社會': {focus: 78, confused: 14, tired: 8},
+  '英語': {focus: 72, confused: 20, tired: 8},
+  '體育': {focus: 88, confused: 5, tired: 7},
+  '藝術': {focus: 83, confused: 8, tired: 9},
+  '綜合': {focus: 80, confused: 12, tired: 8},
+};
+
+const SUBJECT_BOARD_REGIONS: Record<string, Array<{label: string; keep: boolean; reason: string}>> = {
+  '數學': [
+    {label: '例題解析區', keep: true, reason: '解題步驟需要保留複習'},
+    {label: '公式總整理', keep: true, reason: '重要公式下課後仍需參考'},
+    {label: '練習題作答', keep: false, reason: '已完成，可擦除'},
+  ],
+  '語文': [
+    {label: '生字詞彙區', keep: true, reason: '本課生字需要繼續練習'},
+    {label: '課文重點段落', keep: true, reason: '閱讀理解重點保留'},
+    {label: '造句練習', keep: false, reason: '學生已抄寫完畢'},
+  ],
+  '自然': [
+    {label: '實驗步驟圖示', keep: true, reason: '實驗方法需要對照'},
+    {label: '觀察記錄表', keep: true, reason: '資料整理中'},
+    {label: '結論討論', keep: false, reason: '已記錄在課本'},
+  ],
+  '社會': [
+    {label: '歷史時間軸', keep: true, reason: '時序關係需要對照'},
+    {label: '地圖標示區', keep: true, reason: '地理位置重要'},
+    {label: '課堂討論紀錄', keep: false, reason: '已完成討論'},
+  ],
+  '英語': [
+    {label: '單字例句區', keep: true, reason: '句型需要反覆練習'},
+    {label: '文法重點', keep: true, reason: '文法規則本節重點'},
+    {label: '口語練習記錄', keep: false, reason: '口語活動已結束'},
+  ],
+  default: [
+    {label: '圖解與例題', keep: true, reason: '核心概念需保留'},
+    {label: '練習作答區', keep: false, reason: '練習已完成'},
+    {label: '口訣提醒區', keep: true, reason: '記憶口訣仍有用'},
+  ],
+};
+
+const SUBJECT_TRANSCRIPTS: Record<string, string> = {
+  '數學': '範例一：已知三角形底邊為8公分，高為6公分，求面積。\n解：面積 = 底×高÷2 = 8×6÷2 = 24（平方公分）\n公式：三角形面積 = 底×高÷2',
+  '語文': '本課生字：「勤」、「奮」、「努」、「力」\n造句練習：他每天勤奮努力地讀書。\n課文重點：第三段描述主角克服困難的過程。',
+  '自然': '實驗：觀察植物光合作用\n材料：植物、光源、水\n步驟1：將植物放在陽光充足處\n步驟2：觀察葉片顏色變化\n結論：光照充足時葉片顏色更深綠。',
+  '社會': '台灣歷史時間軸：\n1624年 荷蘭佔領台灣\n1661年 鄭成功收復台灣\n1895年 馬關條約，台灣割讓日本\n1945年 二次大戰結束，台灣回歸',
+  '英語': 'New Words: happy (快樂的), sad (悲傷的), angry (生氣的)\nSentence Pattern: I feel ___.\nExample: I feel happy today.',
+  default: '今日課堂重點整理\n一、主要概念說明\n二、重要定義與公式\n三、練習題與解答\n請同學課後複習以上內容。',
+};
+
+const REGION_POSITIONS: Array<{id: string; x: number; y: number; width: number; height: number}> = [
+  {id: 'A', x: 8, y: 18, width: 38, height: 58},
+  {id: 'B', x: 54, y: 20, width: 34, height: 50},
+  {id: 'C', x: 22, y: 78, width: 58, height: 16},
+];
+
+function buildBoardRegions(subject: string): BoardRegion[] {
+  const templates = SUBJECT_BOARD_REGIONS[subject] ?? SUBJECT_BOARD_REGIONS['default'];
+  return templates.map((tmpl, i) => ({
+    ...REGION_POSITIONS[i],
+    label: tmpl.label,
+    status: tmpl.keep ? 'keep' : 'erasable',
+    reason: tmpl.reason,
+  })) as BoardRegion[];
+}
+
 const fallbackSession: ClassroomSession = {
-  focusPercent: 82,
+  focusPercent: 80,
   confusedPercent: 12,
-  tiredPercent: 6,
+  tiredPercent: 8,
   teacherPace: 'normal',
   savedMinutes: 3.1,
   currentRecommendation: '本機展示模式：白板重點與教師決策會保存在這台瀏覽器，接上本機橋接後可再送到 UNO R4。',
-  boardRegions: [
-    {id: 'A', label: '圖解與例題', x: 8, y: 18, width: 38, height: 58, status: 'keep', reason: '孩子還需要看圖說明自己的想法'},
-    {id: 'B', label: '練習作答區', x: 54, y: 20, width: 34, height: 50, status: 'erasable', reason: '練習已保存，可換下一題'},
-    {id: 'C', label: '口訣提醒區', x: 22, y: 78, width: 58, height: 16, status: 'keep', reason: '保留給孩子回頭檢查'},
-  ],
+  boardRegions: buildBoardRegions('綜合'),
   updatedAt: new Date().toISOString(),
 };
 
@@ -313,12 +378,25 @@ function localExportPayload(): AppDataExport {
 }
 
 function localBoardAnalysis(input: {imageBase64: string; transcript?: string; subjectHint?: string}): BoardAnalysisResponse {
-  const subject = input.subjectHint?.trim() || '國小課堂';
+  const subject = input.subjectHint?.trim() || '綜合';
+  const status = SUBJECT_LEARNING_STATUS[subject] ?? SUBJECT_LEARNING_STATUS['綜合'];
+  const boardRegions = buildBoardRegions(subject);
+  const fallbackTranscript = SUBJECT_TRANSCRIPTS[subject] ?? SUBJECT_TRANSCRIPTS['default'];
+
+  const keepLabels = boardRegions.filter(r => r.status === 'keep').map(r => r.label).join('、');
+  const eraseLabels = boardRegions.filter(r => r.status === 'erasable').map(r => r.label).join('、');
+  const recommendation = `靜態展示分析完成：保留「${keepLabels}」，「${eraseLabels}」可清出空間繼續教學。`;
+
   const session = saveLocalSession({
     ...fallbackSession,
-    currentRecommendation: '靜態展示分析完成：保留左側圖解與下方口訣，右側練習區可清出下一題空間。',
+    focusPercent: status.focus,
+    confusedPercent: status.confused,
+    tiredPercent: status.tired,
+    boardRegions,
+    currentRecommendation: recommendation,
     lastCaptureAt: new Date().toISOString(),
   });
+  const resolvedTranscript = input.transcript || fallbackTranscript;
   const content = [
     `今日課堂：${subject}`,
     '',
@@ -327,7 +405,7 @@ function localBoardAnalysis(input: {imageBase64: string; transcript?: string; su
     '2. 把老師講解整理成三個孩子聽得懂的句子。',
     '3. 右側練習區已保存，可換下一題繼續教學。',
     '',
-    input.transcript ? `老師講解：${input.transcript}` : '老師講解：可使用麥克風或直接輸入快速紀錄。',
+    `老師講解：${resolvedTranscript}`,
   ].join('\n');
   return {
     noteDraft: {
@@ -338,7 +416,7 @@ function localBoardAnalysis(input: {imageBase64: string; transcript?: string; su
       content,
       captureSource: 'camera',
       ocrText: content,
-      transcript: input.transcript || '靜態展示模式：尚未取得逐字稿。',
+      transcript: resolvedTranscript,
       imageUrl: input.imageBase64,
       img: input.imageBase64,
       keywords: [subject, '白板', '國小', '展示模式'],
