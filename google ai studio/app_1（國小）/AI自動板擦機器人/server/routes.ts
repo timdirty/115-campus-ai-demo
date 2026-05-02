@@ -27,7 +27,7 @@ export function registerRoutes(app: Express) {
   });
 
   app.get('/api/health', (_req, res) => {
-    res.json({ok: true, bridgePort, baudRate, dataDir, geminiConfigured: isGeminiConfigured()});
+    res.json({ok: true, bridgePort, baudRate, dataDir, geminiConfigured: isGeminiConfigured(), uptimeSeconds: Math.round(process.uptime())});
   });
 
   app.get('/api/ready', async (_req, res) => {
