@@ -482,7 +482,11 @@ export function loadGuardianState(): GuardianState {
 
 export function persistGuardianState(state: GuardianState) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(GUARDIAN_STORAGE_KEY, JSON.stringify(state));
+  try {
+    window.localStorage.setItem(GUARDIAN_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // QuotaExceededError or storage disabled — state lives in memory only
+  }
 }
 
 export function normalizeGuardianState(input: unknown): GuardianState {

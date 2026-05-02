@@ -419,6 +419,12 @@ export function registerRoutes(app: Express) {
         throw new ApiError(400, 'Missing command');
       }
 
+      if (!supportedCommands.has(command)) {
+        const result = await recordUnsupportedTask(command, 'legacy-arduino-api', 'Unsupported command');
+        res.status(400).json({ok: false, error: 'Unsupported command', ...result});
+        return;
+      }
+
       const result = await sendSerialCommand(command, requestedPath);
       const message = result.response || `Sent ${command} to ${result.port}`;
       await updateRobotStatus({
