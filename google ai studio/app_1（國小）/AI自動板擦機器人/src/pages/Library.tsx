@@ -16,6 +16,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
   const [viewMode, setViewMode] = useState<'list'|'grid'>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [notes, setNotes] = useState<WhiteboardNote[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedNote, setSelectedNote] = useState<WhiteboardNote | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -30,7 +31,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
   });
 
   useEffect(() => {
-    const refresh = () => loadNotesAsync().then(setNotes);
+    const refresh = () => loadNotesAsync().then((loaded) => { setNotes(loaded); setIsLoading(false); });
     refresh();
     window.addEventListener('whiteboard-notes-updated', refresh);
     return () => window.removeEventListener('whiteboard-notes-updated', refresh);
@@ -202,7 +203,13 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
           </div>
         </motion.div>
 
-        {displayedNotes.length === 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col gap-4 mt-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-28 rounded-4xl bg-surface-container animate-pulse" />
+            ))}
+          </div>
+        ) : displayedNotes.length === 0 ? (
           <motion.div initial={{opacity:0}} animate={{opacity:1}} className="text-center py-20">
             <div className="w-24 h-24 bg-surface-container rounded-full flex items-center justify-center mx-auto mb-6">
               <Folder className="w-10 h-10 text-on-surface-variant/40" />
@@ -231,11 +238,11 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
                       <span className={`text-[10px] font-bold tracking-widest uppercase px-3 py-1 rounded-full ${note.theme === 'primary' ? 'bg-primary-container/80 text-primary' : note.theme === 'secondary' ? 'bg-secondary-container/80 text-secondary-dim' : 'bg-tertiary-container/80 text-tertiary'}`}>
                         {note.subject}
                       </span>
-                      <button onClick={(e) => deleteNote(note.id, e)} className="text-error/50 hover:text-error hover:bg-error-container p-2.5 rounded-full transition-colors active:scale-90 absolute right-0 -top-2 opacity-0 group-hover:opacity-100 shadow-sm border border-transparent hover:border-error/20">
+                      <button onClick={(e) => deleteNote(note.id, e)} className="text-error/50 hover:text-error hover:bg-error-container p-2.5 rounded-full transition-colors active:scale-90 absolute right-0 -top-2 md:opacity-0 md:group-hover:opacity-100 shadow-sm border border-transparent hover:border-error/20">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                    <h4 className="text-xl font-bold font-headline text-on-surface group-hover:text-primary transition-colors leading-tight">{note.title}</h4>
+                    <h4 className="text-xl font-bold font-headline text-on-surface group-hover:text-primary transition-colors leading-tight line-clamp-2">{note.title}</h4>
                     <p className="text-[14px] text-on-surface-variant line-clamp-2 leading-relaxed font-body">{note.desc}</p>
                     {viewMode === 'grid' && (
                       <div className="mt-4 pt-4 border-t border-outline-variant/10 flex justify-between items-center text-xs text-on-surface-variant font-medium">

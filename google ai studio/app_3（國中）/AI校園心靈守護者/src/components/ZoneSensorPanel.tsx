@@ -115,8 +115,13 @@ export function ZoneSensorPanel({sensor}: ZoneSensorPanelProps) {
     );
   }
 
-  const {temp, hum, light} = sensor;
-  const lightPct = light !== null ? Math.round(Math.min(100, (light / 1023) * 100)) : null;
+  const rawTemp = sensor.temp;
+  const rawHum = sensor.hum;
+  const rawLight = sensor.light;
+  const temp = rawTemp !== null && isFinite(rawTemp) ? Math.max(-10, Math.min(60, rawTemp)) : null;
+  const hum = rawHum !== null && isFinite(rawHum) ? Math.max(0, Math.min(100, rawHum)) : null;
+  const light = rawLight !== null && isFinite(rawLight) ? Math.max(0, Math.min(1023, rawLight)) : null;
+  const lightPct = light !== null ? Math.round((light / 1023) * 100) : null;
 
   return (
     <div className="mt-3 space-y-2">

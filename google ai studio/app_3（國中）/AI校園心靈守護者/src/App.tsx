@@ -993,6 +993,7 @@ function DetailDrawer(props: {
             initial={{opacity: 0, x: 40}}
             animate={{opacity: 1, x: 0}}
             exit={{opacity: 0, x: 40}}
+            onKeyDown={(e) => e.key === 'Escape' && props.onClose()}
             className="fixed bottom-0 right-0 z-50 flex max-h-[88vh] w-full flex-col rounded-t-2xl border border-slate-200 bg-white p-4 text-slate-950 shadow-2xl shadow-slate-950/15 sm:max-w-xl lg:bottom-4 lg:right-4 lg:top-[5.25rem] lg:max-h-none lg:rounded-2xl"
           >
             <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
@@ -1030,6 +1031,9 @@ function AlertsPanel({state, selectedAlert, setSelectedAlert, dispatch, onHardwa
         <MetricTile label="處理中" value={processingCount} />
       </div>
       <div className="space-y-3">
+        {state.alerts.length === 0 && (
+          <p className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-6 text-center text-sm font-semibold text-slate-400">目前無待處理提醒 ✓</p>
+        )}
         {state.alerts.map((alert) => (
           <AlertRow key={alert.id} alert={alert} onOpen={() => setSelectedAlert(alert)} />
         ))}
