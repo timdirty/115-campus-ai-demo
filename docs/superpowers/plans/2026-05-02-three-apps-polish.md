@@ -46,7 +46,7 @@ export const aiProxyKey = process.env.AI_PROXY_KEY ?? '';
 Create `APP1/.env` (already in .gitignore):
 
 ```
-GEMINI_API_KEY=AIzaSyASfFu0F4M7k6sEuy2ylvOgxAbYqd3KJ58
+GEMINI_API_KEY=<your-gemini-api-key>
 AI_PROXY_KEY=campus-ai-proxy-2026
 ```
 
