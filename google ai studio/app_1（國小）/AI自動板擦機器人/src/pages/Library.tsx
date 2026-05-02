@@ -32,7 +32,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
   });
 
   useEffect(() => {
-    const refresh = () => loadNotesAsync().then((loaded) => { setNotes(loaded); setIsLoading(false); }).catch(() => setIsLoading(false));
+    const refresh = () => loadNotesAsync().then((loaded) => { setNotes(loaded); setIsLoading(false); }).catch(() => { setIsLoading(false); setEditError('課堂紀錄載入失敗，請重新整理'); });
     refresh();
     window.addEventListener('whiteboard-notes-updated', refresh);
     return () => window.removeEventListener('whiteboard-notes-updated', refresh);
