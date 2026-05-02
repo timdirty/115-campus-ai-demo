@@ -172,7 +172,7 @@ export function createInitialGuardianState(): GuardianState {
       {
         id: 'msg-1',
         role: 'guardian',
-        content: '這裡是示範用的心靈守護者。你可以說說今天的心情，我會用關懷提醒的方式回覆。',
+        content: '你好！我是你的校園心靈守護者 🌱。不管今天開心還是有點難受，都可以在這裡說說。我會陪著你，一起想想怎麼面對。',
         createdAt,
       },
     ],
