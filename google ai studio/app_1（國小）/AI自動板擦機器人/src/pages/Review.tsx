@@ -35,6 +35,13 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
     });
   }, []);
 
+  // Auto-select first note whenever the notes list changes and nothing is selected yet
+  useEffect(() => {
+    if (!activeRecord && notes.length > 0) {
+      setActiveRecord(notes[0].id);
+    }
+  }, [notes]);
+
   const handleGenerate = async () => {
     const selectedNote = notes.find((note) => note.id === activeRecord) ?? notes[0];
     if (!selectedNote) {
