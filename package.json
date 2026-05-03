@@ -1,0 +1,16 @@
+{
+  "name": "115-campus-ai-demo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev-all.mjs",
+    "preview": "node scripts/build-github-pages.mjs && npx serve pages-dist -p 11500",
+    "build": "node scripts/build-github-pages.mjs",
+    "check": "npm run check --prefix \"google ai studio/app_1（國小）/AI自動板擦機器人\" && npm run check --prefix \"google ai studio/app_2（國小）/校園服務機器人 app\" && npm run check --prefix \"google ai studio/app_3（國中）/AI校園心靈守護者\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "serve": "^14.2.6"
+  }
+}
