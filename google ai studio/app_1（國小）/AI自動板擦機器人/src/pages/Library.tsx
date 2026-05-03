@@ -197,7 +197,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
       </section>
 
       {/* Dynamic List / Grid View */}
-      <section className="space-y-6">
+      <section className="space-y-6" data-tour="notes-list">
         <motion.div variants={itemVariants} className="flex items-center justify-between px-2 pb-4 border-b border-surface-container">
           <h3 className="text-2xl font-bold font-headline flex items-center gap-3">
             {searchQuery ? `搜尋結果: "${searchQuery}"` : '課堂紀錄清單'}

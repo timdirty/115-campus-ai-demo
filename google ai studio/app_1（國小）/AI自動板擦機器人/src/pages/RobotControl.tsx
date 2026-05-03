@@ -226,7 +226,7 @@ export default function RobotControl() {
             </div>
           </motion.section>
 
-          <motion.section variants={itemVariants} className="lg:col-span-7 bg-surface-container-high rounded-3xl sm:rounded-[2rem] p-5 sm:p-7 border border-outline-variant/10">
+          <motion.section variants={itemVariants} className="lg:col-span-7 bg-surface-container-high rounded-3xl sm:rounded-[2rem] p-5 sm:p-7 border border-outline-variant/10" data-tour="robot-commands">
             <div className="flex items-center justify-between gap-4 mb-5">
               <div>
                 <h2 className="text-xl font-extrabold">快速指令</h2>

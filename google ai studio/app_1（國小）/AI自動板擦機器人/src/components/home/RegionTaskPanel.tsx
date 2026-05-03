@@ -23,7 +23,7 @@ function getRegionStyle(status: BoardRegion['status']) {
 
 export function RegionTaskPanel({analysis, classroom, boardRegions, busy, onSaveAnalysis, onRunRegionTask, onKeepAll}: RegionTaskPanelProps) {
   return (
-    <section className="xl:col-span-5 bg-surface-container-high rounded-lg p-4 sm:p-5 border border-outline-variant/20">
+    <section className="xl:col-span-5 bg-surface-container-high rounded-lg p-4 sm:p-5 border border-outline-variant/20" data-tour="region-panel">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
           <h2 className="text-xl font-extrabold">白板保留建議</h2>

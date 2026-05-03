@@ -163,7 +163,7 @@ export default function TeacherDashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 sm:gap-6">
-            <motion.section variants={itemVariants} className="xl:col-span-4 bg-surface-container-low rounded-3xl p-5 sm:p-7 border border-outline-variant/10 shadow-premium">
+            <motion.section variants={itemVariants} className="xl:col-span-4 bg-surface-container-low rounded-3xl p-5 sm:p-7 border border-outline-variant/10 shadow-premium" data-tour="class-stats">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-extrabold">班級學習狀態</h2>
@@ -184,7 +184,7 @@ export default function TeacherDashboard() {
               </div>
             </motion.section>
 
-            <motion.section variants={itemVariants} className="xl:col-span-5 bg-surface-container-high rounded-3xl p-5 sm:p-7 border border-outline-variant/10">
+            <motion.section variants={itemVariants} className="xl:col-span-5 bg-surface-container-high rounded-3xl p-5 sm:p-7 border border-outline-variant/10" data-tour="board-regions">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-extrabold">白板區塊決策</h2>

@@ -10,6 +10,9 @@ import TeacherDashboard from './pages/TeacherDashboard';
 import RobotControl from './pages/RobotControl';
 import SystemSettingsPanel from './components/SystemSettingsPanel';
 import {loadNotesAsync, WhiteboardNote} from './services/notesStore';
+import { TourProvider } from './components/tour/TourProvider';
+import { TourOverlay } from './components/tour/TourOverlay';
+import { useTour } from './components/tour/useTour';
 
 type AppTab = 'home' | 'teacher' | 'robot' | 'library' | 'chat' | 'review';
 
@@ -17,6 +20,19 @@ const appTabs: AppTab[] = ['home', 'teacher', 'robot', 'library', 'chat', 'revie
 
 function isAppTab(tab: string): tab is AppTab {
   return appTabs.includes(tab as AppTab);
+}
+
+function RestartTourButton({ onClose }: { onClose: () => void }) {
+  const { restartTour } = useTour();
+  return (
+    <button
+      onClick={() => { restartTour(); onClose(); }}
+      className="mt-4 w-full rounded-2xl border border-primary/20 bg-primary-container/40 px-4 py-3 text-left transition hover:bg-primary-container/60 active:scale-95"
+    >
+      <p className="text-sm font-extrabold text-primary">重看功能導覽</p>
+      <p className="mt-0.5 text-xs text-on-surface-variant">再次走一遍 8 步引導</p>
+    </button>
+  );
 }
 
 export default function App() {
@@ -77,6 +93,7 @@ export default function App() {
   };
 
   return (
+    <TourProvider onTabChange={navigateTo}>
     <div className="app1-shell flex flex-col min-h-screen relative overflow-x-hidden bg-surface">
       <div className="noise-overlay" />
       {/* TopAppBar */}
@@ -215,12 +232,17 @@ export default function App() {
               onClick={(e) => e.stopPropagation()}
               className="w-full flex justify-center"
             >
-              <SystemSettingsPanel onClose={() => setIsSettingsOpen(false)} />
+              <div className="w-full max-w-2xl">
+                <SystemSettingsPanel onClose={() => setIsSettingsOpen(false)} />
+                <RestartTourButton onClose={() => setIsSettingsOpen(false)} />
+              </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+      <TourOverlay />
     </div>
+    </TourProvider>
   );
 }
 

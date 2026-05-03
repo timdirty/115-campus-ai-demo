@@ -1,4 +1,7 @@
 import {useEffect, useMemo, useReducer, useRef, useState} from 'react';
+import {TourProvider} from './components/tour/TourProvider';
+import {TourOverlay} from './components/tour/TourOverlay';
+import {useTour} from './components/tour/useTour';
 import {useProxyHealth} from './hooks/useProxyHealth';
 import type {Dispatch, ReactNode} from 'react';
 import {AnimatePresence, motion} from 'motion/react';
@@ -100,9 +103,18 @@ function isCrisisMessage(text: string): boolean {
 }
 
 export default function App() {
+  return (
+    <TourProvider>
+      <AppContent />
+      <TourOverlay />
+    </TourProvider>
+  );
+}
+
+function AppContent() {
+  const {restartTour} = useTour();
   const [state, dispatch] = useReducer(guardianReducer, undefined, loadGuardianState);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
-  const [showDemoGuide, setShowDemoGuide] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<GuardianAlert | null>(null);
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [selectedMood, setSelectedMood] = useState<MoodType>('steady');
@@ -419,7 +431,7 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button onClick={() => setShowDemoGuide(true)} className="hidden min-h-10 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 shadow-sm transition hover:border-teal-200 hover:text-teal-700 md:block">
+            <button onClick={restartTour} className="hidden min-h-10 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 shadow-sm transition hover:border-teal-200 hover:text-teal-700 md:block">
               導覽
             </button>
             <IconButton onClick={exportDemoData} label="匯出展示資料" icon={Download} />
@@ -461,9 +473,9 @@ export default function App() {
         />
 
         <aside className="grid gap-4 lg:sticky lg:top-[5.25rem] lg:max-h-[calc(100vh-6rem)] lg:grid-rows-[auto_1fr_auto]">
-          <ZoneInspector zone={selectedZone} robotFeedback={robotFeedback} onDispatchRobot={dispatchRobotToZone} />
-          <MissionTimeline state={state} robotFeedback={robotFeedback} />
-          <PanelDock activePanel={activePanel} onOpenPanel={setActivePanel} onShowDemo={() => setShowDemoGuide(true)} />
+          <div data-tour="zone-inspector"><ZoneInspector zone={selectedZone} robotFeedback={robotFeedback} onDispatchRobot={dispatchRobotToZone} /></div>
+          <div data-tour="mission-timeline"><MissionTimeline state={state} robotFeedback={robotFeedback} /></div>
+          <div data-tour="panel-dock"><PanelDock activePanel={activePanel} onOpenPanel={setActivePanel} onShowDemo={restartTour} /></div>
         </aside>
       </main>
 
@@ -512,7 +524,6 @@ export default function App() {
         zones={viewModel.zones}
       />
 
-      <DemoGuide open={showDemoGuide} onClose={() => setShowDemoGuide(false)} />
     </div>
   );
 }
@@ -562,25 +573,30 @@ function CommandCenterScreen({
 }) {
   return (
     <section className="grid gap-4 lg:min-h-[calc(100vh-6.5rem)] lg:grid-rows-[auto_minmax(0,1fr)_auto]">
-      <Surface className="p-4 sm:p-5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <p className="text-xs font-black text-teal-700">校園指揮中心</p>
-            <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">校園即時總覽</h2>
+      <div data-tour="signal-overview">
+        <Surface className="p-4 sm:p-5">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <p className="text-xs font-black text-teal-700">校園指揮中心</p>
+              <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">校園即時總覽</h2>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[24rem]">
+              <SignalTile label="守護指數" value={`${state.stabilityScore}%`} tone="teal" />
+              <SignalTile label="最高風險" value={viewModel.highestZone.riskScore.toString()} tone={viewModel.highestZone.riskLevel === 'high' ? 'rose' : 'amber'} />
+              <SignalTile label="機器人" value={viewModel.activeRobotCount.toString()} tone="emerald" />
+            </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[24rem]">
-            <SignalTile label="守護指數" value={`${state.stabilityScore}%`} tone="teal" />
-            <SignalTile label="最高風險" value={viewModel.highestZone.riskScore.toString()} tone={viewModel.highestZone.riskLevel === 'high' ? 'rose' : 'amber'} />
-            <SignalTile label="機器人" value={viewModel.activeRobotCount.toString()} tone="emerald" />
-          </div>
-        </div>
-      </Surface>
+        </Surface>
+      </div>
 
       <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <CampusMap2D zones={viewModel.zones} selectedZone={selectedZone} selectedZoneId={selectedZoneId} robotFeedback={robotFeedback} onSelectZone={onSelectZone} onDispatchRobot={onDispatchRobot} />
+        <div data-tour="campus-map">
+          <CampusMap2D zones={viewModel.zones} selectedZone={selectedZone} selectedZoneId={selectedZoneId} robotFeedback={robotFeedback} onSelectZone={onSelectZone} onDispatchRobot={onDispatchRobot} />
+        </div>
         <div className="grid gap-4">
           <OperationsBrief viewModel={viewModel} onOpenPanel={onOpenPanel} />
           <RobotReadinessCard state={state} robotFeedback={robotFeedback} />
+          <div data-tour="dispatch-robot">
           <Surface className="p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -604,6 +620,7 @@ function CommandCenterScreen({
               {viewModel.highestZone.riskLevel === 'low' ? '維持一般巡查' : robotFeedback?.zoneId === viewModel.highestZone.id ? '已送出派遣' : '派遣機器人介入'}
             </PrimaryAction>
           </Surface>
+          </div>
 
           <Surface className="p-4">
             <p className="text-xs font-black text-slate-500">訊號總覽</p>
@@ -1376,52 +1393,6 @@ function LogsPanel({state, robotFeedback}: Parameters<typeof DetailDrawer>[0]) {
         </div>
       </GlassPanel>
     </div>
-  );
-}
-
-function DemoGuide({open, onClose}: {open: boolean; onClose: () => void}) {
-  return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.button className="fixed inset-0 z-[60] bg-slate-950/30 backdrop-blur-sm" initial={{opacity: 0}} animate={{opacity: 1}} exit={{opacity: 0}} onClick={onClose} aria-label="關閉展示導覽" />
-          <motion.div
-            initial={{opacity: 0, y: 24, scale: 0.98}}
-            animate={{opacity: 1, y: 0, scale: 1}}
-            exit={{opacity: 0, y: 24, scale: 0.98}}
-            className="fixed left-1/2 top-1/2 z-[70] w-[min(42rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-6 text-slate-950 shadow-2xl shadow-slate-950/15"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-black text-teal-700">操作導覽</p>
-                <h2 className="mt-2 text-2xl font-black">10 秒上手主流程</h2>
-              </div>
-              <button onClick={onClose} aria-label="關閉面板" className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {[
-                {title: '看地圖，找風險', desc: '主畫面地圖顯示各區域風險、聲量與提醒數'},
-                {title: '指派機器人介入', desc: '點選中高風險區，按派遣按鈕送出關懷指令'},
-                {title: '預警抽屜', desc: '選一筆提醒，勾選處置清單，更新處理狀態'},
-                {title: '感知抽屜', desc: '啟用麥克風偵測或按示範訊號，建立聲量提醒'},
-                {title: '照護抽屜', desc: '心情簽到、匿名心情牆、安全空間聊天'},
-                {title: '節點抽屜', desc: '查看節點狀態，一鍵重新連線離線節點'},
-                {title: '紀錄抽屜', desc: '確認機器人任務、硬體提示與支持方案'},
-                {title: '匯出與重置', desc: '匯出 JSON 留存展示資料，或重置回初始狀態'},
-              ].map(({title, desc}, index) => (
-                <div key={title} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs font-black text-teal-700">0{index + 1}</p>
-                  <p className="mt-1 text-sm font-bold leading-5 text-slate-800">{title}</p>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">{desc}</p>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
   );
 }
 
