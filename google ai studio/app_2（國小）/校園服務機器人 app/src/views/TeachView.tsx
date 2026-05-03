@@ -93,7 +93,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       </div>
 
       {/* Attendance & Roll Call */}
-      <section className="bg-surface-container-lowest rounded-[2.5rem] p-7 border border-outline-variant/30 shadow-md flex items-center justify-between gap-5 relative overflow-hidden group">
+      <section data-tour="attendance-card" className="bg-surface-container-lowest rounded-[2.5rem] p-7 border border-outline-variant/30 shadow-md flex items-center justify-between gap-5 relative overflow-hidden group">
          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
         <div className="flex-1 min-w-0 relative z-10">
            <p className="text-[11px] font-bold text-on-surface-variant tracking-[0.2em] mb-2">出缺席場域評估</p>
@@ -156,7 +156,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
         </div>
 
       {/* AI Signals */}
-      <section className="space-y-5">
+      <section data-tour="alert-list" className="space-y-5">
         <div className="flex items-center justify-between">
             <h3 className="font-headline font-bold text-2xl tracking-wide flex items-center gap-2">即時告警與訊號 <span className="text-xs bg-error/10 text-error px-2 py-0.5 rounded-full font-bold ml-1">{state.teachingSignals.length}</span></h3>
             {state.teachingSignals.length > 3 && (

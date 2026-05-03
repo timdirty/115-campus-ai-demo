@@ -124,7 +124,7 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
         ))}
       </section>
 
-      <section className="grid grid-cols-1 gap-6 px-1">
+      <section data-tour="life-services" className="grid grid-cols-1 gap-6 px-1">
         {/* Emergency Broadcasting Toggle */}
         <div className={`rounded-[2.5rem] p-8 shadow-xl transition-all duration-500 border ${isEmergency ? 'bg-error text-white border-error shadow-error/30' : 'bg-surface-container-low border-outline-variant/30 shadow-[0_8px_30px_rgba(0,0,0,0.02)]'}`}>
           <div className="flex items-center justify-between mb-4">

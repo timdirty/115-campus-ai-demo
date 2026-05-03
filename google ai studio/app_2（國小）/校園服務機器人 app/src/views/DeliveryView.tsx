@@ -94,7 +94,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
       </section>
 
       {/* Delivery Tracking Herocard */}
-      <section className="space-y-4">
+      <section data-tour="order-list" className="space-y-4">
         <h2 className="text-xl font-headline font-bold tracking-tight px-2 flex items-center gap-2">
            即時配送狀態
            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
@@ -162,7 +162,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
       </section>
 
       {/* Products List */}
-      <section className="space-y-6 min-h-[300px] px-1">
+      <section data-tour="new-order-btn" className="space-y-6 min-h-[300px] px-1">
         <div className="flex items-center gap-3 px-1 mb-2">
            <div className="w-1.5 h-6 bg-primary rounded-full"></div>
            <h2 className="text-2xl font-headline font-bold tracking-tight">

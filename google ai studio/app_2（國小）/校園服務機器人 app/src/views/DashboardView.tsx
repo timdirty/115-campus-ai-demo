@@ -65,7 +65,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
           ))}
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <button onClick={() => navigateTo('dispatch-map')} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-black text-white shadow-lg shadow-primary/20 active:scale-95">
+          <button data-tour="dispatch-btn" onClick={() => navigateTo('dispatch-map')} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-black text-white shadow-lg shadow-primary/20 active:scale-95">
             校園派遣
             <ArrowRight size={18} />
           </button>
@@ -81,6 +81,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
       <section className="grid grid-cols-2 gap-5">
         {/* Robot Status Card */}
         <motion.div
+          data-tour="robot-status"
           whileHover={{ scale: 1.01, translateY: -2 }} whileTap={{ scale: 0.98 }}
           className="col-span-2 bg-surface-container-low rounded-[2.5rem] p-8 relative overflow-hidden group border border-outline-variant/30 shadow-[0_4px_25px_rgba(0,0,0,0.02)] cursor-pointer hover:bg-surface-container transition-all"
           onClick={() => setModal('robot')}
@@ -160,7 +161,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
       </section>
 
       {/* Task Progress */}
-      <section className="mt-4">
+      <section data-tour="task-stats" className="mt-4">
         <motion.div whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.99 }} className="bg-surface-container-lowest rounded-[3rem] p-8 border border-outline-variant/30 shadow-[0_4px_25px_rgba(0,0,0,0.02)] cursor-pointer hover:bg-surface-container transition-all" onClick={() => setModal('task')}>
           <div className="flex items-center gap-8 mb-8 relative">
             <div className="w-[84px] h-[84px] shrink-0 rounded-3xl bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center shadow-[0_8px_25px_rgba(var(--color-primary),0.3)] relative">
