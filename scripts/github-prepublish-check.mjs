@@ -12,6 +12,7 @@ const ignoredDirs = new Set([
   '.playwright-cli',
   '.playwright-mcp',
   '.orchestra',
+  '.gitnexus',
   'node_modules',
   'dist',
   'pages-dist',

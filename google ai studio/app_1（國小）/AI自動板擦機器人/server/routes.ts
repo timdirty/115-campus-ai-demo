@@ -4,7 +4,7 @@ import {analyzeBoardWithAI, chatWithAI, isGeminiConfigured, normalizeBoardRegion
 import {commandCatalog, createNote, defaultClassroomSession, defaultNotes, defaultRobotStatus, supportedCommands, taskActions} from './defaults';
 import {ApiError, getErrorMessage, sendError} from './http';
 import {buildAppExport, getReadyStatus, importAppData, writeBackupFile} from './opsService';
-import {getActivePath, isArduinoLikePort, listPorts, recordUnsupportedTask, resolveTaskCommand, sendSerialCommand} from './robotService';
+import {getActivePath, isArduinoLikePort, listPorts, recordUnsupportedTask, resolveTaskCommand, sendSerialCommand, sendSerialCommandDrive} from './robotService';
 import {assignPortToZone, getAllDetectedPorts, getLiveZoneReadings, unassignPort} from './sensorManager';
 import {appendTaskLog, readJsonFile, updateRobotStatus, writeJsonFile} from './storage';
 import type {ChatMessage, ClassroomSession, RobotStatus, TaskLogItem, WhiteboardNote} from './types';
@@ -263,6 +263,21 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.post('/api/robot/drive', async (req, res) => {
+    const command = String(req.body?.command ?? '').trim().toUpperCase();
+    const requestedPath = req.body?.port ? String(req.body.port) : undefined;
+    if (!/^(FORWARD|BACKWARD|LEFT|RIGHT|STOP|SPEED:\d+)$/.test(command)) {
+      res.status(400).json({error: 'Invalid drive command'});
+      return;
+    }
+    try {
+      const result = await sendSerialCommandDrive(command, requestedPath);
+      res.json({ok: true, command, port: result.port});
+    } catch (error) {
+      res.status(503).json({ok: false, error: getErrorMessage(error)});
+    }
+  });
+
   app.get('/api/robot/commands', (_req, res) => {
     res.json({commands: commandCatalog, taskActions, baudRate});
   });
@@ -339,7 +354,7 @@ export function registerRoutes(app: Express) {
       return;
     }
 
-    if (!supportedCommands.has(command)) {
+    if (!supportedCommands.has(command) && !/^SPEED:\d+$/.test(command)) {
       const result = await recordUnsupportedTask(command, source, 'Unsupported command');
       res.status(400).json({error: 'Unsupported command', ...result});
       return;
