@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { useCallback, useLayoutEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { TOUR_STEPS } from './tourSteps';
 import { useTour } from './useTour';
 
@@ -10,6 +10,9 @@ const FULLSCREEN_BACKDROP_COLOR = 'rgba(0,0,0,0.7)';
 const TOOLTIP_Z = 9999;
 const OVERLAY_Z = 9998;
 const SKIP_Z = 10000;
+const TOOLTIP_W = 320;
+const TOOLTIP_ESTIMATED_H = 220;
+const GAP = 12;
 
 const primaryBtn: React.CSSProperties = {
   backgroundColor: '#6366f1',
@@ -98,7 +101,6 @@ function FullscreenCard({
         justifyContent: 'center',
       }}
     >
-      {/* Skip link — top-right */}
       <button style={skipBtnStyle} onClick={onSkip}>
         跳過導覽
       </button>
@@ -127,7 +129,7 @@ function FullscreenCard({
           </p>
           <div style={demoTipBox}>🎙 {demoTip}</div>
           <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
-            {isFirst && (
+            {isFirst && !isLast && (
               <button style={primaryBtn} onClick={onNext}>
                 開始導覽 →
               </button>
@@ -174,6 +176,8 @@ function SpotlightOverlay({
   onSkip: () => void;
 }) {
   const [visible, setVisible] = useState(false);
+  const [vw, setVw] = useState(window.innerWidth);
+  const [vh, setVh] = useState(window.innerHeight);
 
   // Fade-in on step change
   useLayoutEffect(() => {
@@ -182,10 +186,15 @@ function SpotlightOverlay({
     return () => clearTimeout(t);
   }, [stepIndex]);
 
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const TOOLTIP_W = 320;
-  const GAP = 12;
+  // Keep vw/vh fresh on resize
+  useLayoutEffect(() => {
+    const onResize = () => {
+      setVw(window.innerWidth);
+      setVh(window.innerHeight);
+    };
+    window.addEventListener('resize', onResize, { passive: true });
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   // Compute tooltip position
   let tooltipStyle: React.CSSProperties = {
@@ -201,36 +210,23 @@ function SpotlightOverlay({
     transition: 'opacity 0.1s ease',
   };
 
-  // Horizontal center of target, clamped
   const targetCenterX = rect.left + rect.width / 2;
   const clampedLeft = Math.min(Math.max(8, targetCenterX - TOOLTIP_W / 2), vw - TOOLTIP_W - 8);
 
   if (tooltipSide === 'bottom') {
-    tooltipStyle = {
-      ...tooltipStyle,
-      top: Math.min(rect.bottom + GAP, vh - 200),
-      left: clampedLeft,
-    };
+    tooltipStyle = { ...tooltipStyle, top: Math.min(rect.bottom + GAP, vh - TOOLTIP_ESTIMATED_H), left: clampedLeft };
   } else if (tooltipSide === 'top') {
-    const tooltipHeight = 220; // estimated
-    tooltipStyle = {
-      ...tooltipStyle,
-      top: Math.max(8, rect.top - tooltipHeight - GAP),
-      left: clampedLeft,
-    };
+    tooltipStyle = { ...tooltipStyle, top: Math.max(8, rect.top - TOOLTIP_ESTIMATED_H - GAP), left: clampedLeft };
   } else if (tooltipSide === 'left') {
-    const tooltipHeight = 220;
     tooltipStyle = {
       ...tooltipStyle,
-      top: Math.max(8, Math.min(rect.top + rect.height / 2 - tooltipHeight / 2, vh - tooltipHeight - 8)),
+      top: Math.max(8, Math.min(rect.top + rect.height / 2 - TOOLTIP_ESTIMATED_H / 2, vh - TOOLTIP_ESTIMATED_H - 8)),
       left: Math.max(8, rect.left - TOOLTIP_W - GAP),
     };
   } else {
-    // right
-    const tooltipHeight = 220;
     tooltipStyle = {
       ...tooltipStyle,
-      top: Math.max(8, Math.min(rect.top + rect.height / 2 - tooltipHeight / 2, vh - tooltipHeight - 8)),
+      top: Math.max(8, Math.min(rect.top + rect.height / 2 - TOOLTIP_ESTIMATED_H / 2, vh - TOOLTIP_ESTIMATED_H - 8)),
       left: Math.min(rect.right + GAP, vw - TOOLTIP_W - 8),
     };
   }
@@ -240,96 +236,32 @@ function SpotlightOverlay({
   return (
     <>
       {/* Top */}
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: vw,
-          height: Math.max(0, rect.top),
-          backgroundColor: BACKDROP_COLOR,
-          zIndex: OVERLAY_Z,
-          transition: divTransition,
-          pointerEvents: 'none',
-        }}
-      />
+      <div style={{ position: 'fixed', top: 0, left: 0, width: vw, height: Math.max(0, rect.top), backgroundColor: BACKDROP_COLOR, zIndex: OVERLAY_Z, transition: divTransition, pointerEvents: 'none' }} />
       {/* Bottom */}
-      <div
-        style={{
-          position: 'fixed',
-          top: rect.bottom,
-          left: 0,
-          width: vw,
-          height: Math.max(0, vh - rect.bottom),
-          backgroundColor: BACKDROP_COLOR,
-          zIndex: OVERLAY_Z,
-          transition: divTransition,
-          pointerEvents: 'none',
-        }}
-      />
+      <div style={{ position: 'fixed', top: rect.bottom, left: 0, width: vw, height: Math.max(0, vh - rect.bottom), backgroundColor: BACKDROP_COLOR, zIndex: OVERLAY_Z, transition: divTransition, pointerEvents: 'none' }} />
       {/* Left */}
-      <div
-        style={{
-          position: 'fixed',
-          top: rect.top,
-          left: 0,
-          width: Math.max(0, rect.left),
-          height: Math.max(0, rect.height),
-          backgroundColor: BACKDROP_COLOR,
-          zIndex: OVERLAY_Z,
-          transition: divTransition,
-          pointerEvents: 'none',
-        }}
-      />
+      <div style={{ position: 'fixed', top: rect.top, left: 0, width: Math.max(0, rect.left), height: Math.max(0, rect.height), backgroundColor: BACKDROP_COLOR, zIndex: OVERLAY_Z, transition: divTransition, pointerEvents: 'none' }} />
       {/* Right */}
-      <div
-        style={{
-          position: 'fixed',
-          top: rect.top,
-          left: rect.right,
-          width: Math.max(0, vw - rect.right),
-          height: Math.max(0, rect.height),
-          backgroundColor: BACKDROP_COLOR,
-          zIndex: OVERLAY_Z,
-          transition: divTransition,
-          pointerEvents: 'none',
-        }}
-      />
+      <div style={{ position: 'fixed', top: rect.top, left: rect.right, width: Math.max(0, vw - rect.right), height: Math.max(0, rect.height), backgroundColor: BACKDROP_COLOR, zIndex: OVERLAY_Z, transition: divTransition, pointerEvents: 'none' }} />
 
       {/* Tooltip */}
       <div style={tooltipStyle}>
         <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: 15, color: '#1f2937' }}>{title}</p>
         <p style={{ margin: '0', fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{body}</p>
         <div style={demoTipBox}>🎙 {demoTip}</div>
-        <div
-          style={{
-            marginTop: 12,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 8,
-          }}
-        >
-          <span style={{ fontSize: 12, color: '#9ca3af' }}>
-            步驟 {spotlightIndex} / {totalSpotlightSteps}
-          </span>
+        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <span style={{ fontSize: 12, color: '#9ca3af' }}>步驟 {spotlightIndex} / {totalSpotlightSteps}</span>
           <div style={{ display: 'flex', gap: 8 }}>
             {!isFirstSpotlight && (
-              <button style={secondaryBtn} onClick={onPrev}>
-                ← 上一步
-              </button>
+              <button style={secondaryBtn} onClick={onPrev}>← 上一步</button>
             )}
-            <button style={primaryBtn} onClick={onNext}>
-              下一步 →
-            </button>
+            <button style={primaryBtn} onClick={onNext}>下一步 →</button>
           </div>
         </div>
       </div>
 
-      {/* Skip link */}
-      <button style={skipBtnStyle} onClick={onSkip}>
-        跳過導覽
-      </button>
+      {/* Skip link — outside tooltip, fixed top-right */}
+      <button style={skipBtnStyle} onClick={onSkip}>跳過導覽</button>
     </>
   );
 }
@@ -342,36 +274,26 @@ export function TourOverlay() {
 
   const step = TOUR_STEPS[currentStepIndex];
 
-  const updateRect = useCallback(() => {
-    if (!step || step.isFullscreen || !step.targetDataTour) return;
-    const el = document.querySelector<HTMLElement>(`[data-tour="${step.targetDataTour}"]`);
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    setRect({
-      top: r.top,
-      left: r.left,
-      bottom: r.bottom,
-      right: r.right,
-      width: r.width,
-      height: r.height,
-    });
-  }, [step]);
-
   // Read DOM positions synchronously before paint
   useLayoutEffect(() => {
-    if (!isActive || !step || step.isFullscreen) return;
+    if (!isActive || !step || step.isFullscreen || !step.targetDataTour) return;
+
+    const updateRect = () => {
+      const el = document.querySelector<HTMLElement>(`[data-tour="${step.targetDataTour}"]`);
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setRect({ top: r.top, left: r.left, bottom: r.bottom, right: r.right, width: r.width, height: r.height });
+    };
 
     updateRect();
 
-    // ResizeObserver for target element
     const el = document.querySelector<HTMLElement>(`[data-tour="${step.targetDataTour}"]`);
     let ro: ResizeObserver | null = null;
     if (el) {
-      ro = new ResizeObserver(() => updateRect());
+      ro = new ResizeObserver(updateRect);
       ro.observe(el);
     }
 
-    // Also update on scroll/resize
     window.addEventListener('scroll', updateRect, { passive: true });
     window.addEventListener('resize', updateRect, { passive: true });
 
@@ -380,16 +302,13 @@ export function TourOverlay() {
       window.removeEventListener('scroll', updateRect);
       window.removeEventListener('resize', updateRect);
     };
-  }, [isActive, step, updateRect]);
+  }, [isActive, step]);
 
   if (!isActive || !step) return null;
 
-  // Compute spotlight index (1-based, excluding the 2 fullscreen steps)
-  // Fullscreen steps are index 0 and last index (9)
   const spotlightSteps = TOUR_STEPS.filter((s) => !s.isFullscreen);
   const totalSpotlightSteps = spotlightSteps.length;
-  // spotlightIndex: 1 for currentStepIndex=1, up to 8 for currentStepIndex=8
-  const spotlightIndex = currentStepIndex; // step 1..8 maps directly
+  const spotlightIndex = spotlightSteps.indexOf(step) + 1;
 
   if (step.isFullscreen) {
     const isFirst = currentStepIndex === 0;
@@ -408,31 +327,30 @@ export function TourOverlay() {
     );
   }
 
-  // Spotlight step
+  // Spotlight step — show loading state if target not yet in DOM
   const targetEl = document.querySelector<HTMLElement>(`[data-tour="${step.targetDataTour}"]`);
   if (!targetEl) {
-    // Target not yet in DOM — show minimal centered loading state
     return (
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: FULLSCREEN_BACKDROP_COLOR,
-          zIndex: OVERLAY_Z,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <div style={{ color: 'white', fontSize: 16 }}>載入中…</div>
-        <button style={skipBtnStyle} onClick={skipTour}>
-          跳過導覽
-        </button>
-      </div>
+      <>
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: FULLSCREEN_BACKDROP_COLOR,
+            zIndex: OVERLAY_Z,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div style={{ color: 'white', fontSize: 16 }}>載入中…</div>
+        </div>
+        <button style={skipBtnStyle} onClick={skipTour}>跳過導覽</button>
+      </>
     );
   }
 
-  const isFirstSpotlight = currentStepIndex === 1; // first spotlight step
+  const isFirstSpotlight = currentStepIndex === 1;
 
   return (
     <SpotlightOverlay
