@@ -179,6 +179,7 @@ export type AppAction =
   | { type: 'CLEAR_LOCAL_CACHE'; now?: string }
   | { type: 'MARK_HARDWARE_COMMAND'; payload: { id: string; ok: boolean; message: string }; now?: string }
   | { type: 'RESTORE_DEMO_STATE'; payload: { state: AppState }; now?: string }
+  | { type: 'AUTO_COMPLETE_IN_TRANSIT'; now?: string }
   | { type: 'RESET_DEMO'; now?: string };
 
 const svgUri = (svg: string) => `data:image/svg+xml,${encodeURIComponent(svg)}`;
@@ -192,6 +193,12 @@ const productImages = {
   ),
   pizza: svgUri(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#FFF1F2"/><circle cx="100" cy="100" r="74" fill="#FDE68A"/><circle cx="100" cy="100" r="62" fill="#EF4444"/><circle cx="100" cy="100" r="48" fill="#FBBF24" opacity="0.45"/><circle cx="82" cy="88" r="9" fill="#7F1D1D"/><circle cx="116" cy="92" r="9" fill="#7F1D1D"/><circle cx="98" cy="116" r="9" fill="#7F1D1D"/></svg>`,
+  ),
+  pencil: svgUri(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#FFFBEB"/><rect x="86" y="30" width="28" height="120" rx="6" fill="#FDE68A" stroke="#D97706" stroke-width="2"/><polygon points="86,150 114,150 100,178" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="1.5"/><rect x="86" y="30" width="28" height="20" rx="6" fill="#A8A29E"/><rect x="89" y="55" width="4" height="90" rx="2" fill="#D97706" opacity="0.35"/></svg>`,
+  ),
+  tea: svgUri(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#F0FDF4"/><path d="M60 80 Q58 150 100 158 Q142 150 140 80 Z" fill="#D1FAE5" stroke="#6EE7B7" stroke-width="2"/><rect x="60" y="75" width="80" height="12" rx="6" fill="#A7F3D0"/><path d="M140 100 Q162 100 162 115 Q162 130 140 130" fill="none" stroke="#6EE7B7" stroke-width="4" stroke-linecap="round"/><path d="M88 60 Q88 48 96 42" stroke="#86EFAC" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M104 58 Q104 46 112 40" stroke="#86EFAC" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`,
   ),
 };
 
@@ -244,49 +251,49 @@ export function createInitialAppState(): AppState {
     robots: [
       {
         id: '1號',
-        serial: 'RBT-ALPHA-01',
+        serial: '服務機-01',
         status: '待命',
         position: '總控制中心基地',
         battery: 100,
         task: '無',
         eta: '--',
-        phase: 'IDLE',
+        phase: '待命中',
         isRunning: false,
         speed: 1.1,
       },
       {
         id: '2號',
-        serial: 'RBT-BETA-02',
+        serial: '服務機-02',
         status: '充電',
         position: 'B棟充電站',
         battery: 20,
         task: '充電中',
         eta: '--',
-        phase: 'CHARGING',
+        phase: '充電中',
         isRunning: false,
         speed: 0.8,
       },
       {
         id: '3號',
-        serial: 'RBT-GAMMA-03',
+        serial: '服務機-03',
         status: '導診',
         position: '保健中心前',
         battery: 55,
         task: '引導至保健中心',
-        eta: '5 MINS',
-        phase: 'GUIDING',
+        eta: '5分鐘',
+        phase: '引導中',
         isRunning: true,
         speed: 1.0,
       },
       {
         id: '4號',
-        serial: 'RBT-DELTA-04',
+        serial: '服務機-04',
         status: '清掃',
         position: '五年級走廊',
         battery: 82,
         task: '打掃 507 教室',
-        eta: '12 MINS',
-        phase: 'PHASE_2',
+        eta: '12分鐘',
+        phase: '執行任務',
         isRunning: true,
         speed: 1.2,
       },
@@ -324,7 +331,7 @@ export function createInitialAppState(): AppState {
         name: '2B 考試鉛筆組',
         price: 22,
         desc: '含橡皮擦與削筆器，臨時考試用品快速配送。',
-        img: productImages.toast,
+        img: productImages.pencil,
         category: 'stationery',
         stock: 18,
       },
@@ -333,12 +340,35 @@ export function createInitialAppState(): AppState {
         name: '無糖麥茶',
         price: 20,
         desc: '低溫補給飲品，適合體育課後配送。',
-        img: productImages.egg,
+        img: productImages.tea,
         category: 'drinks',
         stock: 9,
       },
     ],
-    orders: [],
+    orders: [
+      {
+        id: 'order-demo-001',
+        productId: 1,
+        productName: '特級厚片土司',
+        quantity: 2,
+        destination: '五年級 501 教室',
+        status: 'delivered',
+        robotId: '1號',
+        createdAt: '2026-04-29T07:00:00.000+08:00',
+        deliveredAt: '2026-04-29T07:10:00.000+08:00',
+      },
+      {
+        id: 'order-demo-002',
+        productId: 3,
+        productName: '義式小披薩',
+        quantity: 1,
+        destination: '六年級 602 教室',
+        status: 'delivered',
+        robotId: '2號',
+        createdAt: '2026-04-29T06:00:00.000+08:00',
+        deliveredAt: '2026-04-29T06:12:00.000+08:00',
+      },
+    ],
     tasks: [
       {
         id: 'task-clean-507',
@@ -467,7 +497,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'CREATE_DELIVERY_ORDER': {
       const product = state.products.find((item) => item.id === action.payload.productId);
-      if (!product || action.payload.quantity <= 0 || product.stock < action.payload.quantity) {
+      if (!product || !Number.isInteger(action.payload.quantity) || action.payload.quantity <= 0 || product.stock < action.payload.quantity || !action.payload.destination?.trim()) {
         return {
           ...state,
           logs: addLog(state, '配送中心：訂單建立失敗，庫存不足或商品不存在，硬體未派遣', 'error', now),
@@ -514,8 +544,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
                   status: '配送',
                   position: '配送中心出發',
                   task: task.title,
-                  eta: '4 MINS',
-                  phase: 'DELIVERY',
+                  eta: '4分鐘',
+                  phase: '配送中',
                   isRunning: true,
                 }
               : robot,
@@ -559,7 +589,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
                   position: order.destination,
                   task: '等待下一個任務',
                   eta: '--',
-                  phase: 'READY',
+                  phase: '就緒',
                   isRunning: false,
                 }
               : robot,
@@ -575,6 +605,50 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           target: order.destination,
           source: 'delivery',
           note: `${order.robotId} 完成取件確認，回到待命狀態。`,
+        },
+      );
+    }
+
+    case 'AUTO_COMPLETE_IN_TRANSIT': {
+      const transitOrder = state.orders.find((item) => item.status === 'in_transit');
+      if (!transitOrder) return state;
+      const linkedTaskTitle = `配送 ${transitOrder.productName} x${transitOrder.quantity}`;
+
+      return withRobotCommandLog(
+        {
+          ...state,
+          orders: state.orders.map((item) =>
+            item.id === transitOrder.id ? { ...item, status: 'delivered', deliveredAt: now } : item,
+          ),
+          tasks: state.tasks.map((task) =>
+            task.robotId === transitOrder.robotId && task.title === linkedTaskTitle
+              ? { ...task, status: 'completed', completedAt: now, detail: '已送達並完成取件確認' }
+              : task,
+          ),
+          robots: state.robots.map((robot) =>
+            robot.id === transitOrder.robotId
+              ? {
+                  ...robot,
+                  status: '待命',
+                  position: transitOrder.destination,
+                  task: '等待下一個任務',
+                  eta: '--',
+                  phase: '就緒',
+                  isRunning: false,
+                }
+              : robot,
+          ),
+          logs: addLog(state, `配送完成：${transitOrder.productName} 已送達 ${transitOrder.destination}`, 'info', now),
+          lastUpdated: now,
+        },
+        state,
+        now,
+        {
+          command: 'DELIVERY_DONE',
+          label: `送達 ${transitOrder.productName}`,
+          target: transitOrder.destination,
+          source: 'delivery',
+          note: `${transitOrder.robotId} 完成取件確認，回到待命狀態。`,
         },
       );
     }
@@ -667,9 +741,17 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     }
 
     case 'ADD_TEACHER_REPLY': {
+      if (!action.payload.reply?.trim()) return state;
       const signal = state.teachingSignals.find((item) => item.id === action.payload.signalId);
       if (!signal) return state;
-      const report = state.studentReports[signal.studentId];
+      const report = state.studentReports[signal.studentId] ?? {
+        studentId: signal.studentId,
+        name: signal.name,
+        averageFocus: 80,
+        distractRate: 1.5,
+        learningStyle: '待分析',
+        events: [],
+      };
 
       return withRobotCommandLog(
         {
@@ -681,7 +763,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
               ...report,
               events: [
                 `${stampTime(now)} 教師回覆：「${action.payload.reply}」`,
-                ...(report?.events ?? []),
+                ...report.events,
               ].slice(0, 12),
             },
           },
@@ -794,8 +876,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
                   status,
                   position: `區域 ${action.payload.zone}`,
                   task: sourceTitle,
-                  eta: '6 MINS',
-                  phase: action.payload.taskType === 'broadcast' ? 'BROADCAST' : 'PATROL',
+                  eta: '6分鐘',
+                  phase: action.payload.taskType === 'broadcast' ? '廣播中' : '巡邏中',
                   isRunning: true,
                 }
               : robot,
@@ -830,7 +912,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         }),
         robots: state.robots.map((robot) =>
           robot.id === robotId
-            ? {...robot, status: '待命', task: '回到待命點', eta: '完成', phase: 'READY', isRunning: false}
+            ? {...robot, status: '待命', task: '回到待命點', eta: '完成', phase: '就緒', isRunning: false}
             : robot,
         ),
         logs: addLog(state, `派遣中心：區域 ${action.payload.zone} ${sourceTitle}已完成`, 'info', now),
@@ -958,7 +1040,18 @@ export function loadPersistedState(): AppState {
 
 export function persistState(state: AppState) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    if (error instanceof DOMException && (error.code === 22 || error.name === 'QuotaExceededError')) {
+      try {
+        const trimmed = {...state, logs: state.logs.slice(0, 30), robotCommandLogs: state.robotCommandLogs.slice(0, 30)};
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+      } catch {
+        // give up gracefully — in-memory state is still correct
+      }
+    }
+  }
 }
 
 export function normalizePersistedState(input: unknown): AppState {
@@ -1020,12 +1113,12 @@ export function normalizePersistedState(input: unknown): AppState {
             if (!isRecord(item)) return null;
             const order: Order = fallback.orders[index % Math.max(1, fallback.orders.length)] ?? {
               id: `recovered-order-${index + 1}`,
-              productId: fallback.products[0].id,
-              productName: fallback.products[0].name,
+              productId: fallback.products[0]?.id ?? 1,
+              productName: fallback.products[0]?.name ?? '未知商品',
               quantity: 1,
               destination: '總務處',
               status: 'in_transit',
-              robotId: fallback.robots[0].id,
+              robotId: fallback.robots[0]?.id ?? 'R001',
               createdAt: fallback.lastUpdated,
             };
             return {

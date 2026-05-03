@@ -10,6 +10,7 @@ export function DispatchMapView({ goBack, showToast }: any) {
   const [selectedZone, setSelectedZone] = useState('none');
   const [taskType, setTaskType] = useState<DispatchTaskType>('patrol');
   const [recommendation, setRecommendation] = useState('');
+  const [recommendationError, setRecommendationError] = useState(false);
   const [dispatchingZone, setDispatchingZone] = useState('');
   const [dispatchStage, setDispatchStage] = useState<'待命' | '確認區域' | '機器人出勤' | '任務回報'>('待命');
   const [dispatchComplete, setDispatchComplete] = useState(false);
@@ -41,8 +42,14 @@ export function DispatchMapView({ goBack, showToast }: any) {
       setDispatchStage('任務回報');
       setMissionLog((items) => ['現場狀態已回傳，任務可追蹤。', ...items]);
     }, 1350);
-    const message = await generateDispatchRecommendation(selectedZone, dispatchType);
-    setRecommendation(message);
+    try {
+      const message = await generateDispatchRecommendation(selectedZone, dispatchType);
+      setRecommendation(message);
+      setRecommendationError(false);
+    } catch {
+      setRecommendation('AI 暫時無法回應，請稍後再試。');
+      setRecommendationError(true);
+    }
     actions.addDispatchTask({ zone: selectedZone, taskType: dispatchType });
     showToast(`機器人已出發前往區域 ${selectedZone} 執行任務`);
     setTimeout(() => {
@@ -59,6 +66,7 @@ export function DispatchMapView({ goBack, showToast }: any) {
     setMissionId('');
     setSelectedZone('none');
     setRecommendation('');
+    setRecommendationError(false);
     setMissionLog(['S-01 待命，選擇區域後開始服務。']);
   };
 
@@ -74,7 +82,7 @@ export function DispatchMapView({ goBack, showToast }: any) {
   return (
     <div className="min-h-screen bg-[#f4f8fb] text-slate-950 pb-32">
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-2xl border-b border-slate-200 px-6 py-5 flex items-center justify-between">
-        <button onClick={goBack} className="w-11 h-11 rounded-2xl bg-slate-50 active:scale-90 transition-all flex items-center justify-center border border-slate-200 shadow-sm">
+        <button aria-label="返回" onClick={goBack} className="w-11 h-11 rounded-2xl bg-slate-50 active:scale-90 transition-all flex items-center justify-center border border-slate-200 shadow-sm">
           <ArrowLeft size={24} />
         </button>
         <h1 className="font-headline font-bold text-xl absolute left-1/2 -translate-x-1/2 tracking-tight">校園派遣</h1>
@@ -221,9 +229,16 @@ export function DispatchMapView({ goBack, showToast }: any) {
                  </div>
 
                  {recommendation && (
-                   <p className="mb-5 rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm font-bold leading-relaxed text-primary">
-                     {recommendation}
-                   </p>
+                   <div className="mb-5">
+                     <p className={`rounded-2xl border p-4 text-sm font-bold leading-relaxed ${recommendationError ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-primary/20 bg-primary/10 text-primary'}`}>
+                       {recommendation}
+                     </p>
+                     {recommendationError && (
+                       <button onClick={handleDispatch} disabled={Boolean(dispatchingZone)} className="mt-2 w-full rounded-2xl border border-primary/20 bg-primary/5 py-2 text-xs font-black text-primary transition hover:bg-primary/10 disabled:opacity-40">
+                         重新取得 AI 建議
+                       </button>
+                     )}
+                   </div>
                  )}
 
                  <div className="mb-5 flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-black text-slate-500">

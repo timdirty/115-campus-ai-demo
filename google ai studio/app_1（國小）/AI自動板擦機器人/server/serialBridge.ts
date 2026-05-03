@@ -3,6 +3,8 @@ import path from 'node:path';
 import {access} from 'node:fs/promises';
 import {baudRate, bridgePort, distDir, nodeEnv} from './config';
 import {registerRoutes} from './routes';
+import {registerProxyRoutes} from './proxyRoutes';
+import {startSensorPolling} from './sensorManager';
 
 const app = express();
 const distIndex = path.join(distDir, 'index.html');
@@ -14,7 +16,7 @@ app.use((req, res, next) => {
   if (/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-AI-Mode, X-AI-Fallback');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-AI-Mode, X-AI-Fallback, X-Proxy-Key');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   }
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -43,6 +45,7 @@ app.use((req, res, next) => {
 
 app.use(express.json({limit: '24mb'}));
 registerRoutes(app);
+registerProxyRoutes(app);
 
 app.use('/api', (_req, res) => {
   res.status(404).json({error: 'API route not found'});
@@ -78,4 +81,7 @@ app.listen(bridgePort, () => {
   console.log(`Arduino serial bridge listening on http://localhost:${bridgePort}`);
   console.log(`Baud rate: ${baudRate}`);
   console.log(`Mode: ${nodeEnv}`);
+  if (nodeEnv !== 'test') {
+    startSensorPolling().catch(console.error);
+  }
 });

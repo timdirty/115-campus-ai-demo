@@ -33,8 +33,9 @@ export type GuardianAction =
   | {type: 'UPDATE_ALERT_STATUS'; payload: {id: string; status: AlertStatus}}
   | {type: 'TOGGLE_CHECKLIST'; payload: {alertId: string; itemId: string}}
   | {type: 'ADD_MOOD'; payload: {mood: MoodType; label: string; note: string}}
-  | {type: 'ADD_FOREST_POST'; payload: {content: string; type: ForestPost['type']}}
+  | {type: 'ADD_FOREST_POST'; payload: {id: string; content: string; type: ForestPost['type']}}
   | {type: 'LIKE_FOREST_POST'; payload: {id: string}}
+  | {type: 'SET_FOREST_POST_REPLY'; payload: {id: string; botReply: string}}
   | {type: 'ADD_SUPPORT_MESSAGE'; payload: Omit<SupportMessage, 'id' | 'createdAt'>}
   | {type: 'DEPLOY_INTERVENTION'; payload: {area: string}}
   | {type: 'RESTART_NODE'; payload: {id: string}}
@@ -171,7 +172,7 @@ export function createInitialGuardianState(): GuardianState {
       {
         id: 'msg-1',
         role: 'guardian',
-        content: '這裡是示範用的心靈守護者。你可以說說今天的心情，我會用關懷提醒的方式回覆。',
+        content: '你好！我是你的校園心靈守護者 🌱。不管今天開心還是有點難受，都可以在這裡說說。我會陪著你，一起想想怎麼面對。',
         createdAt,
       },
     ],
@@ -183,7 +184,7 @@ export function createInitialGuardianState(): GuardianState {
         command: 'SYSTEM_READY',
         source: 'system',
         status: 'fallback',
-        message: '本機橋接服務已就緒；未插 UNO R4 時使用備援狀態，插板後同指令走序列埠。',
+        message: '本機橋接服務已就緒；未連接 UNO R4 時自動切換備援模式，連接後指令將透過序列埠傳輸。',
         createdAt: '今天 08:00',
       },
     ],
@@ -240,9 +241,18 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
       return {
         ...state,
         forestPosts: [
-          {id: uid('post'), content: action.payload.content, type: action.payload.type, likes: 0, createdAt: timeLabel(now)},
+          {id: action.payload.id, content: action.payload.content, type: action.payload.type, likes: 0, createdAt: timeLabel(now)},
           ...state.forestPosts,
-        ],
+        ].slice(0, 50),
+        lastUpdated: now,
+      };
+
+    case 'SET_FOREST_POST_REPLY':
+      return {
+        ...state,
+        forestPosts: state.forestPosts.map((post) =>
+          post.id === action.payload.id ? {...post, botReply: action.payload.botReply} : post,
+        ),
         lastUpdated: now,
       };
 
@@ -273,14 +283,14 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
             id: uid('int'),
             title: 'AI 關懷小隊已佈署',
             description: '已建立老師提醒、節點觀察與安心角落三段式流程，先關心、再紀錄、必要時轉介。',
-            status: 'running',
+            status: 'running' as Intervention['status'],
             area: action.payload.area,
             updatedAt: timeLabel(now),
           },
           ...state.interventions,
-        ],
+        ].slice(0, 50),
         alerts: state.alerts.map((alert) =>
-          alert.location.includes(action.payload.area) || action.payload.area === '全校'
+          action.payload.area.trim() && (alert.location.includes(action.payload.area) || action.payload.area === '全校')
             ? {...alert, status: alert.status === 'new' ? 'processing' : alert.status}
             : alert,
         ),
@@ -360,15 +370,15 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
             description: `本機麥克風只做即時音量與波動運算，未儲存原始聲音。音量指標 ${action.payload.volumeIndex}、波動 ${action.payload.volatility}。${action.payload.summary}`,
             riskLevel: acousticRisk(action.payload.level),
             category: '環境聲量',
-            status: 'new',
+            status: 'new' as AlertStatus,
             checklist: [
-              {id: uid('sound-check'), text: '由值週老師到場觀察，不公開點名', completed: false},
-              {id: uid('sound-check'), text: '確認是否只是正常下課活動或社團練習', completed: false},
-              {id: uid('sound-check'), text: '若伴隨求助按鈕或學生回報，再轉入導師關懷流程', completed: false},
+              {id: uid('sound-check-observe'), text: '由值週老師到場觀察，不公開點名', completed: false},
+              {id: uid('sound-check-verify'), text: '確認是否只是正常下課活動或社團練習', completed: false},
+              {id: uid('sound-check-escalate'), text: '若伴隨求助按鈕或學生回報，再轉入導師關懷流程', completed: false},
             ],
           },
           ...state.alerts,
-        ],
+        ].slice(0, 50),
         lastUpdated: now,
       };
 
@@ -386,15 +396,15 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
             description: `${action.payload.description} 主動巡查分數：${action.payload.score}。`,
             riskLevel: action.payload.riskLevel,
             category: '多來源融合',
-            status: 'new',
+            status: 'new' as AlertStatus,
             checklist: [
-              {id: uid('proactive-check'), text: '先查看近期心情簽到、聲量與節點紀錄', completed: false},
-              {id: uid('proactive-check'), text: '由導師或值週老師低壓巡查，不公開點名', completed: false},
-              {id: uid('proactive-check'), text: '若學生主動求助，再啟動語音/聊天關懷分析', completed: false},
+              {id: uid('proactive-check-1'), text: '先查看近期心情簽到、聲量與節點紀錄', completed: false},
+              {id: uid('proactive-check-2'), text: '由導師或值週老師低壓巡查，不公開點名', completed: false},
+              {id: uid('proactive-check-3'), text: '若學生主動求助，再啟動語音/聊天關懷分析', completed: false},
             ],
           },
           ...state.alerts,
-        ],
+        ].slice(0, 50),
         lastUpdated: now,
       };
 
@@ -417,12 +427,12 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
             id: uid('int'),
             title: '機器人已派遣',
             description: `已指派機器人前往 ${action.payload.zoneName}，先做燈號/語音提示並通知老師到場確認。`,
-            status: 'running',
+            status: 'running' as Intervention['status'],
             area: action.payload.zoneName,
             updatedAt: timeLabel(now),
           },
           ...state.interventions,
-        ],
+        ].slice(0, 50),
         lastUpdated: now,
       };
 
@@ -443,7 +453,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
 
     case 'RESTORE_DEMO_STATE':
       return {
-        ...action.payload.state,
+        ...normalizeGuardianState(action.payload.state),
         lastUpdated: now,
       };
 
@@ -472,7 +482,11 @@ export function loadGuardianState(): GuardianState {
 
 export function persistGuardianState(state: GuardianState) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(GUARDIAN_STORAGE_KEY, JSON.stringify(state));
+  try {
+    window.localStorage.setItem(GUARDIAN_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // QuotaExceededError or storage disabled — state lives in memory only
+  }
 }
 
 export function normalizeGuardianState(input: unknown): GuardianState {
@@ -564,6 +578,7 @@ export function normalizeGuardianState(input: unknown): GuardianState {
       type: item.type === 'thought' || item.type === 'gratitude' || item.type === 'support' ? item.type : fallbackPost.type,
       likes: number(item.likes, fallbackPost.likes, 0, 9999),
       createdAt: text(item.createdAt, fallbackPost.createdAt),
+      botReply: typeof item.botReply === 'string' ? item.botReply : undefined,
     };
   };
 
@@ -623,20 +638,20 @@ export function normalizeGuardianState(input: unknown): GuardianState {
     stabilityScore: number(parsed.stabilityScore, fallback.stabilityScore),
     teacherWellbeingScore: number(parsed.teacherWellbeingScore, fallback.teacherWellbeingScore),
     privacyMode: typeof parsed.privacyMode === 'boolean' ? parsed.privacyMode : true,
-    alerts: normalizeList(parsed.alerts, fallback.alerts, normalizeAlert),
-    nodes: normalizeList(parsed.nodes, fallback.nodes, normalizeNode),
-    moodLogs: normalizeList(parsed.moodLogs, fallback.moodLogs, normalizeMood),
-    supportMessages: normalizeList(parsed.supportMessages, fallback.supportMessages, normalizeMessage),
-    forestPosts: normalizeList(parsed.forestPosts, fallback.forestPosts, normalizePost),
-    interventions: normalizeList(parsed.interventions, fallback.interventions, normalizeIntervention),
-    hardwareEvents: normalizeList(parsed.hardwareEvents, fallback.hardwareEvents, normalizeHardwareEvent),
-    acousticSignals: normalizeList(parsed.acousticSignals, fallback.acousticSignals, normalizeAcousticSignal),
-    robotMissions: normalizeList(parsed.robotMissions, fallback.robotMissions, normalizeRobotMission),
+    alerts: normalizeList(parsed.alerts, fallback.alerts, normalizeAlert).slice(0, 50),
+    nodes: normalizeList(parsed.nodes, fallback.nodes, normalizeNode).slice(0, 20),
+    moodLogs: normalizeList(parsed.moodLogs, fallback.moodLogs, normalizeMood).slice(0, 20),
+    supportMessages: normalizeList(parsed.supportMessages, fallback.supportMessages, normalizeMessage).slice(-30),
+    forestPosts: normalizeList(parsed.forestPosts, fallback.forestPosts, normalizePost).slice(0, 50),
+    interventions: normalizeList(parsed.interventions, fallback.interventions, normalizeIntervention).slice(0, 50),
+    hardwareEvents: normalizeList(parsed.hardwareEvents, fallback.hardwareEvents, normalizeHardwareEvent).slice(0, 20),
+    acousticSignals: normalizeList(parsed.acousticSignals, fallback.acousticSignals, normalizeAcousticSignal).slice(0, 20),
+    robotMissions: normalizeList(parsed.robotMissions, fallback.robotMissions, normalizeRobotMission).slice(0, 20),
     lastUpdated: typeof parsed.lastUpdated === 'string' ? parsed.lastUpdated : fallback.lastUpdated,
   };
 }
 
-function acousticRisk(level: AcousticLevel) {
+function acousticRisk(level: AcousticLevel): RiskLevel {
   if (level === 'elevated') return 'medium';
   if (level === 'active') return 'low';
   return 'low';

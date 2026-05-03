@@ -1,4 +1,9 @@
 import React, { Suspense, useRef, useState, useEffect } from 'react';
+import { useProxyHealth } from './hooks/useProxyHealth';
+import { TourProvider } from './components/tour/TourProvider';
+import { TourOverlay } from './components/tour/TourOverlay';
+import { useTour } from './components/tour/useTour';
+import { IssueReporter } from './components/IssueReporter';
 
 const AVATAR_SVG = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#1d4ed8"/><circle cx="50" cy="36" r="16" fill="#BFDBFE"/><ellipse cx="50" cy="80" rx="28" ry="22" fill="#BFDBFE"/></svg>')}`;
 import { motion, AnimatePresence } from 'motion/react';
@@ -33,6 +38,19 @@ function ScreenFallback({label = '載入中'}: {label?: string}) {
   );
 }
 
+function RestartTourButton({ onClose }: { onClose: () => void }) {
+  const { restartTour } = useTour();
+  return (
+    <button
+      onClick={() => { restartTour(); onClose(); }}
+      className="w-full flex items-center justify-between text-left font-bold text-base text-on-surface bg-surface-container-lowest border border-outline-variant/20 hover:border-primary/30 hover:bg-surface-container-low p-5 rounded-[1.5rem] active:scale-[0.98] transition-all shadow-sm"
+    >
+      <span>重看功能導覽</span>
+      <span style={{ fontSize: 18 }}>▶</span>
+    </button>
+  );
+}
+
 export default function App() {
   const state = useAppState();
   const actions = useAppActions();
@@ -41,6 +59,8 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [subView, setSubView] = useState<{ id: string; props?: any } | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const proxyOnline = useProxyHealth();
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const showToast = (message: string) => {
     setToastMessage({ id: Date.now(), message });
@@ -87,8 +107,26 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [toastMessage]);
 
+  useEffect(() => {
+    setToastMessage(null);
+  }, [activeTab]);
+
   return (
+    <TourProvider onTabChange={setActiveTab}>
     <div className="app2-shell min-h-screen overflow-x-hidden text-on-surface md:flex md:bg-surface-container-low">
+      {/* Proxy Health Banner */}
+      {proxyOnline === false && !bannerDismissed && (
+        <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800">
+          <span>⚠️ AI 橋接伺服器未連線（localhost:3200），智慧功能將使用本地模式</span>
+          <button
+            onClick={() => setBannerDismissed(true)}
+            className="shrink-0 w-11 h-11 flex items-center justify-center text-amber-600 hover:text-amber-900 font-medium"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
@@ -321,6 +359,7 @@ export default function App() {
              <button onClick={() => { actions.resetDemo(); showToast('展示資料已重置'); setShowSettings(false); }} className="w-full flex items-center justify-between text-left font-bold text-base text-primary bg-primary/5 border border-primary/20 hover:bg-primary/10 p-5 rounded-[1.5rem] active:scale-[0.98] transition-all shadow-sm">
                <span>重置展示資料</span>
              </button>
+             <RestartTourButton onClose={() => setShowSettings(false)} />
           </div>
 
           <button
@@ -334,5 +373,8 @@ export default function App() {
 
       </div>
     </div>
+    <TourOverlay />
+    <IssueReporter storageKey="issues-app2:v1" accentColor="#6366f1" />
+    </TourProvider>
   );
 }

@@ -4,7 +4,8 @@ import {analyzeBoardWithAI, chatWithAI, isGeminiConfigured, normalizeBoardRegion
 import {commandCatalog, createNote, defaultClassroomSession, defaultNotes, defaultRobotStatus, supportedCommands, taskActions} from './defaults';
 import {ApiError, getErrorMessage, sendError} from './http';
 import {buildAppExport, getReadyStatus, importAppData, writeBackupFile} from './opsService';
-import {getActivePath, isArduinoLikePort, listPorts, recordUnsupportedTask, resolveTaskCommand, sendSerialCommand} from './robotService';
+import {getActivePath, isArduinoLikePort, listPorts, recordUnsupportedTask, resolveTaskCommand, sendSerialCommand, sendSerialCommandDrive} from './robotService';
+import {assignPortToZone, getAllDetectedPorts, getLiveZoneReadings, unassignPort} from './sensorManager';
 import {appendTaskLog, readJsonFile, updateRobotStatus, writeJsonFile} from './storage';
 import type {ChatMessage, ClassroomSession, RobotStatus, TaskLogItem, WhiteboardNote} from './types';
 import {assertMediaPayload, audioPayloadOptions, imagePayloadOptions} from './validation';
@@ -27,7 +28,7 @@ export function registerRoutes(app: Express) {
   });
 
   app.get('/api/health', (_req, res) => {
-    res.json({ok: true, bridgePort, baudRate, dataDir, geminiConfigured: isGeminiConfigured()});
+    res.json({ok: true, bridgePort, baudRate, dataDir, geminiConfigured: isGeminiConfigured(), uptimeSeconds: Math.round(process.uptime())});
   });
 
   app.get('/api/ready', async (_req, res) => {
@@ -262,6 +263,21 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.post('/api/robot/drive', async (req, res) => {
+    const command = String(req.body?.command ?? '').trim().toUpperCase();
+    const requestedPath = req.body?.port ? String(req.body.port) : undefined;
+    if (!/^(FORWARD|BACKWARD|LEFT|RIGHT|STOP|SPEED:\d+)$/.test(command)) {
+      res.status(400).json({error: 'Invalid drive command'});
+      return;
+    }
+    try {
+      const result = await sendSerialCommandDrive(command, requestedPath);
+      res.json({ok: true, command, port: result.port});
+    } catch (error) {
+      res.status(503).json({ok: false, error: getErrorMessage(error)});
+    }
+  });
+
   app.get('/api/robot/commands', (_req, res) => {
     res.json({commands: commandCatalog, taskActions, baudRate});
   });
@@ -338,7 +354,7 @@ export function registerRoutes(app: Express) {
       return;
     }
 
-    if (!supportedCommands.has(command)) {
+    if (!supportedCommands.has(command) && !/^SPEED:\d+$/.test(command)) {
       const result = await recordUnsupportedTask(command, source, 'Unsupported command');
       res.status(400).json({error: 'Unsupported command', ...result});
       return;
@@ -368,6 +384,47 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.get('/api/sensors/ports', (_req, res) => {
+    res.json({ports: getAllDetectedPorts()});
+  });
+
+  app.get('/api/sensors/live', (_req, res) => {
+    res.json({zones: getLiveZoneReadings()});
+  });
+
+  app.post('/api/sensors/assign', async (req, res) => {
+    const portPath = String(req.body?.portPath ?? '').trim();
+    const zoneId = String(req.body?.zoneId ?? '').trim();
+    const unassign = req.body?.unassign === true;
+
+    if (!portPath) {
+      res.status(400).json({error: 'portPath is required'});
+      return;
+    }
+
+    try {
+      if (unassign) {
+        await unassignPort(portPath);
+        res.json({ok: true, portPath, zoneId: null});
+      } else {
+        if (!zoneId) {
+          res.status(400).json({error: 'zoneId is required'});
+          return;
+        }
+        await assignPortToZone(portPath, zoneId);
+        res.json({ok: true, portPath, zoneId});
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      // sensorManager throws descriptive messages for invalid inputs → 400
+      if (msg.includes('not in detected') || msg.includes('Invalid zone ID')) {
+        res.status(400).json({error: msg});
+        return;
+      }
+      sendError(res, error);
+    }
+  });
+
   app.post('/api/arduino/command', async (req, res) => {
     try {
       const command = String(req.body?.command ?? '').trim().toUpperCase();
@@ -375,6 +432,12 @@ export function registerRoutes(app: Express) {
 
       if (!command) {
         throw new ApiError(400, 'Missing command');
+      }
+
+      if (!supportedCommands.has(command)) {
+        const result = await recordUnsupportedTask(command, 'legacy-arduino-api', 'Unsupported command');
+        res.status(400).json({ok: false, error: 'Unsupported command', ...result});
+        return;
       }
 
       const result = await sendSerialCommand(command, requestedPath);

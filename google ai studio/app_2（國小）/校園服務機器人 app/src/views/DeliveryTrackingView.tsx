@@ -30,12 +30,12 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
       }
       showToast('機器人已抵達，請取件！');
     }
-  }, [phase]);
+  }, [phase, activeOrder, actions, showToast]);
 
   return (
     <div className="min-h-screen bg-background pb-32">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-2xl border-b border-outline-variant/30 px-6 py-5 flex items-center justify-between">
-        <button onClick={goBack} className="w-11 h-11 rounded-2xl bg-surface-container-low active:scale-90 transition-all text-on-surface flex items-center justify-center border border-outline-variant/10 shadow-sm">
+        <button aria-label="返回" onClick={goBack} className="w-11 h-11 rounded-2xl bg-surface-container-low active:scale-90 transition-all text-on-surface flex items-center justify-center border border-outline-variant/10 shadow-sm">
           <ArrowLeft size={24} />
         </button>
         <h1 className="font-headline font-bold text-xl absolute left-1/2 -translate-x-1/2 tracking-tight">任務即時追蹤</h1>
@@ -60,12 +60,12 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
               </div>
             )}
 
-            <h3 className="font-headline font-bold text-3xl mb-3 tracking-tight">
+            <h3 className={`font-headline font-bold text-3xl mb-3 tracking-tight ${!displayStatus ? 'text-on-surface-variant' : phase === 'delivered' ? 'text-[#3d9a2b]' : 'text-on-surface'}`}>
                {!displayStatus ? '等待指令發佈' :
                    (phase === 'delivered' ? '已順利抵達' : '機器人正在移動中')}
             </h3>
 
-            <span className="inline-block text-xs font-extrabold text-primary bg-primary/10 px-4 py-1.5 rounded-xl border border-primary/10">
+            <span className={`inline-block max-w-full truncate text-xs font-extrabold px-4 py-1.5 rounded-xl border ${!displayStatus ? 'text-on-surface-variant bg-surface-container border-outline-variant/20' : phase === 'delivered' ? 'text-[#3d9a2b] bg-[#87d46c]/15 border-[#87d46c]/30' : 'text-primary bg-primary/10 border-primary/10'}`} title={displayStatus || undefined}>
               {displayStatus || '系統待命'}
             </span>
 

@@ -15,7 +15,7 @@ export function StatusTile({icon: Icon, label, value, ok}: StatusTileProps) {
       </div>
       <div className="min-w-0">
         <p className="text-[10px] font-bold text-on-surface-variant">{label}</p>
-        <p className="font-extrabold text-sm truncate">{value}</p>
+        <p className="font-extrabold text-sm truncate" title={value}>{value}</p>
       </div>
     </div>
   );

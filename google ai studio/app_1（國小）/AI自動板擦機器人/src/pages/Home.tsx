@@ -54,7 +54,11 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
       await media.enableCamera();
       setNotice('攝影機已就緒，可以拍下國小課堂白板');
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : '無法開啟攝影機權限');
+      if (error instanceof Error && error.name === 'NotAllowedError') {
+        setNotice('請允許瀏覽器使用攝影機權限，再重試一次');
+      } else {
+        setNotice(error instanceof Error ? error.message : '無法開啟攝影機權限');
+      }
     }
   };
 
@@ -90,7 +94,34 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
       setClassroom(result.session);
       setNotice(result.aiMode === 'gemini' ? '白板分析完成，已整理成國小課堂建議' : '白板分析完成，目前使用本機示範分析');
     } catch (error) {
+      setPreviewImage('');
       setNotice(error instanceof Error ? error.message : '白板分析失敗');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const handleImageUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setNotice('請選擇圖片檔案（JPEG、PNG 等）');
+      return;
+    }
+    setBusy('analyze');
+    try {
+      const reader = new FileReader();
+      const imageBase64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('圖片讀取失敗'));
+        reader.readAsDataURL(file);
+      });
+      setPreviewImage(imageBase64);
+      const result = await analyzeBoardCapture({imageBase64, transcript, subjectHint});
+      setAnalysis(result);
+      setClassroom(result.session);
+      setNotice(result.aiMode === 'gemini' ? '白板分析完成，已整理成國小課堂建議' : '白板分析完成，目前使用本機示範分析');
+    } catch (error) {
+      setPreviewImage('');
+      setNotice(error instanceof Error ? error.message : '圖片上傳分析失敗');
     } finally {
       setBusy('');
     }
@@ -250,9 +281,9 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
           </div>
         </motion.section>
 
-        <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
+        <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5" data-tour="status-tiles">
           <StatusTile icon={Radio} label="本機硬體" value={health?.ok ? '可展示' : '未連線'} ok={Boolean(health?.ok)} />
-          <StatusTile icon={Bot} label="Gemini" value={health?.geminiConfigured ? '伺服器端已設定' : '本機展示模式'} ok={true} />
+          <StatusTile icon={Bot} label="Gemini" value={health?.geminiConfigured ? '伺服器端已設定' : '本機展示模式'} ok={health?.geminiConfigured ?? false} />
           <StatusTile icon={Video} label="攝影機" value={media.cameraReady ? '已開啟' : '待授權'} ok={media.cameraReady} />
           <StatusTile icon={Database} label="紀錄本" value={latestNote ? `${latestNote.subject} 已同步` : '等待課堂紀錄'} ok={Boolean(latestNote)} />
         </motion.section>
@@ -277,6 +308,7 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
             onToggleCamera={handleToggleCamera}
             onCaptureAndAnalyze={captureAndAnalyze}
             onToggleRecording={handleToggleRecording}
+            onUploadImage={handleImageUpload}
           />
           <RegionTaskPanel
             analysis={analysis}

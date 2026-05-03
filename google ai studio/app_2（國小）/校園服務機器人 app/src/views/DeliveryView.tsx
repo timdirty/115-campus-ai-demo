@@ -51,6 +51,11 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
       showToast(`預約成功！機器人即將前往 ${dest}`);
       setIsOrdering(false);
       setModal(null);
+      // Auto-complete the order after 35 seconds for demo purposes
+      setTimeout(() => {
+        actions.autoCompleteInTransit();
+        showToast('✅ 配送完成！機器人已送達目的地');
+      }, 35000);
       setTimeout(() => navigateTo('delivery-tracking'), 600);
     }, 1200);
   };
@@ -65,7 +70,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+    show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } }
   };
 
   return (
@@ -75,12 +80,13 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
         <div className="group relative flex items-center bg-surface-container-low rounded-[2rem] px-6 py-5 transition-all focus-within:bg-surface-container-lowest focus-within:ring-4 focus-within:ring-primary/5 shadow-inner border border-outline-variant/10">
           <Search className="text-on-surface-variant mr-4 shrink-0 transition-colors group-focus-within:text-primary" size={22} />
           <input
-            type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+            type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value.slice(0, 50))}
+            maxLength={50}
             className="bg-transparent border-none focus:outline-none focus:ring-0 w-full text-base font-bold placeholder:text-on-surface-variant/40"
             placeholder="搜尋課程餐盒、文具或實驗室耗材..."
           />
           {searchQuery && (
-            <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} onClick={() => setSearchQuery('')} className="ml-2 bg-surface-container-high rounded-full p-2 hover:bg-surface-container-highest transition-colors flex items-center justify-center shrink-0">
+            <motion.button aria-label="清除搜尋" initial={{ scale: 0 }} animate={{ scale: 1 }} onClick={() => setSearchQuery('')} className="ml-2 bg-surface-container-high rounded-full p-2 hover:bg-surface-container-highest transition-colors flex items-center justify-center shrink-0">
               <X size={16} className="text-on-surface-variant" />
             </motion.button>
           )}
@@ -88,7 +94,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
       </section>
 
       {/* Delivery Tracking Herocard */}
-      <section className="space-y-4">
+      <section data-tour="order-list" className="space-y-4">
         <h2 className="text-xl font-headline font-bold tracking-tight px-2 flex items-center gap-2">
            即時配送狀態
            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
@@ -156,7 +162,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
       </section>
 
       {/* Products List */}
-      <section className="space-y-6 min-h-[300px] px-1">
+      <section data-tour="new-order-btn" className="space-y-6 min-h-[300px] px-1">
         <div className="flex items-center gap-3 px-1 mb-2">
            <div className="w-1.5 h-6 bg-primary rounded-full"></div>
            <h2 className="text-2xl font-headline font-bold tracking-tight">
@@ -169,8 +175,12 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
             <div className="w-20 h-20 bg-surface-container rounded-full flex items-center justify-center mx-auto mb-6">
                <Package size={40} className="opacity-20" />
             </div>
-            <p className="font-bold text-xl tracking-tight text-on-surface">找不到相符的商品</p>
-            <p className="text-sm mt-2 opacity-60">請嘗試更換搜尋關鍵字或分類</p>
+            <p className="font-bold text-xl tracking-tight text-on-surface">
+              {searchQuery ? '無相符搜尋結果' : activeCategory !== 'all' ? '此分類目前無商品' : '找不到商品'}
+            </p>
+            <p className="text-sm mt-2 opacity-60">
+              {searchQuery ? `找不到「${searchQuery}」，請嘗試其他關鍵字` : '請切換分類或清除篩選'}
+            </p>
           </div>
         ) : (
           <motion.div
@@ -265,11 +275,11 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
                </div>
 
                <div className="flex items-center gap-5 bg-surface-container rounded-[2rem] p-2.5 shadow-inner border border-outline-variant/10">
-                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQty(Math.max(1, qty - 1))} className="w-14 h-14 rounded-2xl bg-surface-container-lowest text-on-surface shadow-sm flex items-center justify-center border border-outline-variant/20 hover:bg-white transition-colors active:shadow-inner">
+                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQty(Math.max(1, qty - 1))} disabled={isOrdering} className="w-14 h-14 rounded-2xl bg-surface-container-lowest text-on-surface shadow-sm flex items-center justify-center border border-outline-variant/20 hover:bg-white transition-colors active:shadow-inner disabled:opacity-30">
                     <span className="text-3xl font-bold leading-none">-</span>
                   </motion.button>
                   <span className="font-headline font-bold text-3xl w-10 text-center text-on-surface">{qty}</span>
-                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQty(Math.min(selectedProduct.stock, qty + 1))} className="w-14 h-14 rounded-2xl bg-primary text-white shadow-xl shadow-primary/20 flex items-center justify-center disabled:opacity-30 hover:bg-primary/95 transition-all" disabled={qty >= selectedProduct.stock}>
+                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQty(Math.min(selectedProduct.stock, qty + 1))} className="w-14 h-14 rounded-2xl bg-primary text-white shadow-xl shadow-primary/20 flex items-center justify-center disabled:opacity-30 hover:bg-primary/95 transition-all" disabled={qty >= selectedProduct.stock || isOrdering}>
                     <span className="text-3xl font-bold leading-none">+</span>
                   </motion.button>
                </div>

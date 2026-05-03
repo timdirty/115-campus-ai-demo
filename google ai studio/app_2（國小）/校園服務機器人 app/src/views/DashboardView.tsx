@@ -10,24 +10,25 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
   const actions = useAppActions();
   const [modal, setModal] = useState<string | null>(null);
   const [speed, setSpeed] = useState(1.2);
-  const [progress, setProgress] = useState(64);
   const [activeRobotId, setActiveRobotId] = useState('4號');
 
-  const activeRobot = state.robots.find((robot) => robot.id === activeRobotId) ?? state.robots[0];
+  const activeRobot = state.robots.find((robot) => robot.id === activeRobotId) ?? state.robots[0] ?? null;
   const demoSteps = getDemoSteps(state);
   const demoHealth = getDemoHealth(state);
 
-  useEffect(() => {
-    if (!activeRobot?.isRunning) return;
-    const interval = setInterval(() => {
-      setProgress(p => Math.min(100, p + (Math.random() > 0.7 ? 0 : 0.5)));
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [activeRobot?.isRunning]);
+  // Derive progress from task state: completed tasks / total tasks for active robot
+  const robotTasks = state.tasks.filter((t) => t.robotId === activeRobot?.id);
+  const completedTasks = robotTasks.filter((t) => t.status === 'completed').length;
+  const totalTasks = robotTasks.length;
+  const derivedProgress = totalTasks > 0
+    ? Math.round((completedTasks / totalTasks) * 100)
+    : activeRobot?.isRunning ? 64 : 0;
 
   useEffect(() => {
     if (activeRobot) setSpeed(activeRobot.speed);
   }, [activeRobot?.id, activeRobot?.speed]);
+
+  if (!activeRobot) return null;
 
   return (
     <div className="space-y-6 pb-6">
@@ -64,7 +65,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
           ))}
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <button onClick={() => navigateTo('dispatch-map')} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-black text-white shadow-lg shadow-primary/20 active:scale-95">
+          <button data-tour="dispatch-btn" onClick={() => navigateTo('dispatch-map')} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-black text-white shadow-lg shadow-primary/20 active:scale-95">
             校園派遣
             <ArrowRight size={18} />
           </button>
@@ -80,6 +81,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
       <section className="grid grid-cols-2 gap-5">
         {/* Robot Status Card */}
         <motion.div
+          data-tour="robot-status"
           whileHover={{ scale: 1.01, translateY: -2 }} whileTap={{ scale: 0.98 }}
           className="col-span-2 bg-surface-container-low rounded-[2.5rem] p-8 relative overflow-hidden group border border-outline-variant/30 shadow-[0_4px_25px_rgba(0,0,0,0.02)] cursor-pointer hover:bg-surface-container transition-all"
           onClick={() => setModal('robot')}
@@ -123,7 +125,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
                 </div>
                 <div>
                   <p className="text-[10px] text-on-surface-variant font-bold mb-1 text-primary/80">位置</p>
-                  <p className="text-xl font-headline font-bold tracking-tight">{activeRobot.position}</p>
+                  <p className="text-xl font-headline font-bold tracking-tight line-clamp-2">{activeRobot.position}</p>
                 </div>
               </div>
             </div>
@@ -159,7 +161,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
       </section>
 
       {/* Task Progress */}
-      <section className="mt-4">
+      <section data-tour="task-stats" className="mt-4">
         <motion.div whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.99 }} className="bg-surface-container-lowest rounded-[3rem] p-8 border border-outline-variant/30 shadow-[0_4px_25px_rgba(0,0,0,0.02)] cursor-pointer hover:bg-surface-container transition-all" onClick={() => setModal('task')}>
           <div className="flex items-center gap-8 mb-8 relative">
             <div className="w-[84px] h-[84px] shrink-0 rounded-3xl bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center shadow-[0_8px_25px_rgba(var(--color-primary),0.3)] relative">
@@ -171,14 +173,14 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
                  <span className="w-2 h-2 bg-primary rounded-full"></span>
                  <p className="text-xs font-extrabold text-primary">任務執行中</p>
                </div>
-               <h3 className="mb-1 font-headline text-2xl font-bold leading-tight tracking-tight sm:text-3xl">{activeRobot.task}</h3>
+               <h3 className="mb-1 font-headline text-2xl font-bold leading-tight tracking-tight sm:text-3xl line-clamp-2">{activeRobot.task}</h3>
                <p className="text-on-surface-variant font-bold text-xs opacity-70">預計完成：{activeRobot.eta}</p>
              </div>
           </div>
           <div>
             <div className="flex justify-between items-end mb-4">
               <span className="text-xs font-extrabold text-primary bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">
-                {activeRobot.status === '充電' || activeRobot.status === '待命' ? '0.00' : progress.toFixed(2)}% 已完成
+                {activeRobot.status === '充電' || activeRobot.status === '待命' ? '0' : derivedProgress}% 已完成
               </span>
               <div className="flex items-center gap-3">
                 <button
@@ -198,7 +200,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
             <div className="h-4 w-full bg-surface-container-high rounded-full overflow-hidden shadow-inner p-1">
               <motion.div
                 className={`h-full bg-gradient-to-r ${activeRobot.status === '充電' ? 'from-[#f6d365] to-[#d4a017]' : 'from-primary to-primary-container shadow-[0_0_15px_rgba(var(--color-primary),0.4)]'} rounded-full relative`}
-                animate={{ width: activeRobot.status === '充電' || activeRobot.status === '待命' ? '0%' : `${progress}%` }}
+                animate={{ width: activeRobot.status === '充電' || activeRobot.status === '待命' ? '0%' : `${derivedProgress}%` }}
                 transition={{ type: "spring", bounce: 0, duration: 1 }}
               >
                 <motion.div
@@ -234,8 +236,8 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
           {state.robotCommandLogs.slice(0, 4).map((item) => (
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-2xl bg-surface-container-low px-4 py-3 border border-outline-variant/10">
               <div className="min-w-0">
-                <p className="truncate text-sm font-extrabold">{item.label}</p>
-                <p className="mt-0.5 truncate text-[10px] font-bold text-on-surface-variant/60">
+                <p className="truncate text-sm font-extrabold" title={item.label}>{item.label}</p>
+                <p className="mt-0.5 truncate text-[10px] font-bold text-on-surface-variant/60" title={item.target}>
                   {item.target}
                 </p>
               </div>
@@ -264,7 +266,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
              {state.robots.length} / {state.robots.length} 在線
            </div>
         </div>
-        <div className="grid grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
              {state.robots.map(bot => {
              const isActive = activeRobotId === bot.id;
              let bgClass = 'bg-surface-container-lowest border-outline-variant/30';
@@ -430,12 +432,12 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
       <BottomSheet isOpen={modal === 'robot' || modal === 'radar'} onClose={() => setModal(null)} title="系統診斷">
         <div className="p-4 space-y-4">
           {[
-            { n: '環境掃描', s: '正常', t: '即時回傳' },
-            { n: '避障感測', s: '正常', t: '路線安全' },
-            { n: '任務判斷', s: '正常', t: '狀態穩定' },
-            { n: '移動模組', s: '正常', t: '輸出穩定' }
+            { id: 'env-scan', n: '環境掃描', s: '正常', t: '即時回傳' },
+            { id: 'obstacle', n: '避障感測', s: '正常', t: '路線安全' },
+            { id: 'task-judge', n: '任務判斷', s: '正常', t: '狀態穩定' },
+            { id: 'motion-mod', n: '移動模組', s: '正常', t: '輸出穩定' }
           ].map((s, i) => (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }} key={i} className="flex justify-between items-center p-5 bg-surface-container-low rounded-2xl border border-outline-variant/10 shadow-sm hover:shadow transition-shadow">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }} key={s.id} className="flex justify-between items-center p-5 bg-surface-container-low rounded-2xl border border-outline-variant/10 shadow-sm hover:shadow transition-shadow">
               <span className="font-bold text-sm tracking-wide text-on-surface">{s.n}</span>
               <div className="text-right">
                 <span className="text-[10px] text-[#87d46c] font-bold">{s.s}</span>

@@ -20,8 +20,9 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
 
+  const abortForward = () => controller.abort();
   if (signal) {
-    signal.addEventListener('abort', () => controller.abort(), {once: true});
+    signal.addEventListener('abort', abortForward, {once: true});
   }
 
   try {
@@ -50,5 +51,6 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     throw new ApiClientError(error instanceof Error ? error.message : '無法連接本機硬體服務', 0);
   } finally {
     window.clearTimeout(timeout);
+    signal?.removeEventListener('abort', abortForward);
   }
 }

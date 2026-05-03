@@ -2,10 +2,12 @@
 
 #include "matrix_show.h"
 
+#include <DHT.h>
 #include <Servo.h>
 
 namespace {
 Servo servoD9;
+DHT dht(4, DHT11);
 
 void setStatusLed(bool enabled) {
   digitalWrite(LED_BUILTIN, enabled ? HIGH : LOW);
@@ -18,11 +20,12 @@ void setupCommandHardware() {
 
   servoD9.attach(9);
   servoD9.write(90);
+  dht.begin();
 }
 
 void printReadyMessage() {
   Serial.println("UNO R4 WiFi command test ready.");
-  Serial.println("Commands: LED_ON, LED_OFF, SERVO_0, SERVO_90, SERVO_180, STOP, SHOW_ON, SHOW_OFF, FIREWORK, RESET, CLEAN_START, CLEAN_STOP, ERASE_ALL, ERASE_REGION_A, ERASE_REGION_B, ERASE_REGION_C, KEEP_REGION_A, KEEP_REGION_B, KEEP_REGION_C, PAUSE_TASK, DELIVERY_START, DELIVERY_DONE, CLEAN_SCHEDULE, BROADCAST_SCHEDULE, TEACH_SCAN, FOCUS_NUDGE, QUESTION_ACK, TEACH_REPLY, SAFETY_LOCKDOWN, SAFETY_CLEAR, BELL_REMIND_ON, BELL_REMIND_OFF, BROADCAST_START, PATROL_START, ROBOT_RESUME, ROBOT_PAUSE, SPEED_SET, NODE_HEARTBEAT, ALERT_SIGNAL, CARE_DEPLOYED, NODE_RESTART");
+  Serial.println("Commands: LED_ON, LED_OFF, SERVO_0, SERVO_90, SERVO_180, STOP, SHOW_ON, SHOW_OFF, FIREWORK, RESET, CLEAN_START, CLEAN_STOP, ERASE_ALL, ERASE_REGION_A, ERASE_REGION_B, ERASE_REGION_C, KEEP_REGION_A, KEEP_REGION_B, KEEP_REGION_C, PAUSE_TASK, DELIVERY_START, DELIVERY_DONE, CLEAN_SCHEDULE, BROADCAST_SCHEDULE, TEACH_SCAN, FOCUS_NUDGE, QUESTION_ACK, TEACH_REPLY, SAFETY_LOCKDOWN, SAFETY_CLEAR, BELL_REMIND_ON, BELL_REMIND_OFF, BROADCAST_START, PATROL_START, ROBOT_RESUME, ROBOT_PAUSE, SPEED_SET, NODE_HEARTBEAT, ALERT_SIGNAL, CARE_DEPLOYED, NODE_RESTART, READ_SENSORS, FORWARD, BACKWARD, LEFT, RIGHT");
 }
 
 void handleCommand(const String &command) {
@@ -177,6 +180,30 @@ void handleCommand(const String &command) {
     setStatusLed(true);
     resetMatrixShow();
     Serial.println("Guardian node restart acknowledged.");
+  } else if (command == "FORWARD") {
+    Serial.println("Moving forward.");
+  } else if (command == "BACKWARD") {
+    Serial.println("Moving backward.");
+  } else if (command == "LEFT") {
+    Serial.println("Turning left.");
+  } else if (command == "RIGHT") {
+    Serial.println("Turning right.");
+  } else if (command.startsWith("SPEED:")) {
+    Serial.println("Speed set.");
+  } else if (command == "READ_SENSORS") {
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();
+    int light = analogRead(A1);
+    if (isnan(h) || isnan(t)) {
+      Serial.println("SENSORS:ERR");
+    } else {
+      Serial.print("SENSORS:TEMP:");
+      Serial.print(t, 1);
+      Serial.print(",HUM:");
+      Serial.print((int)h);
+      Serial.print(",LIGHT:");
+      Serial.println(light);
+    }
   } else {
     Serial.print("Unknown command: ");
     Serial.println(command);

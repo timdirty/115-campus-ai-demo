@@ -41,6 +41,15 @@ zsh scripts/doctor.sh
 - `src/matrix_show.cpp`: LED matrix animation (`setMatrixShowEnabled`, `triggerFireworks`, `resetMatrixShow`).
 - All Serial commands use `UPPER_SNAKE_CASE`. Adding a command requires: new `else if` branch in `handleCommand()`, entry in the `printReadyMessage()` list, and sync with App 1 bridge catalog.
 
+## Root Commands (run from repo root)
+
+| Command | Effect |
+|---|---|
+| `npm run dev` | Start all three apps concurrently (App1: 11501, App2: 11502, App3: 11503; bridge: 3200) |
+| `npm run preview` | Rebuild pages-dist + serve unified entry at http://localhost:11500 |
+| `npm run build` | Rebuild pages-dist only (no server) |
+| `npm run check` | Run all three apps' CI gates in sequence |
+
 ## App Commands (per-app, run from each app directory)
 
 | Command | Effect |

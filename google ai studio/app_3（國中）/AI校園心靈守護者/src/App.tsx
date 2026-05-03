@@ -1,4 +1,9 @@
 import {useEffect, useMemo, useReducer, useRef, useState} from 'react';
+import {TourProvider} from './components/tour/TourProvider';
+import {TourOverlay} from './components/tour/TourOverlay';
+import {useTour} from './components/tour/useTour';
+import {IssueReporter} from './components/IssueReporter';
+import {useProxyHealth} from './hooks/useProxyHealth';
 import type {Dispatch, ReactNode} from 'react';
 import {AnimatePresence, motion} from 'motion/react';
 import {
@@ -27,14 +32,17 @@ import {
   X,
 } from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
-import {AcousticSignal, GuardianAlert, GuardianState, MoodType} from './types';
+import {AcousticSignal, DetectedPort, GuardianAlert, GuardianState, MoodType, ZoneSensorReading} from './types';
 import {guardianReducer, loadGuardianState, normalizeGuardianState, persistGuardianState} from './state/guardianState';
 import {analyzeAcousticFrame, describeAcousticSignal} from './services/acousticGuardian';
 import {generateSupportReply} from './services/localGuardianAi';
 import {evaluateProactiveGuardianState, ProactiveInsight} from './services/proactiveGuardian';
 import {buildSchoolZoneStatuses, SchoolZoneStatus} from './services/schoolSpaces';
-import {sendGuardianHardwareCommand} from './services/hardwareBridge';
+import {assignSensorPort, fetchSensorPorts, fetchZoneSensors, sendGuardianHardwareCommand} from './services/hardwareBridge';
 import {AlertDetail, AlertRow, MetricCard, NodeRow, RiskPill} from './components/guardianUi';
+import {CampusMapSvg} from './components/CampusMapSvg';
+import {ZoneSensorPanel} from './components/ZoneSensorPanel';
+import {SensorAssignmentWidget} from './components/SensorAssignmentWidget';
 
 type ActivePanel = 'alerts' | 'sensing' | 'care' | 'nodes' | 'logs' | null;
 type RobotDispatchFeedback = {zoneId: string; zoneName: string; stage: '指令送出' | '前往現場' | '老師確認'; createdAt: number; missionId: string} | null;
@@ -89,10 +97,26 @@ function getRobotStageProgress(stage: RobotDispatchStage | undefined) {
   return 0;
 }
 
+const CRISIS_KEYWORDS_UI = ['不想活', '想死', '自殺', '消失', '傷害自己', '活不下去', '尋死', '割腕', '跳樓', '喝農藥', '結束生命', '不想存在'];
+
+function isCrisisMessage(text: string): boolean {
+  return CRISIS_KEYWORDS_UI.some((k) => text.includes(k));
+}
+
 export default function App() {
+  return (
+    <TourProvider>
+      <AppContent />
+      <TourOverlay />
+      <IssueReporter storageKey="issues-app3:v1" accentColor="#0d9488" />
+    </TourProvider>
+  );
+}
+
+function AppContent() {
+  const {restartTour} = useTour();
   const [state, dispatch] = useReducer(guardianReducer, undefined, loadGuardianState);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
-  const [showDemoGuide, setShowDemoGuide] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<GuardianAlert | null>(null);
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [selectedMood, setSelectedMood] = useState<MoodType>('steady');
@@ -100,26 +124,69 @@ export default function App() {
   const [postContent, setPostContent] = useState('');
   const [postType, setPostType] = useState<'thought' | 'gratitude' | 'support'>('support');
   const [chatBusy, setChatBusy] = useState(false);
+  const [postBusy, setPostBusy] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [robotFeedback, setRobotFeedback] = useState<RobotDispatchFeedback>(null);
   const [micActive, setMicActive] = useState(false);
+  const [micStarting, setMicStarting] = useState(false);
   const [micError, setMicError] = useState('');
   const [acousticLocation, setAcousticLocation] = useState('穿堂');
   const [currentAcoustic, setCurrentAcoustic] = useState(defaultAcoustic);
+  const [zoneSensors, setZoneSensors] = useState<ZoneSensorReading[]>([]);
+  const [detectedPorts, setDetectedPorts] = useState<DetectedPort[]>([]);
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const robotTimersRef = useRef<number[]>([]);
+  const proxyOnline = useProxyHealth();
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const volumeHistoryRef = useRef<number[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
-  const viewModel = useMemo(() => buildCommandCenterViewModel(state), [state]);
+  const viewModel = useMemo(() => buildCommandCenterViewModel(state, zoneSensors), [state, zoneSensors]);
   const selectedZone = viewModel.zones.find((zone) => zone.id === selectedZoneId) ?? viewModel.highestZone;
   const latestMood = state.moodLogs[0];
 
   useEffect(() => {
     persistGuardianState(state);
   }, [state]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const readings = await fetchZoneSensors();
+        if (!cancelled) setZoneSensors(readings);
+      } catch {
+        // keep last known readings on transient error
+      }
+    };
+    poll();
+    const timer = setInterval(poll, 8000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const ports = await fetchSensorPorts();
+        if (!cancelled) setDetectedPorts(ports);
+      } catch {
+        // keep last known ports on transient error
+      }
+    };
+    poll();
+    const timer = setInterval(poll, 12000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -134,6 +201,7 @@ export default function App() {
   }, [robotFeedback]);
 
   useEffect(() => () => stopAcousticMonitor(), []);
+  useEffect(() => () => { robotTimersRef.current.forEach(clearTimeout); robotTimersRef.current = []; }, []);
 
   const showToast = (text: string) => setToastMessage(text);
 
@@ -144,6 +212,8 @@ export default function App() {
         payload: {command, source, status: result.ok ? 'sent' : 'fallback', message: result.message},
       });
       showToast(result.ok ? `硬體已接收：${command}` : `硬體備援：${result.message}`);
+    }).catch(() => {
+      showToast('硬體指令發送失敗，使用備援模式');
     });
   };
 
@@ -155,15 +225,15 @@ export default function App() {
     }
     const createdAt = Date.now();
     setRobotFeedback({zoneId: zone.id, zoneName: zone.name, stage: '指令送出', createdAt, missionId: `R-${createdAt.toString().slice(-4)}`});
-    window.setTimeout(() => {
+    robotTimersRef.current.push(window.setTimeout(() => {
       setRobotFeedback((current) => current?.createdAt === createdAt ? {...current, stage: '前往現場'} : current);
       dispatch({type: 'UPDATE_ROBOT_MISSION_STATUS', payload: {zoneName: zone.name, status: 'arrived'}});
-    }, 1200);
-    window.setTimeout(() => {
+    }, 1200));
+    robotTimersRef.current.push(window.setTimeout(() => {
       setRobotFeedback((current) => current?.createdAt === createdAt ? {...current, stage: '老師確認'} : current);
       dispatch({type: 'UPDATE_ROBOT_MISSION_STATUS', payload: {zoneName: zone.name, status: 'completed'}});
-    }, 3200);
-    window.setTimeout(() => setRobotFeedback((current) => current?.createdAt === createdAt ? null : current), 7200);
+    }, 3200));
+    robotTimersRef.current.push(window.setTimeout(() => setRobotFeedback((current) => current?.createdAt === createdAt ? null : current), 7200));
     dispatch({type: 'DISPATCH_ROBOT', payload: {zoneName: zone.name, riskScore: zone.riskScore, command: 'ROBOT_DISPATCH'}});
     sendHardwareCue('CARE_DEPLOYED', `app3:robot:${zone.id}`);
     showToast(`已指派機器人前往${zone.name}`);
@@ -182,6 +252,7 @@ export default function App() {
   };
 
   const createAcousticAlert = () => {
+    if (!acousticLocation.trim()) { showToast('請先輸入感測位置再建立提醒'); return; }
     dispatch({
       type: 'CREATE_ACOUSTIC_ALERT',
       payload: {
@@ -203,12 +274,22 @@ export default function App() {
     dispatch({type: 'ADD_MOOD', payload: {mood, label: option.label, note: option.note}});
   };
 
-  const addPost = () => {
+  const addPost = async () => {
     const content = postContent.trim();
-    if (!content) return;
-    dispatch({type: 'ADD_FOREST_POST', payload: {content, type: postType}});
+    if (!content || postBusy) return;
+    setPostBusy(true);
+    const postId = `post-${Date.now().toString(36)}-${Math.floor(Math.random() * 900 + 100)}`;
+    dispatch({type: 'ADD_FOREST_POST', payload: {id: postId, content, type: postType}});
     setPostContent('');
     showToast('匿名支持已加入心靈森林');
+    try {
+      const reply = await generateSupportReply(content, selectedMood, undefined, undefined);
+      dispatch({type: 'SET_FOREST_POST_REPLY', payload: {id: postId, botReply: reply}});
+    } catch {
+      // silent — bot reply is a bonus, not critical
+    } finally {
+      setPostBusy(false);
+    }
   };
 
   const sendMessage = async () => {
@@ -217,9 +298,18 @@ export default function App() {
     setMessage('');
     dispatch({type: 'ADD_SUPPORT_MESSAGE', payload: {role: 'student', content: text}});
     setChatBusy(true);
-    const reply = await generateSupportReply(text, selectedMood);
-    dispatch({type: 'ADD_SUPPORT_MESSAGE', payload: {role: 'guardian', content: reply}});
-    setChatBusy(false);
+    try {
+      const alertSummary = viewModel.openAlerts?.length > 0
+        ? `${viewModel.openAlerts.length} 則待處理警報`
+        : undefined;
+      const reply = await generateSupportReply(text, selectedMood, acousticLocation, alertSummary);
+      dispatch({type: 'ADD_SUPPORT_MESSAGE', payload: {role: 'guardian', content: reply}});
+    } catch {
+      dispatch({type: 'ADD_SUPPORT_MESSAGE', payload: {role: 'guardian', content: '暫時無法回應，請稍後再試。'}});
+      showToast('守護者暫時無法回應，請稍後再試');
+    } finally {
+      setChatBusy(false);
+    }
   };
 
   const stopAcousticMonitor = () => {
@@ -240,34 +330,43 @@ export default function App() {
       stopAcousticMonitor();
       return;
     }
+    if (micStarting) return;
+    setMicStarting(true);
     try {
       setMicError('');
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {echoCancellation: true, noiseSuppression: false, autoGainControl: false},
       });
-      const AudioContextCtor = window.AudioContext || (window as typeof window & {webkitAudioContext?: typeof AudioContext}).webkitAudioContext;
-      if (!AudioContextCtor) throw new Error('AudioContext unavailable');
-      const audioContext = new AudioContextCtor();
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 1024;
-      audioContext.createMediaStreamSource(stream).connect(analyser);
-      mediaStreamRef.current = stream;
-      audioContextRef.current = audioContext;
-      analyserRef.current = analyser;
-      setMicActive(true);
+      try {
+        const AudioContextCtor = window.AudioContext || (window as typeof window & {webkitAudioContext?: typeof AudioContext}).webkitAudioContext;
+        if (!AudioContextCtor) throw new Error('AudioContext unavailable');
+        const audioContext = new AudioContextCtor();
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 1024;
+        audioContext.createMediaStreamSource(stream).connect(analyser);
+        mediaStreamRef.current = stream;
+        audioContextRef.current = audioContext;
+        analyserRef.current = analyser;
+        setMicActive(true);
 
-      const buffer = new Uint8Array(analyser.fftSize);
-      const tick = () => {
-        analyser.getByteTimeDomainData(buffer);
-        const reading = analyzeAcousticFrame(buffer, volumeHistoryRef.current);
-        volumeHistoryRef.current = [...volumeHistoryRef.current.slice(-24), reading.volumeIndex];
-        setCurrentAcoustic(reading);
-        animationFrameRef.current = requestAnimationFrame(tick);
-      };
-      tick();
+        const buffer = new Uint8Array(analyser.fftSize);
+        const tick = () => {
+          analyser.getByteTimeDomainData(buffer);
+          const reading = analyzeAcousticFrame(buffer, volumeHistoryRef.current);
+          volumeHistoryRef.current = [...volumeHistoryRef.current.slice(-24), reading.volumeIndex];
+          setCurrentAcoustic(reading);
+          animationFrameRef.current = requestAnimationFrame(tick);
+        };
+        tick();
+      } catch (setupError) {
+        stream.getTracks().forEach((track) => track.stop());
+        throw setupError;
+      }
     } catch {
-      setMicError('無法啟用麥克風，請確認瀏覽器權限或使用示範訊號。');
+      setMicError('麥克風不可用（請確認瀏覽器權限或裝置硬體），可改用示範訊號。');
       showToast('麥克風權限未開啟，可改用示範聲量');
+    } finally {
+      setMicStarting(false);
     }
   };
 
@@ -299,6 +398,20 @@ export default function App() {
 
   return (
     <div className="guardian-shell min-h-screen overflow-x-hidden bg-slate-100 text-slate-950">
+      {/* Proxy Health Banner */}
+      {proxyOnline === false && !bannerDismissed && (
+        <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800">
+          <span>⚠️ AI 橋接伺服器未連線，智慧功能將使用本機模式運作</span>
+          <button
+            onClick={() => setBannerDismissed(true)}
+            aria-label="關閉提示"
+            className="shrink-0 w-11 h-11 flex items-center justify-center text-amber-600 hover:text-amber-900 font-medium"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <input ref={importInputRef} type="file" accept="application/json,.json" className="hidden" onChange={(event) => void importDemoData(event.target.files?.[0])} />
       <Toast message={toastMessage} />
 
@@ -320,7 +433,7 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button onClick={() => setShowDemoGuide(true)} className="hidden min-h-10 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 shadow-sm transition hover:border-teal-200 hover:text-teal-700 md:block">
+            <button onClick={restartTour} className="hidden min-h-10 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 shadow-sm transition hover:border-teal-200 hover:text-teal-700 md:block">
               導覽
             </button>
             <IconButton onClick={exportDemoData} label="匯出展示資料" icon={Download} />
@@ -338,10 +451,19 @@ export default function App() {
         </div>
       </header>
 
+      <SensorAssignmentWidget
+        ports={detectedPorts}
+        onAssigned={async () => {
+          const ports = await fetchSensorPorts();
+          setDetectedPorts(ports);
+        }}
+      />
+
       <main className="mx-auto grid max-w-7xl gap-4 px-4 py-4 pb-24 sm:px-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:pb-8">
         <CommandCenterScreen
           viewModel={viewModel}
           selectedZone={selectedZone}
+          selectedZoneId={selectedZoneId}
           state={state}
           robotFeedback={robotFeedback}
           onSelectZone={(zone) => {
@@ -353,9 +475,9 @@ export default function App() {
         />
 
         <aside className="grid gap-4 lg:sticky lg:top-[5.25rem] lg:max-h-[calc(100vh-6rem)] lg:grid-rows-[auto_1fr_auto]">
-          <ZoneInspector zone={selectedZone} robotFeedback={robotFeedback} onDispatchRobot={dispatchRobotToZone} />
-          <MissionTimeline state={state} robotFeedback={robotFeedback} />
-          <PanelDock activePanel={activePanel} onOpenPanel={setActivePanel} onShowDemo={() => setShowDemoGuide(true)} />
+          <div data-tour="zone-inspector"><ZoneInspector zone={selectedZone} robotFeedback={robotFeedback} onDispatchRobot={dispatchRobotToZone} /></div>
+          <div data-tour="mission-timeline"><MissionTimeline state={state} robotFeedback={robotFeedback} /></div>
+          <div data-tour="panel-dock"><PanelDock activePanel={activePanel} onOpenPanel={setActivePanel} onShowDemo={restartTour} /></div>
         </aside>
       </main>
 
@@ -373,6 +495,7 @@ export default function App() {
         postType={postType}
         setPostType={setPostType}
         chatBusy={chatBusy}
+        postBusy={postBusy}
         micActive={micActive}
         micError={micError}
         currentAcoustic={currentAcoustic}
@@ -403,13 +526,12 @@ export default function App() {
         zones={viewModel.zones}
       />
 
-      <DemoGuide open={showDemoGuide} onClose={() => setShowDemoGuide(false)} />
     </div>
   );
 }
 
-function buildCommandCenterViewModel(state: GuardianState): CommandCenterViewModel {
-  const zones = buildSchoolZoneStatuses(state);
+function buildCommandCenterViewModel(state: GuardianState, sensorReadings: ZoneSensorReading[] = []): CommandCenterViewModel {
+  const zones = buildSchoolZoneStatuses(state, sensorReadings);
   const highestZone = [...zones].sort((a, b) => b.riskScore - a.riskScore)[0] ?? zones[0];
   const dispatchableZones = zones.filter((zone) => zone.riskLevel !== 'low');
   const proactiveInsight = evaluateProactiveGuardianState(state);
@@ -433,6 +555,7 @@ function buildCommandCenterViewModel(state: GuardianState): CommandCenterViewMod
 function CommandCenterScreen({
   viewModel,
   selectedZone,
+  selectedZoneId,
   state,
   robotFeedback,
   onSelectZone,
@@ -442,6 +565,7 @@ function CommandCenterScreen({
 }: {
   viewModel: CommandCenterViewModel;
   selectedZone: SchoolZoneStatus;
+  selectedZoneId: string | null;
   state: GuardianState;
   robotFeedback: RobotDispatchFeedback;
   onSelectZone: (zone: SchoolZoneStatus) => void;
@@ -451,25 +575,30 @@ function CommandCenterScreen({
 }) {
   return (
     <section className="grid gap-4 lg:min-h-[calc(100vh-6.5rem)] lg:grid-rows-[auto_minmax(0,1fr)_auto]">
-      <Surface className="p-4 sm:p-5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <p className="text-xs font-black text-teal-700">校園指揮中心</p>
-            <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">地圖先看</h2>
+      <div data-tour="signal-overview">
+        <Surface className="p-4 sm:p-5">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <p className="text-xs font-black text-teal-700">校園指揮中心</p>
+              <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">校園即時總覽</h2>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[24rem]">
+              <SignalTile label="守護指數" value={`${state.stabilityScore}%`} tone="teal" />
+              <SignalTile label="最高風險" value={viewModel.highestZone.riskScore.toString()} tone={viewModel.highestZone.riskLevel === 'high' ? 'rose' : 'amber'} />
+              <SignalTile label="機器人" value={viewModel.activeRobotCount.toString()} tone="emerald" />
+            </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[24rem]">
-            <SignalTile label="守護指數" value={`${state.stabilityScore}%`} tone="teal" />
-            <SignalTile label="最高風險" value={viewModel.highestZone.riskScore.toString()} tone={viewModel.highestZone.riskLevel === 'high' ? 'rose' : 'amber'} />
-            <SignalTile label="機器人" value={viewModel.activeRobotCount.toString()} tone="emerald" />
-          </div>
-        </div>
-      </Surface>
+        </Surface>
+      </div>
 
       <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <CampusMap2D zones={viewModel.zones} selectedZone={selectedZone} robotFeedback={robotFeedback} onSelectZone={onSelectZone} onDispatchRobot={onDispatchRobot} />
+        <div data-tour="campus-map">
+          <CampusMap2D zones={viewModel.zones} selectedZone={selectedZone} selectedZoneId={selectedZoneId} robotFeedback={robotFeedback} onSelectZone={onSelectZone} onDispatchRobot={onDispatchRobot} />
+        </div>
         <div className="grid gap-4">
           <OperationsBrief viewModel={viewModel} onOpenPanel={onOpenPanel} />
           <RobotReadinessCard state={state} robotFeedback={robotFeedback} />
+          <div data-tour="dispatch-robot">
           <Surface className="p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -493,6 +622,7 @@ function CommandCenterScreen({
               {viewModel.highestZone.riskLevel === 'low' ? '維持一般巡查' : robotFeedback?.zoneId === viewModel.highestZone.id ? '已送出派遣' : '派遣機器人介入'}
             </PrimaryAction>
           </Surface>
+          </div>
 
           <Surface className="p-4">
             <p className="text-xs font-black text-slate-500">訊號總覽</p>
@@ -513,12 +643,14 @@ function CommandCenterScreen({
 function CampusMap2D({
   zones,
   selectedZone,
+  selectedZoneId,
   robotFeedback,
   onSelectZone,
   onDispatchRobot,
 }: {
   zones: SchoolZoneStatus[];
   selectedZone: SchoolZoneStatus;
+  selectedZoneId: string | null;
   robotFeedback: RobotDispatchFeedback;
   onSelectZone: (zone: SchoolZoneStatus) => void;
   onDispatchRobot: (zone: SchoolZoneStatus) => void;
@@ -534,13 +666,20 @@ function CampusMap2D({
           <h3 className="text-xl font-black text-slate-950">區域狀態</h3>
         </div>
         <div className="flex flex-wrap gap-2 text-[10px] font-black text-slate-500">
-          <LegendDot tone="emerald" label="穩定" />
+          <LegendDot tone="emerald" label="安全" />
           <LegendDot tone="amber" label="注意" />
-          <LegendDot tone="rose" label="危險" />
+          <LegendDot tone="rose" label="高風險" />
         </div>
       </div>
       <div className="relative min-h-[25rem] overflow-hidden rounded-2xl border border-slate-200 bg-[linear-gradient(135deg,#f8fafc,#eef7f8)] sm:min-h-[28rem]">
-        <MapGrid2D />
+        <CampusMapSvg
+          zones={zones.map((z) => ({id: z.id, riskLevel: z.riskLevel, sensor: z.sensor}))}
+          selectedZoneId={selectedZoneId}
+          onZoneClick={(id) => {
+            const zone = zones.find((z) => z.id === id);
+            if (zone) onSelectZone(zone);
+          }}
+        />
         <div className="absolute left-[10%] top-[12%] h-2 w-[72%] -rotate-6 rounded-full bg-teal-200/70 shadow-sm" />
         <div className="absolute left-[18%] top-[59%] h-2 w-[60%] rotate-3 rounded-full bg-teal-200/70 shadow-sm" />
         <div className="absolute left-[48%] top-[15%] h-[65%] w-2 rounded-full bg-teal-200/70 shadow-sm" />
@@ -560,7 +699,7 @@ function CampusMap2D({
         >
           {activeDispatch && <span className="absolute h-32 w-32 rounded-full border-2 border-teal-300 opacity-70" />}
           <div className="absolute -right-2 -top-2 rounded-full bg-teal-600 px-2 py-1 text-[10px] font-black text-white shadow-sm">
-            R-03
+            {robotFeedback?.missionId ?? 'R-01'}
           </div>
           <div className="grid place-items-center">
             <div className="relative grid h-12 w-12 place-items-center rounded-2xl bg-teal-50">
@@ -674,7 +813,7 @@ function RobotReadinessCard({state, robotFeedback}: {state: GuardianState; robot
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-black text-slate-500">機器人連動</p>
-          <h3 className="mt-1 text-lg font-black text-slate-950">{robotFeedback ? `${robotFeedback.zoneName}：${robotFeedback.stage}` : connected ? '硬體已接收' : '展示備援就緒'}</h3>
+          <h3 className="mt-1 text-lg font-black text-slate-950">{robotFeedback ? `${robotFeedback.zoneName}：${robotFeedback.stage}` : connected ? '硬體已接收' : '系統就緒'}</h3>
           <p className="mt-1 text-xs font-bold text-slate-500">{meta.detail}</p>
         </div>
         <span className={`rounded-full px-3 py-1 text-[10px] font-black ${connected ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
@@ -722,6 +861,7 @@ function ZoneInspector({zone, robotFeedback, onDispatchRobot}: {zone: SchoolZone
         <MetricTile label="聲量" value={zone.soundIndex} />
         <MetricTile label="提醒" value={zone.alertCount} />
       </div>
+      {zone.sensor && <ZoneSensorPanel sensor={zone.sensor} />}
       <div className="mt-4 rounded-xl border border-teal-100 bg-teal-50 p-3">
         <p className="text-xs font-black text-teal-700">下一步</p>
         <p className="mt-1 text-sm font-bold text-teal-900">{activeDispatch ? robotFeedback?.stage : zone.riskLevel === 'low' ? '維持巡查' : '派遣 + 確認'}</p>
@@ -868,6 +1008,7 @@ function DetailDrawer(props: {
   postType: 'thought' | 'gratitude' | 'support';
   setPostType: (value: 'thought' | 'gratitude' | 'support') => void;
   chatBusy: boolean;
+  postBusy: boolean;
   micActive: boolean;
   micError: string;
   currentAcoustic: ReturnType<typeof describeAcousticSignal>;
@@ -907,6 +1048,7 @@ function DetailDrawer(props: {
             initial={{opacity: 0, x: 40}}
             animate={{opacity: 1, x: 0}}
             exit={{opacity: 0, x: 40}}
+            onKeyDown={(e) => e.key === 'Escape' && props.onClose()}
             className="fixed bottom-0 right-0 z-50 flex max-h-[88vh] w-full flex-col rounded-t-2xl border border-slate-200 bg-white p-4 text-slate-950 shadow-2xl shadow-slate-950/15 sm:max-w-xl lg:bottom-4 lg:right-4 lg:top-[5.25rem] lg:max-h-none lg:rounded-2xl"
           >
             <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
@@ -914,7 +1056,7 @@ function DetailDrawer(props: {
                 <p className="text-xs font-black text-teal-700">工作抽屜</p>
                 <h2 className="text-2xl font-black">{panelTitle(panel)}</h2>
               </div>
-              <button onClick={props.onClose} className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700">
+              <button onClick={props.onClose} aria-label="關閉工作面板" className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -944,6 +1086,9 @@ function AlertsPanel({state, selectedAlert, setSelectedAlert, dispatch, onHardwa
         <MetricTile label="處理中" value={processingCount} />
       </div>
       <div className="space-y-3">
+        {state.alerts.length === 0 && (
+          <p className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-6 text-center text-sm font-semibold text-slate-400">目前無待處理提醒 ✓</p>
+        )}
         {state.alerts.map((alert) => (
           <AlertRow key={alert.id} alert={alert} onOpen={() => setSelectedAlert(alert)} />
         ))}
@@ -990,7 +1135,7 @@ function SensingPanel({
           <MiniMetric label="狀態" value={currentAcoustic.level === 'elevated' ? '偏高' : currentAcoustic.level === 'active' ? '活動' : '平穩'} />
         </div>
         <p className="mt-4 text-sm font-semibold leading-6 text-slate-600">{currentAcoustic.summary}</p>
-        <input value={acousticLocation} onChange={(event) => setAcousticLocation(event.target.value)} className="mt-4 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />
+        <input value={acousticLocation} onChange={(event) => setAcousticLocation(event.target.value)} aria-label="感測位置" placeholder="例：穿堂、教室等位置" className="mt-4 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />
         <div className="mt-3 grid grid-cols-3 gap-2">
           <button onClick={() => onRecordAcoustic({source: micActive ? 'microphone' : 'demo', location: acousticLocation, ...currentAcoustic})} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-700">
             記錄
@@ -1025,11 +1170,13 @@ function CarePanel({
   postContent,
   setPostContent,
   onAddPost,
+  postBusy,
   message,
   setMessage,
   onSendMessage,
   chatBusy,
 }: Parameters<typeof DetailDrawer>[0]) {
+  const [counselingInfoVisible, setCounselingInfoVisible] = useState(false);
   return (
     <div className="space-y-4">
       <GlassPanel>
@@ -1055,13 +1202,33 @@ function CarePanel({
             </button>
           ))}
         </div>
-        <textarea value={postContent} onChange={(event) => setPostContent(event.target.value)} className="mt-3 min-h-24 w-full rounded-xl border border-slate-200 bg-white p-4 text-sm font-semibold outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="匿名寫下一句支持自己的話..." />
-        <button onClick={onAddPost} className="mt-3 min-h-11 w-full rounded-xl bg-teal-600 text-sm font-black text-white">發表葉子</button>
+        <textarea value={postContent} onChange={(event) => setPostContent(event.target.value)} maxLength={500} aria-label="匿名留言" className="mt-3 min-h-24 w-full rounded-xl border border-slate-200 bg-white p-4 text-sm font-semibold outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="匿名寫下一句支持自己的話..." />
+        <p className="text-right text-xs text-gray-400 mt-0.5">{postContent.length} / 500</p>
+        <button onClick={onAddPost} disabled={!postContent.trim() || postBusy} className="mt-3 min-h-11 w-full rounded-xl bg-teal-600 text-sm font-black text-white disabled:opacity-50 disabled:cursor-not-allowed">發表葉子</button>
         <div className="mt-4 space-y-2">
+          {state.forestPosts.length === 0 && (
+            <div className="text-center py-8 text-gray-400">
+              <p className="text-3xl mb-2">🌳</p>
+              <p className="text-sm">心靈森林正在生長...</p>
+              <p className="text-xs mt-1">分享一個感受，種下第一片葉子</p>
+            </div>
+          )}
           {state.forestPosts.slice(0, 3).map((post) => (
-            <div key={post.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p className="text-sm font-semibold leading-6 text-slate-700">{post.content}</p>
-              <p className="mt-2 text-xs font-black text-teal-700">支持 · {post.likes}</p>
+            <div key={post.id} className="rounded-xl border border-green-100 bg-linear-to-br from-green-50 to-emerald-50 p-3">
+              <div className="flex items-start gap-2">
+                <span className="text-lg leading-none mt-0.5">🌿</span>
+                <p className="text-sm font-semibold leading-6 text-gray-700 flex-1 line-clamp-4">{post.content}</p>
+              </div>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-xs font-black text-teal-700">🌱 {post.likes} 人支持</p>
+                <p className="text-xs text-gray-400">{post.createdAt}</p>
+              </div>
+              {post.botReply && (
+                <div className="mt-2 flex items-start gap-1.5 rounded-lg bg-white/70 border border-teal-100 px-2.5 py-2">
+                  <span className="text-sm leading-none mt-0.5">🤝</span>
+                  <p className="text-xs font-medium text-teal-800 leading-5">{post.botReply}</p>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -1070,17 +1237,58 @@ function CarePanel({
       <GlassPanel>
         <h3 className="text-xl font-black text-slate-950">安全空間聊天</h3>
         <div className="mt-4 flex h-80 flex-col rounded-xl border border-slate-200 bg-slate-50">
-          <div className="flex-1 space-y-3 overflow-y-auto p-3">
-            {state.supportMessages.map((item) => (
-              <div key={item.id} className={`max-w-[86%] rounded-xl px-4 py-3 text-sm font-semibold leading-6 ${item.role === 'student' ? 'ml-auto bg-teal-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>
-                {item.content}
-              </div>
+          <ChatScrollContainer messages={state.supportMessages}>
+            {state.supportMessages.map((item, index) => (
+              item.role === 'student' ? (
+                <div key={item.id} className="ml-auto max-w-[86%] rounded-xl px-4 py-3 text-sm font-semibold leading-6 bg-teal-600 text-white wrap-break-word">
+                  {item.content}
+                </div>
+              ) : (
+                <div key={item.id} className="max-w-[86%]">
+                  <div className="flex items-start gap-2">
+                    <div className="shrink-0 w-7 h-7 rounded-full bg-teal-100 flex items-center justify-center text-sm">
+                      🤝
+                    </div>
+                    <div className="border border-teal-200 bg-teal-50 text-slate-700 rounded-xl px-3 py-2 text-sm font-semibold leading-6 flex-1 wrap-break-word">
+                      {item.content}
+                    </div>
+                  </div>
+                  {index > 0 && isCrisisMessage(state.supportMessages[index - 1]?.content ?? '') && (
+                    <div className="mt-2 ml-9 rounded-xl border border-red-200 bg-red-50 p-3 text-sm">
+                      <p className="font-semibold text-red-700 mb-2">🆘 需要立即幫助？</p>
+                      <div className="flex flex-col gap-1.5">
+                        <a
+                          href="tel:1925"
+                          className="flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-white font-medium hover:bg-red-700 transition-colors"
+                        >
+                          📞 撥打安心專線 1925
+                        </a>
+                        <button
+                          type="button"
+                          className="flex items-center gap-2 rounded-lg bg-white border border-red-300 px-3 py-2 text-red-700 font-medium hover:bg-red-50 transition-colors"
+                          onClick={() => setCounselingInfoVisible((v) => !v)}
+                        >
+                          🏫 前往輔導室尋求幫助
+                        </button>
+                        {counselingInfoVisible && (
+                          <p className="rounded-lg bg-white border border-red-200 px-3 py-2 text-xs text-red-700 font-medium">
+                            輔導室在教學大樓 2 樓，老師隨時歡迎你來談談。
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
             ))}
-            {chatBusy && <div className="w-fit rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-500">整理回覆中...</div>}
-          </div>
+            {chatBusy && <div className="w-fit rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-500 animate-pulse">守護者正在回覆中...</div>}
+          </ChatScrollContainer>
           <div className="flex gap-2 border-t border-slate-200 p-3">
-            <input value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && onSendMessage()} className="min-h-11 flex-1 rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-teal-100" placeholder="輸入今天想說的心情..." />
-            <button onClick={onSendMessage} disabled={chatBusy || !message.trim()} className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-600 text-white disabled:opacity-40">
+            <div className="flex flex-col flex-1">
+              <input value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && !chatBusy && !!message.trim() && onSendMessage()} maxLength={300} aria-label="心情輸入" className="min-h-11 w-full rounded-xl bg-white px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-teal-100" placeholder="輸入今天想說的心情..." />
+              <p className="text-right text-xs text-gray-400 mt-0.5">{message.length} / 300</p>
+            </div>
+            <button onClick={onSendMessage} disabled={chatBusy || !message.trim()} aria-label="傳送訊息" className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-600 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-opacity">
               <Send className="h-5 w-5" />
             </button>
           </div>
@@ -1126,6 +1334,9 @@ function NodesPanel({state, zones, robotFeedback, onRestartNode, onDispatchRobot
       <GlassPanel>
         <h3 className="text-xl font-black text-slate-950">節點狀態</h3>
         <div className="mt-4 space-y-3">
+          {state.nodes.length === 0 && (
+            <p className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-5 text-center text-sm font-semibold text-slate-400">尚無節點</p>
+          )}
           {state.nodes.map((node) => (
             <NodeRow key={node.id} node={node} onRestart={() => onRestartNode(node.id)} />
           ))}
@@ -1143,7 +1354,7 @@ function LogsPanel({state, robotFeedback}: Parameters<typeof DetailDrawer>[0]) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-black text-slate-500">連動狀態</p>
-            <h3 className="mt-1 text-xl font-black text-slate-950">{robotFeedback ? `${robotFeedback.zoneName} 派遣中` : latestHardware?.status === 'sent' ? '硬體已接收' : '備援流程可展示'}</h3>
+            <h3 className="mt-1 text-xl font-black text-slate-950">{robotFeedback ? `${robotFeedback.zoneName} 派遣中` : latestHardware?.status === 'sent' ? '硬體已接收' : '智慧派遣就緒'}</h3>
           </div>
           <Bot className={`h-6 w-6 ${robotFeedback ? 'animate-pulse text-teal-700' : 'text-slate-400'}`} />
         </div>
@@ -1154,10 +1365,13 @@ function LogsPanel({state, robotFeedback}: Parameters<typeof DetailDrawer>[0]) {
       <GlassPanel>
         <h3 className="text-xl font-black text-slate-950">硬體提示紀錄</h3>
         <div className="mt-4 space-y-3">
+          {state.hardwareEvents.length === 0 && (
+            <p className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-5 text-center text-sm font-semibold text-slate-400">尚無硬體事件</p>
+          )}
           {state.hardwareEvents.slice(0, 8).map((event) => (
             <div key={event.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="truncate font-black text-slate-950">{event.command}</p>
+                <p className="min-w-0 flex-1 truncate font-black text-slate-950" title={event.command}>{event.command}</p>
                 <span className={`rounded-full px-2 py-1 text-[10px] font-black ${event.status === 'sent' ? 'bg-teal-100 text-teal-700' : 'bg-amber-100 text-amber-700'}`}>
                   {event.status === 'sent' ? '已送' : '備援'}
                 </span>
@@ -1184,52 +1398,6 @@ function LogsPanel({state, robotFeedback}: Parameters<typeof DetailDrawer>[0]) {
   );
 }
 
-function DemoGuide({open, onClose}: {open: boolean; onClose: () => void}) {
-  return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.button className="fixed inset-0 z-[60] bg-slate-950/30 backdrop-blur-sm" initial={{opacity: 0}} animate={{opacity: 1}} exit={{opacity: 0}} onClick={onClose} aria-label="關閉展示導覽" />
-          <motion.div
-            initial={{opacity: 0, y: 24, scale: 0.98}}
-            animate={{opacity: 1, y: 0, scale: 1}}
-            exit={{opacity: 0, y: 24, scale: 0.98}}
-            className="fixed left-1/2 top-1/2 z-[70] w-[min(42rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-6 text-slate-950 shadow-2xl shadow-slate-950/15"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-black text-teal-700">操作導覽</p>
-                <h2 className="mt-2 text-2xl font-black">10 秒上手主流程</h2>
-              </div>
-              <button onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {[
-                {title: '看地圖，找風險', desc: '主畫面地圖顯示各區域風險、聲量與提醒數'},
-                {title: '指派機器人介入', desc: '點選中高風險區，按派遣按鈕送出關懷指令'},
-                {title: '預警抽屜', desc: '選一筆提醒，勾選處置清單，更新處理狀態'},
-                {title: '感知抽屜', desc: '啟用麥克風偵測或按示範訊號，建立聲量提醒'},
-                {title: '照護抽屜', desc: '心情簽到、匿名心情牆、安全空間聊天'},
-                {title: '節點抽屜', desc: '查看節點狀態，一鍵重新連線離線節點'},
-                {title: '紀錄抽屜', desc: '確認機器人任務、硬體提示與支持方案'},
-                {title: '匯出與重置', desc: '匯出 JSON 留存展示資料，或重置回初始狀態'},
-              ].map(({title, desc}, index) => (
-                <div key={title} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs font-black text-teal-700">0{index + 1}</p>
-                  <p className="mt-1 text-sm font-bold leading-5 text-slate-800">{title}</p>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">{desc}</p>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
-}
-
 function Toast({message}: {message: string | null}) {
   return (
     <AnimatePresence>
@@ -1250,15 +1418,16 @@ function Toast({message}: {message: string | null}) {
   );
 }
 
-function MapGrid2D() {
+function ChatScrollContainer({messages, children}: {messages: unknown[]; children: ReactNode}) {
+  const endRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({behavior: 'smooth'});
+  }, [messages.length]);
   return (
-    <>
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(15,23,42,.045)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,.045)_1px,transparent_1px)] bg-[size:32px_32px]" />
-      <div className="absolute left-[8%] top-[10%] h-[28%] w-[26%] -skew-y-3 rounded-xl border border-slate-200 bg-white/70 shadow-sm" />
-      <div className="absolute left-[8%] bottom-[10%] h-[32%] w-[27%] skew-y-2 rounded-xl border border-slate-200 bg-white/70 shadow-sm" />
-      <div className="absolute right-[8%] top-[18%] h-[62%] w-[22%] -skew-y-2 rounded-xl border border-slate-200 bg-white/70 shadow-sm" />
-      <div className="absolute left-[40%] top-[28%] h-[28%] w-[17%] skew-y-1 rounded-xl border border-slate-200 bg-white/60 shadow-sm" />
-    </>
+    <div className="flex-1 space-y-3 overflow-y-auto p-3">
+      {children}
+      <div ref={endRef} />
+    </div>
   );
 }
 
@@ -1307,7 +1476,7 @@ function StatusLine({label, value, icon: Icon, tone = 'teal'}: {key?: unknown; l
 }
 
 function StatusChip({level}: {level: 'high' | 'medium' | 'low'}) {
-  const label = level === 'high' ? '危險' : level === 'medium' ? '注意' : '穩定';
+  const label = level === 'high' ? '高風險 ⚠' : level === 'medium' ? '注意' : '安全';
   const tone = level === 'high' ? 'border-rose-200 bg-rose-50 text-rose-700' : level === 'medium' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700';
   return <span className={`rounded-full border px-3 py-1 text-xs font-black ${tone}`}>{label}</span>;
 }

@@ -15,6 +15,8 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
   const [chatReply, setChatReply] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [currentSubject, setCurrentSubject] = useState<string>('');
+  const SUBJECTS = ['數學', '語文', '自然', '社會', '英語', '體育', '藝術'];
   const [focusScore, setFocusScore] = useState(87);
   const [waveData, setWaveData] = useState([40, 60, 85, 70, 90, 55, 45, 30]);
 
@@ -41,11 +43,17 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
     const question = chatInput;
     setChatInput('');
     setIsTyping(true);
-    const reply = await generateTeacherReply(question);
-    setIsTyping(false);
-    setChatReply(reply);
-    actions.addTeacherReply({ signalId: activeStudent.id, reply });
-    showToast('本地 AI 已產生並發送回覆');
+    try {
+      const reply = await generateTeacherReply(question, currentSubject || undefined);
+      setIsTyping(false);
+      setChatReply(reply);
+      actions.addTeacherReply({ signalId: activeStudent.id, reply });
+      showToast('本地 AI 已產生並發送回覆');
+    } catch (err) {
+      setIsTyping(false);
+      // show user-visible error in the chat
+      setChatReply('AI 暫時無法回應，請稍後再試。');
+    }
   };
 
   const handleAlertAction = (actionMsg: string) => {
@@ -56,9 +64,13 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
   };
 
   const downloadReport = async () => {
-    await openPrintableReport({ state, kind: 'class', title: '101 教室歷史課報告' });
-    showToast('已開啟可列印報表');
-    setModal(null);
+    try {
+      await openPrintableReport({ state, kind: 'class', title: '101 教室歷史課報告' });
+      showToast('已開啟可列印報表');
+      setModal(null);
+    } catch {
+      showToast('報表匯出失敗，請稍後再試');
+    }
   };
 
   const handleRollCall = () => {
@@ -81,7 +93,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       </div>
 
       {/* Attendance & Roll Call */}
-      <section className="bg-surface-container-lowest rounded-[2.5rem] p-7 border border-outline-variant/30 shadow-md flex items-center justify-between gap-5 relative overflow-hidden group">
+      <section data-tour="attendance-card" className="bg-surface-container-lowest rounded-[2.5rem] p-7 border border-outline-variant/30 shadow-md flex items-center justify-between gap-5 relative overflow-hidden group">
          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
         <div className="flex-1 min-w-0 relative z-10">
            <p className="text-[11px] font-bold text-on-surface-variant tracking-[0.2em] mb-2">出缺席場域評估</p>
@@ -109,7 +121,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
         </button>
       </section>
 
-      <div className="bg-surface-container-lowest rounded-[2.5rem] p-8 relative overflow-hidden shadow-md border border-outline-variant/30 cursor-pointer hover:bg-surface-container transition-all group active:scale-[0.98]" onClick={() => setModal('chart')}>
+      <div role="button" tabIndex={0} aria-label="開啟班級專注度分析報表" onKeyDown={(e) => e.key === 'Enter' && setModal('chart')} className="bg-surface-container-lowest rounded-[2.5rem] p-8 relative overflow-hidden shadow-md border border-outline-variant/30 cursor-pointer hover:bg-surface-container transition-all group active:scale-[0.98]" onClick={() => setModal('chart')}>
           <div className="flex justify-between items-start mb-8 relative z-10">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-on-surface-variant font-mono">班級專注度評分</p>
@@ -144,10 +156,12 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
         </div>
 
       {/* AI Signals */}
-      <section className="space-y-5">
+      <section data-tour="alert-list" className="space-y-5">
         <div className="flex items-center justify-between">
             <h3 className="font-headline font-bold text-2xl tracking-wide flex items-center gap-2">即時告警與訊號 <span className="text-xs bg-error/10 text-error px-2 py-0.5 rounded-full font-bold ml-1">{state.teachingSignals.length}</span></h3>
-            <button className="text-primary text-sm font-bold active:scale-95 transition-all">查看全部</button>
+            {state.teachingSignals.length > 3 && (
+              <span className="text-primary/60 text-sm font-medium">共 {state.teachingSignals.length} 則</span>
+            )}
         </div>
         {state.teachingSignals.length === 0 ? (
            <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-[2rem] p-10 text-center text-on-surface-variant font-medium text-[15px] shadow-sm">
@@ -182,7 +196,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       </section>
 
       {/* Video Feed */}
-      <section onClick={() => setModal('video')} className="bg-inverse-surface rounded-[2.5rem] h-[320px] relative overflow-hidden shadow-2xl cursor-pointer group mt-10">
+      <section role="button" tabIndex={0} aria-label="開啟攝影機即時影像" onKeyDown={(e) => e.key === 'Enter' && setModal('video')} onClick={() => setModal('video')} className="bg-inverse-surface rounded-[2.5rem] h-80 relative overflow-hidden shadow-2xl cursor-pointer group mt-10">
         <div className="w-full h-full group-hover:scale-105 transition-transform duration-1000" style={{background: 'linear-gradient(135deg, #0d2137 0%, #1e3a5f 50%, #0a1a2e 100%)'}} />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
         {/* Simulating Bounding Boxes */}
@@ -212,7 +226,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
           <div className="p-4 flex flex-col h-[65vh] min-h-[450px]">
             <div className="flex-1 overflow-y-auto space-y-6 pt-3 custom-scrollbar pr-2 mb-2">
               <div className="bg-surface-container p-6 rounded-[1.75rem] rounded-tl-[4px] text-[16px] w-[90%] text-on-surface shadow-sm leading-relaxed border border-outline-variant/30">
-                <span className="text-[11px] text-on-surface-variant font-bold block mb-2 tracking-[0.2em] uppercase font-mono">10:41 AM</span>
+                <span className="text-[11px] text-on-surface-variant font-bold block mb-2 tracking-widest font-mono">{new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(activeStudent.createdAt))}</span>
                 <p className="font-medium">{activeStudent.message}</p>
               </div>
               {isTyping && (
@@ -255,20 +269,39 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
               </div>
             )}
 
+            <div className="flex flex-wrap gap-1 mb-2">
+              {SUBJECTS.map(s => (
+                <button
+                  key={s}
+                  onClick={() => setCurrentSubject(prev => prev === s ? '' : s)}
+                  className={`px-3 py-2 min-h-11 text-xs rounded-full border transition-colors ${
+                    currentSubject === s
+                      ? 'bg-indigo-500 text-white border-indigo-500'
+                      : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+
             <div className="flex gap-3 pt-4 border-t border-outline-variant/30 items-center">
               <input
                 type="text"
                 value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSendChat()}
+                onChange={(e) => setChatInput(e.target.value.slice(0, 500))}
+                onKeyDown={(e) => e.key === 'Enter' && !isTyping && handleSendChat()}
+                maxLength={500}
                 className="flex-1 rounded-[1.75rem] bg-surface-container border border-outline-variant/50 px-6 py-5 text-[16px] focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium placeholder-on-surface-variant/60"
                 placeholder="輸入 AI 輔助回覆..."
                 disabled={isTyping}
+                aria-label="輸入 AI 輔助回覆"
               />
               <button
                 onClick={handleSendChat}
-                disabled={isTyping}
-                className={`w-16 h-16 rounded-[1.75rem] flex items-center justify-center shrink-0 transition-colors ${chatInput.trim() && !isTyping ? 'bg-primary text-white shadow-[0_4px_15px_rgba(var(--color-primary),0.3)] active:scale-90 hover:bg-primary/95' : 'bg-surface-container border border-outline-variant/30 text-on-surface-variant'}`}
+                disabled={!chatInput.trim() || isTyping}
+                className={`w-16 h-16 rounded-[1.75rem] flex items-center justify-center shrink-0 transition-colors ${chatInput.trim() && !isTyping ? 'bg-primary text-white shadow-[0_4px_15px_rgba(var(--color-primary),0.3)] active:scale-90 hover:bg-primary/95 cursor-pointer' : 'bg-surface-container border border-outline-variant/30 text-on-surface-variant cursor-not-allowed opacity-50'}`}
+                aria-label="送出 AI 回覆"
               >
                 <Send size={24} className={chatInput.trim() && !isTyping ? "translate-x-[-1px] translate-y-[1px]" : ""} />
               </button>
@@ -357,7 +390,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
                <div className="flex justify-between items-end">
                  <div>
                    <h3 className="text-white font-headline font-bold text-xl drop-shadow-md">101 教室 - 前置全景</h3>
-                   <p className="text-white/70 text-sm font-medium mt-1 font-mono">視覺系統運作中 v2.4.1</p>
+                   <p className="text-white/70 text-sm font-medium mt-1 font-mono">視覺系統監控中</p>
                  </div>
                  <div className="bg-error/80 backdrop-blur text-white px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg">
                    <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div> 實況錄製

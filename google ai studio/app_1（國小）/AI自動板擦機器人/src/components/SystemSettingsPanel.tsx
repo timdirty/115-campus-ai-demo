@@ -80,7 +80,7 @@ export default function SystemSettingsPanel({onClose}: SystemSettingsPanelProps)
     setActionBusy('import');
     setMessage(null);
     try {
-      const text = await file.text();
+      const text = (await file.text()).trim();
       const payload = JSON.parse(text);
       const result = await importAppData(payload);
       window.dispatchEvent(new CustomEvent('whiteboard-notes-updated'));

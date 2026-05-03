@@ -45,6 +45,12 @@ export function isArduinoLikePort(port: PortInfo) {
 
 async function choosePortPath(requestedPath?: string) {
   if (requestedPath) {
+    // Reject obviously non-hardware ports passed from the frontend
+    if (/debug-console|bluetooth/i.test(requestedPath)) {
+      const ports = await listPorts();
+      const likelyArduino = ports.find(isArduinoLikePort);
+      if (likelyArduino) return likelyArduino.path;
+    }
     return requestedPath;
   }
 
@@ -109,6 +115,14 @@ async function waitForSerialResponse(port: SerialPort, timeoutMs = 1800) {
     const timer = setTimeout(finish, timeoutMs);
     port.on('data', onData);
   });
+}
+
+export async function sendSerialCommandDrive(command: string, requestedPath?: string) {
+  const port = await getPort(requestedPath);
+  await new Promise<void>((resolve, reject) => {
+    port.write(`${command}\n`, (error) => (error ? reject(error) : resolve()));
+  });
+  return {port: activePath};
 }
 
 export async function sendSerialCommand(command: string, requestedPath?: string) {

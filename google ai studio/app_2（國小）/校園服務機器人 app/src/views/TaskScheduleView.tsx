@@ -12,13 +12,16 @@ export function TaskScheduleView({ goBack, showToast }: any) {
   const [area, setArea] = useState(schedule?.area ?? '所有走廊與公共區');
 
   const toggleDay = (d: number) => {
-    setSelectedDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
+    setSelectedDays(prev => {
+      if (prev.includes(d) && prev.length === 1) return prev;
+      return prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d];
+    });
   };
 
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b border-outline-variant/20 px-4 py-4 flex items-center justify-between">
-        <button onClick={goBack} className="p-2 rounded-full bg-surface-container-low active:scale-95 transition-transform text-on-surface">
+        <button aria-label="返回" onClick={goBack} className="p-2 rounded-full bg-surface-container-low active:scale-95 transition-transform text-on-surface">
           <ArrowLeft size={24} />
         </button>
         <h1 className="font-headline font-bold text-xl absolute left-1/2 -translate-x-1/2">排程管理</h1>

@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {motion} from 'motion/react';
 import {AlertTriangle, Bot, Brain, CheckCircle2, ClipboardCheck, Eraser, Loader2, Pause, Radio, RefreshCw, ShieldCheck, Sparkles, Users} from 'lucide-react';
 import {BoardRegion, ClassroomSession, loadClassroomSession, saveClassroomSession, sendRobotTask} from '../services/classroomApi';
@@ -29,6 +29,13 @@ export default function TeacherDashboard() {
   const [robotTaskId, setRobotTaskId] = useState('');
   const [hardwareNotice, setHardwareNotice] = useState('硬體控制是選配展示：沒有接 UNO R4 WiFi 時會保留操作紀錄，不會中斷課堂流程。');
   const [notice, setNotice] = useState('正在讀取課堂狀態...');
+  const robotResetTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (robotResetTimerRef.current) clearTimeout(robotResetTimerRef.current);
+    };
+  }, []);
 
   const loadSession = async () => {
     try {
@@ -126,7 +133,8 @@ export default function TeacherDashboard() {
       setNotice(`課堂決策仍可展示；${message}`);
     } finally {
       setHardwareBusy('');
-      window.setTimeout(() => {
+      if (robotResetTimerRef.current) clearTimeout(robotResetTimerRef.current);
+      robotResetTimerRef.current = window.setTimeout(() => {
         setRobotStage('idle');
         setRobotTarget(undefined);
         setRobotTaskId('');
@@ -155,7 +163,7 @@ export default function TeacherDashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 sm:gap-6">
-            <motion.section variants={itemVariants} className="xl:col-span-4 bg-surface-container-low rounded-3xl p-5 sm:p-7 border border-outline-variant/10 shadow-premium">
+            <motion.section variants={itemVariants} className="xl:col-span-4 bg-surface-container-low rounded-3xl p-5 sm:p-7 border border-outline-variant/10 shadow-premium" data-tour="class-stats">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-extrabold">班級學習狀態</h2>
@@ -176,7 +184,7 @@ export default function TeacherDashboard() {
               </div>
             </motion.section>
 
-            <motion.section variants={itemVariants} className="xl:col-span-5 bg-surface-container-high rounded-3xl p-5 sm:p-7 border border-outline-variant/10">
+            <motion.section variants={itemVariants} className="xl:col-span-5 bg-surface-container-high rounded-3xl p-5 sm:p-7 border border-outline-variant/10" data-tour="board-regions">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-extrabold">白板區塊決策</h2>
@@ -208,7 +216,7 @@ export default function TeacherDashboard() {
                   className={`board-robot-marker absolute z-20 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl border bg-surface-container-lowest text-primary shadow-premium ${robotStage !== 'idle' ? 'board-robot-active' : ''} ${robotTarget === 'ALL' ? 'board-robot-sweep' : ''}`}
                 >
                   <Bot className="h-7 w-7" />
-                  <span className="absolute -right-2 -top-2 rounded-full bg-primary px-2 py-0.5 text-[9px] font-black text-on-primary">E-01</span>
+                  <span className="absolute -right-2 -top-2 rounded-full bg-primary px-2 py-0.5 text-[9px] font-black text-on-primary">{robotTaskId || 'E-01'}</span>
                   {robotStage !== 'idle' && <span className="absolute h-20 w-20 rounded-full border-2 border-primary/30" />}
                 </motion.div>
               </div>

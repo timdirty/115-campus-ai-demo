@@ -12,17 +12,23 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
   const isEmergency = state.campusStatus.isEmergency;
   const remindWarning = state.settings.remindWarning;
 
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const sensorsRef = useRef(sensors);
+  useEffect(() => { sensorsRef.current = sensors; }, [sensors]);
+
   useEffect(() => {
-    // Dynamic sensors fluctuation
+    // Dynamic sensors fluctuation — use ref to avoid re-creating interval on every tick
     const intv = setInterval(() => {
+      const s = sensorsRef.current;
       actions.tickSensors({
-        temp: +(sensors.temp + (Math.random() * 0.4 - 0.2)).toFixed(1),
-        hum: Math.max(0, Math.min(100, Math.round(sensors.hum + (Math.random() * 2 - 1)))),
-        aqi: Math.max(0, Math.round(sensors.aqi + (Math.random() * 4 - 2))),
+        temp: +(s.temp + (Math.random() * 0.4 - 0.2)).toFixed(1),
+        hum: Math.max(0, Math.min(100, Math.round(s.hum + (Math.random() * 2 - 1)))),
+        aqi: Math.max(0, Math.round(s.aqi + (Math.random() * 4 - 2))),
       });
+      setLastUpdated(new Date());
     }, 3000);
     return () => clearInterval(intv);
-  }, [actions, sensors]);
+  }, [actions]);
   const [robotDispatched, setRobotDispatched] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState('');
   const [editTime, setEditTime] = useState('');
@@ -36,7 +42,11 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
   };
 
   const handleSaveSchedule = () => {
-    actions.saveSchedule({ id: editingSchedule, time: editTime, area: editArea });
+    if (!editTime.trim() || !editArea.trim()) {
+      showToast('時間和區域不能為空');
+      return;
+    }
+    actions.saveSchedule({ id: editingSchedule, time: editTime.trim(), area: editArea.trim() });
     showToast('任務排程設定已更新');
     setModal(null);
   };
@@ -59,8 +69,12 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
         <div className="flex justify-between items-start">
           <h2 className="font-headline text-4xl font-bold text-on-surface tracking-tight">校園生活智慧中心</h2>
           <motion.div
+            role="button"
+            tabIndex={0}
+            aria-label="查看系統日誌"
             whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
             onClick={() => setModal('logs')}
+            onKeyDown={(e) => e.key === 'Enter' && setModal('logs')}
             className="bg-surface-container-low p-2 rounded-2xl border border-outline-variant/30 shadow-sm cursor-pointer hover:bg-surface-container transition-all flex items-center justify-center group"
           >
              <Terminal size={20} className="text-on-surface-variant group-hover:text-primary transition-colors" />
@@ -82,6 +96,9 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
 
       {/* Environmental Sensors */}
       <section className="grid grid-cols-2 gap-5 mb-8 px-1">
+        <p className="col-span-2 text-xs text-gray-400 text-right -mb-2">
+          更新於 {lastUpdated.getHours().toString().padStart(2, '0')}:{lastUpdated.getMinutes().toString().padStart(2, '0')}
+        </p>
         {[
           { icon: Thermometer, label: '室內溫度', val: sensors.temp, unit: '°C', color: isEmergency?'text-error':'text-primary', bg: 'bg-primary/5' },
           { icon: Droplets, label: '環境濕度', val: sensors.hum, unit: '%', color: isEmergency?'text-error':'text-[#4a80db]', bg: 'bg-primary/5' },
@@ -89,10 +106,10 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
           { icon: Activity, label: '環境通風', val: isEmergency?'封閉':'良好', unit: '', color: isEmergency?'text-error':'text-tertiary', bg: 'bg-tertiary/5' }
         ].map((sensor, i) => (
           <motion.div
-            whileHover={{ y: -4, shadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}
+            whileHover={{ y: -4, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}
             whileTap={{ scale: 0.98 }}
             onClick={() => showToast(`正在同步 ${sensor.label} 感測器資料...`)}
-            key={i}
+            key={sensor.label}
             className={`bg-surface-container-lowest p-6 rounded-[2.2rem] border transition-all cursor-pointer flex flex-col items-start gap-5 relative overflow-hidden group ${isEmergency ? 'border-error/40 bg-error/5 shadow-inner' : 'border-outline-variant/30 shadow-[0_4px_20px_rgba(0,0,0,0.02)]'}`}
           >
              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border border-outline-variant/10 shadow-sm transition-transform group-hover:scale-110 ${sensor.bg} ${sensor.color}`}>
@@ -107,7 +124,7 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
         ))}
       </section>
 
-      <section className="grid grid-cols-1 gap-6 px-1">
+      <section data-tour="life-services" className="grid grid-cols-1 gap-6 px-1">
         {/* Emergency Broadcasting Toggle */}
         <div className={`rounded-[2.5rem] p-8 shadow-xl transition-all duration-500 border ${isEmergency ? 'bg-error text-white border-error shadow-error/30' : 'bg-surface-container-low border-outline-variant/30 shadow-[0_8px_30px_rgba(0,0,0,0.02)]'}`}>
           <div className="flex items-center justify-between mb-4">
@@ -306,8 +323,8 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
 
            <div className="space-y-2">
              <div className="text-[10px] text-primary/40 font-bold mb-4 italic px-2">本次展示紀錄</div>
-             {state.logs.map((log, i) => (
-                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} key={i} className={`flex gap-3 group/log p-2 rounded-lg transition-colors hover:bg-white/5 ${log.type === 'warn' ? 'text-tertiary shadow-[inset_4px_0_0_rgba(var(--color-tertiary),1)]' : log.type === 'error' ? 'text-error shadow-[inset_4px_0_0_rgba(var(--color-error),1)]' : 'text-[#a9b1d6] shadow-[inset_4px_0_0_rgba(255,255,255,0.1)]'}`}>
+             {state.logs.map((log) => (
+                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} key={log.id} className={`flex gap-3 group/log p-2 rounded-lg transition-colors hover:bg-white/5 ${log.type === 'warn' ? 'text-tertiary shadow-[inset_4px_0_0_rgba(var(--color-tertiary),1)]' : log.type === 'error' ? 'text-error shadow-[inset_4px_0_0_rgba(var(--color-error),1)]' : 'text-[#a9b1d6] shadow-[inset_4px_0_0_rgba(255,255,255,0.1)]'}`}>
                    <span className="opacity-30 font-bold shrink-0">{log.time}</span>
                    <span className="flex-1 font-medium select-all">{log.message}</span>
                 </motion.div>

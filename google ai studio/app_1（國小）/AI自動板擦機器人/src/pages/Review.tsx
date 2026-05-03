@@ -32,8 +32,15 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
       if (!activeRecord && loadedNotes[0]) {
         setActiveRecord(loadedNotes[0].id);
       }
-    });
+    }).catch(() => {});
   }, []);
+
+  // Auto-select first note whenever the notes list changes and nothing is selected yet
+  useEffect(() => {
+    if (!activeRecord && notes.length > 0) {
+      setActiveRecord(notes[0].id);
+    }
+  }, [notes]);
 
   const handleGenerate = async () => {
     const selectedNote = notes.find((note) => note.id === activeRecord) ?? notes[0];
@@ -142,14 +149,18 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
                     {notes.map((note) => (
                       <RecordItem key={note.id} title={note.title} meta={`${note.date} • ${note.subject}`} active={activeRecord===note.id} onClick={() => setActiveRecord(note.id)} />
                     ))}
-                    {notes.length === 0 && (
-                      <div className="p-6 rounded-[1.5rem] bg-surface border border-outline-variant/20 text-sm text-on-surface-variant">
-                        尚無可生成的課堂紀錄。
-                      </div>
+                    {notes.length === 0 ? (
+                      <button onClick={() => onNavigate('library')} className="w-full p-8 rounded-[1.5rem] bg-primary/5 border-2 border-dashed border-primary/30 flex flex-col items-center gap-3 hover:bg-primary/10 transition-all group/empty">
+                        <span className="text-3xl">📋</span>
+                        <p className="text-sm font-bold text-primary">尚無課堂紀錄</p>
+                        <p className="text-xs text-on-surface-variant text-center">點此前往課堂紀錄本，拍下白板或新增筆記，<br/>再回來生成小測驗或學習單。</p>
+                        <span className="mt-1 text-xs font-extrabold text-primary flex items-center gap-1 group-hover/empty:gap-2 transition-all"><FileSymlink className="w-4 h-4"/> 前往課堂紀錄本</span>
+                      </button>
+                    ) : (
+                      <button onClick={() => onNavigate('library')} className="w-full p-6 border-2 border-dashed border-outline-variant/30 rounded-[1.5rem] text-on-surface-variant font-bold flex items-center justify-center gap-2 hover:bg-surface-container-low transition-all">
+                        <FileSymlink className="w-5 h-5"/> 前往課堂紀錄本新增或選擇內容
+                      </button>
                     )}
-                    <button onClick={() => onNavigate('library')} className="w-full p-6 border-2 border-dashed border-outline-variant/30 rounded-[1.5rem] text-on-surface-variant font-bold flex items-center justify-center gap-2 hover:bg-surface-container-low transition-all">
-                      <FileSymlink className="w-5 h-5"/> 前往課堂紀錄本新增或選擇內容
-                    </button>
                   </div>
                 </div>
               </div>
@@ -174,11 +185,11 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
                      </div>
                    </div>
 
-                   <button onClick={handleGenerate} disabled={notes.length === 0} className="w-full mt-10 bg-primary text-on-primary font-extrabold text-lg py-5 rounded-[1.5rem] shadow-premium hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 group overflow-hidden relative disabled:opacity-50">
+                   <button onClick={handleGenerate} disabled={notes.length === 0} className="w-full mt-10 bg-primary text-on-primary font-extrabold text-lg py-5 rounded-[1.5rem] shadow-premium hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 group overflow-hidden relative disabled:opacity-50 disabled:cursor-not-allowed">
                      <div className="absolute inset-0 bg-white/10 translate-y-full hover:translate-y-0 transition-transform duration-500"></div>
                      <Sparkles className="w-5 h-5 fill-current relative z-10" />
-                     <span className="relative z-10">開始生成</span>
-                     <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
+                     <span className="relative z-10">{notes.length === 0 ? '尚無課堂紀錄' : '開始生成'}</span>
+                     {notes.length > 0 && <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />}
                    </button>
                  </div>
               </div>
@@ -188,22 +199,25 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
 
         {viewState === 'quiz_play' && (
           <motion.div key="quiz" initial={{opacity:0, x:20}} animate={{opacity:1, x:0}} exit={{opacity:0, x:-20}} className="max-w-3xl mx-auto">
-             <div className="flex items-center justify-between mb-8">
+             <div className="flex items-center justify-between mb-4">
                <div className="flex items-center gap-4">
-                 <button onClick={reset} className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-highest transition-colors"><RotateCcw className="w-4 h-4"/></button>
+                 <button aria-label="重新開始測驗" onClick={reset} className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-highest transition-colors"><RotateCcw className="w-4 h-4"/></button>
                  <span className="font-bold text-on-surface-variant">第 {currentQ + 1} 題 / 共 {quizQuestions.length} 題</span>
                </div>
                <div className="px-4 py-1.5 bg-primary-container text-primary text-xs font-black rounded-full shadow-sm">來源：{notes.find((note) => note.id === activeRecord)?.subject ?? '課堂紀錄'}</div>
+             </div>
+             <div className="h-1.5 bg-surface-container rounded-full mb-6 overflow-hidden">
+               <div className="h-full bg-primary rounded-full transition-all duration-500" style={{width: `${((currentQ + 1) / Math.max(1, quizQuestions.length)) * 100}%`}} />
              </div>
 
              <div className="bg-surface-container-lowest rounded-[2.5rem] p-8 sm:p-12 border border-outline-variant/10 shadow-premium relative min-h-[400px] flex flex-col">
                 <h3 className="text-2xl sm:text-3xl font-extrabold font-headline leading-tight mb-12">{quizQuestions[currentQ]?.q}</h3>
 
                 <div className="grid grid-cols-1 gap-4 flex-1">
-                  {quizQuestions[currentQ]?.options.map((opt, i) => (
+                  {quizQuestions[currentQ]?.options?.map((opt, i) => (
                     <button
-                      key={i} onClick={() => !ansd && setSelOpt(i)}
-                      className={`text-left p-6 rounded-2xl border-2 font-bold text-lg transition-all ${selOpt === i ? 'bg-primary/5 border-primary ring-4 ring-primary/10' : 'bg-surface border-outline-variant/20 hover:border-outline-variant/50'} ${ansd && i === quizQuestions[currentQ].ans ? 'bg-primary/10 border-primary' : ansd && i === selOpt ? 'bg-error/10 border-error' : ''}`}
+                      key={`q${currentQ}-${i}`} onClick={() => !ansd && setSelOpt(i)}
+                      className={`text-left p-6 rounded-2xl border-2 font-bold text-lg transition-all ${selOpt === i ? 'bg-primary/5 border-primary ring-4 ring-primary/10' : 'bg-surface border-outline-variant/20 hover:border-outline-variant/50'} ${ansd && i === quizQuestions[currentQ]?.ans ? 'bg-primary/10 border-primary' : ansd && i === selOpt ? 'bg-error/10 border-error' : ''}`}
                     >
                       <div className="flex items-center gap-4">
                         <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${selOpt === i ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant'}`}>{String.fromCharCode(65 + i)}</span>
@@ -221,7 +235,7 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
                   )}
                   {ansd && (
                     <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="mt-10 w-full flex flex-col sm:flex-row items-center justify-between bg-surface-container-low p-6 rounded-3xl border border-outline-variant/10">
-                      {selOpt === quizQuestions[currentQ].ans ? (
+                      {selOpt === quizQuestions[currentQ]?.ans ? (
                         <span className="text-primary font-extrabold text-xl flex items-center gap-3"><div className="w-10 h-10 bg-primary text-on-primary rounded-full flex items-center justify-center shadow-lg"><CheckCircle2 className="w-6 h-6"/></div> 答對了！</span>
                       ) : (
                         <span className="text-error font-extrabold text-xl flex items-center gap-3"><div className="w-10 h-10 bg-error text-on-error rounded-full flex items-center justify-center shadow-lg"><CheckCircle2 className="w-6 h-6"/></div> 再想一次</span>
@@ -244,7 +258,7 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
             <h2 className="text-5xl font-extrabold font-headline mb-4 tracking-tight">小測驗完成！</h2>
             <p className="text-xl font-medium text-on-surface-variant mb-12">可以把結果當成課堂即時檢核，看看哪些重點需要再說一次。</p>
 
-            <div className="bg-surface-container-lowest rounded-[2rem] md:rounded-[3rem] p-8 md:p-12 border border-outline-variant/20 shadow- premium mb-10 md:mb-12 relative overflow-hidden group mx-4 md:mx-0">
+            <div className="bg-surface-container-lowest rounded-[2rem] md:rounded-[3rem] p-8 md:p-12 border border-outline-variant/20 shadow-premium mb-10 md:mb-12 relative overflow-hidden group mx-4 md:mx-0">
               <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
               <span className="text-7xl sm:text-[100px] md:text-[120px] leading-none font-black text-primary font-headline tracking-tighter relative z-10 drop-shadow-md">{score}<span className="text-3xl sm:text-5xl text-on-surface-variant opacity-40 ml-1 md:ml-2">/{quizQuestions.length}</span></span>
             </div>
@@ -261,8 +275,8 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
             <div className="flex items-center justify-between mb-8 px-4">
               <button onClick={reset} className="font-bold text-sm text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-full"><RotateCcw className="w-4 h-4" /> 返回設定</button>
               <div className="flex gap-3">
-                <button className="w-10 h-10 rounded-full bg-surface text-on-surface-variant hover:text-primary flex items-center justify-center hover:bg-primary-container transition-all shadow-sm"><Share2 className="w-4 h-4"/></button>
-                <button onClick={() => downloadTextFile(`${notes.find((note) => note.id === activeRecord)?.title ?? '國小學習單'}.md`, summaryText)} className="w-10 h-10 rounded-full bg-surface text-on-surface-variant hover:text-primary flex items-center justify-center hover:bg-primary-container transition-all shadow-sm"><Download className="w-4 h-4"/></button>
+                <button aria-label="分享摘要" onClick={() => { if (navigator.share) { navigator.share({ title: notes.find((note) => note.id === activeRecord)?.title ?? '國小學習單', text: summaryText }).catch(() => {}); } else { navigator.clipboard.writeText(summaryText).catch(() => {}); } }} className="w-10 h-10 rounded-full bg-surface text-on-surface-variant hover:text-primary flex items-center justify-center hover:bg-primary-container transition-all shadow-sm"><Share2 className="w-4 h-4"/></button>
+                <button aria-label="下載 Markdown" onClick={() => downloadTextFile(`${notes.find((note) => note.id === activeRecord)?.title ?? '國小學習單'}.md`, summaryText)} className="w-10 h-10 rounded-full bg-surface text-on-surface-variant hover:text-primary flex items-center justify-center hover:bg-primary-container transition-all shadow-sm"><Download className="w-4 h-4"/></button>
               </div>
             </div>
 

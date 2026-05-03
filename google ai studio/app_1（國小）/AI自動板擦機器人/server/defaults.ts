@@ -132,6 +132,10 @@ export const commandCatalog: RobotCommandInfo[] = [
   {command: 'KEEP_REGION_C', label: '保留區塊 C', group: 'task'},
   {command: 'PAUSE_TASK', label: '暫停任務', group: 'task'},
   {command: 'STOP', label: '停止', group: 'task'},
+  {command: 'FORWARD', label: '前進', group: 'drive'},
+  {command: 'BACKWARD', label: '後退', group: 'drive'},
+  {command: 'LEFT', label: '左轉', group: 'drive'},
+  {command: 'RIGHT', label: '右轉', group: 'drive'},
   {command: 'DELIVERY_START', label: '配送開始', group: 'task'},
   {command: 'DELIVERY_DONE', label: '配送完成', group: 'task'},
   {command: 'CLEAN_SCHEDULE', label: '清潔排程', group: 'task'},
@@ -153,6 +157,7 @@ export const commandCatalog: RobotCommandInfo[] = [
   {command: 'ALERT_SIGNAL', label: '關懷提醒訊號', group: 'task'},
   {command: 'CARE_DEPLOYED', label: '佈署關懷', group: 'task'},
   {command: 'NODE_RESTART', label: '節點重啟', group: 'task'},
+  {command: 'READ_SENSORS', label: '感測器讀值', group: 'sensor'},
 ];
 
 export const supportedCommands = new Set(commandCatalog.map((item) => item.command));

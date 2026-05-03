@@ -36,3 +36,7 @@ google ai studio/app_1（國小）/AI自動板擦機器人/data/backups/
 .pio/
 .playwright-mcp/
 .playwright-cli/
+.gitnexus
+
+# playwright screenshot artifacts
+robotcontrol_*.png

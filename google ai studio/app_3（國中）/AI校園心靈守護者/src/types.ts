@@ -1,4 +1,20 @@
 export type ViewType = 'dashboard' | 'alerts' | 'self-care' | 'sensing' | 'nodes';
+
+export interface ZoneSensorReading {
+  zoneId: string;
+  portPath?: string | null;
+  temp: number | null;
+  hum: number | null;
+  light: number | null;
+  connected: boolean;
+  updatedAt: string;
+}
+
+export interface DetectedPort {
+  path: string;
+  manufacturer?: string;
+  assignedZone: string | null;
+}
 export type RiskLevel = 'high' | 'medium' | 'low';
 export type AlertStatus = 'new' | 'processing' | 'resolved';
 export type MoodType = 'happy' | 'steady' | 'tired' | 'worried';
@@ -67,6 +83,7 @@ export interface ForestPost {
   type: 'thought' | 'gratitude' | 'support';
   likes: number;
   createdAt: string;
+  botReply?: string;
 }
 
 export interface Intervention {

@@ -1,0 +1,24 @@
+{
+  "error": {
+    "code": 403,
+    "message": "Permission denied: Consumer 'api_key:AIzaSyCZZsrlEmvlE9uXtsG6FOWjW9Ee57M-_Z8' has been suspended.",
+    "status": "PERMISSION_DENIED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "CONSUMER_SUSPENDED",
+        "domain": "googleapis.com",
+        "metadata": {
+          "service": "generativelanguage.googleapis.com",
+          "containerInfo": "api_key:AIzaSyCZZsrlEmvlE9uXtsG6FOWjW9Ee57M-_Z8",
+          "consumer": "projects/967402800975"
+        }
+      },
+      {
+        "@type": "type.googleapis.com/google.rpc.LocalizedMessage",
+        "locale": "en-US",
+        "message": "Permission denied: Consumer 'api_key:AIzaSyCZZsrlEmvlE9uXtsG6FOWjW9Ee57M-_Z8' has been suspended."
+      }
+    ]
+  }
+}

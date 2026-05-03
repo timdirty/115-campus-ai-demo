@@ -1,3 +1,4 @@
+import ReactMarkdown from 'react-markdown';
 import { Cast, Sparkles, Bot, Copy, Trash2, Check, ArrowDownCircle, FileText, Volume2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useRef, useEffect } from 'react';
@@ -30,6 +31,7 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [notes, setNotes] = useState<WhiteboardNote[]>(() => loadNotes());
   const [relatedNote, setRelatedNote] = useState<WhiteboardNote | null>(loadNotes()[0] ?? null);
+  const [syncStatus, setSyncStatus] = useState<'loading' | 'ok' | 'offline'>('loading');
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const didLoadRemoteChat = useRef(false);
@@ -38,14 +40,16 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
     loadNotesAsync().then((loadedNotes) => {
       setNotes(loadedNotes);
       setRelatedNote(loadedNotes[0] ?? null);
-    });
+    }).catch(() => {});
     apiRequest<{messages: Message[]}>('/api/chat')
       .then((result) => {
         if (Array.isArray(result.messages) && result.messages.length > 0) {
           setMessages(result.messages);
         }
+        setSyncStatus('ok');
       })
       .catch(() => {
+        setSyncStatus('offline');
       })
       .finally(() => {
         didLoadRemoteChat.current = true;
@@ -54,7 +58,11 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
 
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
-    localStorage.setItem(CHAT_KEY, JSON.stringify(messages));
+    try {
+      localStorage.setItem(CHAT_KEY, JSON.stringify(messages));
+    } catch {
+      try { localStorage.setItem(CHAT_KEY, JSON.stringify(messages.slice(-30))); } catch { /* quota full */ }
+    }
     if (didLoadRemoteChat.current) {
       apiRequest('/api/chat', {
         method: 'PUT',
@@ -62,7 +70,7 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
       }).catch(() => {
       });
     }
-  }, [messages, isTyping]);
+  }, [messages]);
 
   const autoResize = () => {
     if (textareaRef.current) {
@@ -71,16 +79,22 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
     }
   };
 
+  useEffect(() => {
+    if (copiedId === null) return;
+    const timer = setTimeout(() => setCopiedId(null), 2000);
+    return () => clearTimeout(timer);
+  }, [copiedId]);
+
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const submitMessage = async (text: string) => {
     if (!text.trim() || isTyping) return;
 
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', text };
+    const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const userMsg: Message = { id: uid(), role: 'user', text };
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
@@ -91,17 +105,9 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
       setRelatedNote(matchedNote);
       const noteIds = (matchedNote ? [matchedNote.id, ...notes.filter((note) => note.id !== matchedNote.id).map((note) => note.id)] : notes.map((note) => note.id)).slice(0, 3);
       const response = await chatWithAI(text, messages.map(m => ({ role: m.role, text: m.text })), noteIds);
-      setMessages(prev => [...prev, {
-        id: (Date.now()+1).toString(),
-        role: 'ai',
-        text: response
-      }]);
-    } catch (error) {
-      setMessages(prev => [...prev, {
-        id: (Date.now()+1).toString(),
-        role: 'ai',
-        text: "抱歉，AI 小老師暫時休息中，請稍後再試。"
-      }]);
+      setMessages(prev => [...prev, {id: uid(), role: 'ai', text: response}]);
+    } catch {
+      setMessages(prev => [...prev, {id: uid(), role: 'ai', text: '抱歉，AI 小老師暫時休息中，請稍後再試。'}]);
     } finally {
       setIsTyping(false);
     }
@@ -127,26 +133,47 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
       <aside className="w-full lg:w-[32%] flex flex-col gap-4 sm:gap-6 hide-scrollbar overflow-y-auto lg:pb-8 lg:pr-2 lg:shrink-0">
         <motion.div variants={messageVariants} className="bg-surface-container-low rounded-3xl p-4 sm:p-6 flex flex-col gap-3 sm:gap-4 border border-outline-variant/10 shadow-sm relative overflow-hidden group">
           <div className="flex items-center justify-between relative z-10">
-            <span className="text-primary font-headline font-bold text-[10px] sm:text-xs tracking-[0.2em] uppercase flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-              紀錄本同步中
-            </span>
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-surface shadow-sm cursor-pointer hover:scale-105 active:scale-95 flex items-center justify-center transition-transform">
-               <Cast className="text-primary w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
+            {syncStatus === 'loading' && (
+              <span className="text-primary font-headline font-bold text-[10px] sm:text-xs tracking-[0.2em] uppercase flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                紀錄本同步中
+              </span>
+            )}
+            {syncStatus === 'ok' && (
+              <span className="text-emerald-600 font-headline font-bold text-[10px] sm:text-xs tracking-[0.2em] uppercase flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                已同步
+              </span>
+            )}
+            {syncStatus === 'offline' && (
+              <span className="text-amber-600 font-headline font-bold text-[10px] sm:text-xs tracking-[0.2em] uppercase flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                橋接器離線 · 本機模式
+              </span>
+            )}
+            <button type="button" onClick={() => onNavigate('library')} aria-label="切換至課堂紀錄" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-surface shadow-sm cursor-pointer hover:scale-105 active:scale-95 flex items-center justify-center transition-transform">
+               <Cast className="text-primary w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
+            </button>
           </div>
           <div className="space-y-0.5 relative z-10">
-            <h2 className="font-headline font-extrabold text-lg sm:text-xl text-on-surface tracking-tight">{relatedNote?.title ?? '尚無關聯紀錄'}</h2>
+            <h2 className="font-headline font-extrabold text-lg sm:text-xl text-on-surface tracking-tight line-clamp-2" title={relatedNote?.title}>{relatedNote?.title ?? '尚無關聯紀錄'}</h2>
             <p className="text-on-surface-variant text-[11px] sm:text-[12px] font-medium opacity-80">{relatedNote ? `${relatedNote.subject} • ${relatedNote.date} ${relatedNote.time}` : '請先新增課堂紀錄'}</p>
           </div>
           <div className="mt-1 aspect-video rounded-xl sm:rounded-[1.25rem] overflow-hidden relative shadow-inner border border-outline-variant/10 cursor-pointer hidden sm:block" onClick={() => onNavigate('library')}>
-            <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={relatedNote?.imageUrl || relatedNote?.img} alt="Whiteboard" />
+            {relatedNote?.imageUrl || relatedNote?.img ? (
+              <img className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src={relatedNote.imageUrl || relatedNote.img} alt="Whiteboard" />
+            ) : (
+              <div className="w-full h-full bg-surface-container flex flex-col items-center justify-center gap-2 text-on-surface-variant">
+                <span className="text-2xl">📋</span>
+                <span className="text-xs font-bold">點此前往新增紀錄</span>
+              </div>
+            )}
           </div>
           <div className="bg-surface rounded-2xl p-4 border border-outline-variant/10">
             <div className="flex items-center gap-2 text-primary font-bold text-xs tracking-widest uppercase mb-2">
               <FileText className="w-4 h-4" /> 情境復現
             </div>
-            <p className="text-xs text-on-surface-variant leading-relaxed line-clamp-4">{relatedNote?.ocrText || relatedNote?.content || '等待關聯課堂紀錄。'}</p>
+            <p className="text-xs text-on-surface-variant leading-relaxed line-clamp-4" title={relatedNote?.ocrText || relatedNote?.content}>{relatedNote?.ocrText || relatedNote?.content || '等待關聯課堂紀錄。'}</p>
             <div className="mt-3 flex items-center gap-2 text-xs text-on-surface-variant">
               <Volume2 className="w-4 h-4" />
               {relatedNote?.audioUrl ? '已連結老師講解片段' : '尚未匯入音訊，顯示逐字稿'}
@@ -190,12 +217,18 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
                       <Bot className="text-secondary w-4 h-4" />
                     </div>
                   )}
-                  <div className={`p-4 sm:p-5 lg:p-6 rounded-2xl lg:rounded-[1.5rem] shadow-sm relative group-hover:shadow-md transition-shadow whitespace-pre-wrap ${msg.role === 'ai' ? 'bg-surface-container rounded-bl-sm border border-outline-variant/10 text-on-surface' : 'bg-primary text-on-primary rounded-br-sm font-medium'}`}>
-                    <div className="text-[14px] lg:text-[15px] leading-relaxed">{msg.text}</div>
+                  <div className={`p-4 sm:p-5 lg:p-6 rounded-2xl lg:rounded-[1.5rem] shadow-sm relative group-hover:shadow-md transition-shadow ${msg.role === 'ai' ? 'bg-surface-container rounded-bl-sm border border-outline-variant/10 text-on-surface' : 'bg-primary text-on-primary rounded-br-sm font-medium whitespace-pre-wrap'}`}>
+                    <div className="text-[14px] lg:text-[15px] leading-relaxed">
+                      {msg.role === 'ai' ? (
+                        <div className="prose prose-sm max-w-none">
+                          <ReactMarkdown>{msg.text}</ReactMarkdown>
+                        </div>
+                      ) : msg.text}
+                    </div>
 
                     {msg.role === 'ai' && (
                       <div className="absolute right-2 -bottom-4 lg:-right-4 lg:bottom-4 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 z-20">
-                        <button onClick={() => copyToClipboard(msg.text, msg.id)} className="p-2 bg-surface rounded-full shadow-md text-on-surface-variant hover:text-primary transition-colors border border-outline-variant/10">
+                        <button onClick={() => copyToClipboard(msg.text, msg.id)} aria-label={copiedId === msg.id ? '已複製到剪貼板' : '複製回覆'} className="p-2 bg-surface rounded-full shadow-md text-on-surface-variant hover:text-primary transition-colors border border-outline-variant/10">
                           {copiedId === msg.id ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
                         </button>
                       </div>
@@ -229,6 +262,7 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
               ref={textareaRef}
               rows={1}
               value={inputValue}
+              maxLength={500}
               onChange={(e) => { setInputValue(e.target.value); autoResize(); }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -239,9 +273,12 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
               className="w-full bg-transparent border-none py-2.5 sm:py-3 pl-3 sm:pl-4 pr-12 sm:pr-14 text-[14px] sm:text-[15px] font-medium text-on-surface outline-none resize-none hide-scrollbar placeholder:text-on-surface-variant/50"
               placeholder="輸入課堂問題，例如：改成孩子聽得懂的說法"
             />
+            {inputValue.length > 400 && (
+              <p className="absolute bottom-1 left-3 text-[10px] text-tertiary font-bold">{inputValue.length} / 500</p>
+            )}
             <div className="absolute right-1.5 bottom-1.5 sm:right-2 sm:bottom-2 flex">
-              <button type="submit" disabled={!inputValue.trim()} className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-[1rem] flex items-center justify-center transition-all duration-300 ${!inputValue.trim() ? 'bg-surface-container text-on-surface-variant/40' : 'bg-primary text-on-primary shadow-md hover:scale-105 active:scale-95'}`}>
-                <ArrowDownCircle className={`w-5 h-5 sm:w-6 sm:h-6 rotate-180 transition-transform ${inputValue.trim() ? 'scale-110' : ''}`} strokeWidth={2.5}/>
+              <button type="submit" disabled={!inputValue.trim() || isTyping} className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-300 ${!inputValue.trim() || isTyping ? 'bg-surface-container text-on-surface-variant/40' : 'bg-primary text-on-primary shadow-md hover:scale-105 active:scale-95'}`}>
+                <ArrowDownCircle className={`w-5 h-5 sm:w-6 sm:h-6 rotate-180 transition-transform ${inputValue.trim() && !isTyping ? 'scale-110' : ''}`} strokeWidth={2.5}/>
               </button>
             </div>
           </form>

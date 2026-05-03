@@ -46,7 +46,7 @@ async function run() {
       destination: '507 教室',
     }),
   );
-  assert.equal(rejected.orders.length, 0);
+  assert.equal(rejected.orders.length, initial.orders.length);
   assert.equal(rejected.robotCommandLogs[0]?.command, 'SYSTEM_READY');
   assert.equal(rejected.logs[0].message.includes('硬體未派遣'), true);
 
@@ -106,7 +106,7 @@ async function run() {
   assert.equal(locked.robotCommandLogs[0]?.command, 'SAFETY_LOCKDOWN');
 
   const reset = appReducer(locked, resetDemoState());
-  assert.equal(reset.orders.length, 0);
+  assert.equal(reset.orders.length, initial.orders.length);
   assert.equal(reset.products.find((item) => item.id === product.id)?.stock, product.stock);
 
   const recovered = normalizePersistedState({

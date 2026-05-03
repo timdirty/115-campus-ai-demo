@@ -23,7 +23,7 @@ function getRegionStyle(status: BoardRegion['status']) {
 
 export function RegionTaskPanel({analysis, classroom, boardRegions, busy, onSaveAnalysis, onRunRegionTask, onKeepAll}: RegionTaskPanelProps) {
   return (
-    <section className="xl:col-span-5 bg-surface-container-high rounded-lg p-4 sm:p-5 border border-outline-variant/20">
+    <section className="xl:col-span-5 bg-surface-container-high rounded-lg p-4 sm:p-5 border border-outline-variant/20" data-tour="region-panel">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
           <h2 className="text-xl font-extrabold">白板保留建議</h2>
@@ -53,7 +53,7 @@ export function RegionTaskPanel({analysis, classroom, boardRegions, busy, onSave
             type="button"
             onClick={() => onRunRegionTask(region.status, region.id)}
             disabled={Boolean(busy)}
-            aria-label={`區塊 ${region.id} ${region.status === 'erasable' ? '標記可清空' : '標記保留'}`}
+            aria-label={`區塊 ${region.id} ${region.status === 'erasable' ? '標記可清空' : region.status === 'erased' ? '已清空' : '標記保留'}`}
             className={`absolute rounded-md border-2 p-2 text-left transition-all active:scale-95 disabled:opacity-60 overflow-hidden ${getRegionStyle(region.status)}`}
             style={{left: `${region.x}%`, top: `${region.y}%`, width: `${region.width}%`, height: `${region.height}%`}}
           >
@@ -94,6 +94,30 @@ export function RegionTaskPanel({analysis, classroom, boardRegions, busy, onSave
         {busy === 'keep-all' ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <ShieldCheck className="w-4 h-4" aria-hidden="true" />}
         全部標記保留
       </button>
+
+      {analysis && (
+        <div className="mt-4 bg-surface rounded-lg p-4 border border-outline-variant/20">
+          <p className="text-xs font-bold text-on-surface-variant mb-3">學習狀態分析</p>
+          <div className="space-y-2">
+            {([
+              {label: '專注', color: 'bg-green-500', value: analysis.focusPercent},
+              {label: '困惑', color: 'bg-amber-500', value: analysis.confusedPercent},
+              {label: '疲憊', color: 'bg-red-400', value: analysis.tiredPercent},
+            ] as const).map(({label, color, value}) => (
+              <div key={label} className="flex items-center gap-2">
+                <span className="w-8 text-xs text-on-surface-variant shrink-0">{label}</span>
+                <div className="flex-1 h-2 bg-surface-container-highest rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${color} rounded-full transition-all duration-500`}
+                    style={{width: `${value}%`}}
+                  />
+                </div>
+                <span className="w-8 text-right text-xs font-medium text-on-surface-variant">{value}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -7,6 +7,7 @@ import type { StudentReport } from '../state/appState';
 
 export function StudentReportView({ goBack, showToast, name = "學習訊號 A", studentId }: any) {
   const state = useAppState();
+  const [reportLoading, setReportLoading] = React.useState(false);
   const report =
     (studentId ? state.studentReports[studentId] : undefined) ??
     (Object.values(state.studentReports) as StudentReport[]).find((item) => item.name === name) ??
@@ -14,20 +15,28 @@ export function StudentReportView({ goBack, showToast, name = "學習訊號 A", 
   const displayName = report?.name ?? name;
 
   const handleSendReport = async () => {
-    await openPrintableReport({
-      state,
-      kind: 'student',
-      title: `${displayName} 學習狀態報告`,
-      studentId: report?.studentId,
-    });
-    showToast('已開啟可列印狀態報告');
-    goBack();
+    if (reportLoading) return;
+    setReportLoading(true);
+    try {
+      await openPrintableReport({
+        state,
+        kind: 'student',
+        title: `${displayName} 學習狀態報告`,
+        studentId: report?.studentId,
+      });
+      showToast('已開啟可列印狀態報告');
+      goBack();
+    } catch {
+      showToast('報告產生失敗，請稍後再試');
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b border-outline-variant/20 px-4 py-4 flex items-center justify-between">
-        <button onClick={goBack} className="p-2 rounded-full bg-surface-container-low active:scale-95 transition-transform text-on-surface">
+        <button aria-label="返回" onClick={goBack} className="p-2 rounded-full bg-surface-container-low active:scale-95 transition-transform text-on-surface">
           <ArrowLeft size={24} />
         </button>
         <h1 className="font-headline font-bold text-xl absolute left-1/2 -translate-x-1/2">學習狀態報告</h1>
@@ -105,9 +114,18 @@ export function StudentReportView({ goBack, showToast, name = "學習訊號 A", 
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 z-50 p-5 bg-background/95 backdrop-blur-3xl border-t border-outline-variant/30 pb-safe pb-6">
-         <button onClick={handleSendReport} className="w-full max-w-md mx-auto flex items-center justify-center gap-3 bg-secondary-container text-on-secondary-container font-bold text-[17px] py-5 rounded-[1.5rem] active:scale-[0.98] transition-transform shadow-md">
-            <CheckCircle2 size={24} />
-            開啟可列印分析報告
+         <button onClick={handleSendReport} disabled={reportLoading} className={`w-full max-w-md mx-auto flex items-center justify-center gap-3 font-bold text-[17px] py-5 rounded-3xl transition-all shadow-md ${reportLoading ? 'bg-surface-container-low text-on-surface-variant' : 'bg-secondary-container text-on-secondary-container active:scale-[0.98]'}`}>
+            {reportLoading ? (
+              <>
+                <span className="w-5 h-5 border-2 border-on-surface-variant/30 border-t-on-surface-variant rounded-full animate-spin" />
+                產生報告中…
+              </>
+            ) : (
+              <>
+                <CheckCircle2 size={24} />
+                開啟可列印分析報告
+              </>
+            )}
          </button>
       </div>
     </div>

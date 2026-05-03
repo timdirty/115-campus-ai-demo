@@ -1,5 +1,5 @@
-import type {RefObject} from 'react';
-import {Camera, CircleStop, Loader2, Mic, Sparkles} from 'lucide-react';
+import type {ChangeEvent, RefObject} from 'react';
+import {Camera, CircleStop, Loader2, Mic, Sparkles, Upload} from 'lucide-react';
 
 type CapturePanelProps = {
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -16,6 +16,7 @@ type CapturePanelProps = {
   onToggleCamera: () => void;
   onCaptureAndAnalyze: () => void;
   onToggleRecording: () => void;
+  onUploadImage: (file: File) => void;
 };
 
 export function CapturePanel({
@@ -33,13 +34,23 @@ export function CapturePanel({
   onToggleCamera,
   onCaptureAndAnalyze,
   onToggleRecording,
+  onUploadImage,
 }: CapturePanelProps) {
   const cameraBusy = mediaBusy === 'camera';
   const transcriptionBusy = mediaBusy === 'transcribe';
   const analyzing = busy === 'analyze';
 
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && !analyzing) {
+      onUploadImage(file);
+      // Reset so the same file can be re-selected if needed
+      event.target.value = '';
+    }
+  };
+
   return (
-    <section className="xl:col-span-7 bg-surface-container-lowest rounded-lg p-4 sm:p-5 border border-outline-variant/20 shadow-premium">
+    <section className="xl:col-span-7 bg-surface-container-lowest rounded-lg p-4 sm:p-5 border border-outline-variant/20 shadow-premium" data-tour="capture-panel">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
           <h2 className="text-xl font-extrabold">拍下課堂白板</h2>
@@ -70,10 +81,28 @@ export function CapturePanel({
       <div className="relative aspect-video rounded-lg bg-on-surface overflow-hidden border border-outline-variant/30">
         <video ref={videoRef} muted playsInline className={`absolute inset-0 w-full h-full object-cover ${cameraReady ? 'opacity-100' : 'opacity-0'}`} />
         {!cameraReady && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-on-primary p-8">
-            <Camera className="w-12 h-12 mb-4 opacity-80" aria-hidden="true" />
-            <p className="text-lg font-extrabold">攝影機尚未開啟</p>
-            <p className="text-sm opacity-70 mt-2">開啟後可拍下白板，做成國小課堂紀錄。</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-on-primary p-8 gap-4">
+            <div>
+              <Camera className="w-12 h-12 mb-4 opacity-80 mx-auto" aria-hidden="true" />
+              <p className="text-lg font-extrabold">攝影機尚未開啟</p>
+              <p className="text-sm opacity-70 mt-2">開啟後可拍下白板，做成國小課堂紀錄。</p>
+            </div>
+            <div className="rounded-xl border-2 border-dashed border-amber-400 bg-amber-500/20 px-6 py-4 flex flex-col items-center gap-2">
+              <p className="text-xs font-bold text-amber-200">相機無法使用？改上傳圖片</p>
+              <label className="cursor-pointer">
+                <span className="inline-flex items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-400 active:scale-95 transition-all px-4 py-2 text-sm font-extrabold text-white shadow">
+                  <Upload className="w-4 h-4" aria-hidden="true" />
+                  上傳黑板照片分析
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={handleFileChange}
+                  disabled={analyzing}
+                />
+              </label>
+            </div>
           </div>
         )}
         {previewImage && (
@@ -87,10 +116,26 @@ export function CapturePanel({
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-[12rem_1fr] gap-3">
         <label className="block">
           <span className="text-xs font-bold text-on-surface-variant">年級 / 科目</span>
+          <div className="mt-2 flex flex-wrap gap-1 mb-1.5">
+            {(['數學', '語文', '自然', '社會', '英語', '體育', '藝術'] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => onSubjectHintChange(`國小${s}`)}
+                className={`px-3 py-2 min-h-11 text-xs rounded-full border transition-colors ${
+                  subjectHint === `國小${s}`
+                    ? 'bg-primary text-on-primary border-primary'
+                    : 'bg-white text-on-surface-variant border-outline-variant/50 hover:border-primary'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
           <input
             value={subjectHint}
             onChange={(event) => onSubjectHintChange(event.target.value)}
-            className="mt-2 w-full min-h-11 rounded-md bg-surface-container px-3 outline-none border border-outline-variant/30 font-bold"
+            className="mt-1 w-full min-h-11 rounded-md bg-surface-container px-3 outline-none border border-outline-variant/30 font-bold"
           />
         </label>
         <div className="rounded-md bg-surface-container p-3 border border-outline-variant/20">

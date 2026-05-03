@@ -16,9 +16,11 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
   const [viewMode, setViewMode] = useState<'list'|'grid'>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [notes, setNotes] = useState<WhiteboardNote[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedNote, setSelectedNote] = useState<WhiteboardNote | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState('');
   const [editDraft, setEditDraft] = useState({
     title: '',
     subject: '',
@@ -30,7 +32,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
   });
 
   useEffect(() => {
-    const refresh = () => loadNotesAsync().then(setNotes);
+    const refresh = () => loadNotesAsync().then((loaded) => { setNotes(loaded); setIsLoading(false); }).catch(() => { setIsLoading(false); setEditError('課堂紀錄載入失敗，請重新整理'); });
     refresh();
     window.addEventListener('whiteboard-notes-updated', refresh);
     return () => window.removeEventListener('whiteboard-notes-updated', refresh);
@@ -71,7 +73,8 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
 
   const deleteNote = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    deleteNoteAsync(id).then(setNotes);
+    if (!window.confirm('確定要刪除這筆課堂紀錄嗎？')) return;
+    deleteNoteAsync(id).then(setNotes).catch(() => setEditError('刪除失敗，請稍後再試'));
   };
 
   useEffect(() => {
@@ -96,10 +99,12 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
   }, [selectedNote]);
 
   const saveSelectedNote = async () => {
-    if (!selectedNote || !editDraft.title.trim() || !editDraft.subject.trim() || !editDraft.content.trim()) {
+    if (!selectedNote) return;
+    if (!editDraft.title.trim() || !editDraft.subject.trim() || !editDraft.content.trim()) {
+      setEditError('標題、科目和內容不可為空');
       return;
     }
-
+    setEditError('');
     setSavingEdit(true);
     try {
       const updated = await updateNoteAsync(selectedNote.id, {
@@ -115,6 +120,8 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
       setNotes((current) => current.map((note) => note.id === updated.id ? updated : note));
       setSelectedNote(updated);
       setIsEditing(false);
+    } catch {
+      setEditError('保存失敗，請稍後再試');
     } finally {
       setSavingEdit(false);
     }
@@ -190,19 +197,25 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
       </section>
 
       {/* Dynamic List / Grid View */}
-      <section className="space-y-6">
+      <section className="space-y-6" data-tour="notes-list">
         <motion.div variants={itemVariants} className="flex items-center justify-between px-2 pb-4 border-b border-surface-container">
           <h3 className="text-2xl font-bold font-headline flex items-center gap-3">
             {searchQuery ? `搜尋結果: "${searchQuery}"` : '課堂紀錄清單'}
             <span className="bg-surface-container-high text-on-surface-variant text-sm px-3 py-0.5 rounded-full font-bold">{displayedNotes.length}</span>
           </h3>
           <div className="flex bg-surface-container-low rounded-full p-1 border border-outline-variant/10 shadow-sm">
-            <button onClick={() => setViewMode('list')} className={`p-2 rounded-full transition-all ${viewMode==='list' ? 'bg-surface shadow-md text-primary' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}><List className="w-4 h-4" /></button>
-            <button onClick={() => setViewMode('grid')} className={`p-2 rounded-full transition-all ${viewMode==='grid' ? 'bg-surface shadow-md text-primary' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}><LayoutGrid className="w-4 h-4" /></button>
+            <button aria-label="切換列表檢視" onClick={() => setViewMode('list')} className={`p-2 rounded-full transition-all ${viewMode==='list' ? 'bg-surface shadow-md text-primary' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}><List className="w-4 h-4" /></button>
+            <button aria-label="切換網格檢視" onClick={() => setViewMode('grid')} className={`p-2 rounded-full transition-all ${viewMode==='grid' ? 'bg-surface shadow-md text-primary' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}><LayoutGrid className="w-4 h-4" /></button>
           </div>
         </motion.div>
 
-        {displayedNotes.length === 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col gap-4 mt-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-28 rounded-4xl bg-surface-container animate-pulse" />
+            ))}
+          </div>
+        ) : displayedNotes.length === 0 ? (
           <motion.div initial={{opacity:0}} animate={{opacity:1}} className="text-center py-20">
             <div className="w-24 h-24 bg-surface-container rounded-full flex items-center justify-center mx-auto mb-6">
               <Folder className="w-10 h-10 text-on-surface-variant/40" />
@@ -231,12 +244,12 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
                       <span className={`text-[10px] font-bold tracking-widest uppercase px-3 py-1 rounded-full ${note.theme === 'primary' ? 'bg-primary-container/80 text-primary' : note.theme === 'secondary' ? 'bg-secondary-container/80 text-secondary-dim' : 'bg-tertiary-container/80 text-tertiary'}`}>
                         {note.subject}
                       </span>
-                      <button onClick={(e) => deleteNote(note.id, e)} className="text-error/50 hover:text-error hover:bg-error-container p-2.5 rounded-full transition-colors active:scale-90 absolute right-0 -top-2 opacity-0 group-hover:opacity-100 shadow-sm border border-transparent hover:border-error/20">
+                      <button aria-label="刪除課堂紀錄" onClick={(e) => deleteNote(note.id, e)} className="text-error/50 hover:text-error hover:bg-error-container p-2.5 rounded-full transition-colors active:scale-90 absolute right-0 -top-2 md:opacity-0 md:group-hover:opacity-100 shadow-sm border border-transparent hover:border-error/20">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                    <h4 className="text-xl font-bold font-headline text-on-surface group-hover:text-primary transition-colors leading-tight">{note.title}</h4>
-                    <p className="text-[14px] text-on-surface-variant line-clamp-2 leading-relaxed font-body">{note.desc}</p>
+                    <h4 className="text-xl font-bold font-headline text-on-surface group-hover:text-primary transition-colors leading-tight line-clamp-2" title={note.title}>{note.title}</h4>
+                    <p className="text-[14px] text-on-surface-variant line-clamp-2 leading-relaxed font-body" title={note.desc}>{note.desc}</p>
                     {viewMode === 'grid' && (
                       <div className="mt-4 pt-4 border-t border-outline-variant/10 flex justify-between items-center text-xs text-on-surface-variant font-medium">
                          <span>{note.date}</span><span>{note.time}</span>
@@ -270,7 +283,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
               initial={{ scale: 0.95, y: 20, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.95, y: 20, opacity: 0 }} onClick={(e) => e.stopPropagation()}
               className="bg-surface w-full max-w-5xl h-[85vh] md:h-auto md:max-h-[85vh] rounded-3xl sm:rounded-[2.5rem] shadow-[0_32px_64px_rgba(0,0,0,0.25)] overflow-hidden flex flex-col md:flex-row relative border border-white/20"
             >
-              <button onClick={() => setSelectedNote(null)} className="absolute top-3 right-3 z-50 w-10 h-10 bg-surface/90 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-surface-container-highest transition-colors shadow-sm">
+              <button aria-label="關閉課堂紀錄" onClick={() => setSelectedNote(null)} className="absolute top-3 right-3 z-50 w-10 h-10 bg-surface/90 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-surface-container-highest transition-colors shadow-sm">
                 <X className="w-5 h-5 text-on-surface" />
               </button>
 
@@ -343,14 +356,15 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
                   </div>
                 </div>
 
-                <div className="p-5 md:p-6 bg-surface-container-lowest shrink-0 border-t border-outline-variant/10 flex gap-3">
+                <div className="p-5 md:p-6 bg-surface-container-lowest shrink-0 border-t border-outline-variant/10 flex flex-col gap-2">
+                  {editError && <p className="text-xs font-bold text-error px-1">{editError}</p>}
                   {isEditing ? (
-                    <>
-                      <button onClick={() => setIsEditing(false)} className="flex-1 bg-surface-container hover:bg-surface-container-high text-on-surface font-extrabold py-3.5 px-4 rounded-xl transition-colors shadow-sm text-sm">取消</button>
-                      <button onClick={saveSelectedNote} disabled={savingEdit || !editDraft.title.trim() || !editDraft.subject.trim() || !editDraft.content.trim()} className="flex-1 bg-primary text-on-primary font-extrabold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-primary-dim disabled:opacity-50 text-sm">
+                    <div className="flex gap-3">
+                      <button onClick={() => { setIsEditing(false); setEditError(''); }} className="flex-1 bg-surface-container hover:bg-surface-container-high text-on-surface font-extrabold py-3.5 px-4 rounded-xl transition-colors shadow-sm text-sm">取消</button>
+                      <button onClick={saveSelectedNote} disabled={savingEdit} className="flex-1 bg-primary text-on-primary font-extrabold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-primary-dim disabled:opacity-50 text-sm">
                         {savingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} 保存修改
                       </button>
-                    </>
+                    </div>
                   ) : (
                     <>
                       <button onClick={() => { setSelectedNote(null); onNavigate('chat'); }} className="flex-1 bg-surface-container hover:bg-primary-container hover:text-primary text-on-surface font-extrabold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm text-sm">
