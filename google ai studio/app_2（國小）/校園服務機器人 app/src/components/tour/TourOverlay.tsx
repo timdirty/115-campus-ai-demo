@@ -20,6 +20,7 @@ const primaryBtn: React.CSSProperties = {
   border: 'none',
   borderRadius: 8,
   padding: '8px 18px',
+  minHeight: 44,
   cursor: 'pointer',
   fontSize: 14,
   fontWeight: 600,

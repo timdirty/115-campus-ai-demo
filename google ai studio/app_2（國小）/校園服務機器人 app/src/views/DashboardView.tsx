@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BottomSheet } from '../components/ui';
-import { BatteryCharging, MapPin, Activity, Navigation, Wind, Building2, Route, Terminal, CheckCircle2, CircleDashed, FileText, Bot, ArrowRight } from 'lucide-react';
+import { BatteryCharging, MapPin, Activity, Navigation, Wind, Building2, Route, Terminal, CheckCircle2, CircleDashed, FileText, Bot, ArrowRight, Package, CalendarClock } from 'lucide-react';
 import { useAppActions, useAppState } from '../state/AppStateProvider';
 import { getDemoHealth, getDemoSteps } from '../services/demoFlow';
 
@@ -41,9 +41,12 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
           </div>
           <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4 lg:w-[28rem]">
             {demoHealth.map((item) => (
-              <div key={item.label} className="rounded-2xl border border-outline-variant/10 bg-surface-container-low p-3">
+              <div key={item.label} className={`rounded-2xl border p-3 transition-colors ${item.ok ? 'border-primary/15 bg-primary/8' : 'border-outline-variant/10 bg-surface-container-low'}`}>
                 <p className="text-[10px] font-extrabold text-on-surface-variant/60">{item.label}</p>
-                <p className={`mt-1 text-sm font-black ${item.ok ? 'text-primary' : 'text-error'}`}>{item.value}</p>
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${item.ok ? 'bg-primary animate-pulse' : 'bg-outline-variant/40'}`} />
+                  <p className={`text-sm font-black ${item.ok ? 'text-primary' : 'text-error'}`}>{item.value}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -65,15 +68,51 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
           ))}
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <button data-tour="dispatch-btn" onClick={() => navigateTo('dispatch-map')} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-black text-white shadow-lg shadow-primary/20 active:scale-95">
-            校園派遣
-            <ArrowRight size={18} />
+          <button
+            data-tour="dispatch-btn"
+            onClick={() => navigateTo('dispatch-map')}
+            className="group flex flex-col items-start gap-3 rounded-2xl bg-primary px-4 py-4 text-left shadow-lg shadow-primary/25 active:scale-95 transition-all hover:shadow-xl hover:shadow-primary/35 hover:brightness-105"
+          >
+            <div className="flex w-full items-start justify-between">
+              <div className="rounded-xl bg-white/15 p-1.5">
+                <Navigation size={18} className="text-white" />
+              </div>
+              <ArrowRight size={15} className="text-white/50 group-hover:text-white/80 transition-colors" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-white">校園派遣</p>
+              <p className="mt-0.5 text-[11px] font-bold text-white/65">一鍵指派區域任務</p>
+            </div>
           </button>
-          <button onClick={() => navigateTo('delivery')} className="flex min-h-12 items-center justify-center rounded-2xl border border-outline-variant/20 bg-surface-container-low px-4 text-sm font-black text-on-surface active:scale-95">
-            物品配送
+          <button
+            onClick={() => navigateTo('delivery')}
+            className="group flex flex-col items-start gap-3 rounded-2xl border border-outline-variant/20 bg-surface-container-low px-4 py-4 text-left hover:bg-surface-container hover:border-primary/30 active:scale-95 transition-all"
+          >
+            <div className="flex w-full items-start justify-between">
+              <div className="rounded-xl bg-surface-container-highest p-1.5">
+                <Package size={18} className="text-on-surface-variant group-hover:text-primary transition-colors" />
+              </div>
+              <ArrowRight size={15} className="text-on-surface-variant/30 group-hover:text-primary transition-colors" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-on-surface">物品配送</p>
+              <p className="mt-0.5 text-[11px] font-bold text-on-surface-variant/60">自動配送物品到教室</p>
+            </div>
           </button>
-          <button onClick={() => navigateTo('task-schedule')} className="flex min-h-12 items-center justify-center rounded-2xl border border-outline-variant/20 bg-surface-container-low px-4 text-sm font-black text-on-surface active:scale-95">
-            排程清潔
+          <button
+            onClick={() => navigateTo('task-schedule')}
+            className="group flex flex-col items-start gap-3 rounded-2xl border border-outline-variant/20 bg-surface-container-low px-4 py-4 text-left hover:bg-surface-container hover:border-primary/30 active:scale-95 transition-all"
+          >
+            <div className="flex w-full items-start justify-between">
+              <div className="rounded-xl bg-surface-container-highest p-1.5">
+                <CalendarClock size={18} className="text-on-surface-variant group-hover:text-primary transition-colors" />
+              </div>
+              <ArrowRight size={15} className="text-on-surface-variant/30 group-hover:text-primary transition-colors" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-on-surface">排程清潔</p>
+              <p className="mt-0.5 text-[11px] font-bold text-on-surface-variant/60">建立週期性清掃行程</p>
+            </div>
           </button>
         </div>
       </section>

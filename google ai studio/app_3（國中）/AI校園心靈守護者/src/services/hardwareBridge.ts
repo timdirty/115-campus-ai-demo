@@ -11,7 +11,7 @@ function withTimeout(ms: number): {signal: AbortSignal; clear: () => void} {
 }
 
 export async function fetchZoneSensors(): Promise<ZoneSensorReading[]> {
-  const {signal, clear} = withTimeout(8000);
+  const {signal, clear} = withTimeout(2000);
   try {
     const response = await fetch(`${BRIDGE_URL}/api/sensors/live`, {signal});
     if (!response.ok) return [];
@@ -25,7 +25,7 @@ export async function fetchZoneSensors(): Promise<ZoneSensorReading[]> {
 }
 
 export async function fetchSensorPorts(): Promise<DetectedPort[]> {
-  const {signal, clear} = withTimeout(8000);
+  const {signal, clear} = withTimeout(2000);
   try {
     const response = await fetch(`${BRIDGE_URL}/api/sensors/ports`, {signal});
     if (!response.ok) return [];
@@ -39,7 +39,7 @@ export async function fetchSensorPorts(): Promise<DetectedPort[]> {
 }
 
 export async function assignSensorPort(portPath: string, zoneId: string | null): Promise<boolean> {
-  const {signal, clear} = withTimeout(8000);
+  const {signal, clear} = withTimeout(2000);
   try {
     const response = await fetch(`${BRIDGE_URL}/api/sensors/assign`, {
       method: 'POST',

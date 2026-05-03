@@ -12,11 +12,9 @@ export interface SchoolZoneStatus extends SchoolZone {
 }
 
 export const schoolZones: SchoolZone[] = [
-  {id: 'zone-library', name: '圖書館', location: '圖書館走廊', nodeId: 'node-library', x: 9, y: 12},
-  {id: 'zone-hall', name: '穿堂', location: '行政大樓 1F', nodeId: 'node-hall', x: 47, y: 13},
-  {id: 'zone-classroom', name: '九年級教室', location: '三樓教室', nodeId: 'node-hall', x: 12, y: 56},
-  {id: 'zone-gym', name: '體育館', location: '體育館入口', nodeId: 'node-gym', x: 51, y: 57},
-  {id: 'zone-field', name: '操場', location: '操場', nodeId: 'node-restroom', x: 75, y: 35},
+  {id: 'zone-library', name: '圖書館', location: '圖書館走廊', nodeId: 'node-library', x: 4, y: 6},
+  {id: 'zone-hall', name: '穿堂', location: '行政大樓 1F', nodeId: 'node-hall', x: 44, y: 6},
+  {id: 'zone-field', name: '操場', location: '操場', nodeId: 'node-restroom', x: 72, y: 28},
 ];
 
 export function buildSchoolZoneStatuses(state: GuardianState, sensorReadings: ZoneSensorReading[] = []): SchoolZoneStatus[] {

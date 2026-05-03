@@ -40,3 +40,17 @@ google ai studio/app_1（國小）/AI自動板擦機器人/data/backups/
 
 # playwright screenshot artifacts
 robotcontrol_*.png
+
+# Claude Code internal files
+.claude/
+
+# Session screenshot artifacts
+app1_*.png
+app2_*.png
+app3_*.png
+app1-*.png
+app2-*.png
+app3-*.png
+map_*.png
+scripts/gitnexus-prewarm-fts.mjs
+scripts/reindex.sh

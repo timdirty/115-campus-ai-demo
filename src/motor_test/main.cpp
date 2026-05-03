@@ -1,100 +1,148 @@
-// L293D Motor Shield v1 (74HC595) — M3 / M4 robot movement test
-// Board: Arduino UNO R4 Minima
+// HY-M302 Sensor Node — AI校園心靈守護者 (App 3)
+// Board : Arduino UNO R4 Minima
+// Shield: 今華電子 HY-M302 9-in-1 expansion board
 //
-// Serial commands (115200):
-//   FORWARD   — both motors forward
-//   BACKWARD  — both motors backward
-//   LEFT      — M3 back / M4 forward  (tank pivot left)
-//   RIGHT     — M3 forward / M4 back  (tank pivot right)
-//   STOP      — both motors stop
-//   SPEED:<0-255>  — set speed (default 200)
+// Sensors used:
+//   DHT11       D4   — temperature (°C) + humidity (%)
+//   Photoresist A1   — ambient light 0-1023 (higher = brighter)
 //
-// Swap M3/M4 direction logic if your left/right is physically reversed.
+// RGB LED mood indicator:
+//   D9 R / D10 G / D11 B  (common-cathode, PWM)
+//   green  = calm   | amber = attention | red = stressed | blue = dim/quiet
+//
+// Button D2: manual sensor read trigger (active-LOW, internal pull-up)
+//
+// Serial protocol (115200 baud):
+//   HOST → ARDUINO : READ_SENSORS\n
+//   ARDUINO → HOST : SENSORS:TEMP:XX.X,HUM:XX,LIGHT:XXXX\n
+//   on failure     : SENSOR_ERROR:DHT_WARMING_UP\n
+//
+// Auto-broadcasts every 10 s so standalone Serial Monitor shows live data.
+// Bridge (sensorManager.ts) sends READ_SENSORS and parses the first matching
+// SENSORS:... line — auto-broadcasts are compatible with that flow.
 
 #include <Arduino.h>
+#include <DHT.h>
 
-// 74HC595 shift register pins (fixed on the shield)
-#define MOTORLATCH  12
-#define MOTORCLK     4
-#define MOTORENABLE  7
-#define MOTORDATA    8
+// ── pin map ──────────────────────────────────────────────────────────────────
+#define DHT_PIN    4
+#define LIGHT_PIN  A1
+#define LED_R      9
+#define LED_G      10
+#define LED_B      11
+#define BTN_A      2
 
-// PWM speed pins
-#define M3_PWM  6
-#define M4_PWM  5
+// ── constants ─────────────────────────────────────────────────────────────────
+static const unsigned long BROADCAST_MS = 10000UL;  // auto-broadcast interval
 
-// 74HC595 bit masks for M3 and M4 direction
-#define M3_A  (1 << 5)   // M3 forward bit
-#define M3_B  (1 << 7)   // M3 backward bit
-#define M4_A  (1 << 0)   // M4 forward bit
-#define M4_B  (1 << 6)   // M4 backward bit
+// ── globals ───────────────────────────────────────────────────────────────────
+static DHT dht(DHT_PIN, DHT11);
 
-static uint8_t motorSpeed = 100;
+static float cachedTemp = NAN;
+static float cachedHum  = NAN;
+static int   cachedLight = -1;
+static bool  primed = false;
 
-static void latch(uint8_t bits) {
-  digitalWrite(MOTORLATCH, LOW);
-  shiftOut(MOTORDATA, MOTORCLK, MSBFIRST, bits);
-  digitalWrite(MOTORLATCH, HIGH);
+static unsigned long lastBroadcastMs = 0;
+static bool btnWasDown = false;
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+static void setRgb(uint8_t r, uint8_t g, uint8_t b) {
+  analogWrite(LED_R, r);
+  analogWrite(LED_G, g);
+  analogWrite(LED_B, b);
 }
 
-static void drive(uint8_t m3bits, uint8_t m3pwm, uint8_t m4bits, uint8_t m4pwm) {
-  latch(m3bits | m4bits);
-  analogWrite(M3_PWM, m3pwm);
-  analogWrite(M4_PWM, m4pwm);
+// Maps sensor values to an emotion colour on the RGB LED.
+// Stress score: temp too high (+pts), humidity extreme (+pts), light too low (+pts).
+static void applyMoodLed(float t, float h, int l) {
+  int score = 0;
+  if      (t > 32.0f)            score += 3;
+  else if (t > 29.0f)            score += 1;
+  if      (h < 30.0f || h > 80.0f) score += 2;
+  else if (h < 40.0f || h > 70.0f) score += 1;
+  if      (l < 150)              score += 2;
+  else if (l < 350)              score += 1;
+
+  if      (score >= 5) setRgb(255,   0,   0);  // red   — stressed environment
+  else if (score >= 3) setRgb(220, 110,   0);  // amber — needs attention
+  else if (l < 200)    setRgb(  0,  20, 220);  // blue  — dim / quiet zone
+  else                 setRgb(  0, 200,  40);  // green — calm / healthy
 }
 
-static void forward()  { drive(M3_A, motorSpeed, M4_A, motorSpeed); }
-static void backward() { drive(M3_B, motorSpeed, M4_B, motorSpeed); }
-static void turnLeft() { drive(M3_B, motorSpeed, M4_A, motorSpeed); }
-static void turnRight(){ drive(M3_A, motorSpeed, M4_B, motorSpeed); }
-static void stopAll()  { drive(0, 0, 0, 0); }
+// Reads sensors, updates cache, prints one SENSORS: line, refreshes LED.
+static void doRead() {
+  float t = dht.readTemperature();
+  float h = dht.readHumidity();
+  int   l = analogRead(LIGHT_PIN);
 
+  if (!isnan(t) && !isnan(h) && h >= 0.0f && h <= 100.0f) {
+    cachedTemp  = t;
+    cachedHum   = h;
+    cachedLight = l;
+    primed = true;
+  } else if (!primed) {
+    // DHT11 hasn't warmed up yet; bridge will retry after 5 s
+    Serial.println("SENSOR_ERROR:DHT_WARMING_UP");
+    return;
+  }
+  // If DHT returned NaN but we have a prior reading, fall back to cached values.
+  // Light is always fresh regardless.
+  if (primed && l >= 0) cachedLight = l;
+
+  Serial.print("SENSORS:TEMP:");
+  Serial.print(cachedTemp, 1);
+  Serial.print(",HUM:");
+  Serial.print(static_cast<int>(cachedHum + 0.5f));
+  Serial.print(",LIGHT:");
+  Serial.println(cachedLight);
+
+  applyMoodLed(cachedTemp, cachedHum, cachedLight);
+}
+
+// ── Arduino entry points ──────────────────────────────────────────────────────
 void setup() {
-  pinMode(MOTORLATCH,  OUTPUT);
-  pinMode(MOTORCLK,    OUTPUT);
-  pinMode(MOTORENABLE, OUTPUT);
-  pinMode(MOTORDATA,   OUTPUT);
-  pinMode(M3_PWM,      OUTPUT);
-  pinMode(M4_PWM,      OUTPUT);
+  pinMode(LED_R, OUTPUT);
+  pinMode(LED_G, OUTPUT);
+  pinMode(LED_B, OUTPUT);
+  pinMode(BTN_A, INPUT_PULLUP);
 
-  digitalWrite(MOTORENABLE, LOW);  // enable 74HC595 outputs
-  stopAll();
+  setRgb(0, 0, 60);  // dim blue during startup
+
+  dht.begin();
+  delay(2000);  // DHT11 requires ≥ 1 s after power-on before first read
 
   Serial.begin(115200);
-  while (!Serial && millis() < 3000) {}
-  Serial.println("Motor test ready.");
-  Serial.println("Commands: FORWARD, BACKWARD, LEFT, RIGHT, STOP, SPEED:<0-255>");
+  while (!Serial && millis() < 4000) {}
+
+  Serial.println("SENSOR_NODE_READY");
+  Serial.println("Commands: READ_SENSORS | auto-broadcast every 10s");
+  Serial.print("Pins: DHT11=D"); Serial.print(DHT_PIN);
+  Serial.print(" LIGHT=A"); Serial.print(LIGHT_PIN - A0);
+  Serial.print(" RGB=D"); Serial.print(LED_R);
+  Serial.print("/D"); Serial.print(LED_G);
+  Serial.print("/D"); Serial.println(LED_B);
+
+  doRead();  // prime cache and set LED on boot
+  lastBroadcastMs = millis();
 }
 
 void loop() {
-  if (!Serial.available()) return;
+  // ── serial command handler ─────────────────────────────────────────────────
+  if (Serial.available()) {
+    String cmd = Serial.readStringUntil('\n');
+    cmd.trim();
+    if (cmd == "READ_SENSORS") doRead();
+  }
 
-  String cmd = Serial.readStringUntil('\n');
-  cmd.trim();
-  if (cmd.length() == 0) return;
+  // ── button A — edge-triggered manual read ─────────────────────────────────
+  bool btnDown = (digitalRead(BTN_A) == LOW);
+  if (btnDown && !btnWasDown) doRead();
+  btnWasDown = btnDown;
 
-  if (cmd == "FORWARD") {
-    forward();
-    Serial.println("FORWARD");
-  } else if (cmd == "BACKWARD") {
-    backward();
-    Serial.println("BACKWARD");
-  } else if (cmd == "LEFT") {
-    turnLeft();
-    Serial.println("LEFT");
-  } else if (cmd == "RIGHT") {
-    turnRight();
-    Serial.println("RIGHT");
-  } else if (cmd == "STOP") {
-    stopAll();
-    Serial.println("STOP");
-  } else if (cmd.startsWith("SPEED:")) {
-    int v = constrain(cmd.substring(6).toInt(), 50, 255);
-    motorSpeed = (uint8_t)v;
-    Serial.print("SPEED:");
-    Serial.println(v);
-  } else {
-    Serial.print("Unknown: ");
-    Serial.println(cmd);
+  // ── auto-broadcast ─────────────────────────────────────────────────────────
+  if (millis() - lastBroadcastMs >= BROADCAST_MS) {
+    lastBroadcastMs = millis();
+    doRead();
   }
 }

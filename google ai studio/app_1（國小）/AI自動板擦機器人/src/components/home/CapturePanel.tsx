@@ -78,19 +78,30 @@ export function CapturePanel({
         </div>
       </div>
 
-      <div className="relative aspect-video rounded-lg bg-on-surface overflow-hidden border border-outline-variant/30">
+      <div className="relative aspect-video rounded-2xl overflow-hidden border border-outline-variant/20 shadow-inner" style={{background: 'linear-gradient(135deg,#f8f9fc 0%,#f0f2f8 100%)'}}>
+        {/* Subtle grid pattern to evoke a whiteboard */}
+        <svg className="absolute inset-0 h-full w-full opacity-[0.04]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a1a2e" strokeWidth="1"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)" />
+        </svg>
         <video ref={videoRef} muted playsInline className={`absolute inset-0 w-full h-full object-cover ${cameraReady ? 'opacity-100' : 'opacity-0'}`} />
         {!cameraReady && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-on-primary p-8 gap-4">
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 gap-5">
             <div>
-              <Camera className="w-12 h-12 mb-4 opacity-80 mx-auto" aria-hidden="true" />
-              <p className="text-lg font-extrabold">攝影機尚未開啟</p>
-              <p className="text-sm opacity-70 mt-2">開啟後可拍下白板，做成國小課堂紀錄。</p>
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 border border-primary/15">
+                <Camera className="w-8 h-8 text-primary" aria-hidden="true" />
+              </div>
+              <p className="text-lg font-extrabold text-on-surface">拍下課堂白板</p>
+              <p className="text-sm text-on-surface-variant mt-1.5 max-w-xs mx-auto">點「開啟」授權攝影機，對準黑板即可分析。</p>
             </div>
-            <div className="rounded-xl border-2 border-dashed border-amber-400 bg-amber-500/20 px-6 py-4 flex flex-col items-center gap-2">
-              <p className="text-xs font-bold text-amber-200">相機無法使用？改上傳圖片</p>
+            <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-low px-5 py-3.5 flex flex-col items-center gap-2.5">
+              <p className="text-xs font-bold text-on-surface-variant">沒有攝影機？直接上傳圖片</p>
               <label className="cursor-pointer">
-                <span className="inline-flex items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-400 active:scale-95 transition-all px-4 py-2 text-sm font-extrabold text-white shadow">
+                <span className="inline-flex items-center gap-2 rounded-xl bg-primary hover:bg-primary/90 active:scale-95 transition-all px-4 py-2 text-sm font-extrabold text-on-primary shadow-md shadow-primary/20">
                   <Upload className="w-4 h-4" aria-hidden="true" />
                   上傳黑板照片分析
                 </span>

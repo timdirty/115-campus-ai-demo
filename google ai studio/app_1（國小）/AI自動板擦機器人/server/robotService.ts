@@ -143,6 +143,32 @@ export async function sendSerialCommand(command: string, requestedPath?: string)
   return {port: activePath, response: await responsePromise};
 }
 
+function parseSensorLine(raw: string): {temp: number; hum: number; light: number} | null {
+  const match = raw.match(/SENSORS:TEMP:([\d.]+),HUM:(\d+),LIGHT:(\d+)/);
+  if (!match) return null;
+  return {temp: parseFloat(match[1]), hum: parseInt(match[2], 10), light: parseInt(match[3], 10)};
+}
+
+export async function readRobotSensors(): Promise<{
+  temp: number | null;
+  hum: number | null;
+  light: number | null;
+  connected: boolean;
+}> {
+  try {
+    const {response} = await sendSerialCommand('READ_SENSORS');
+    const parsed = parseSensorLine(response);
+    return {
+      temp: parsed?.temp ?? null,
+      hum: parsed?.hum ?? null,
+      light: parsed?.light ?? null,
+      connected: parsed !== null,
+    };
+  } catch {
+    return {temp: null, hum: null, light: null, connected: false};
+  }
+}
+
 export async function recordUnsupportedTask(command: string, source: string, message: string) {
   const status = await updateRobotStatus({
     connected: Boolean(activePath),

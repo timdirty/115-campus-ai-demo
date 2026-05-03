@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {motion} from 'motion/react';
-import {ArrowRight, Bot, CheckCircle2, Database, Loader2, Radio, RefreshCw, ShieldCheck, Video} from 'lucide-react';
+import {ArrowRight, Bot, Database, Loader2, Radio, RefreshCw, ShieldCheck, Video} from 'lucide-react';
 import {CapturePanel} from '../components/home/CapturePanel';
 import {NoticeBar} from '../components/home/NoticeBar';
 import {QuickNotePanel} from '../components/home/QuickNotePanel';
@@ -215,9 +215,9 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
 
   const boardRegions = analysis?.boardRegions ?? classroom?.boardRegions ?? [];
   const demoSteps = [
-    {label: '拍白板', detail: '取畫面'},
-    {label: '選區塊', detail: '保留或擦除'},
-    {label: '派機器人', detail: '送出任務'},
+    {num: '1', label: '拍白板', detail: '開啟攝影機或上傳黑板照'},
+    {num: '2', label: '選區塊', detail: 'AI 分割，點選保留或擦除'},
+    {num: '3', label: '派機器人', detail: '一鍵送出板擦任務'},
   ];
 
   return (
@@ -256,7 +256,9 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
             <div className="mt-5 grid gap-3 md:grid-cols-3">
               {demoSteps.map((step) => (
                 <div key={step.label} className="rounded-2xl bg-surface/80 p-4 border border-white/60">
-                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                  <div className="w-7 h-7 rounded-full bg-primary text-on-primary flex items-center justify-center text-xs font-black">
+                    {step.num}
+                  </div>
                   <p className="mt-3 text-sm font-extrabold">{step.label}</p>
                   <p className="mt-1 text-xs font-semibold leading-5 text-on-surface-variant">{step.detail}</p>
                 </div>
@@ -273,10 +275,18 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
                 <p className="text-xs font-semibold text-on-surface-variant">所有核心展示都能在本機完成</p>
               </div>
             </div>
-            <div className="mt-4 space-y-2 text-sm font-bold text-on-surface-variant">
-              <p>AI：{health?.geminiConfigured ? '雲端分析可用' : '本機示範可用'}</p>
-              <p>機器人：{health?.ok ? '可連動' : '未連線仍可展示'}</p>
-              <p>紀錄：決策與派遣都會保存</p>
+            <div className="mt-4 space-y-2">
+              {[
+                {label: 'AI 分析', value: health?.geminiConfigured ? '雲端分析可用' : '本機示範可用', ok: Boolean(health?.geminiConfigured)},
+                {label: '機器人', value: health?.ok ? '已連線可派遣' : '未連線仍可展示', ok: Boolean(health?.ok)},
+                {label: '課堂紀錄', value: '決策與派遣自動保存', ok: true},
+              ].map(({label, value, ok}) => (
+                <div key={label} className="flex items-center gap-2.5 text-sm font-bold">
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${ok ? 'bg-primary' : 'bg-outline-variant/60'}`} />
+                  <span className="text-on-surface-variant">{label}：</span>
+                  <span className={ok ? 'text-primary' : 'text-on-surface-variant'}>{value}</span>
+                </div>
+              ))}
             </div>
           </div>
         </motion.section>

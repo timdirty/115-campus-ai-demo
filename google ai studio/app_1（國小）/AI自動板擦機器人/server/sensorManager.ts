@@ -1,14 +1,14 @@
 import path from 'node:path';
 import {SerialPort} from 'serialport';
 import {baudRate, dataDir} from './config';
-import {getActivePath, isArduinoLikePort, listPorts} from './robotService';
+import {getActivePath, isArduinoLikePort, listPorts, readRobotSensors} from './robotService';
 import {readJsonFile, writeJsonFile} from './storage';
 import type {PortInfo} from './types';
 
 const POLL_INTERVAL_MS = 5_000;
-const READ_TIMEOUT_MS = 2_000;
+const READ_TIMEOUT_MS = 5_000;
 const ASSIGNMENTS_FILE = path.join(dataDir, 'sensor-assignments.json');
-const CANONICAL_ZONE_IDS = ['zone-library', 'zone-hall', 'zone-classroom', 'zone-gym', 'zone-field'];
+const CANONICAL_ZONE_IDS = ['zone-library', 'zone-hall', 'zone-field'];
 
 export interface ZoneSensorReading {
   zoneId: string;
@@ -146,7 +146,18 @@ async function pollSensors(): Promise<void> {
   }
 
   // Read sensors for assigned zones
+  const robotPortPath = getActivePath();
   for (const [zoneId, portPath] of zoneAssignments.entries()) {
+    // Zone assigned to the primary robot board — use robotService's open connection
+    if (robotPortPath && portPath === robotPortPath) {
+      try {
+        const reading = await readRobotSensors();
+        sensorCache.set(zoneId, {...reading, zoneId, portPath, updatedAt: new Date().toISOString()});
+      } catch {
+        sensorCache.set(zoneId, {zoneId, portPath, temp: null, hum: null, light: null, connected: false, updatedAt: new Date().toISOString()});
+      }
+      continue;
+    }
     if (!detectedPaths.includes(portPath)) {
       sensorCache.set(zoneId, {
         zoneId,
@@ -187,11 +198,22 @@ export function getAllDetectedPorts(): DetectedPort[] {
   for (const [zoneId, portPath] of zoneAssignments.entries()) {
     reverseMap.set(portPath, zoneId);
   }
-  return lastDetectedPorts.map((p) => ({
+  const ports: DetectedPort[] = lastDetectedPorts.map((p) => ({
     path: p.path,
     manufacturer: p.manufacturer,
     assignedZone: reverseMap.get(p.path) ?? null,
   }));
+  // Also expose the primary robot port so it can be assigned to a zone.
+  // Sensor reads on this port go through robotService's existing connection.
+  const robotPath = getActivePath();
+  if (robotPath && !lastDetectedPorts.some((p) => p.path === robotPath)) {
+    ports.unshift({
+      path: robotPath,
+      manufacturer: '主要 Arduino 板 (R4 WiFi)',
+      assignedZone: reverseMap.get(robotPath) ?? null,
+    });
+  }
+  return ports;
 }
 
 export function getLiveZoneReadings(): ZoneSensorReading[] {
@@ -199,7 +221,9 @@ export function getLiveZoneReadings(): ZoneSensorReading[] {
 }
 
 export async function assignPortToZone(portPath: string, zoneId: string): Promise<void> {
-  if (!lastDetectedPorts.some((p) => p.path === portPath)) {
+  const robotPath = getActivePath();
+  const isRobotPort = robotPath && portPath === robotPath;
+  if (!isRobotPort && !lastDetectedPorts.some((p) => p.path === portPath)) {
     throw new Error(`Port ${portPath} not in detected ports`);
   }
   if (!CANONICAL_ZONE_IDS.includes(zoneId)) {

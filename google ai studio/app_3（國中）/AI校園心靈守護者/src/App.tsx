@@ -12,6 +12,7 @@ import {
   Bot,
   CheckCircle2,
   Download,
+  Droplets,
   HeartHandshake,
   Leaf,
   Lock,
@@ -26,9 +27,12 @@ import {
   ShieldCheck,
   Siren,
   Smile,
+  Sun,
+  Thermometer,
   Upload,
   Volume2,
   Wifi,
+  Settings,
   X,
 } from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
@@ -42,7 +46,8 @@ import {assignSensorPort, fetchSensorPorts, fetchZoneSensors, sendGuardianHardwa
 import {AlertDetail, AlertRow, MetricCard, NodeRow, RiskPill} from './components/guardianUi';
 import {CampusMapSvg} from './components/CampusMapSvg';
 import {ZoneSensorPanel} from './components/ZoneSensorPanel';
-import {SensorAssignmentWidget} from './components/SensorAssignmentWidget';
+import {SensorSetupModal} from './components/SensorSetupModal';
+import {BridgeStatusPill, GuardianControlPanel, QuickAlertButton} from './components/GuardianControlPanel';
 
 type ActivePanel = 'alerts' | 'sensing' | 'care' | 'nodes' | 'logs' | null;
 type RobotDispatchFeedback = {zoneId: string; zoneName: string; stage: '指令送出' | '前往現場' | '老師確認'; createdAt: number; missionId: string} | null;
@@ -117,6 +122,7 @@ function AppContent() {
   const {restartTour} = useTour();
   const [state, dispatch] = useReducer(guardianReducer, undefined, loadGuardianState);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
+  const [showSetup, setShowSetup] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<GuardianAlert | null>(null);
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [selectedMood, setSelectedMood] = useState<MoodType>('steady');
@@ -134,6 +140,7 @@ function AppContent() {
   const [currentAcoustic, setCurrentAcoustic] = useState(defaultAcoustic);
   const [zoneSensors, setZoneSensors] = useState<ZoneSensorReading[]>([]);
   const [detectedPorts, setDetectedPorts] = useState<DetectedPort[]>([]);
+  const [bridgeOnline, setBridgeOnline] = useState(false);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const robotTimersRef = useRef<number[]>([]);
   const proxyOnline = useProxyHealth();
@@ -157,9 +164,12 @@ function AppContent() {
     const poll = async () => {
       try {
         const readings = await fetchZoneSensors();
-        if (!cancelled) setZoneSensors(readings);
+        if (!cancelled) {
+          setZoneSensors(readings);
+          setBridgeOnline(true);
+        }
       } catch {
-        // keep last known readings on transient error
+        if (!cancelled) setBridgeOnline(false);
       }
     };
     poll();
@@ -397,7 +407,7 @@ function AppContent() {
   };
 
   return (
-    <div className="guardian-shell min-h-screen overflow-x-hidden bg-slate-100 text-slate-950">
+    <div className="guardian-shell min-h-screen overflow-x-hidden bg-[linear-gradient(160deg,#f5f9fc_0%,#eef3f8_60%,#e8f0f7_100%)] text-slate-950">
       {/* Proxy Health Banner */}
       {proxyOnline === false && !bannerDismissed && (
         <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800">
@@ -415,49 +425,62 @@ function AppContent() {
       <input ref={importInputRef} type="file" accept="application/json,.json" className="hidden" onChange={(event) => void importDemoData(event.target.files?.[0])} />
       <Toast message={toastMessage} />
 
-      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/95 shadow-[0_1px_12px_rgba(15,23,42,0.06)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <button className="flex min-w-0 items-center gap-3 text-left" onClick={() => setActivePanel(null)}>
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-teal-100 bg-teal-50 text-teal-700 shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-teal-700 text-white shadow-md shadow-teal-200/60">
               <HeartHandshake className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <h1 className="truncate text-base font-black tracking-tight sm:text-xl">AI 校園心靈守護者</h1>
-              <p className="text-[10px] font-black text-slate-500">校園關懷中控</p>
+              <h1 className="line-clamp-1 text-base font-black tracking-tight sm:text-xl">AI 校園心靈守護者</h1>
+              <p className="text-[10px] font-black text-teal-600">校園關懷中控</p>
             </div>
           </button>
 
-          <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-600 md:flex">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            {viewModel.campusHealthLabel}
+          {/* Bridge + campus health status */}
+          <div className="hidden items-center gap-2 md:flex">
+            <BridgeStatusPill online={bridgeOnline} sensorCount={zoneSensors.filter((s) => s.connected).length} />
+            <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-600">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              {viewModel.campusHealthLabel}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Quick alert — always one tap away */}
+            <QuickAlertButton disabled={!bridgeOnline} />
+            {/* Sensor setup button */}
+            <button
+              onClick={() => setShowSetup(true)}
+              className="relative flex min-h-11 min-w-11 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 shadow-sm transition hover:border-teal-200 hover:text-teal-700"
+            >
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">感測器</span>
+              {detectedPorts.some((p) => !p.assignedZone) && (
+                <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-400 text-[8px] font-black text-white shadow">
+                  !
+                </span>
+              )}
+            </button>
             <button onClick={restartTour} className="hidden min-h-10 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 shadow-sm transition hover:border-teal-200 hover:text-teal-700 md:block">
               導覽
             </button>
-            <IconButton onClick={exportDemoData} label="匯出展示資料" icon={Download} />
-            <IconButton onClick={() => importInputRef.current?.click()} label="匯入展示資料" icon={Upload} />
-            <IconButton
-              onClick={() => {
-                dispatch({type: 'RESET_DEMO'});
-                showToast('展示資料已重置');
-              }}
-              label="重設展示資料"
-              icon={RefreshCw}
-              emphasis
-            />
+            <div className="hidden items-center gap-2 sm:flex">
+              <IconButton onClick={exportDemoData} label="匯出展示資料" icon={Download} />
+              <IconButton onClick={() => importInputRef.current?.click()} label="匯入展示資料" icon={Upload} />
+              <IconButton
+                onClick={() => {
+                  dispatch({type: 'RESET_DEMO'});
+                  showToast('展示資料已重置');
+                }}
+                label="重設展示資料"
+                icon={RefreshCw}
+                emphasis
+              />
+            </div>
           </div>
         </div>
       </header>
-
-      <SensorAssignmentWidget
-        ports={detectedPorts}
-        onAssigned={async () => {
-          const ports = await fetchSensorPorts();
-          setDetectedPorts(ports);
-        }}
-      />
 
       <main className="mx-auto grid max-w-7xl gap-4 px-4 py-4 pb-24 sm:px-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:pb-8">
         <CommandCenterScreen
@@ -474,7 +497,7 @@ function AppContent() {
           onDispatchRobot={dispatchRobotToZone}
         />
 
-        <aside className="grid gap-4 lg:sticky lg:top-[5.25rem] lg:max-h-[calc(100vh-6rem)] lg:grid-rows-[auto_1fr_auto]">
+        <aside className="grid gap-4 lg:sticky lg:top-21 lg:max-h-[calc(100vh-6rem)] lg:grid-rows-[auto_1fr_auto]">
           <div data-tour="zone-inspector"><ZoneInspector zone={selectedZone} robotFeedback={robotFeedback} onDispatchRobot={dispatchRobotToZone} /></div>
           <div data-tour="mission-timeline"><MissionTimeline state={state} robotFeedback={robotFeedback} /></div>
           <div data-tour="panel-dock"><PanelDock activePanel={activePanel} onOpenPanel={setActivePanel} onShowDemo={restartTour} /></div>
@@ -524,7 +547,24 @@ function AppContent() {
         onHardwareCommand={(command, source) => sendHardwareCue(command, `app3:${source}`)}
         dispatch={dispatch}
         zones={viewModel.zones}
+        bridgeOnline={bridgeOnline}
+        sensors={zoneSensors}
       />
+
+      {/* Sensor setup modal */}
+      <AnimatePresence>
+        {showSetup && (
+          <SensorSetupModal
+            ports={detectedPorts}
+            sensors={zoneSensors}
+            onClose={() => setShowSetup(false)}
+            onChanged={async () => {
+              const ports = await fetchSensorPorts();
+              setDetectedPorts(ports);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
     </div>
   );
@@ -576,30 +616,35 @@ function CommandCenterScreen({
   return (
     <section className="grid gap-4 lg:min-h-[calc(100vh-6.5rem)] lg:grid-rows-[auto_minmax(0,1fr)_auto]">
       <div data-tour="signal-overview">
-        <Surface className="p-4 sm:p-5">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div>
-              <p className="text-xs font-black text-teal-700">校園指揮中心</p>
-              <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">校園即時總覽</h2>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[24rem]">
-              <SignalTile label="守護指數" value={`${state.stabilityScore}%`} tone="teal" />
-              <SignalTile label="最高風險" value={viewModel.highestZone.riskScore.toString()} tone={viewModel.highestZone.riskLevel === 'high' ? 'rose' : 'amber'} />
-              <SignalTile label="機器人" value={viewModel.activeRobotCount.toString()} tone="emerald" />
+        <div className="overflow-hidden rounded-2xl border border-slate-200/60 bg-gradient-to-br from-white to-teal-50/40 shadow-sm">
+          <div className="p-4 sm:p-5">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div>
+                <p className="text-xs font-black text-teal-600 tracking-wide">校園指揮中心</p>
+                <h2 className="mt-1.5 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">校園即時總覽</h2>
+                <p className="mt-1 text-sm font-semibold text-slate-500">{viewModel.campusHealthLabel}</p>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[24rem]">
+                <SignalTile label="守護指數" value={`${state.stabilityScore}%`} tone="teal" />
+                <SignalTile label="最高風險" value={viewModel.highestZone.riskScore.toString()} tone={viewModel.highestZone.riskLevel === 'high' ? 'rose' : 'amber'} />
+                <SignalTile label="機器人" value={viewModel.activeRobotCount.toString()} tone="emerald" />
+              </div>
             </div>
           </div>
-        </Surface>
+          {/* risk level accent bar */}
+          <div className={`h-1 w-full ${viewModel.highestZone.riskLevel === 'high' ? 'bg-gradient-to-r from-rose-400 to-rose-600' : viewModel.highestZone.riskLevel === 'medium' ? 'bg-gradient-to-r from-amber-300 to-amber-500' : 'bg-gradient-to-r from-teal-300 to-teal-500'}`} />
+        </div>
       </div>
 
-      <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <div data-tour="campus-map">
-          <CampusMap2D zones={viewModel.zones} selectedZone={selectedZone} selectedZoneId={selectedZoneId} robotFeedback={robotFeedback} onSelectZone={onSelectZone} onDispatchRobot={onDispatchRobot} />
-        </div>
-        <div className="grid gap-4">
-          <OperationsBrief viewModel={viewModel} onOpenPanel={onOpenPanel} />
-          <RobotReadinessCard state={state} robotFeedback={robotFeedback} />
-          <div data-tour="dispatch-robot">
-          <Surface className="p-4">
+      <div data-tour="campus-map">
+        <CampusMap2D zones={viewModel.zones} selectedZone={selectedZone} selectedZoneId={selectedZoneId} robotFeedback={robotFeedback} onSelectZone={onSelectZone} onDispatchRobot={onDispatchRobot} />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <OperationsBrief viewModel={viewModel} onOpenPanel={onOpenPanel} />
+        <RobotReadinessCard state={state} robotFeedback={robotFeedback} />
+        <div data-tour="dispatch-robot">
+          <Surface className="h-full p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-black text-slate-500">最高風險區</p>
@@ -622,17 +667,16 @@ function CommandCenterScreen({
               {viewModel.highestZone.riskLevel === 'low' ? '維持一般巡查' : robotFeedback?.zoneId === viewModel.highestZone.id ? '已送出派遣' : '派遣機器人介入'}
             </PrimaryAction>
           </Surface>
-          </div>
-
-          <Surface className="p-4">
-            <p className="text-xs font-black text-slate-500">訊號總覽</p>
-            <div className="mt-4 space-y-2">
-              {viewModel.signalSummary.map((item) => (
-                <StatusLine key={item.label} label={item.label} value={item.value} tone={item.tone} />
-              ))}
-            </div>
-          </Surface>
         </div>
+
+        <Surface className="h-full p-4">
+          <p className="text-xs font-black text-slate-500">訊號總覽</p>
+          <div className="mt-4 space-y-2">
+            {viewModel.signalSummary.map((item) => (
+              <StatusLine key={item.label} label={item.label} value={item.value} tone={item.tone} />
+            ))}
+          </div>
+        </Surface>
       </div>
 
       <InsightStrip proactiveInsight={viewModel.proactiveInsight} dispatchableCount={viewModel.dispatchableZones.length} onCreateProactiveAlert={onCreateProactiveAlert} onOpenPanel={onOpenPanel} />
@@ -655,14 +699,22 @@ function CampusMap2D({
   onSelectZone: (zone: SchoolZoneStatus) => void;
   onDispatchRobot: (zone: SchoolZoneStatus) => void;
 }) {
-  const selectedLeft = Math.min(selectedZone.x, 72);
+  const selectedLeft = Math.min(selectedZone.x, 76);
   const activeDispatch = robotFeedback?.zoneId === selectedZone.id;
   const dispatchProgress = getRobotStageProgress(activeDispatch ? robotFeedback?.stage : undefined);
+  const [expandedZoneId, setExpandedZoneId] = useState<string | null>(null);
+
+  const ZONE_EMOJI: Record<string, string> = {
+    'zone-library': '📚',
+    'zone-hall': '🚶',
+    'zone-field': '⚽',
+  };
+
   return (
-    <Surface className="relative min-h-[30rem] overflow-hidden p-3 sm:min-h-[32rem] sm:p-4">
+    <Surface className="relative overflow-hidden p-3 sm:p-4">
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-black text-slate-500">校園平面圖</p>
+          <p className="text-xs font-black text-teal-600">校園平面圖</p>
           <h3 className="text-xl font-black text-slate-950">區域狀態</h3>
         </div>
         <div className="flex flex-wrap gap-2 text-[10px] font-black text-slate-500">
@@ -671,7 +723,7 @@ function CampusMap2D({
           <LegendDot tone="rose" label="高風險" />
         </div>
       </div>
-      <div className="relative min-h-[25rem] overflow-hidden rounded-2xl border border-slate-200 bg-[linear-gradient(135deg,#f8fafc,#eef7f8)] sm:min-h-[28rem]">
+      <div className="relative min-h-[44rem] overflow-hidden rounded-2xl border border-slate-200/80 bg-[linear-gradient(145deg,#eef4fb,#e6f0f9)] shadow-inner lg:min-h-[56rem]">
         <CampusMapSvg
           zones={zones.map((z) => ({id: z.id, riskLevel: z.riskLevel, sensor: z.sensor}))}
           selectedZoneId={selectedZoneId}
@@ -680,12 +732,8 @@ function CampusMap2D({
             if (zone) onSelectZone(zone);
           }}
         />
-        <div className="absolute left-[10%] top-[12%] h-2 w-[72%] -rotate-6 rounded-full bg-teal-200/70 shadow-sm" />
-        <div className="absolute left-[18%] top-[59%] h-2 w-[60%] rotate-3 rounded-full bg-teal-200/70 shadow-sm" />
-        <div className="absolute left-[48%] top-[15%] h-[65%] w-2 rounded-full bg-teal-200/70 shadow-sm" />
-        <div className="absolute left-[48%] top-[48%] h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-teal-600 shadow-[0_0_0_8px_rgba(13,148,136,.12)]" />
         <div
-          className={`robot-route-line absolute z-[8] h-2 origin-left rounded-full ${activeDispatch ? 'opacity-100' : 'opacity-35'}`}
+          className={`robot-route-line absolute z-[8] h-1.5 origin-left rounded-full ${activeDispatch ? 'opacity-100' : 'opacity-0'}`}
           style={{
             left: '48%',
             top: '48%',
@@ -694,54 +742,90 @@ function CampusMap2D({
           }}
         />
         <div
-          className={`robot-marker absolute z-10 flex h-24 w-24 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[1.4rem] border border-teal-200 bg-white text-teal-700 shadow-2xl shadow-teal-200/80 ${activeDispatch ? 'robot-marker-active' : ''}`}
+          className={`robot-marker absolute z-10 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-0.5 rounded-2xl border border-teal-200 bg-white text-teal-700 shadow-xl shadow-teal-200/60 ${activeDispatch ? 'robot-marker-active' : ''}`}
           style={{left: `${selectedLeft + 8}%`, top: `${Math.min(selectedZone.y + 16, 82)}%`}}
         >
-          {activeDispatch && <span className="absolute h-32 w-32 rounded-full border-2 border-teal-300 opacity-70" />}
-          <div className="absolute -right-2 -top-2 rounded-full bg-teal-600 px-2 py-1 text-[10px] font-black text-white shadow-sm">
+          <div className="absolute -right-1.5 -top-1.5 rounded-full bg-teal-600 px-1.5 py-0.5 text-[9px] font-black text-white shadow-sm">
             {robotFeedback?.missionId ?? 'R-01'}
           </div>
-          <div className="grid place-items-center">
-            <div className="relative grid h-12 w-12 place-items-center rounded-2xl bg-teal-50">
-              <Bot className="h-8 w-8" />
-              <span className="absolute left-3 top-5 h-1.5 w-1.5 rounded-full bg-teal-600" />
-              <span className="absolute right-3 top-5 h-1.5 w-1.5 rounded-full bg-teal-600" />
-            </div>
-            <span className="mt-1 text-[10px] font-black text-slate-600">{activeDispatch ? robotFeedback?.stage : '待命'}</span>
-          </div>
-          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-teal-100 bg-white px-3 py-1.5 text-[10px] font-black text-teal-700 shadow-sm">
-            守護機器人
-          </div>
+          <Bot className="h-6 w-6" />
+          <span className="text-[9px] font-black text-slate-500 leading-none">{activeDispatch ? robotFeedback?.stage : '待命'}</span>
         </div>
         {zones.map((zone) => {
           const selected = zone.id === selectedZone.id;
           const dispatching = robotFeedback?.zoneId === zone.id;
-          const left = Math.min(zone.x, 72);
-          const tone =
-            zone.riskLevel === 'high'
-              ? 'border-rose-300 bg-rose-50 text-rose-950 shadow-rose-100'
-              : zone.riskLevel === 'medium'
-                ? 'border-amber-300 bg-amber-50 text-amber-950 shadow-amber-100'
-                : 'border-emerald-300 bg-emerald-50 text-emerald-950 shadow-emerald-100';
+          const left = Math.min(zone.x, 76);
+          const identity = ({
+            'zone-library': {bg: 'bg-blue-50/95',    border: 'border-blue-300',    dot: 'bg-blue-500'},
+            'zone-hall':    {bg: 'bg-emerald-50/95', border: 'border-emerald-300', dot: 'bg-emerald-500'},
+            'zone-field':   {bg: 'bg-orange-50/95',  border: 'border-orange-300',  dot: 'bg-orange-500'},
+          } as Record<string, {bg: string; border: string; dot: string}>)[zone.id]
+            ?? {bg: 'bg-white/95', border: 'border-slate-200', dot: 'bg-slate-400'};
+          const cardBorder = zone.riskLevel === 'high' ? 'border-rose-400' : zone.riskLevel === 'medium' ? 'border-amber-400' : identity.border;
+          const cardShadow = zone.riskLevel === 'high' ? 'shadow-rose-200/50' : zone.riskLevel === 'medium' ? 'shadow-amber-200/50' : 'shadow-slate-200/30';
+          const scoreColor = zone.riskLevel === 'high' ? 'text-rose-600' : zone.riskLevel === 'medium' ? 'text-amber-600' : 'text-emerald-600';
+          const riskDot = zone.riskLevel === 'high' ? 'bg-rose-500' : zone.riskLevel === 'medium' ? 'bg-amber-500' : identity.dot;
+          const isExpanded = expandedZoneId === zone.id;
           return (
             <button
               key={zone.id}
-              onClick={() => onSelectZone(zone)}
-              className={`campus-zone-card absolute z-20 w-[7.2rem] rounded-xl border p-2 text-left shadow-lg transition hover:-translate-y-1 sm:w-40 sm:p-3 ${tone} ${selected ? 'ring-2 ring-teal-500 ring-offset-2' : ''} ${dispatching ? 'zone-dispatch-pulse' : ''}`}
+              onClick={() => {
+                onSelectZone(zone);
+                setExpandedZoneId(isExpanded ? null : zone.id);
+              }}
+              className={`campus-zone-card absolute w-32 rounded-2xl border-2 p-2.5 text-left shadow-xl backdrop-blur-sm transition hover:shadow-2xl sm:w-44 sm:p-3 ${identity.bg} ${cardBorder} ${cardShadow} ${selected ? 'ring-2 ring-teal-500 ring-offset-1' : ''} ${dispatching ? 'zone-dispatch-pulse' : ''} ${isExpanded ? 'z-[35]' : 'z-20'}`}
               style={{left: `${left}%`, top: `${zone.y}%`}}
             >
-              <span className="flex items-center justify-between gap-2">
-                <span className="text-sm font-black">{zone.name}</span>
-                <span className={`h-2.5 w-2.5 rounded-full ${zone.riskLevel === 'high' ? 'bg-rose-500' : zone.riskLevel === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-              </span>
-              <span className="mt-3 flex items-end justify-between gap-2">
-                <span className="text-2xl font-black">{zone.riskScore}</span>
-                <span className="text-[10px] font-black text-slate-600">{dispatching ? '派遣中' : selected ? '選取' : zone.riskLevel === 'low' ? '巡查' : '可派遣'}</span>
-              </span>
+              <div className="flex items-start justify-between gap-1">
+                <span className="text-base leading-none">{ZONE_EMOJI[zone.id] ?? '📍'}</span>
+                <div className="flex items-center gap-1">
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${riskDot} shadow-sm`} />
+                  <span className="text-[9px] text-slate-400 leading-none">{isExpanded ? '▲' : '▼'}</span>
+                </div>
+              </div>
+              <p className="mt-1.5 text-xs font-black leading-tight text-slate-800">{zone.name}</p>
+              <div className="mt-2 flex items-end justify-between gap-1">
+                <span className={`text-2xl font-black leading-none ${scoreColor}`}>{zone.riskScore}</span>
+                <span className="text-[10px] font-semibold text-slate-500 leading-tight">
+                  {dispatching ? '派遣中' : zone.riskLevel === 'low' ? '安全' : zone.riskLevel === 'medium' ? '注意' : '危險'}
+                </span>
+              </div>
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{height: 0, opacity: 0}}
+                    animate={{height: 'auto', opacity: 1}}
+                    exit={{height: 0, opacity: 0}}
+                    transition={{duration: 0.18}}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-2 space-y-1 border-t border-slate-200/80 pt-2">
+                      {zone.sensor?.connected ? (
+                        <>
+                          <div className="flex items-center gap-1 text-[10px] tabular-nums text-slate-700">
+                            <Thermometer className="h-3 w-3 shrink-0 text-rose-400" />
+                            <span>{zone.sensor.temp !== null ? zone.sensor.temp.toFixed(1) : '--'}°C</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-[10px] tabular-nums text-slate-700">
+                            <Droplets className="h-3 w-3 shrink-0 text-blue-400" />
+                            <span>{zone.sensor.hum !== null ? zone.sensor.hum : '--'}%</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-[10px] tabular-nums text-slate-500">
+                            <Sun className="h-3 w-3 shrink-0 text-amber-400" />
+                            <span>光 {zone.sensor.light !== null ? zone.sensor.light : '--'}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-[10px] italic text-slate-400">感測器未連線</p>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </button>
           );
         })}
-        <div className="absolute bottom-3 left-3 right-3 z-30 rounded-xl border border-slate-200 bg-white/92 p-3 shadow-lg shadow-slate-200/70 backdrop-blur">
+        <div className="absolute bottom-3 left-3 right-3 z-30 rounded-2xl border border-white/60 bg-white/88 p-3 shadow-xl shadow-slate-300/30 backdrop-blur-md">
           <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-center">
             <div>
               <p className="text-xs font-black text-slate-500">選取區域</p>
@@ -781,26 +865,34 @@ function CampusMap2D({
 }
 
 function OperationsBrief({viewModel, onOpenPanel}: {viewModel: CommandCenterViewModel; onOpenPanel: (panel: ActivePanel) => void}) {
+  const accentBar = viewModel.highestZone.riskLevel === 'high'
+    ? 'bg-gradient-to-r from-rose-400 to-rose-600'
+    : viewModel.highestZone.riskLevel === 'medium'
+      ? 'bg-gradient-to-r from-amber-300 to-amber-500'
+      : 'bg-gradient-to-r from-teal-300 to-teal-500';
   return (
-    <Surface className="p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-black text-slate-500">今日狀態</p>
-          <h3 className="mt-1 text-lg font-black text-slate-950">{viewModel.campusHealthLabel}</h3>
+    <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+      <div className={`h-1 ${accentBar}`} />
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-black text-slate-400">今日狀態</p>
+            <h3 className="mt-1 text-lg font-black text-slate-950">{viewModel.campusHealthLabel}</h3>
+          </div>
+          <StatusChip level={viewModel.highestZone.riskLevel} />
         </div>
-        <StatusChip level={viewModel.highestZone.riskLevel} />
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <button onClick={() => onOpenPanel('alerts')} className="rounded-xl border border-slate-200/70 bg-slate-50/80 p-3 text-left transition hover:border-teal-200 hover:bg-teal-50">
+            <p className="text-[10px] font-black text-slate-400">預警</p>
+            <p className="mt-1 text-2xl font-black text-slate-950">{viewModel.highPriorityCount}</p>
+          </button>
+          <button onClick={() => onOpenPanel('sensing')} className="rounded-xl border border-slate-200/70 bg-slate-50/80 p-3 text-left transition hover:border-teal-200 hover:bg-teal-50">
+            <p className="text-[10px] font-black text-slate-400">聲量</p>
+            <p className="mt-1 text-2xl font-black text-slate-950">{viewModel.latestSoundLabel}</p>
+          </button>
+        </div>
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <button onClick={() => onOpenPanel('alerts')} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-teal-200 hover:bg-teal-50">
-          <p className="text-[10px] font-black text-slate-500">預警</p>
-          <p className="mt-1 text-2xl font-black text-slate-950">{viewModel.highPriorityCount}</p>
-        </button>
-        <button onClick={() => onOpenPanel('sensing')} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-teal-200 hover:bg-teal-50">
-          <p className="text-[10px] font-black text-slate-500">聲量</p>
-          <p className="mt-1 text-2xl font-black text-slate-950">{viewModel.latestSoundLabel}</p>
-        </button>
-      </div>
-    </Surface>
+    </div>
   );
 }
 
@@ -1030,6 +1122,8 @@ function DetailDrawer(props: {
   onHardwareCommand: (command: string, source: string) => void;
   dispatch: Dispatch<any>;
   zones: SchoolZoneStatus[];
+  bridgeOnline: boolean;
+  sensors: ZoneSensorReading[];
 }) {
   const panel = props.activePanel;
   return (
@@ -1049,7 +1143,7 @@ function DetailDrawer(props: {
             animate={{opacity: 1, x: 0}}
             exit={{opacity: 0, x: 40}}
             onKeyDown={(e) => e.key === 'Escape' && props.onClose()}
-            className="fixed bottom-0 right-0 z-50 flex max-h-[88vh] w-full flex-col rounded-t-2xl border border-slate-200 bg-white p-4 text-slate-950 shadow-2xl shadow-slate-950/15 sm:max-w-xl lg:bottom-4 lg:right-4 lg:top-[5.25rem] lg:max-h-none lg:rounded-2xl"
+            className="fixed bottom-0 right-0 z-50 flex max-h-[88vh] w-full flex-col rounded-t-2xl border border-slate-200 bg-white p-4 text-slate-950 shadow-2xl shadow-slate-950/15 sm:max-w-xl lg:bottom-4 lg:right-4 lg:top-21 lg:max-h-none lg:rounded-2xl"
           >
             <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
               <div>
@@ -1064,7 +1158,15 @@ function DetailDrawer(props: {
               {panel === 'alerts' && <AlertsPanel {...props} />}
               {panel === 'sensing' && <SensingPanel {...props} />}
               {panel === 'care' && <CarePanel {...props} />}
-              {panel === 'nodes' && <NodesPanel {...props} />}
+              {panel === 'nodes' && (
+                <GuardianControlPanel
+                  bridgeOnline={props.bridgeOnline}
+                  zones={props.zones}
+                  sensors={props.sensors}
+                  state={props.state}
+                  onDispatchRobot={props.onDispatchRobot}
+                />
+              )}
               {panel === 'logs' && <LogsPanel {...props} />}
             </div>
           </motion.aside>
@@ -1408,7 +1510,7 @@ function Toast({message}: {message: string | null}) {
           exit={{opacity: 0, y: -16, x: '-50%'}}
           role="status"
           aria-live="polite"
-          className="fixed left-1/2 top-20 z-[80] flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-2xl border border-cyan-200/30 bg-slate-950/90 px-4 py-3 text-sm font-black text-white shadow-xl backdrop-blur"
+          className="fixed left-1/2 top-20 z-80 flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-2xl border border-cyan-200/30 bg-slate-950/90 px-4 py-3 text-sm font-black text-white shadow-xl backdrop-blur"
         >
           <CheckCircle2 className="h-5 w-5 shrink-0 text-cyan-200" />
           <span className="truncate">{message}</span>
@@ -1432,7 +1534,7 @@ function ChatScrollContainer({messages, children}: {messages: unknown[]; childre
 }
 
 function Surface({children, className = ''}: {children: ReactNode; className?: string}) {
-  return <div className={`rounded-2xl border border-slate-200 bg-white shadow-sm ${className}`}>{children}</div>;
+  return <div className={`rounded-2xl border border-slate-200/80 bg-white shadow-sm ${className}`}>{children}</div>;
 }
 
 function GlassPanel({children, className = ''}: {children: ReactNode; className?: string}) {
@@ -1440,20 +1542,25 @@ function GlassPanel({children, className = ''}: {children: ReactNode; className?
 }
 
 function SignalTile({label, value, tone}: {label: string; value: string; tone: 'teal' | 'rose' | 'amber' | 'emerald'}) {
-  const toneClass = tone === 'teal' ? 'text-teal-700' : tone === 'rose' ? 'text-rose-700' : tone === 'amber' ? 'text-amber-700' : 'text-emerald-700';
+  const s = {
+    teal:    {bg: 'bg-teal-50/80 border-teal-200/80',    val: 'text-teal-700',    lbl: 'text-teal-500'},
+    rose:    {bg: 'bg-rose-50/80 border-rose-200/80',    val: 'text-rose-700',    lbl: 'text-rose-500'},
+    amber:   {bg: 'bg-amber-50/80 border-amber-200/80',  val: 'text-amber-700',   lbl: 'text-amber-600'},
+    emerald: {bg: 'bg-emerald-50/80 border-emerald-200/80', val: 'text-emerald-700', lbl: 'text-emerald-600'},
+  }[tone];
   return (
-    <div className="min-w-20 rounded-xl border border-slate-200 bg-slate-50 p-3">
-      <p className="text-[10px] font-black text-slate-500">{label}</p>
-      <p className={`mt-1 text-2xl font-black ${toneClass}`}>{value}</p>
+    <div className={`min-w-20 rounded-xl border p-3 ${s.bg}`}>
+      <p className={`text-[10px] font-black ${s.lbl}`}>{label}</p>
+      <p className={`mt-1 text-2xl font-black ${s.val}`}>{value}</p>
     </div>
   );
 }
 
 function MetricTile({label, value}: {label: string; value: string | number}) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
-      <p className="text-[10px] font-black text-slate-500">{label}</p>
-      <p className="mt-1 text-xl font-black text-slate-950">{value}</p>
+    <div className="rounded-xl border border-slate-200/70 bg-slate-50/80 p-3 text-center">
+      <p className="text-[10px] font-black text-slate-400">{label}</p>
+      <p className="mt-1 text-xl font-black text-slate-900">{value}</p>
     </div>
   );
 }
@@ -1464,20 +1571,25 @@ function MiniMetric({label, value}: {label: string; value: string | number}) {
 
 function StatusLine({label, value, icon: Icon, tone = 'teal'}: {key?: unknown; label: string; value: string; icon?: LucideIcon; tone?: 'teal' | 'rose' | 'amber' | 'emerald'}) {
   const dot = tone === 'rose' ? 'bg-rose-500' : tone === 'amber' ? 'bg-amber-500' : tone === 'emerald' ? 'bg-emerald-500' : 'bg-teal-500';
+  const valColor = tone === 'rose' ? 'text-rose-700' : tone === 'amber' ? 'text-amber-700' : tone === 'emerald' ? 'text-emerald-700' : 'text-teal-700';
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/70 bg-slate-50/70 p-3">
       <span className="flex min-w-0 items-center gap-2 text-sm font-bold text-slate-600">
-        {Icon ? <Icon className="h-4 w-4 shrink-0 text-teal-700" /> : <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />}
+        {Icon ? <Icon className="h-4 w-4 shrink-0 text-teal-600" /> : <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />}
         <span className="truncate">{label}</span>
       </span>
-      <span className="shrink-0 text-sm font-black text-slate-950">{value}</span>
+      <span className={`shrink-0 text-sm font-black ${valColor}`}>{value}</span>
     </div>
   );
 }
 
 function StatusChip({level}: {level: 'high' | 'medium' | 'low'}) {
   const label = level === 'high' ? '高風險 ⚠' : level === 'medium' ? '注意' : '安全';
-  const tone = level === 'high' ? 'border-rose-200 bg-rose-50 text-rose-700' : level === 'medium' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  const tone = level === 'high'
+    ? 'border-rose-200/80 bg-rose-50 text-rose-700 shadow-sm shadow-rose-100'
+    : level === 'medium'
+      ? 'border-amber-200/80 bg-amber-50 text-amber-700 shadow-sm shadow-amber-100'
+      : 'border-emerald-200/80 bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-100';
   return <span className={`rounded-full border px-3 py-1 text-xs font-black ${tone}`}>{label}</span>;
 }
 
@@ -1490,8 +1602,10 @@ function PrimaryAction({children, onClick, disabled, active, className = ''}: {c
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-black text-white shadow-sm transition active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 ${
-        active ? 'bg-emerald-600 ring-4 ring-emerald-100 hover:bg-emerald-700' : 'bg-teal-600 hover:bg-teal-700'
+      className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-black text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 ${
+        active
+          ? 'bg-emerald-600 shadow-md shadow-emerald-200 ring-4 ring-emerald-100 hover:bg-emerald-700'
+          : 'bg-teal-600 shadow-md shadow-teal-200/60 hover:bg-teal-700'
       } ${className}`}
     >
       {children}
@@ -1503,7 +1617,7 @@ function IconButton({icon: Icon, label, onClick, emphasis}: {icon: LucideIcon; l
   return (
     <button
       onClick={onClick}
-      className={`flex h-10 w-10 items-center justify-center rounded-xl border text-slate-700 shadow-sm transition hover:border-teal-200 hover:text-teal-700 ${emphasis ? 'border-slate-900 bg-slate-900 text-white hover:text-white' : 'border-slate-200 bg-white'}`}
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border text-slate-700 shadow-sm transition hover:border-teal-200 hover:text-teal-700 ${emphasis ? 'border-slate-900 bg-slate-900 text-white hover:text-white' : 'border-slate-200 bg-white'}`}
       aria-label={label}
       title={label}
     >
@@ -1513,10 +1627,14 @@ function IconButton({icon: Icon, label, onClick, emphasis}: {icon: LucideIcon; l
 }
 
 function LegendDot({tone, label}: {tone: 'emerald' | 'amber' | 'rose'; label: string}) {
-  const color = tone === 'emerald' ? 'bg-emerald-500' : tone === 'amber' ? 'bg-amber-500' : 'bg-rose-500';
+  const s = tone === 'emerald'
+    ? {dot: 'bg-emerald-500', pill: 'border-emerald-200/70 bg-emerald-50/80 text-emerald-700'}
+    : tone === 'amber'
+      ? {dot: 'bg-amber-500', pill: 'border-amber-200/70 bg-amber-50/80 text-amber-700'}
+      : {dot: 'bg-rose-500', pill: 'border-rose-200/70 bg-rose-50/80 text-rose-700'};
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1">
-      <span className={`h-2 w-2 rounded-full ${color}`} />
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-black ${s.pill}`}>
+      <span className={`h-2 w-2 rounded-full shadow-sm ${s.dot}`} />
       {label}
     </span>
   );
@@ -1534,25 +1652,27 @@ function InsightStrip({
   onOpenPanel: (panel: ActivePanel) => void;
 }) {
   return (
-    <Surface className="grid gap-4 p-4 md:grid-cols-[1fr_auto] md:items-center">
-      <div className="flex min-w-0 gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
-          <Radar className="h-5 w-5" />
+    <div className="overflow-hidden rounded-2xl border border-teal-200/50 bg-gradient-to-r from-teal-50/60 to-white shadow-sm">
+      <div className="grid gap-4 p-4 md:grid-cols-[1fr_auto] md:items-center">
+        <div className="flex min-w-0 gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-100/80 text-teal-700 shadow-sm shadow-teal-100">
+            <Radar className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-black text-teal-600">AI 巡查</p>
+            <h3 className="mt-1 text-lg font-black text-slate-950">{proactiveInsight.riskLevel === 'high' ? '優先關懷' : proactiveInsight.riskLevel === 'medium' ? '需要觀察' : '穩定'}</h3>
+          </div>
         </div>
-        <div className="min-w-0">
-          <p className="text-xs font-black text-teal-700">AI 巡查</p>
-          <h3 className="mt-1 text-lg font-black text-slate-950">{proactiveInsight.riskLevel === 'high' ? '優先關懷' : proactiveInsight.riskLevel === 'medium' ? '需要觀察' : '穩定'}</h3>
+        <div className="grid gap-2 sm:grid-cols-2 md:w-72">
+          <button onClick={onCreateProactiveAlert} className="min-h-11 rounded-xl bg-slate-900 px-4 text-sm font-black text-white shadow-sm transition hover:bg-slate-800">
+            建立提醒
+          </button>
+          <button onClick={() => onOpenPanel('alerts')} className="min-h-11 rounded-xl border border-teal-200/70 bg-white px-4 text-sm font-black text-teal-700 shadow-sm transition hover:bg-teal-50">
+            {dispatchableCount} 區可派
+          </button>
         </div>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2 md:w-72">
-        <button onClick={onCreateProactiveAlert} className="min-h-11 rounded-xl bg-slate-950 px-4 text-sm font-black text-white">
-          建立提醒
-        </button>
-        <button onClick={() => onOpenPanel('alerts')} className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700">
-          {dispatchableCount} 區可派
-        </button>
-      </div>
-    </Surface>
+    </div>
   );
 }
 

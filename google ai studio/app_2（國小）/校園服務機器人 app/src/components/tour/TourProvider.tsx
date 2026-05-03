@@ -83,11 +83,11 @@ export function TourProvider({
     setIsActive(true);
   }, []);
 
-  // Auto-start on first visit, with 300ms delay to let UI render
+  // Show tour welcome card after a short delay on first visit (1.8s gives judges time to see the UI first)
   useEffect(() => {
     const seen = localStorage.getItem(TOUR_STORAGE_KEY);
     if (!seen) {
-      const timer = setTimeout(() => startTour(), 300);
+      const timer = setTimeout(() => startTour(), 1800);
       return () => clearTimeout(timer);
     }
   }, [startTour]);

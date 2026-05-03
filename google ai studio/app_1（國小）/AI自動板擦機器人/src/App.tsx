@@ -153,15 +153,15 @@ export default function App() {
         </nav>
       </div>
 
-      {/* Web Sidebar Nav Overlay */}
-      <div className="hidden md:flex fixed left-0 top-1/2 -translate-y-1/2 flex-col gap-8 ml-6 z-30">
-        <div className="bg-surface-container-high/60 backdrop-blur-xl p-2 rounded-full flex flex-col gap-4 editorial-shadow border border-white/40">
-          <WebNavButton icon={HomeIcon} ariaLabel="切換到首頁" isActive={currentTab === 'home'} onClick={() => setCurrentTab('home')} />
-          <WebNavButton icon={LayoutDashboard} ariaLabel="切換到教師看板" isActive={currentTab === 'teacher'} onClick={() => setCurrentTab('teacher')} />
-          <WebNavButton icon={Bot} ariaLabel="切換到機器人控制" isActive={currentTab === 'robot'} onClick={() => setCurrentTab('robot')} />
-          <WebNavButton icon={ScrollText} ariaLabel="切換到紀錄本" isActive={currentTab === 'library'} onClick={() => setCurrentTab('library')} />
-          <WebNavButton icon={MessageSquare} ariaLabel="切換到 AI 小老師" isActive={currentTab === 'chat'} onClick={() => setCurrentTab('chat')} />
-          <WebNavButton icon={FileQuestion} ariaLabel="切換到學習單" isActive={currentTab === 'review'} onClick={() => setCurrentTab('review')} />
+      {/* Web Sidebar Nav */}
+      <div className="hidden md:flex fixed left-0 top-1/2 -translate-y-1/2 flex-col ml-3 z-30">
+        <div className="bg-surface-container-high/80 backdrop-blur-xl p-2 rounded-3xl flex flex-col gap-0.5 editorial-shadow border border-white/40 w-[7.5rem]">
+          <WebNavButton icon={HomeIcon} label="首頁" isActive={currentTab === 'home'} onClick={() => setCurrentTab('home')} />
+          <WebNavButton icon={LayoutDashboard} label="教師" isActive={currentTab === 'teacher'} onClick={() => setCurrentTab('teacher')} />
+          <WebNavButton icon={Bot} label="機器人" isActive={currentTab === 'robot'} onClick={() => setCurrentTab('robot')} />
+          <WebNavButton icon={ScrollText} label="紀錄本" isActive={currentTab === 'library'} onClick={() => setCurrentTab('library')} />
+          <WebNavButton icon={MessageSquare} label="小老師" isActive={currentTab === 'chat'} onClick={() => setCurrentTab('chat')} />
+          <WebNavButton icon={FileQuestion} label="學習單" isActive={currentTab === 'review'} onClick={() => setCurrentTab('review')} />
         </div>
       </div>
 
@@ -265,24 +265,25 @@ function NavButton({ icon: Icon, label, isActive, onClick }: any) {
   );
 }
 
-function WebNavButton({ icon: Icon, isActive, onClick, ariaLabel }: any) {
+function WebNavButton({ icon: Icon, label, isActive, onClick }: { icon: React.ComponentType<{className?: string}>; label: string; isActive: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      aria-label={ariaLabel ?? '切換頁面'}
-      className={`relative w-12 h-12 flex items-center justify-center rounded-full transition-transform duration-300 active:scale-90 ${
-        isActive ? 'text-on-primary editorial-shadow scale-110' : 'text-on-surface/50 hover:bg-surface hover:text-primary'
+      aria-label={`切換到${label}`}
+      className={`relative flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 transition-all duration-200 active:scale-95 ${
+        isActive ? 'text-on-primary shadow-md' : 'text-on-surface/60 hover:bg-surface/80 hover:text-primary'
       }`}
     >
       {isActive && (
         <motion.div
           layoutId="web-nav-pill"
           initial={false}
-          className="absolute inset-0 bg-primary rounded-full shadow-md -z-10"
-          transition={{ type: "spring", bounce: 0.25, duration: 0.5 }}
+          className="absolute inset-0 bg-primary rounded-2xl -z-10"
+          transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
         />
       )}
-      <Icon className={`w-5 h-5 z-10 transition-all duration-300 ${isActive ? 'fill-on-primary/20' : ''}`} />
+      <Icon className="w-4.5 h-4.5 z-10 shrink-0" />
+      <span className="z-10 text-xs font-extrabold leading-none">{label}</span>
     </button>
   );
 }
