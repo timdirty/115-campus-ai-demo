@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useEffect, useRef, useState } from 'react';
 import { TOUR_STEPS, TOUR_STORAGE_KEY } from './tourSteps';
 
 export type TourContextValue = {
@@ -34,6 +34,7 @@ export function TourProvider({
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const onTabChangeRef = useRef(onTabChange);
   onTabChangeRef.current = onTabChange;
+  const currentStepIndexRef = useRef(0);
 
   const completeTour = useCallback(() => {
     setIsActive(false);
@@ -41,34 +42,33 @@ export function TourProvider({
   }, []);
 
   const startTour = useCallback(() => {
+    currentStepIndexRef.current = 0;
     setCurrentStepIndex(0);
     setIsActive(true);
   }, []);
 
   const nextStep = useCallback(() => {
-    setCurrentStepIndex((prev) => {
-      const next = prev + 1;
-      if (next >= TOUR_STEPS.length) {
-        completeTour();
-        return prev;
-      }
-      const nextStep = TOUR_STEPS[next];
-      if (nextStep?.tab) {
-        onTabChangeRef.current(nextStep.tab);
-      }
-      return next;
-    });
+    const next = currentStepIndexRef.current + 1;
+    if (next >= TOUR_STEPS.length) {
+      completeTour();
+      return;
+    }
+    const nextStepData = TOUR_STEPS[next];
+    if (nextStepData?.tab) {
+      onTabChangeRef.current(nextStepData.tab);
+    }
+    currentStepIndexRef.current = next;
+    setCurrentStepIndex(next);
   }, [completeTour]);
 
   const prevStep = useCallback(() => {
-    setCurrentStepIndex((prev) => {
-      const next = Math.max(0, prev - 1);
-      const prevStepData = TOUR_STEPS[next];
-      if (prevStepData?.tab) {
-        onTabChangeRef.current(prevStepData.tab);
-      }
-      return next;
-    });
+    const next = Math.max(0, currentStepIndexRef.current - 1);
+    const prevStepData = TOUR_STEPS[next];
+    if (prevStepData?.tab) {
+      onTabChangeRef.current(prevStepData.tab);
+    }
+    currentStepIndexRef.current = next;
+    setCurrentStepIndex(next);
   }, []);
 
   const skipTour = useCallback(() => {
@@ -78,6 +78,7 @@ export function TourProvider({
   const restartTour = useCallback(() => {
     localStorage.removeItem(TOUR_STORAGE_KEY);
     onTabChangeRef.current('dashboard');
+    currentStepIndexRef.current = 0;
     setCurrentStepIndex(0);
     setIsActive(true);
   }, []);
