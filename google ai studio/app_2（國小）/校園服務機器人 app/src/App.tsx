@@ -1,5 +1,8 @@
 import React, { Suspense, useRef, useState, useEffect } from 'react';
 import { useProxyHealth } from './hooks/useProxyHealth';
+import { TourProvider } from './components/tour/TourProvider';
+import { TourOverlay } from './components/tour/TourOverlay';
+import { useTour } from './components/tour/useTour';
 
 const AVATAR_SVG = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#1d4ed8"/><circle cx="50" cy="36" r="16" fill="#BFDBFE"/><ellipse cx="50" cy="80" rx="28" ry="22" fill="#BFDBFE"/></svg>')}`;
 import { motion, AnimatePresence } from 'motion/react';
@@ -31,6 +34,19 @@ function ScreenFallback({label = '載入中'}: {label?: string}) {
         <p className="mt-4 text-sm font-black text-on-surface-variant">{label}</p>
       </div>
     </div>
+  );
+}
+
+function RestartTourButton({ onClose }: { onClose: () => void }) {
+  const { restartTour } = useTour();
+  return (
+    <button
+      onClick={() => { restartTour(); onClose(); }}
+      className="w-full flex items-center justify-between text-left font-bold text-base text-on-surface bg-surface-container-lowest border border-outline-variant/20 hover:border-primary/30 hover:bg-surface-container-low p-5 rounded-[1.5rem] active:scale-[0.98] transition-all shadow-sm"
+    >
+      <span>重看功能導覽</span>
+      <span style={{ fontSize: 18 }}>▶</span>
+    </button>
   );
 }
 
@@ -95,6 +111,7 @@ export default function App() {
   }, [activeTab]);
 
   return (
+    <TourProvider onTabChange={setActiveTab}>
     <div className="app2-shell min-h-screen overflow-x-hidden text-on-surface md:flex md:bg-surface-container-low">
       {/* Proxy Health Banner */}
       {proxyOnline === false && !bannerDismissed && (
@@ -341,6 +358,7 @@ export default function App() {
              <button onClick={() => { actions.resetDemo(); showToast('展示資料已重置'); setShowSettings(false); }} className="w-full flex items-center justify-between text-left font-bold text-base text-primary bg-primary/5 border border-primary/20 hover:bg-primary/10 p-5 rounded-[1.5rem] active:scale-[0.98] transition-all shadow-sm">
                <span>重置展示資料</span>
              </button>
+             <RestartTourButton onClose={() => setShowSettings(false)} />
           </div>
 
           <button
@@ -354,5 +372,7 @@ export default function App() {
 
       </div>
     </div>
+    <TourOverlay />
+    </TourProvider>
   );
 }
