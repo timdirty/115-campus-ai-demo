@@ -13,6 +13,7 @@ import {loadNotesAsync, WhiteboardNote} from './services/notesStore';
 import { TourProvider } from './components/tour/TourProvider';
 import { TourOverlay } from './components/tour/TourOverlay';
 import { useTour } from './components/tour/useTour';
+import { IssueReporter } from './components/IssueReporter';
 
 type AppTab = 'home' | 'teacher' | 'robot' | 'library' | 'chat' | 'review';
 
@@ -241,6 +242,7 @@ export default function App() {
         )}
       </AnimatePresence>
       <TourOverlay />
+      <IssueReporter storageKey="issues-app1:v1" accentColor="#6366f1" />
     </div>
     </TourProvider>
   );

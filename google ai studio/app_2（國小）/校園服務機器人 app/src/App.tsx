@@ -3,6 +3,7 @@ import { useProxyHealth } from './hooks/useProxyHealth';
 import { TourProvider } from './components/tour/TourProvider';
 import { TourOverlay } from './components/tour/TourOverlay';
 import { useTour } from './components/tour/useTour';
+import { IssueReporter } from './components/IssueReporter';
 
 const AVATAR_SVG = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#1d4ed8"/><circle cx="50" cy="36" r="16" fill="#BFDBFE"/><ellipse cx="50" cy="80" rx="28" ry="22" fill="#BFDBFE"/></svg>')}`;
 import { motion, AnimatePresence } from 'motion/react';
@@ -373,6 +374,7 @@ export default function App() {
       </div>
     </div>
     <TourOverlay />
+    <IssueReporter storageKey="issues-app2:v1" accentColor="#6366f1" />
     </TourProvider>
   );
 }

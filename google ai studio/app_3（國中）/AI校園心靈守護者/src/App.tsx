@@ -2,6 +2,7 @@ import {useEffect, useMemo, useReducer, useRef, useState} from 'react';
 import {TourProvider} from './components/tour/TourProvider';
 import {TourOverlay} from './components/tour/TourOverlay';
 import {useTour} from './components/tour/useTour';
+import {IssueReporter} from './components/IssueReporter';
 import {useProxyHealth} from './hooks/useProxyHealth';
 import type {Dispatch, ReactNode} from 'react';
 import {AnimatePresence, motion} from 'motion/react';
@@ -107,6 +108,7 @@ export default function App() {
     <TourProvider>
       <AppContent />
       <TourOverlay />
+      <IssueReporter storageKey="issues-app3:v1" accentColor="#0d9488" />
     </TourProvider>
   );
 }
