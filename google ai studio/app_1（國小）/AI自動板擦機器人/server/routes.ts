@@ -366,33 +366,50 @@ export function registerRoutes(app: Express) {
     }
 
     try {
-      // Route EV3_ commands to EV3 manager
+      // Route EV3_ commands to EV3 manager. Response shape mirrors the Arduino
+      // path (status + taskLog included) so callers like RobotControl.tsx that
+      // dereference result.status keep working.
       if (command.startsWith('EV3_')) {
         const result = await sendEV3Command(command);
+        const message = result.response || (result.ok ? `Sent ${command} to EV3` : 'EV3 error');
+        const status = await updateRobotStatus({
+          connected: result.ok,
+          activePort: getActivePath(),
+          lastCommand: command,
+          lastResponse: message,
+        });
+        const taskLog = await appendTaskLog({command, source, ok: result.ok, message});
         if (!result.ok) {
-          res.status(503).json({ok: false, command, error: result.response});
+          res.status(503).json({ok: false, command, error: result.response, status, taskLog});
           return;
         }
-        // EV3 state is tracked separately — see GET /api/ev3/status
-        res.json({ok: true, command, response: result.response});
+        res.json({ok: true, command, response: result.response, status, taskLog});
         return;
       }
 
-      // STOP: dual-send to both Arduino and EV3 for safety
+      // STOP: dual-send to both Arduino and EV3 for safety. ok reflects BOTH
+      // devices stopping — partial-success cases (one device stopped, other
+      // hung) report ok:false so the UI doesn't claim safety stop succeeded
+      // when one device is still moving.
       if (command === 'STOP') {
-        const [arduinoResult] = await Promise.allSettled([
+        const [arduinoResult, ev3Result] = await Promise.allSettled([
           sendSerialCommand(command, requestedPath),
           sendEV3Command('EV3_STOP'),
         ]);
-        const port = arduinoResult.status === 'fulfilled' ? arduinoResult.value.port : getActivePath();
-        const message = arduinoResult.status === 'fulfilled'
+        const arduinoOk = arduinoResult.status === 'fulfilled';
+        const ev3Ok = ev3Result.status === 'fulfilled' && ev3Result.value.ok;
+        const ok = arduinoOk && ev3Ok;
+        const port = arduinoOk ? arduinoResult.value.port : getActivePath();
+        const arduinoMsg = arduinoOk
           ? (arduinoResult.value.response || `Sent STOP to ${port}`)
-          : (arduinoResult.reason as Error)?.message ?? 'Arduino error';
-        // ok reflects Arduino result — Arduino is the primary device; EV3 stop is best-effort
-        const ok = arduinoResult.status === 'fulfilled';
-        const status = await updateRobotStatus({connected: ok, activePort: port, lastCommand: command, lastResponse: message});
+          : ((arduinoResult.reason as Error)?.message ?? 'Arduino error');
+        const ev3Msg = ev3Result.status === 'fulfilled'
+          ? (ev3Result.value.response || (ev3Ok ? 'EV3 stopped' : 'EV3 error'))
+          : ((ev3Result.reason as Error)?.message ?? 'EV3 error');
+        const message = `Arduino: ${arduinoMsg} | EV3: ${ev3Msg}`;
+        const status = await updateRobotStatus({connected: arduinoOk, activePort: port, lastCommand: command, lastResponse: message});
         const taskLog = await appendTaskLog({command, source, ok, message});
-        res.json({ok, command, port, response: message, status, taskLog});
+        res.json({ok, command, port, response: message, status, taskLog, arduinoOk, ev3Ok});
         return;
       }
 

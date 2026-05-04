@@ -72,3 +72,5 @@ assert.equal(r4.ok, false, 'should fail when disconnected');
 
 await new Promise<void>((resolve) => wss.close(() => httpServer.close(() => resolve())));
 console.log('[test] ev3Manager: all 4 assertions passed ✓');
+// ev3Manager keeps a reconnect timer alive; force-exit so CI doesn't hang.
+process.exit(0);

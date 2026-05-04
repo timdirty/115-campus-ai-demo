@@ -50,8 +50,14 @@ if ls "${REPO_ROOT}/ev3/vendor/"*.whl &>/dev/null 2>&1; then
 fi
 ok "Files deployed"
 
-# Step 5: Install Python dependencies offline
+# Step 5: Install Python dependencies (offline preferred — see ev3/vendor/README.md)
 log "Installing Python dependencies..."
+if ! ls "${REPO_ROOT}/ev3/vendor/"*.whl &>/dev/null 2>&1; then
+  echo "  ⚠ ev3/vendor/ has no wheels — falling back to online pip install."
+  echo "    This requires the EV3 to have internet (USB tethering with Mac sharing"
+  echo "    its connection, or another route). Pre-download wheels for offline-only"
+  echo "    classrooms — see ev3/vendor/README.md."
+fi
 ssh $SSH_OPTS "${EV3_USER}@${EV3_HOST}" "
   set -e
   if ! python3 -c 'import websockets' 2>/dev/null; then
@@ -61,7 +67,7 @@ ssh $SSH_OPTS "${EV3_USER}@${EV3_HOST}" "
       pip3 install websockets
     fi
   fi
-" && ok "Python dependencies OK" || fail "Failed to install websockets"
+" && ok "Python dependencies OK" || fail "Failed to install websockets (no wheel + no network?)"
 
 # Step 6: Install and enable systemd service
 log "Installing systemd service..."

@@ -2,7 +2,10 @@ import WebSocket from 'ws';
 import {randomUUID} from 'node:crypto';
 
 const BACKOFF_MS = [0, 1000, 3000, 5000];
-const EV3_TIMEOUT_MS = 3000;
+// Worst-case operation: EV3_TEST (~4.3s: pen down 2s + 0.3s pause + pen up 2s).
+// EV3_DRAW_LINE is similar (~4.5s: pen down + arm 0.5s + pen up). 10s gives margin
+// without making genuine hangs feel sluggish to the UI.
+const EV3_TIMEOUT_MS = 10000;
 
 type Ev3Response = {ok: boolean; response: string};
 type Pending = {resolve: (r: Ev3Response) => void; timer: ReturnType<typeof setTimeout>};

@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""EV3 WebSocket command server — runs on the EV3 brick via ev3dev."""
+"""EV3 WebSocket command server — runs on the EV3 brick via ev3dev.
+
+Concurrency model:
+  - handle() spawns a task per WS message, so STOP/CANCEL can arrive while a
+    motion task is running.
+  - Motion calls run inside asyncio.to_thread() so the event loop stays
+    responsive. The active motion task is tracked at module scope; STOP
+    calls stop_all() (which makes wait_while('running') return immediately
+    inside the worker thread) and cancels the task.
+"""
 import asyncio
 import json
 import time
@@ -10,7 +19,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'vendor'))
 
 import websockets
 from ev3dev2.motor import LargeMotor, MediumMotor, OUTPUT_A, OUTPUT_B, OUTPUT_C
-from ev3dev2.motor import SpeedPercent, MoveTank
+from ev3dev2.motor import SpeedPercent
 
 PORT = 8765
 PEN_DOWN_POS = 90   # medium motor degrees: pen pressed to board
@@ -18,6 +27,7 @@ PEN_UP_POS   = 0    # medium motor degrees: pen lifted
 
 _start_time = time.time()
 _busy = False
+_current_motion = None  # asyncio.Task | None — active motion, cancellable by STOP
 
 
 def make_motors():
@@ -43,9 +53,81 @@ def stop_all():
         pass
 
 
-async def dispatch(cmd: str) -> dict:
-    global _busy
+# ── Blocking motion primitives (run inside asyncio.to_thread) ───────────────
+def _pen_to(pos):
+    if med_motor:
+        med_motor.run_to_abs_pos(position_sp=pos, speed_sp=300, stop_action='hold')
+        med_motor.wait_while('running', timeout=2000)
 
+
+def _arm(speed_pct):
+    if large_a and large_b:
+        large_a.on_for_seconds(SpeedPercent(speed_pct), 0.5)
+        large_b.on_for_seconds(SpeedPercent(speed_pct), 0.5)
+
+
+def _self_test():
+    if med_motor:
+        med_motor.run_to_abs_pos(position_sp=PEN_DOWN_POS, speed_sp=300, stop_action='hold')
+        med_motor.wait_while('running', timeout=2000)
+        time.sleep(0.3)
+        med_motor.run_to_abs_pos(position_sp=PEN_UP_POS, speed_sp=300, stop_action='hold')
+        med_motor.wait_while('running', timeout=2000)
+
+
+# ── Motion dispatcher (cancellable) ─────────────────────────────────────────
+async def _run_motion(cmd: str) -> dict:
+    if cmd == 'EV3_PEN_DOWN':
+        await asyncio.to_thread(_pen_to, PEN_DOWN_POS)
+        return {'ok': True, 'response': 'pen down'}
+    if cmd == 'EV3_PEN_UP':
+        await asyncio.to_thread(_pen_to, PEN_UP_POS)
+        return {'ok': True, 'response': 'pen up'}
+    if cmd == 'EV3_ARM_EXTEND':
+        await asyncio.to_thread(_arm, 50)
+        return {'ok': True, 'response': 'arm extended'}
+    if cmd == 'EV3_ARM_RETRACT':
+        await asyncio.to_thread(_arm, -50)
+        return {'ok': True, 'response': 'arm retracted'}
+    if cmd == 'EV3_TEST':
+        await asyncio.to_thread(_self_test)
+        return {'ok': True, 'response': 'self-test passed'}
+    if cmd == 'EV3_CALIBRATE':
+        # Encoder reset is non-blocking, but keep here for the busy-lock semantics
+        if med_motor: med_motor.reset()
+        if large_a:   large_a.reset()
+        if large_b:   large_b.reset()
+        return {'ok': True, 'response': 'encoders reset'}
+    if cmd in ('EV3_HOME', 'EV3_SAFE_POSE'):
+        await asyncio.to_thread(_pen_to, PEN_UP_POS)
+        await asyncio.to_thread(_arm, -50)
+        return {'ok': True, 'response': 'home'}
+    if cmd == 'EV3_DRAW_LINE':
+        await asyncio.to_thread(_pen_to, PEN_DOWN_POS)
+        await asyncio.to_thread(_arm, 50)
+        await asyncio.to_thread(_pen_to, PEN_UP_POS)
+        return {'ok': True, 'response': 'line drawn'}
+    return {'ok': False, 'response': f'unknown command: {cmd}'}
+
+
+# ── Top-level dispatch (busy gate, preemptive STOP) ─────────────────────────
+async def dispatch(cmd: str) -> dict:
+    global _busy, _current_motion
+
+    # Preemptive: STOP / CANCEL — always allowed, cancels in-flight motion
+    if cmd in ('EV3_STOP', 'EV3_CANCEL'):
+        stop_all()
+        if _current_motion and not _current_motion.done():
+            _current_motion.cancel()
+            try:
+                await _current_motion
+            except (asyncio.CancelledError, Exception):
+                pass
+        _busy = False
+        _current_motion = None
+        return {'ok': True, 'response': 'stopped'}
+
+    # Read-only — never blocked
     if cmd == 'EV3_STATUS':
         return {
             'ok': True,
@@ -57,91 +139,34 @@ async def dispatch(cmd: str) -> dict:
             })
         }
 
-    if cmd == 'EV3_TEST':
-        try:
-            if med_motor:
-                med_motor.run_to_abs_pos(position_sp=PEN_DOWN_POS, speed_sp=300, stop_action='hold')
-                med_motor.wait_while('running', timeout=2000)
-                await asyncio.sleep(0.3)
-                med_motor.run_to_abs_pos(position_sp=PEN_UP_POS, speed_sp=300, stop_action='hold')
-                med_motor.wait_while('running', timeout=2000)
-            return {'ok': True, 'response': 'self-test passed'}
-        except Exception as e:
-            return {'ok': False, 'response': f'self-test failed: {e}'}
+    # All other motion — reject if busy (enforces DRAW_LINE atomicity AND
+    # blocks accidental concurrent PEN/ARM/TEST that would interfere)
+    if _busy:
+        return {'ok': False, 'response': 'busy'}
 
-    if cmd == 'EV3_CALIBRATE':
-        try:
-            if med_motor: med_motor.reset()
-            if large_a:   large_a.reset()
-            if large_b:   large_b.reset()
-            return {'ok': True, 'response': 'encoders reset'}
-        except Exception as e:
-            return {'ok': False, 'response': str(e)}
-
-    if cmd == 'EV3_PEN_DOWN':
-        try:
-            if med_motor:
-                med_motor.run_to_abs_pos(position_sp=PEN_DOWN_POS, speed_sp=300, stop_action='hold')
-                med_motor.wait_while('running', timeout=2000)
-            return {'ok': True, 'response': 'pen down'}
-        except Exception as e:
-            return {'ok': False, 'response': str(e)}
-
-    if cmd == 'EV3_PEN_UP':
-        try:
-            if med_motor:
-                med_motor.run_to_abs_pos(position_sp=PEN_UP_POS, speed_sp=300, stop_action='hold')
-                med_motor.wait_while('running', timeout=2000)
-            return {'ok': True, 'response': 'pen up'}
-        except Exception as e:
-            return {'ok': False, 'response': str(e)}
-
-    if cmd == 'EV3_ARM_EXTEND':
-        try:
-            if large_a and large_b:
-                large_a.on_for_seconds(SpeedPercent(50), 0.5)
-                large_b.on_for_seconds(SpeedPercent(50), 0.5)
-            return {'ok': True, 'response': 'arm extended'}
-        except Exception as e:
-            return {'ok': False, 'response': str(e)}
-
-    if cmd == 'EV3_ARM_RETRACT':
-        try:
-            if large_a and large_b:
-                large_a.on_for_seconds(SpeedPercent(-50), 0.5)
-                large_b.on_for_seconds(SpeedPercent(-50), 0.5)
-            return {'ok': True, 'response': 'arm retracted'}
-        except Exception as e:
-            return {'ok': False, 'response': str(e)}
-
-    if cmd in ('EV3_STOP', 'EV3_CANCEL'):
+    _busy = True
+    _current_motion = asyncio.create_task(_run_motion(cmd))
+    try:
+        return await _current_motion
+    except asyncio.CancelledError:
+        return {'ok': False, 'response': 'cancelled'}
+    except Exception as e:
+        return {'ok': False, 'response': str(e)}
+    finally:
         _busy = False
-        stop_all()
-        return {'ok': True, 'response': 'stopped'}
+        _current_motion = None
 
-    if cmd in ('EV3_HOME', 'EV3_SAFE_POSE'):
-        result = await dispatch('EV3_PEN_UP')
-        if result['ok']:
-            result = await dispatch('EV3_ARM_RETRACT')
-        return {'ok': result['ok'], 'response': 'home' if result['ok'] else result['response']}
 
-    if cmd == 'EV3_DRAW_LINE':
-        if _busy:
-            return {'ok': False, 'response': 'busy'}
-        _busy = True
-        try:
-            for step in ('EV3_PEN_DOWN', 'EV3_ARM_EXTEND', 'EV3_PEN_UP'):
-                r = await dispatch(step)
-                if not r['ok']:
-                    _busy = False
-                    return {'ok': False, 'response': f'draw_line failed at {step}: {r["response"]}'}
-            _busy = False
-            return {'ok': True, 'response': 'line drawn'}
-        except Exception as e:
-            _busy = False
-            return {'ok': False, 'response': str(e)}
-
-    return {'ok': False, 'response': f'unknown command: {cmd}'}
+# ── WebSocket message handler ───────────────────────────────────────────────
+async def _reply(websocket, req_id: str, cmd: str):
+    try:
+        result = await dispatch(cmd)
+    except Exception as e:
+        result = {'ok': False, 'response': str(e)}
+    try:
+        await websocket.send(json.dumps({'id': req_id, **result}))
+    except Exception:
+        pass
 
 
 async def handle(websocket):
@@ -152,14 +177,20 @@ async def handle(websocket):
                 req = json.loads(raw)
                 req_id = req.get('id', '')
                 cmd = req.get('type', '')
-                result = await dispatch(cmd)
-                await websocket.send(json.dumps({'id': req_id, **result}))
+                # Spawn per-message task so STOP can arrive mid-motion
+                asyncio.create_task(_reply(websocket, req_id, cmd))
             except Exception as e:
-                await websocket.send(json.dumps({'id': '', 'ok': False, 'response': str(e)}))
+                try:
+                    await websocket.send(json.dumps({'id': '', 'ok': False, 'response': str(e)}))
+                except Exception:
+                    pass
     except websockets.exceptions.ConnectionClosed:
         pass
     finally:
+        # Failsafe: stop motors and cancel any in-flight motion on disconnect
         stop_all()
+        if _current_motion and not _current_motion.done():
+            _current_motion.cancel()
         print("[ev3] client disconnected — motors stopped", flush=True)
 
 
