@@ -103,6 +103,12 @@ export async function sendEV3Command(command: string): Promise<Ev3Response> {
     }, EV3_TIMEOUT_MS);
 
     pending.set(id, {resolve, timer});
-    ws!.send(JSON.stringify({id, type: command}));
+    try {
+      ws!.send(JSON.stringify({id, type: command}));
+    } catch (err) {
+      clearTimeout(timer);
+      pending.delete(id);
+      resolve({ok: false, response: err instanceof Error ? err.message : 'send error'});
+    }
   });
 }

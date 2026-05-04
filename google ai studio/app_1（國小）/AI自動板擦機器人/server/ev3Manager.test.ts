@@ -70,5 +70,5 @@ assert.equal(getEV3Status().connected, false, 'should detect disconnect');
 const r4 = await sendEV3Command('EV3_STATUS');
 assert.equal(r4.ok, false, 'should fail when disconnected');
 
-await new Promise<void>((r) => wss.close(() => httpServer.close(r)));
+await new Promise<void>((resolve) => wss.close(() => httpServer.close(() => resolve())));
 console.log('[test] ev3Manager: all 4 assertions passed ✓');

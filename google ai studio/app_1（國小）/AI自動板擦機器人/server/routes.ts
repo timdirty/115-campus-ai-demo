@@ -373,6 +373,7 @@ export function registerRoutes(app: Express) {
           res.status(503).json({ok: false, command, error: result.response});
           return;
         }
+        // EV3 state is tracked separately — see GET /api/ev3/status
         res.json({ok: true, command, response: result.response});
         return;
       }
@@ -387,6 +388,7 @@ export function registerRoutes(app: Express) {
         const message = arduinoResult.status === 'fulfilled'
           ? (arduinoResult.value.response || `Sent STOP to ${port}`)
           : (arduinoResult.reason as Error)?.message ?? 'Arduino error';
+        // ok reflects Arduino result — Arduino is the primary device; EV3 stop is best-effort
         const ok = arduinoResult.status === 'fulfilled';
         const status = await updateRobotStatus({connected: ok, activePort: port, lastCommand: command, lastResponse: message});
         const taskLog = await appendTaskLog({command, source, ok, message});
