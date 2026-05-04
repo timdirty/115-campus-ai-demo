@@ -10,6 +10,7 @@ import {
   RobotCommandInfo,
   sendRobotCommand, sendRobotTask, TaskLogItem,
 } from '../services/classroomApi';
+import EV3ControlPanel from '../components/EV3ControlPanel';
 
 type SerialPortInfo = {
   path: string;
@@ -397,6 +398,10 @@ export default function RobotControl() {
                 </motion.div>
               )}
             </AnimatePresence>
+          </motion.section>
+
+          <motion.section variants={itemVariants} className="mb-5">
+            <EV3ControlPanel />
           </motion.section>
         </div>
       </div>

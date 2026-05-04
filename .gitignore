@@ -32,6 +32,10 @@ google ai studio/app_1（國小）/AI自動板擦機器人/data/*.json
 google ai studio/app_1（國小）/AI自動板擦機器人/data/backups/
 *-smoke.png
 
+# Python (EV3 brick scripts)
+**/__pycache__/
+*.pyc
+
 # PlatformIO / browser tooling
 .pio/
 .playwright-mcp/

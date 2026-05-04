@@ -14,7 +14,11 @@ const firmwareCommandsPath = path.join(rootDir, 'src/commands.cpp');
 const bridgeDefaults = fs.readFileSync(bridgeDefaultsPath, 'utf8');
 const firmwareCommands = fs.readFileSync(firmwareCommandsPath, 'utf8');
 
-const bridgeCommands = [...bridgeDefaults.matchAll(/\{command:\s*'([A-Z0-9_]+)'/g)].map((match) => match[1]);
+const allBridgeCommands = [...bridgeDefaults.matchAll(/\{command:\s*'([A-Z0-9_]+)'/g)].map((match) => match[1]);
+// EV3_* commands target the EV3 brick over WebSocket, not the Arduino firmware,
+// so they are excluded from the firmware/handler/ready-line consistency checks.
+const isEV3Command = (cmd) => cmd.startsWith('EV3_');
+const bridgeCommands = allBridgeCommands.filter((cmd) => !isEV3Command(cmd));
 const handledCommands = [...firmwareCommands.matchAll(/command\s*==\s*"([A-Z0-9_]+)"/g)].map((match) => match[1]);
 const readyLineMatch = firmwareCommands.match(/Serial\.println\("Commands:\s*([^"]+)"\);/);
 const readyCommands = readyLineMatch ? readyLineMatch[1].split(',').map((item) => item.trim()).filter(Boolean) : [];
@@ -41,7 +45,7 @@ function difference(left, right) {
 }
 
 const failures = [];
-const bridgeDuplicates = duplicates(bridgeCommands);
+const bridgeDuplicates = duplicates(allBridgeCommands);
 const handlerDuplicates = duplicates(handledCommands);
 const readyDuplicates = duplicates(readyCommands);
 
