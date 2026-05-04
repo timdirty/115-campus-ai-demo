@@ -158,6 +158,18 @@ export const commandCatalog: RobotCommandInfo[] = [
   {command: 'CARE_DEPLOYED', label: '佈署關懷', group: 'task'},
   {command: 'NODE_RESTART', label: '節點重啟', group: 'task'},
   {command: 'READ_SENSORS', label: '感測器讀值', group: 'sensor'},
+  // EV3 pen-arm commands
+  {command: 'EV3_PEN_DOWN', label: '筆落下', group: 'ev3'},
+  {command: 'EV3_PEN_UP', label: '筆抬起', group: 'ev3'},
+  {command: 'EV3_ARM_EXTEND', label: '筆臂延伸', group: 'ev3'},
+  {command: 'EV3_ARM_RETRACT', label: '筆臂收回', group: 'ev3'},
+  {command: 'EV3_STOP', label: 'EV3 停止', group: 'ev3'},
+  {command: 'EV3_HOME', label: 'EV3 歸位', group: 'ev3'},
+  {command: 'EV3_CALIBRATE', label: 'EV3 校準', group: 'ev3'},
+  {command: 'EV3_SAFE_POSE', label: '安全姿態', group: 'ev3'},
+  {command: 'EV3_CANCEL', label: '取消序列', group: 'ev3'},
+  {command: 'EV3_DRAW_LINE', label: '畫一條線', group: 'ev3'},
+  {command: 'EV3_TEST', label: 'EV3 自我測試', group: 'ev3'},
 ];
 
 export const supportedCommands = new Set(commandCatalog.map((item) => item.command));
