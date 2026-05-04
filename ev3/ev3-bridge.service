@@ -1,0 +1,16 @@
+[Unit]
+Description=EV3 WebSocket Bridge Server
+After=network.target
+
+[Service]
+Type=simple
+User=robot
+WorkingDirectory=/home/robot/ev3-bridge
+ExecStart=/usr/bin/python3 /home/robot/ev3-bridge/ev3_server.py
+Restart=always
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
