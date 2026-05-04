@@ -5,6 +5,7 @@ import {baudRate, bridgePort, distDir, nodeEnv} from './config';
 import {registerRoutes} from './routes';
 import {registerProxyRoutes} from './proxyRoutes';
 import {startSensorPolling} from './sensorManager';
+import {startEV3Manager} from './ev3Manager';
 
 const app = express();
 const distIndex = path.join(distDir, 'index.html');
@@ -83,5 +84,6 @@ app.listen(bridgePort, () => {
   console.log(`Mode: ${nodeEnv}`);
   if (nodeEnv !== 'test') {
     startSensorPolling().catch(console.error);
+    startEV3Manager();
   }
 });
