@@ -9,7 +9,7 @@
     "dev:bridge": "tsx server/serialBridge.ts",
     "build": "vite build",
     "start": "NODE_ENV=production tsx server/serialBridge.ts",
-    "check": "npm run lint && tsx src/services/notesStore.test.ts && npm run build && node server/api-contract.test.mjs",
+    "check": "npm run lint && tsx src/services/notesStore.test.ts && npm run build && node server/api-contract.test.mjs && tsx server/ev3Manager.test.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"
