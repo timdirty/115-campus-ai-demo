@@ -17,11 +17,12 @@ let currentHostIndex = 0;
 const pending = new Map<string, Pending>();
 
 function getHosts(): string[] {
-  return [
+  const hosts = [
     process.env.EV3_HOST,
     'ws://192.168.0.1:8765',
     'ws://ev3dev.local:8765',
   ].filter(Boolean) as string[];
+  return hosts.length > 0 ? hosts : ['ws://192.168.0.1:8765'];
 }
 
 function flushPending(reason: string) {
