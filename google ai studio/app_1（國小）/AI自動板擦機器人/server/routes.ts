@@ -4,6 +4,7 @@ import {analyzeBoardWithAI, chatWithAI, isGeminiConfigured, normalizeBoardRegion
 import {commandCatalog, createNote, defaultClassroomSession, defaultNotes, defaultRobotStatus, supportedCommands, taskActions} from './defaults';
 import {ApiError, getErrorMessage, sendError} from './http';
 import {buildAppExport, getReadyStatus, importAppData, writeBackupFile} from './opsService';
+import {getEV3Status, sendEV3Command} from './ev3Manager';
 import {getActivePath, isArduinoLikePort, listPorts, recordUnsupportedTask, resolveTaskCommand, sendSerialCommand, sendSerialCommandDrive} from './robotService';
 import {assignPortToZone, getAllDetectedPorts, getLiveZoneReadings, unassignPort} from './sensorManager';
 import {appendTaskLog, readJsonFile, updateRobotStatus, writeJsonFile} from './storage';
@@ -302,6 +303,10 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.get('/api/ev3/status', (_req, res) => {
+    res.json(getEV3Status());
+  });
+
   app.post('/api/robot/task', async (req, res) => {
     const action = String(req.body?.action ?? '').trim();
     const regionId = req.body?.regionId ? String(req.body.regionId) : undefined;
@@ -361,6 +366,35 @@ export function registerRoutes(app: Express) {
     }
 
     try {
+      // Route EV3_ commands to EV3 manager
+      if (command.startsWith('EV3_')) {
+        const result = await sendEV3Command(command);
+        if (!result.ok) {
+          res.status(503).json({ok: false, command, error: result.response});
+          return;
+        }
+        res.json({ok: true, command, response: result.response});
+        return;
+      }
+
+      // STOP: dual-send to both Arduino and EV3 for safety
+      if (command === 'STOP') {
+        const [arduinoResult] = await Promise.allSettled([
+          sendSerialCommand(command, requestedPath),
+          sendEV3Command('EV3_STOP'),
+        ]);
+        const port = arduinoResult.status === 'fulfilled' ? arduinoResult.value.port : getActivePath();
+        const message = arduinoResult.status === 'fulfilled'
+          ? (arduinoResult.value.response || `Sent STOP to ${port}`)
+          : (arduinoResult.reason as Error)?.message ?? 'Arduino error';
+        const ok = arduinoResult.status === 'fulfilled';
+        const status = await updateRobotStatus({connected: ok, activePort: port, lastCommand: command, lastResponse: message});
+        const taskLog = await appendTaskLog({command, source, ok, message});
+        res.json({ok, command, port, response: message, status, taskLog});
+        return;
+      }
+
+      // All other commands: existing Arduino path (unchanged)
       const result = await sendSerialCommand(command, requestedPath);
       const message = result.response || `Sent ${command} to ${result.port}`;
       const status = await updateRobotStatus({
