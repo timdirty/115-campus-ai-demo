@@ -151,7 +151,7 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
                 橋接器離線 · 本機模式
               </span>
             )}
-            <button type="button" onClick={() => onNavigate('library')} aria-label="切換至課堂紀錄" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-surface shadow-sm cursor-pointer hover:scale-105 active:scale-95 flex items-center justify-center transition-transform">
+            <button type="button" onClick={() => onNavigate('library')} aria-label="切換至課堂紀錄" className="w-10 h-10 rounded-full bg-surface shadow-sm cursor-pointer hover:scale-105 active:scale-95 flex items-center justify-center transition-transform">
                <Cast className="text-primary w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
             </button>
           </div>
@@ -277,7 +277,7 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
               <p className="absolute bottom-1 left-3 text-[10px] text-tertiary font-bold">{inputValue.length} / 500</p>
             )}
             <div className="absolute right-1.5 bottom-1.5 sm:right-2 sm:bottom-2 flex">
-              <button type="submit" disabled={!inputValue.trim() || isTyping} className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-300 ${!inputValue.trim() || isTyping ? 'bg-surface-container text-on-surface-variant/40' : 'bg-primary text-on-primary shadow-md hover:scale-105 active:scale-95'}`}>
+              <button type="submit" disabled={!inputValue.trim() || isTyping} className={`w-10 h-10 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-300 ${!inputValue.trim() || isTyping ? 'bg-surface-container text-on-surface-variant/40' : 'bg-primary text-on-primary shadow-md hover:scale-105 active:scale-95'}`}>
                 <ArrowDownCircle className={`w-5 h-5 sm:w-6 sm:h-6 rotate-180 transition-transform ${inputValue.trim() && !isTyping ? 'scale-110' : ''}`} strokeWidth={2.5}/>
               </button>
             </div>

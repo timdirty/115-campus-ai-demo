@@ -230,12 +230,12 @@ export default function TeacherDashboard() {
                         <p className="text-xs text-on-surface-variant mt-1">{region.reason}</p>
                       </div>
                       <div className="flex flex-wrap gap-2 justify-end">
-                        <button onClick={() => updateRegionStatus(region.id, 'keep')} className="h-9 px-3 rounded-full bg-primary-container text-primary text-xs font-bold hover:bg-primary hover:text-on-primary transition-colors">保留</button>
-                        <button onClick={() => runTask(region.status === 'erasable' ? 'erase' : 'keep', region.id, region.status === 'erasable' ? `區塊 ${region.id} 已標記為可清空` : `區塊 ${region.id} 已標記保留`)} className="h-9 px-3 rounded-full bg-surface-container-high text-xs font-bold hover:bg-primary hover:text-on-primary transition-colors">保存</button>
+                        <button onClick={() => updateRegionStatus(region.id, 'keep')} className="min-h-10 px-3 rounded-full bg-primary-container text-primary text-xs font-bold hover:bg-primary hover:text-on-primary transition-colors">保留</button>
+                        <button onClick={() => runTask(region.status === 'erasable' ? 'erase' : 'keep', region.id, region.status === 'erasable' ? `區塊 ${region.id} 已標記為可清空` : `區塊 ${region.id} 已標記保留`)} className="min-h-10 px-3 rounded-full bg-surface-container-high text-xs font-bold hover:bg-primary hover:text-on-primary transition-colors">保存</button>
                         <button
                           onClick={() => sendTaskToRobot(region.status === 'erasable' || region.status === 'erased' ? 'erase' : 'keep', region.id, `${region.status === 'erasable' || region.status === 'erased' ? '擦除' : '保留'}區塊 ${region.id}`)}
                           disabled={Boolean(hardwareBusy)}
-                          className="h-9 px-3 rounded-full bg-surface-container-lowest text-xs font-bold border border-primary/20 hover:bg-primary hover:text-on-primary disabled:opacity-50 transition-colors"
+                          className="min-h-10 px-3 rounded-full bg-surface-container-lowest text-xs font-bold border border-primary/20 hover:bg-primary hover:text-on-primary disabled:opacity-50 transition-colors"
                         >
                           送機器人
                         </button>
