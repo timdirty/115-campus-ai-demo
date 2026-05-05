@@ -6,9 +6,14 @@ import type {PortInfo} from './types';
 
 let activePort: SerialPort | null = null;
 let activePath = process.env.ARDUINO_PORT ?? '';
+const simulatedPortPath = 'simulated://arduino-uno-r4';
+
+function isSimulated() {
+  return process.env.ARDUINO_SIMULATE === '1' || process.env.DEMO_SIMULATE_HARDWARE === '1';
+}
 
 export function getActivePath() {
-  return activePath;
+  return isSimulated() ? simulatedPortPath : activePath;
 }
 
 export function resolveTaskCommand(action: string, regionId?: string) {
@@ -29,6 +34,14 @@ export function resolveTaskCommand(action: string, regionId?: string) {
 }
 
 export async function listPorts(): Promise<PortInfo[]> {
+  if (isSimulated()) {
+    return [{
+      path: simulatedPortPath,
+      manufacturer: 'Campus Demo Simulator',
+      vendorId: 'SIM',
+      productId: 'UNO_R4',
+    }];
+  }
   const ports = await SerialPort.list();
   return ports.map((port) => ({
     path: port.path,
@@ -118,6 +131,7 @@ async function waitForSerialResponse(port: SerialPort, timeoutMs = 1800) {
 }
 
 export async function sendSerialCommandDrive(command: string, requestedPath?: string) {
+  if (isSimulated()) return {port: simulatedPortPath};
   const port = await getPort(requestedPath);
   await new Promise<void>((resolve, reject) => {
     port.write(`${command}\n`, (error) => (error ? reject(error) : resolve()));
@@ -126,6 +140,13 @@ export async function sendSerialCommandDrive(command: string, requestedPath?: st
 }
 
 export async function sendSerialCommand(command: string, requestedPath?: string) {
+  if (isSimulated()) {
+    activePath = simulatedPortPath;
+    const response = command === 'READ_SENSORS'
+      ? 'SENSORS:TEMP:25.6,HUM:58,LIGHT:640'
+      : `SIMULATED_ARDUINO_OK:${command}`;
+    return {port: simulatedPortPath, response};
+  }
   const port = await getPort(requestedPath);
   const responsePromise = waitForSerialResponse(port);
 

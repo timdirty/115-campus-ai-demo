@@ -14,18 +14,36 @@ let ws: WebSocket | null = null;
 let connected = false;
 let lastCommand = '';
 let lastResponse = '';
+let activeHost = '';
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempt = 0;
 let currentHostIndex = 0;
+let started = false;
 const pending = new Map<string, Pending>();
 
+function isSimulated() {
+  return process.env.EV3_SIMULATE === '1' || process.env.DEMO_SIMULATE_HARDWARE === '1';
+}
+
+function normalizeHost(host: string): string {
+  const trimmed = host.trim();
+  if (!trimmed) return '';
+  if (/^wss?:\/\//i.test(trimmed)) return trimmed;
+  return `ws://${trimmed.replace(/\/$/, '')}:8765`;
+}
+
 function getHosts(): string[] {
+  const configuredHosts = [
+    ...(process.env.EV3_HOSTS ?? '').split(','),
+    process.env.EV3_HOST ?? '',
+  ].map(normalizeHost).filter(Boolean);
   const hosts = [
-    process.env.EV3_HOST,
+    ...configuredHosts,
     'ws://192.168.0.1:8765',
     'ws://ev3dev.local:8765',
-  ].filter(Boolean) as string[];
-  return hosts.length > 0 ? hosts : ['ws://192.168.0.1:8765'];
+  ];
+  const uniqueHosts = [...new Set(hosts)];
+  return uniqueHosts.length > 0 ? uniqueHosts : ['ws://192.168.0.1:8765'];
 }
 
 function flushPending(reason: string) {
@@ -54,6 +72,7 @@ function connect() {
   socket.on('open', () => {
     ws = socket;
     connected = true;
+    activeHost = url;
     reconnectAttempt = 0;
     console.log(`[ev3] connected to ${url}`);
   });
@@ -74,6 +93,7 @@ function connect() {
     if (ws === socket) {
       ws = null;
       connected = false;
+      activeHost = '';
     }
     flushPending('EV3 disconnected');
     currentHostIndex++;
@@ -86,14 +106,28 @@ function connect() {
 }
 
 export function startEV3Manager() {
+  if (started) return;
+  started = true;
+  if (isSimulated()) {
+    connected = true;
+    activeHost = 'simulated://ev3';
+    lastResponse = 'EV3 simulation ready';
+    console.log('[ev3] simulation mode enabled');
+    return;
+  }
   connect();
 }
 
 export function getEV3Status() {
-  return {connected, lastCommand, lastResponse};
+  return {connected: connected || isSimulated(), activeHost: isSimulated() ? 'simulated://ev3' : activeHost, configuredHosts: getHosts(), lastCommand, lastResponse, simulated: isSimulated()};
 }
 
 export async function sendEV3Command(command: string): Promise<Ev3Response> {
+  if (isSimulated()) {
+    lastCommand = command;
+    lastResponse = `SIMULATED_EV3_OK:${command}`;
+    return {ok: true, response: lastResponse};
+  }
   if (!ws || !connected) return {ok: false, response: 'EV3 not connected'};
 
   const id = randomUUID();
