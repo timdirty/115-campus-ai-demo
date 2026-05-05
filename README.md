@@ -1,6 +1,8 @@
 # 115 資通訊比賽作品工作區
 
-這個工作區整理兩隊國小組與一隊國中組作品，以及同一套 Arduino UNO R4 WiFi firmware。目標是比賽現場可穩定展示的本機完整 Demo：功能要能點、狀態要能串、資料要能重置，沒有真硬體、真雲端或 Gemini key 時也要能順順講完；插上 UNO R4 並上傳韌體後，三個 App 會共用同一個本機 bridge 送 Serial 指令。
+這個工作區整理三個隊伍的獨立作品：兩隊國小組、一隊國中組，以及同一套 Arduino UNO R4 WiFi firmware。三個 App 是三件分開評分、分開展示、分開維護的作品；放在同一個 workspace 是為了共用開發工具、比賽驗收、GitHub Pages 發布與硬體展示路徑。
+
+目標是比賽現場可穩定展示的本機完整 Demo：每隊功能要能自己跑、資料要能自己重置、學生講稿要能自己打開；沒有真硬體、真雲端或 Gemini key 時也要能順順講完。插上 UNO R4 並上傳韌體後，三個 App 才共用同一個本機 bridge 送 Serial 指令；接上 LEGO EV3 後，三隊也會透過同一個 bridge 送 `EV3_*` WebSocket 指令。
 
 ## 三隊作品
 
@@ -8,7 +10,15 @@
 - `google ai studio/app_2（國小）/校園服務機器人 app`：福利社配送、清潔排程、教學輔助、放學引導、鐘聲廣播與校園中控台。
 - `google ai studio/app_3（國中）/AI校園心靈守護者`：校園情緒關懷、預警處理、自我照護、匿名心情牆與節點監控。
 
-每隊 app 根目錄都有 `PLAN_TODO.md`，記錄作品定位、展示腳本、Arduino R4 WiFi 對接方向與驗收指令。
+每隊 app 根目錄都有自己的 `README.md`、`PLAN_TODO.md`、`STUDENT_DEMO_GUIDE.md`、`package.json`、`package-lock.json` 與 `localStorage`/資料命名空間。除共用 Arduino bridge 之外，不把三隊的 UI、狀態、測試或展示資料混在一起。
+
+Workspace 層共用的三隊 catalog 在：
+
+```text
+scripts/app-catalog.mjs
+```
+
+新增隊伍資訊、改公開路徑、改手機檢查路由或 Pages 入口卡片時，優先改這份 catalog，再跑完整驗收。
 
 ## Demo Readiness
 
@@ -47,6 +57,9 @@ node scripts/competition-readiness-check.mjs
 需要拆開檢查時，也可以分別執行：
 
 ```zsh
+npm run check:app1
+npm run check:app2
+npm run check:app3
 zsh scripts/demo-check.sh
 node scripts/build-github-pages.mjs
 node scripts/pages-artifact-check.mjs
@@ -65,6 +78,7 @@ CHECK_PUBLIC_URLS=1 node scripts/competition-readiness-check.mjs
 - App 2 `npm run check`
 - App 3 `npm run check`
 - bridge/firmware 指令表一致性檢查
+- 三隊 LEGO EV3 指令規格與 EV3 bridge server 檢查
 - Arduino UNO R4 `pio run`
 
 完整展示流程請看：
@@ -75,6 +89,7 @@ docs/STUDENT_PRESENTATION_PACK.md
 docs/HUNDRED_ROUND_READINESS.md
 docs/ARDUINO_CONNECTION_READY.md
 docs/GITHUB_STUDENT_PUBLISH.md
+docs/EV3_INTEGRATION.md
 ```
 
 推上 GitHub 或交給學生操作前，先執行安全預檢：
@@ -103,7 +118,51 @@ zsh scripts/doctor.sh
 
 目前 firmware 保留本機 Serial 指令，App 1 的 Node bridge 是三隊共用的硬體 gateway。後續接 Arduino Cloud 時仍要共用 `handleCommand()`，不要破壞現場 USB 測試路徑。
 
+## LEGO EV3
+
+三隊未來都會接 LEGO EV3。EV3 使用 ev3dev 跑 `ev3/ev3_server.py`，App 1 bridge 會連到 `ws://192.168.0.1:8765` 或 `ws://ev3dev.local:8765`，三隊 App 透過 `/api/robot/command` 送 `EV3_*` 指令。
+
+常用指令：
+
+```zsh
+bash scripts/ev3-setup.sh
+bash scripts/ev3-diagnose.sh
+npm run check:ev3
+```
+
+完整規劃與每隊 EV3 指令清單請看：
+
+```text
+docs/EV3_INTEGRATION.md
+```
+
 ## App Run Commands
+
+三隊同時開發，從根目錄執行：
+
+```zsh
+npm run dev
+```
+
+固定本機網址：
+
+```text
+App 1 frontend: http://localhost:11501/
+App 1 bridge:   http://localhost:3200/
+App 2:          http://localhost:11502/
+App 3:          http://localhost:11503/
+```
+
+單一隊伍開發或驗收，從根目錄執行：
+
+```zsh
+npm run dev:app1
+npm run dev:app2
+npm run dev:app3
+npm run check:app1
+npm run check:app2
+npm run check:app3
+```
 
 App 1 production bridge：
 
@@ -143,4 +202,5 @@ npm run dev
 - `scripts/public-url-check.mjs`：部署後確認公開總入口、三個 App 與三個學生講稿頁都回傳 200 且含有預期內容。
 - `scripts/mobile-layout-check.mjs`：用 390px 手機 viewport 檢查 Pages 入口、三個 app 與三個學生講稿頁是否水平爆版、截字或出現過小按鈕。
 - `scripts/verify-command-catalog.mjs`：確認 App 1 bridge 指令表與 UNO R4 firmware 指令一致。
+- `scripts/verify-ev3-catalog.mjs`：確認三隊 EV3 指令規格、App 1 bridge 與 EV3 brick server 一致。
 - `.codex/skills/arduino-uno-r4-vibecoding/SKILL.md`：專案本地 AI 協作規範。

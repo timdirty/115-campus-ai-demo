@@ -25,12 +25,15 @@ bash scripts/ev3-diagnose.sh
 3. `npm run dev` (App 1)
 4. App shows "EV3 已連線 ✓"
 
-## Cross-App Usage (App 2 / App 3)
+## Cross-App Usage (App 1 / App 2 / App 3)
 
-The bridge auto-routes `EV3_*` commands. App 2 and App 3 can send EV3 commands
-through their existing `sendHardwareCommand()` helper without any code change:
+The bridge auto-routes `EV3_*` commands. All three apps send EV3 commands
+through the same App 1 bridge:
 
 ```ts
+// App 1 example — draw a whiteboard stroke
+await sendRobotCommand('EV3_DRAW_LINE', 'app1-whiteboard');
+
 // App 2 example — drop a flag for delivery confirmation
 await sendHardwareCommand('EV3_PEN_DOWN', 'delivery');
 
@@ -40,6 +43,13 @@ await sendHardwareCommand('EV3_ARM_EXTEND', 'guardian-alert');
 
 `STOP` is dual-sent to both Arduino and EV3 by the bridge — safety stops do
 the right thing regardless of which app calls it.
+
+The cross-team EV3 contract is documented in `../docs/EV3_INTEGRATION.md`.
+Run this from the repo root before competition day:
+
+```bash
+npm run check:ev3
+```
 
 ## Future Extensions (preserved hooks, not yet implemented)
 
