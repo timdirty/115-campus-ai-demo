@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import {apps, guideUrl} from './app-catalog.mjs';
+
 const baseUrl = process.env.PUBLIC_DEMO_BASE_URL ?? 'https://timdirty.github.io/115-campus-ai-demo/';
 
 const pages = [
@@ -7,30 +9,8 @@ const pages = [
     path: '',
     phrases: ['115 資通訊三隊 App 展示入口', '學生講稿', '開啟操作'],
   },
-  {
-    path: 'app1/',
-    phrases: ['AI', '白板'],
-  },
-  {
-    path: 'app2/',
-    phrases: ['校園', '服務'],
-  },
-  {
-    path: 'app3/',
-    phrases: ['校園', '心靈'],
-  },
-  {
-    path: 'app1-guide.html',
-    phrases: ['AI 自動板擦機器人', '後續機器人連動計畫', '公開展示網址'],
-  },
-  {
-    path: 'app2-guide.html',
-    phrases: ['校園服務機器人', '後續機器人連動計畫', '公開展示網址'],
-  },
-  {
-    path: 'app3-guide.html',
-    phrases: ['AI 校園心靈守護者', '後續機器人連動計畫', '公開展示網址'],
-  },
+  ...apps.map((app) => ({path: `${app.id}/`, phrases: app.pagePhrases})),
+  ...apps.map((app) => ({path: guideUrl(app), phrases: app.guidePhrases})),
 ];
 
 const failures = [];

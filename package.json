@@ -5,9 +5,21 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev-all.mjs",
+    "app": "node scripts/run-app.mjs",
+    "dev:app1": "node scripts/run-app.mjs app1 dev",
+    "dev:app2": "node scripts/run-app.mjs app2 dev",
+    "dev:app3": "node scripts/run-app.mjs app3 dev",
+    "check:app1": "node scripts/run-app.mjs app1 check",
+    "check:app2": "node scripts/run-app.mjs app2 check",
+    "check:app3": "node scripts/run-app.mjs app3 check",
+    "check:ev3": "node scripts/verify-ev3-catalog.mjs",
+    "check:polish": "node scripts/polish-500-check.mjs",
+    "check:visual": "node scripts/responsive-layout-check.mjs",
+    "demo:docs": "node scripts/generate-demo-docs.mjs",
+    "demo:ready": "node scripts/demo-ready.mjs",
     "preview": "node scripts/build-github-pages.mjs && npx serve pages-dist -p 11500",
     "build": "node scripts/build-github-pages.mjs",
-    "check": "npm run check --prefix \"google ai studio/app_1（國小）/AI自動板擦機器人\" && npm run check --prefix \"google ai studio/app_2（國小）/校園服務機器人 app\" && npm run check --prefix \"google ai studio/app_3（國中）/AI校園心靈守護者\""
+    "check": "npm run check:polish && npm run check:app1 && npm run check:app2 && npm run check:app3"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

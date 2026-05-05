@@ -47,6 +47,7 @@ npm run check
 step "Arduino UNO R4 firmware"
 cd "$ROOT_DIR"
 node scripts/verify-command-catalog.mjs
+node scripts/verify-ev3-catalog.mjs
 pio run
 
 step "Ready"

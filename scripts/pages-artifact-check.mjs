@@ -2,36 +2,19 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import {fileURLToPath} from 'node:url';
-
-const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const pagesDir = path.join(rootDir, 'pages-dist');
+import {apps, guideUrl, pagesDir} from './app-catalog.mjs';
 
 const requiredFiles = [
   'index.html',
   '.nojekyll',
-  'app1/index.html',
-  'app2/index.html',
-  'app3/index.html',
-  'app1-guide.html',
-  'app2-guide.html',
-  'app3-guide.html',
+  ...apps.flatMap((app) => [`${app.id}/index.html`, guideUrl(app)]),
 ];
 
 const requiredIndexLinks = [
-  './app1/',
-  './app2/',
-  './app3/',
-  './app1-guide.html',
-  './app2-guide.html',
-  './app3-guide.html',
+  ...apps.flatMap((app) => [`./${app.id}/`, `./${guideUrl(app)}`]),
 ];
 
-const requiredGuidePhrases = {
-  'app1-guide.html': ['AI 自動板擦機器人', '後續機器人連動計畫', '公開展示網址'],
-  'app2-guide.html': ['校園服務機器人', '後續機器人連動計畫', '公開展示網址'],
-  'app3-guide.html': ['AI 校園心靈守護者', '後續機器人連動計畫', '公開展示網址'],
-};
+const requiredGuidePhrases = Object.fromEntries(apps.map((app) => [guideUrl(app), app.guidePhrases]));
 
 const failures = [];
 

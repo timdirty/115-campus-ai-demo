@@ -4,10 +4,8 @@ import {spawn} from 'node:child_process';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {allPublishedRoutes, pagesDir} from './app-catalog.mjs';
 
-const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const pagesDir = path.join(rootDir, 'pages-dist');
 const port = Number(process.env.MOBILE_CHECK_PORT ?? 4180);
 const chromePath = process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const viewportWidth = Number(process.env.MOBILE_CHECK_WIDTH ?? 390);
@@ -54,7 +52,7 @@ const chrome = spawn(chromePath, [
   `--remote-debugging-port=${port + 1}`,
   `--user-data-dir=${userDataDir}`,
   'about:blank',
-], {stdio: ['ignore', 'ignore', 'pipe']});
+], {stdio: 'ignore'});
 
 async function waitForBrowser() {
   for (let attempt = 0; attempt < 40; attempt += 1) {
@@ -94,6 +92,32 @@ function send(method, params = {}, sessionId) {
   return new Promise((resolve) => pending.set(id, resolve));
 }
 
+function closeServer() {
+  return new Promise((resolve, reject) => {
+    server.close((error) => {
+      if (error) reject(error);
+      else resolve();
+    });
+  });
+}
+
+async function closeChrome() {
+  if (chrome.exitCode !== null) return;
+
+  chrome.kill('SIGTERM');
+  await new Promise((resolve) => {
+    const timeout = setTimeout(resolve, 2000);
+    chrome.once('exit', () => {
+      clearTimeout(timeout);
+      resolve();
+    });
+  });
+
+  if (chrome.exitCode === null) {
+    chrome.kill('SIGKILL');
+  }
+}
+
 const targetId = (await send('Target.createTarget', {url: 'about:blank'})).result.targetId;
 const sessionId = (await send('Target.attachToTarget', {targetId, flatten: true})).result.sessionId;
 await send('Page.enable', {}, sessionId);
@@ -105,7 +129,7 @@ await send('Emulation.setDeviceMetricsOverride', {
   mobile: true,
 }, sessionId);
 
-const routes = ['/', '/app1/', '/app2/', '/app3/', '/app1-guide.html', '/app2-guide.html', '/app3-guide.html'];
+const routes = allPublishedRoutes();
 const failures = [];
 
 for (const route of routes) {
@@ -148,8 +172,9 @@ for (const route of routes) {
 }
 
 await send('Browser.close');
-server.close();
-chrome.kill('SIGTERM');
+socket.close();
+await closeServer();
+await closeChrome();
 
 if (failures.length) {
   console.error('Mobile layout check failed.');

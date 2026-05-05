@@ -3,40 +3,7 @@
 import {spawnSync} from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import {fileURLToPath} from 'node:url';
-
-const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const outDir = path.join(rootDir, 'pages-dist');
-
-const apps = [
-  {
-    id: 'app1',
-    name: 'AI 自動板擦機器人',
-    path: 'google ai studio/app_1（國小）/AI自動板擦機器人',
-    guide: 'google ai studio/app_1（國小）/AI自動板擦機器人/STUDENT_DEMO_GUIDE.md',
-    desc: '白板 AI 助教、教師決策、課堂紀錄與機器人指令展示。',
-    accent: '#246b5b',
-    flow: ['拍白板', '看決策', '送指令'],
-  },
-  {
-    id: 'app2',
-    name: '校園服務機器人',
-    path: 'google ai studio/app_2（國小）/校園服務機器人 app',
-    guide: 'google ai studio/app_2（國小）/校園服務機器人 app/STUDENT_DEMO_GUIDE.md',
-    desc: '配送、清潔、教學、生活服務與派遣中控台。',
-    accent: '#005bb3',
-    flow: ['下任務', '看追蹤', '匯報表'],
-  },
-  {
-    id: 'app3',
-    name: 'AI 校園心靈守護者',
-    path: 'google ai studio/app_3（國中）/AI校園心靈守護者',
-    guide: 'google ai studio/app_3（國中）/AI校園心靈守護者/STUDENT_DEMO_GUIDE.md',
-    desc: '匿名關懷、預警處理、自我照護、聊天與節點監控。',
-    accent: '#0f766e',
-    flow: ['看總覽', '處理提醒', '自我照護'],
-  },
-];
+import {appDir, apps, guidePath, pagesDir} from './app-catalog.mjs';
 
 function run(command, args, cwd) {
   const result = spawnSync(command, args, {cwd, stdio: 'inherit', shell: process.platform === 'win32'});
@@ -123,9 +90,9 @@ function renderGuideMarkdown(markdown) {
 }
 
 function writeGuidePage(app) {
-  const markdown = fs.readFileSync(path.join(rootDir, app.guide), 'utf8');
+  const markdown = fs.readFileSync(guidePath(app), 'utf8');
   const guideHtml = renderGuideMarkdown(markdown);
-  fs.writeFileSync(path.join(outDir, `${app.id}-guide.html`), `<!doctype html>
+  fs.writeFileSync(path.join(pagesDir, `${app.id}-guide.html`), `<!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
@@ -161,14 +128,14 @@ function writeGuidePage(app) {
 `, 'utf8');
 }
 
-fs.rmSync(outDir, {recursive: true, force: true});
-fs.mkdirSync(outDir, {recursive: true});
+fs.rmSync(pagesDir, {recursive: true, force: true});
+fs.mkdirSync(pagesDir, {recursive: true});
 
 for (const app of apps) {
-  const appDir = path.join(rootDir, app.path);
-  run('npm', ['ci'], appDir);
-  run('npm', ['run', 'build'], appDir);
-  copyDir(path.join(appDir, 'dist'), path.join(outDir, app.id));
+  const sourceDir = appDir(app);
+  run('npm', ['ci'], sourceDir);
+  run('npm', ['run', 'build'], sourceDir);
+  copyDir(path.join(sourceDir, 'dist'), path.join(pagesDir, app.id));
   writeGuidePage(app);
 }
 
@@ -188,7 +155,7 @@ const cards = apps.map((app) => `
 
 const quickLinks = apps.map((app) => `<a href="./${app.id}/">${app.name}</a>`).join('');
 
-fs.writeFileSync(path.join(outDir, 'index.html'), `<!doctype html>
+fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
@@ -256,5 +223,5 @@ fs.writeFileSync(path.join(outDir, 'index.html'), `<!doctype html>
 </html>
 `, 'utf8');
 
-fs.writeFileSync(path.join(outDir, '.nojekyll'), '', 'utf8');
-console.log(`GitHub Pages bundle ready: ${outDir}`);
+fs.writeFileSync(path.join(pagesDir, '.nojekyll'), '', 'utf8');
+console.log(`GitHub Pages bundle ready: ${pagesDir}`);

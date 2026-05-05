@@ -13,6 +13,11 @@ const steps = [
     args: ['scripts/github-prepublish-check.mjs'],
   },
   {
+    name: '500-round package polish check',
+    command: 'node',
+    args: ['scripts/polish-500-check.mjs'],
+  },
+  {
     name: 'Three-app demo check and firmware build',
     command: 'zsh',
     args: ['scripts/demo-check.sh'],
@@ -28,9 +33,9 @@ const steps = [
     args: ['scripts/pages-artifact-check.mjs'],
   },
   {
-    name: 'Mobile layout check',
+    name: 'Responsive layout check',
     command: 'node',
-    args: ['scripts/mobile-layout-check.mjs'],
+    args: ['scripts/responsive-layout-check.mjs'],
   },
 ];
 
