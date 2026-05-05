@@ -10,6 +10,7 @@ import {
   Activity,
   Bell,
   Bot,
+  Camera,
   CheckCircle2,
   Download,
   Droplets,
@@ -29,6 +30,7 @@ import {
   Smile,
   Sun,
   Thermometer,
+  Type,
   Upload,
   Volume2,
   Wifi,
@@ -40,6 +42,8 @@ import {AcousticSignal, DetectedPort, GuardianAlert, GuardianState, MoodType, Zo
 import {guardianReducer, loadGuardianState, normalizeGuardianState, persistGuardianState} from './state/guardianState';
 import {analyzeAcousticFrame, describeAcousticSignal} from './services/acousticGuardian';
 import {generateSupportReply} from './services/localGuardianAi';
+import {analyzeEmotionTypography} from './services/emotionTypography';
+import {analyzePrivacyFrame, VisualPrivacyResult} from './services/visualPrivacyGuardian';
 import {evaluateProactiveGuardianState, ProactiveInsight} from './services/proactiveGuardian';
 import {buildSchoolZoneStatuses, SchoolZoneStatus} from './services/schoolSpaces';
 import {assignSensorPort, fetchSensorPorts, fetchZoneSensors, sendGuardianHardwareCommand} from './services/hardwareBridge';
@@ -278,10 +282,10 @@ function AppContent() {
     showToast('已由環境聲量建立提醒');
   };
 
-  const handleMood = (mood: MoodType) => {
+  const handleMood = (mood: MoodType, noteOverride?: string) => {
     const option = moodOptions.find((item) => item.mood === mood) ?? moodOptions[1];
     setSelectedMood(mood);
-    dispatch({type: 'ADD_MOOD', payload: {mood, label: option.label, note: option.note}});
+    dispatch({type: 'ADD_MOOD', payload: {mood, label: option.label, note: noteOverride ?? option.note}});
   };
 
   const addPost = async () => {
@@ -1109,7 +1113,7 @@ function DetailDrawer(props: {
   proactiveInsight: ProactiveInsight;
   robotFeedback: RobotDispatchFeedback;
   onClose: () => void;
-  onMood: (mood: MoodType) => void;
+  onMood: (mood: MoodType, note?: string) => void;
   onAddPost: () => void;
   onSendMessage: () => void;
   onStartAcoustic: () => void;
@@ -1217,6 +1221,66 @@ function SensingPanel({
   onCreateProactiveAlert,
   onDemoSound,
 }: Parameters<typeof DetailDrawer>[0]) {
+  const [visualResult, setVisualResult] = useState<VisualPrivacyResult>(() => analyzePrivacyFrame(1, 1, new Uint8ClampedArray([180, 180, 180, 255])));
+  const [visualCameraReady, setVisualCameraReady] = useState(false);
+  const [visualBusy, setVisualBusy] = useState(false);
+  const [visualError, setVisualError] = useState('');
+  const [visualAnalyzedAt, setVisualAnalyzedAt] = useState('尚未判讀');
+  const visualVideoRef = useRef<HTMLVideoElement | null>(null);
+  const visualCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const visualStreamRef = useRef<MediaStream | null>(null);
+
+  useEffect(() => () => {
+    visualStreamRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
+
+  const toggleVisualCamera = async () => {
+    if (visualCameraReady) {
+      visualStreamRef.current?.getTracks().forEach((track) => track.stop());
+      visualStreamRef.current = null;
+      setVisualCameraReady(false);
+      return;
+    }
+    try {
+      setVisualBusy(true);
+      setVisualError('');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {facingMode: {ideal: 'environment'}, width: {ideal: 960}, height: {ideal: 540}},
+        audio: false,
+      });
+      visualStreamRef.current = stream;
+      if (visualVideoRef.current) {
+        visualVideoRef.current.srcObject = stream;
+        await visualVideoRef.current.play();
+      }
+      setVisualCameraReady(true);
+    } catch {
+      setVisualError('無法開啟攝影機，請確認瀏覽器權限。');
+    } finally {
+      setVisualBusy(false);
+    }
+  };
+
+  const analyzeVisualFrame = () => {
+    const video = visualVideoRef.current;
+    const canvas = visualCanvasRef.current;
+    if (!video || !canvas || !visualCameraReady) return;
+    const width = video.videoWidth || 640;
+    const height = video.videoHeight || 360;
+    const maxSide = 180;
+    const scale = Math.min(1, maxSide / Math.max(width, height));
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
+    const context = canvas.getContext('2d', {willReadFrequently: true});
+    if (!context) return;
+    setVisualBusy(true);
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const frame = context.getImageData(0, 0, canvas.width, canvas.height);
+    setVisualResult(analyzePrivacyFrame(frame.width, frame.height, frame.data));
+    setVisualAnalyzedAt(new Intl.DateTimeFormat('zh-TW', {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false}).format(new Date()));
+    setVisualBusy(false);
+  };
+
   return (
     <div className="space-y-4">
       <GlassPanel>
@@ -1252,6 +1316,53 @@ function SensingPanel({
       </GlassPanel>
 
       <GlassPanel>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-black text-slate-500">隱私影像感知</p>
+            <h3 className="mt-2 text-xl font-black text-slate-950">場域風險辨識</h3>
+            <p className="mt-1 text-xs font-bold text-slate-400">最近判讀：{visualAnalyzedAt}</p>
+          </div>
+          <button onClick={toggleVisualCamera} disabled={visualBusy} className="flex min-h-11 items-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-black text-white disabled:opacity-50">
+            <Camera className="h-5 w-5" />
+            {visualCameraReady ? '關閉' : '啟用'}
+          </button>
+        </div>
+        <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-950">
+          <div className="relative aspect-video">
+            <video ref={visualVideoRef} muted playsInline className={`h-full w-full object-cover ${visualCameraReady ? 'opacity-100' : 'opacity-20'}`} />
+            {!visualCameraReady && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/65">
+                <Camera className="h-8 w-8" />
+                <p className="text-xs font-black">攝影機待啟用</p>
+              </div>
+            )}
+            <canvas ref={visualCanvasRef} className="hidden" />
+          </div>
+        </div>
+        {visualError && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{visualError}</p>}
+        <div className="mt-3 grid grid-cols-4 gap-2">
+          <MiniMetric label="風險" value={visualResult.score} />
+          <MiniMetric label="紋理" value={visualResult.metrics.crowdTexture} />
+          <MiniMetric label="低光" value={visualResult.metrics.lowLightArea} />
+          <MiniMetric label="狀態" value={visualResult.level === 'support' ? '關注' : visualResult.level === 'watch' ? '觀察' : '穩定'} />
+        </div>
+        <p className="mt-4 text-sm font-semibold leading-6 text-slate-600">{visualResult.summary}</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {visualResult.evidence.map((item) => (
+            <span key={item} className="rounded-full bg-teal-50 px-3 py-1 text-[10px] font-black text-teal-700">{item}</span>
+          ))}
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button onClick={analyzeVisualFrame} disabled={!visualCameraReady || visualBusy} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-700 disabled:opacity-50">
+            {visualBusy ? '判讀中' : '擷取判讀'}
+          </button>
+          <button onClick={onCreateProactiveAlert} className="rounded-xl bg-teal-600 px-3 py-3 text-xs font-black text-white">
+            建立關懷提醒
+          </button>
+        </div>
+      </GlassPanel>
+
+      <GlassPanel>
         <p className="text-xs font-black text-slate-500">主動判斷</p>
         <h3 className="mt-2 text-xl font-black text-slate-950">{proactiveInsight.title}</h3>
         <button onClick={onCreateProactiveAlert} className="mt-4 min-h-11 w-full rounded-xl bg-slate-950 text-sm font-black text-white">
@@ -1279,6 +1390,11 @@ function CarePanel({
   chatBusy,
 }: Parameters<typeof DetailDrawer>[0]) {
   const [counselingInfoVisible, setCounselingInfoVisible] = useState(false);
+  const [emotionText, setEmotionText] = useState('今天考試有點壓力，但我想慢慢整理。');
+  const [emotionResult, setEmotionResult] = useState(() => analyzeEmotionTypography('今天考試有點壓力，但我想慢慢整理。'));
+  const runEmotionTypography = () => {
+    setEmotionResult(analyzeEmotionTypography(emotionText));
+  };
   return (
     <div className="space-y-4">
       <GlassPanel>
@@ -1292,6 +1408,55 @@ function CarePanel({
               <span className="mt-1 block text-xs font-semibold opacity-75">{item.note}</span>
             </button>
           ))}
+        </div>
+      </GlassPanel>
+
+      <GlassPanel>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-black text-teal-700">情緒字體</p>
+            <h3 className="mt-1 text-xl font-black text-slate-950">文字心情辨識</h3>
+          </div>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+            <Type className="h-5 w-5" />
+          </div>
+        </div>
+        <textarea
+          value={emotionText}
+          onChange={(event) => setEmotionText(event.target.value)}
+          maxLength={240}
+          aria-label="情緒文字"
+          className="mt-3 min-h-24 w-full rounded-xl border border-slate-200 bg-white p-4 text-sm font-semibold outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+          placeholder="輸入匿名句子..."
+        />
+        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black text-slate-400">辨識狀態</p>
+              <p className="mt-1 text-sm font-black text-slate-950">{emotionResult.label}</p>
+            </div>
+            <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black text-teal-700 shadow-sm">{emotionResult.intensity}%</span>
+          </div>
+          <p className={`mt-4 rounded-xl bg-white px-4 py-3 text-lg leading-8 ${emotionResult.fontClass}`}>{emotionResult.preview}</p>
+          <p className="mt-3 text-xs font-semibold leading-5 text-slate-500">{emotionResult.guidance}</p>
+          {emotionResult.keywords.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {emotionResult.keywords.map((keyword) => (
+                <span key={keyword} className="rounded-full bg-teal-50 px-3 py-1 text-[10px] font-black text-teal-700">{keyword}</span>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button onClick={runEmotionTypography} className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700">
+            重新辨識
+          </button>
+          <button
+            onClick={() => onMood(emotionResult.mood, `情緒字體：${emotionResult.label}｜${emotionResult.preview}`)}
+            className="min-h-11 rounded-xl bg-teal-600 px-3 text-xs font-black text-white"
+          >
+            加入簽到
+          </button>
         </div>
       </GlassPanel>
 

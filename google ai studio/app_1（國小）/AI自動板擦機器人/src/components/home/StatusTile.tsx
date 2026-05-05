@@ -15,7 +15,7 @@ export function StatusTile({icon: Icon, label, value, ok}: StatusTileProps) {
       </div>
       <div className="min-w-0">
         <p className="text-[10px] font-bold tracking-wide text-on-surface-variant/70 uppercase">{label}</p>
-        <p className={`font-extrabold text-sm truncate mt-0.5 ${ok ? 'text-primary' : 'text-on-surface-variant'}`} title={value}>{value}</p>
+        <p className={`mt-0.5 text-sm font-extrabold leading-tight break-words ${ok ? 'text-primary' : 'text-on-surface-variant'}`} title={value}>{value}</p>
       </div>
       <div className={`ml-auto h-2 w-2 shrink-0 rounded-full ${ok ? 'bg-primary animate-pulse' : 'bg-outline-variant/40'}`} />
     </div>

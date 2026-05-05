@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BottomSheet } from '../components/ui';
-import { BatteryCharging, MapPin, Activity, Navigation, Wind, Building2, Route, Terminal, CheckCircle2, CircleDashed, FileText, Bot, ArrowRight, Package, CalendarClock } from 'lucide-react';
+import { BatteryCharging, MapPin, Activity, Navigation, Wind, Building2, Route, Terminal, CheckCircle2, CircleDashed, FileText, Bot, ArrowRight, Package, CalendarClock, Camera, ScanSearch, Sparkles } from 'lucide-react';
 import { useAppActions, useAppState } from '../state/AppStateProvider';
 import { getDemoHealth, getDemoSteps } from '../services/demoFlow';
+import { analyzeCampusFrame, analyzeCampusImage, CampusVisionResult } from '../services/localVision';
 
 export function DashboardView({ showToast, navigateTo }: { showToast: (m: string) => void, navigateTo: (id: string, props?: any) => void }) {
   const state = useAppState();
@@ -11,6 +12,14 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
   const [modal, setModal] = useState<string | null>(null);
   const [speed, setSpeed] = useState(1.2);
   const [activeRobotId, setActiveRobotId] = useState('4號');
+  const [visionResult, setVisionResult] = useState<CampusVisionResult>(() => analyzeCampusFrame('下課穿堂人流擁擠'));
+  const [visionSourceName, setVisionSourceName] = useState('示範畫面');
+  const [visionCameraReady, setVisionCameraReady] = useState(false);
+  const [visionBusy, setVisionBusy] = useState(false);
+  const [visionError, setVisionError] = useState('');
+  const visionVideoRef = useRef<HTMLVideoElement | null>(null);
+  const visionCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const visionStreamRef = useRef<MediaStream | null>(null);
 
   const activeRobot = state.robots.find((robot) => robot.id === activeRobotId) ?? state.robots[0] ?? null;
   const demoSteps = getDemoSteps(state);
@@ -28,7 +37,102 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
     if (activeRobot) setSpeed(activeRobot.speed);
   }, [activeRobot?.id, activeRobot?.speed]);
 
+  useEffect(() => () => {
+    visionStreamRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
+
   if (!activeRobot) return null;
+
+  const runVisionDemo = () => {
+    const samples = [
+      '福利社前取物配送',
+      '五年級走廊地板垃圾清掃',
+      '下課穿堂人流擁擠',
+      '操場入口通道阻塞安全巡查',
+    ];
+    const sample = samples[Math.floor(Date.now() / 1000) % samples.length];
+    setVisionResult(analyzeCampusFrame(sample));
+    setVisionSourceName('示範畫面');
+    showToast('已完成本機影像辨識');
+  };
+
+  const handleVisionFile = async (file: File | undefined) => {
+    if (!file) return;
+    setVisionBusy(true);
+    setVisionError('');
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ''));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+    try {
+      setVisionResult(await analyzeCampusImage(dataUrl));
+      setVisionSourceName(file.name);
+      showToast('照片已完成像素辨識');
+    } catch {
+      setVisionResult(analyzeCampusFrame(`${file.name}:${file.type}:${dataUrl.slice(0, 4000)}`));
+      setVisionError('影像解碼失敗，已切換備援判讀');
+      showToast('影像解碼失敗，已使用備援判讀');
+    } finally {
+      setVisionBusy(false);
+    }
+  };
+
+  const toggleVisionCamera = async () => {
+    if (visionCameraReady) {
+      visionStreamRef.current?.getTracks().forEach((track) => track.stop());
+      visionStreamRef.current = null;
+      setVisionCameraReady(false);
+      return;
+    }
+    try {
+      setVisionError('');
+      setVisionBusy(true);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 960 }, height: { ideal: 540 } },
+        audio: false,
+      });
+      visionStreamRef.current = stream;
+      if (visionVideoRef.current) {
+        visionVideoRef.current.srcObject = stream;
+        await visionVideoRef.current.play();
+      }
+      setVisionCameraReady(true);
+      showToast('校園影像鏡頭已啟用');
+    } catch {
+      setVisionError('無法開啟攝影機，請確認瀏覽器權限或改用拍照上傳。');
+      showToast('攝影機無法啟用');
+    } finally {
+      setVisionBusy(false);
+    }
+  };
+
+  const analyzeLiveVisionFrame = async () => {
+    const video = visionVideoRef.current;
+    const canvas = visionCanvasRef.current;
+    if (!video || !canvas || !visionCameraReady) return;
+    const width = video.videoWidth || 640;
+    const height = video.videoHeight || 360;
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+    context.drawImage(video, 0, 0, width, height);
+    setVisionBusy(true);
+    try {
+      setVisionResult(await analyzeCampusImage(canvas.toDataURL('image/jpeg', 0.82)));
+      setVisionSourceName('即時鏡頭');
+      showToast('即時畫面已完成像素辨識');
+    } finally {
+      setVisionBusy(false);
+    }
+  };
+
+  const dispatchVisionTask = () => {
+    actions.addDispatchTask({ zone: visionResult.zone, taskType: visionResult.dispatchTaskType });
+    showToast(`${visionResult.label} 已轉成機器人任務`);
+  };
 
   return (
     <div className="space-y-6 pb-6">
@@ -251,6 +355,103 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
             </div>
           </div>
         </motion.div>
+      </section>
+
+      {/* Campus vision intake */}
+      <section className="rounded-[2.5rem] border border-outline-variant/30 bg-surface-container-lowest p-6 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-primary/10 bg-primary/10 text-primary">
+              <ScanSearch size={24} />
+            </div>
+            <div>
+              <p className="text-[10px] font-extrabold text-primary">視覺派遣</p>
+              <h3 className="mt-1 font-headline text-xl font-bold tracking-tight">校園影像辨識</h3>
+              <p className="mt-1 text-xs font-bold leading-5 text-on-surface-variant/70">{visionSourceName} · {visionResult.zone}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-outline-variant/30 bg-surface-container-low px-4 text-xs font-black text-on-surface-variant transition hover:border-primary/30 hover:text-primary">
+              <Camera size={16} />
+              拍照辨識
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="sr-only"
+                onChange={(event) => void handleVisionFile(event.target.files?.[0]).finally(() => { event.currentTarget.value = ''; })}
+              />
+            </label>
+            <button onClick={runVisionDemo} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-surface-container-high px-4 text-xs font-black text-on-surface-variant transition hover:bg-primary/10 hover:text-primary">
+              <Sparkles size={16} />
+              示範辨識
+            </button>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-3 lg:grid-cols-[0.9fr_1.1fr_0.9fr]">
+          <div className="overflow-hidden rounded-2xl border border-outline-variant/20 bg-surface-container-low">
+            <div className="relative aspect-video bg-[#111827]">
+              <video ref={visionVideoRef} muted playsInline className={`h-full w-full object-cover ${visionCameraReady ? 'opacity-100' : 'opacity-20'}`} />
+              {!visionCameraReady && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/70">
+                  <Camera size={28} />
+                  <p className="text-xs font-black">即時鏡頭待啟用</p>
+                </div>
+              )}
+              <canvas ref={visionCanvasRef} className="hidden" />
+            </div>
+            {visionError && <p className="px-4 py-2 text-xs font-bold text-error">{visionError}</p>}
+            <div className="grid grid-cols-2 gap-2 p-3">
+              <button onClick={toggleVisionCamera} disabled={visionBusy} className="min-h-11 rounded-xl bg-primary px-3 text-xs font-black text-white disabled:opacity-50">
+                {visionCameraReady ? '關閉鏡頭' : '開啟鏡頭'}
+              </button>
+              <button onClick={() => void analyzeLiveVisionFrame()} disabled={!visionCameraReady || visionBusy} className="min-h-11 rounded-xl border border-outline-variant/30 bg-white px-3 text-xs font-black text-on-surface-variant disabled:opacity-50">
+                擷取判讀
+              </button>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-primary/15 bg-primary/8 p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-extrabold text-primary">判讀結果</p>
+                <h4 className="mt-1 text-2xl font-headline font-bold tracking-tight text-on-surface">{visionResult.label}</h4>
+              </div>
+              <span className="shrink-0 rounded-full bg-primary px-3 py-1 text-[10px] font-black text-white">{visionResult.confidence}%</span>
+            </div>
+            <p className="mt-3 text-sm font-bold leading-6 text-on-surface-variant">{visionResult.summary}</p>
+            {visionResult.metrics && (
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {[
+                  ['亮度', visionResult.metrics.brightness],
+                  ['彩度', visionResult.metrics.saturation],
+                  ['邊緣', visionResult.metrics.edgeDensity],
+                  ['暗區', visionResult.metrics.darkArea],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-xl bg-white/75 px-3 py-2 shadow-sm">
+                    <p className="text-[9px] font-black text-on-surface-variant/50">{label}</p>
+                    <p className="mt-0.5 text-sm font-black text-primary">{value}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="mt-4 flex flex-wrap gap-2">
+              {[...visionResult.tags, ...visionResult.evidence].map((tag) => (
+                <span key={tag} className="rounded-full bg-white/70 px-3 py-1 text-[10px] font-black text-primary shadow-sm">{tag}</span>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-outline-variant/20 bg-surface-container-low p-5">
+            <p className="text-[10px] font-extrabold text-on-surface-variant/60">建議任務</p>
+            <p className="mt-2 text-sm font-black leading-6 text-on-surface">{visionResult.suggestedAction}</p>
+            <p className="mt-3 rounded-xl border border-outline-variant/20 bg-surface-container-lowest px-3 py-2 text-[10px] font-black text-on-surface-variant">
+              {visionResult.command} · {visionResult.dispatchTaskType === 'broadcast' ? '疏導廣播' : '巡邏派遣'}
+            </p>
+            <button onClick={dispatchVisionTask} disabled={visionBusy} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-black text-white shadow-lg shadow-primary/20 transition active:scale-95 hover:brightness-105 disabled:opacity-50">
+              <Bot size={18} />
+              {visionBusy ? '判讀中' : '轉成機器人任務'}
+            </button>
+          </div>
+        </div>
       </section>
 
       {/* Hardware command queue */}

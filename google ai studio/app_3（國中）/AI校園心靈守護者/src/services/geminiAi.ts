@@ -15,10 +15,26 @@ function getProxyKey(): string {
   return _proxyKey;
 }
 
+function isProxyDisabled(): boolean {
+  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_AI_PROXY_DISABLED === '1') {
+    return true;
+  }
+
+  if (typeof process !== 'undefined') {
+    return process.env.VITE_AI_PROXY_DISABLED === '1';
+  }
+
+  return false;
+}
+
 export async function askGemini(
   route: string,
   body: Record<string, unknown>
 ): Promise<Record<string, string>> {
+  if (isProxyDisabled()) {
+    throw new Error('proxy disabled');
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 6000);
 

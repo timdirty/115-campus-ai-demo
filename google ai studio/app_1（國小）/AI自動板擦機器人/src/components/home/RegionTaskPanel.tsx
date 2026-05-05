@@ -22,6 +22,10 @@ function getRegionStyle(status: BoardRegion['status']) {
 }
 
 export function RegionTaskPanel({analysis, classroom, boardRegions, busy, onSaveAnalysis, onRunRegionTask, onKeepAll}: RegionTaskPanelProps) {
+  const visionEvidence = (analysis?.noteDraft.keywords ?? []).filter((keyword) =>
+    /筆跡密度|邊緣密度|留白比例|對比|像素辨識/.test(keyword),
+  );
+
   return (
     <section className="xl:col-span-5 bg-surface-container-high rounded-lg p-4 sm:p-5 border border-outline-variant/20" data-tour="region-panel">
       <div className="flex items-start justify-between gap-3 mb-4">
@@ -114,6 +118,23 @@ export function RegionTaskPanel({analysis, classroom, boardRegions, busy, onSave
                 </div>
                 <span className="w-8 text-right text-xs font-medium text-on-surface-variant">{value}%</span>
               </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {visionEvidence.length > 0 && (
+        <div className="mt-3 rounded-lg border border-primary/15 bg-primary-container/35 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-black text-primary">本機影像證據</p>
+              <p className="mt-1 text-sm font-bold text-on-surface">離線模式也會依實際白板像素判斷，不只套用範本。</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-primary px-2.5 py-1 text-[10px] font-black text-on-primary">可驗證</span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {visionEvidence.map((item) => (
+              <span key={item} className="rounded-full bg-surface px-3 py-1 text-[10px] font-black text-primary shadow-sm">{item}</span>
             ))}
           </div>
         </div>

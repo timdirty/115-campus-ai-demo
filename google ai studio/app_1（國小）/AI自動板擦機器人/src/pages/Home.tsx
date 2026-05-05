@@ -226,7 +226,7 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
         <motion.section variants={itemVariants} className="mb-6 flex flex-col lg:flex-row lg:items-end justify-between gap-4">
           <div>
             <p className="text-xs font-bold text-primary mb-2">國小課堂中控</p>
-            <h1 className="text-3xl sm:text-5xl font-extrabold">國小 AI 白板助教</h1>
+            <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight">國小 AI 白板助教</h1>
             <p className="text-on-surface-variant mt-3 max-w-2xl leading-relaxed">拍白板、選區塊、派機器人。</p>
           </div>
           <button

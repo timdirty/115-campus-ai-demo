@@ -163,6 +163,7 @@ export const commandCatalog: RobotCommandInfo[] = [
   {command: 'EV3_PEN_UP', label: '筆抬起', group: 'ev3'},
   {command: 'EV3_ARM_EXTEND', label: '筆臂延伸', group: 'ev3'},
   {command: 'EV3_ARM_RETRACT', label: '筆臂收回', group: 'ev3'},
+  {command: 'EV3_STATUS', label: 'EV3 狀態', group: 'ev3'},
   {command: 'EV3_STOP', label: 'EV3 停止', group: 'ev3'},
   {command: 'EV3_HOME', label: 'EV3 歸位', group: 'ev3'},
   {command: 'EV3_CALIBRATE', label: 'EV3 校準', group: 'ev3'},

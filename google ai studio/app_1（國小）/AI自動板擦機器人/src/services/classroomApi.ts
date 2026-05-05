@@ -1,4 +1,5 @@
 import {apiRequest} from './apiClient';
+import {analyzeWhiteboardImage, WhiteboardVisionResult} from './boardVision';
 import {loadNotes, normalizeNotes, saveNotes} from './notesStore';
 
 export type BoardRegionStatus = 'keep' | 'erasable' | 'erased';
@@ -355,7 +356,7 @@ function localReadyStatus(): ReadyStatus {
     ok: true,
     generatedAt: new Date().toISOString(),
     environment: 'local-showcase',
-    bridgePort: 3200,
+    bridgePort: 3201,
     baudRate: 115200,
     dataDir: 'browser localStorage',
     geminiConfigured: false,
@@ -381,15 +382,15 @@ function localExportPayload(): AppDataExport {
   };
 }
 
-function localBoardAnalysis(input: {imageBase64: string; transcript?: string; subjectHint?: string}): BoardAnalysisResponse {
+function localBoardAnalysis(input: {imageBase64: string; transcript?: string; subjectHint?: string}, vision?: WhiteboardVisionResult): BoardAnalysisResponse {
   const subject = input.subjectHint?.trim() || '綜合';
   const status = SUBJECT_LEARNING_STATUS[subject] ?? SUBJECT_LEARNING_STATUS['綜合'];
-  const boardRegions = buildBoardRegions(subject);
+  const boardRegions = vision?.regions ?? buildBoardRegions(subject);
   const fallbackTranscript = SUBJECT_TRANSCRIPTS[subject] ?? SUBJECT_TRANSCRIPTS['default'];
 
   const keepLabels = boardRegions.filter(r => r.status === 'keep').map(r => r.label).join('、');
   const eraseLabels = boardRegions.filter(r => r.status === 'erasable').map(r => r.label).join('、');
-  const recommendation = `靜態展示分析完成：保留「${keepLabels}」，「${eraseLabels}」可清出空間繼續教學。`;
+  const recommendation = vision?.recommendation ?? `靜態展示分析完成：保留「${keepLabels}」，「${eraseLabels}」可清出空間繼續教學。`;
 
   const session = saveLocalSession({
     ...fallbackSession,
@@ -416,14 +417,14 @@ function localBoardAnalysis(input: {imageBase64: string; transcript?: string; su
       title: `${subject} 白板重點`,
       subject,
       period: '本機展示',
-      desc: '由靜態展示模式產生的國小白板紀錄。',
+      desc: vision ? '由本機像素辨識產生的國小白板紀錄。' : '由靜態展示模式產生的國小白板紀錄。',
       content,
       captureSource: 'camera',
       ocrText: content,
       transcript: resolvedTranscript,
       imageUrl: input.imageBase64,
       img: input.imageBase64,
-      keywords: [subject, '白板', '國小', '展示模式'],
+      keywords: vision ? [subject, '白板', '國小', '像素辨識', ...vision.evidence] : [subject, '白板', '國小', '展示模式'],
       boardRegions: session.boardRegions,
       aiRecommendation: session.currentRecommendation,
     },
@@ -584,7 +585,11 @@ export async function analyzeBoardCapture(input: {imageBase64: string; transcrip
       timeoutMs: 30000,
     });
   } catch {
-    return localBoardAnalysis(input);
+    try {
+      return localBoardAnalysis(input, await analyzeWhiteboardImage(input.imageBase64));
+    } catch {
+      return localBoardAnalysis(input);
+    }
   }
 }
 

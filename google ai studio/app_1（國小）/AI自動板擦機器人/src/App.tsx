@@ -270,7 +270,7 @@ function WebNavButton({ icon: Icon, label, isActive, onClick }: { icon: React.Co
     <button
       onClick={onClick}
       aria-label={`切換到${label}`}
-      className={`relative flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 transition-all duration-200 active:scale-95 ${
+      className={`relative flex min-h-11 w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 transition-all duration-200 active:scale-95 ${
         isActive ? 'text-on-primary shadow-md' : 'text-on-surface/60 hover:bg-surface/80 hover:text-primary'
       }`}
     >
