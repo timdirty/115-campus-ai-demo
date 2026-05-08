@@ -51,6 +51,7 @@ import {evaluateProactiveGuardianState, ProactiveInsight} from './services/proac
 import {buildSchoolZoneStatuses, SchoolZoneStatus} from './services/schoolSpaces';
 import {assignSensorPort, fetchBridgeHealth, fetchSensorPorts, fetchZoneSensors, sendGuardianHardwareCommand} from './services/hardwareBridge';
 import {AlertDetail, AlertRow, MetricCard, NodeRow, RiskPill} from './components/guardianUi';
+import {EmotionHeatmap} from './components/EmotionHeatmap';
 import {CampusMapSvg} from './components/CampusMapSvg';
 import {ZoneSensorPanel} from './components/ZoneSensorPanel';
 import {SensorSetupModal} from './components/SensorSetupModal';
@@ -1460,6 +1461,11 @@ function SensingPanel({
         <button onClick={onCreateProactiveAlert} className="mt-4 min-h-11 w-full rounded-xl bg-slate-950 text-sm font-black text-white">
           由多來源訊號建立提醒
         </button>
+      </GlassPanel>
+
+      <GlassPanel>
+        <p className="mb-2 text-xs font-black text-on-surface-variant">情緒熱圖（示範）</p>
+        <EmotionHeatmap />
       </GlassPanel>
     </div>
   );

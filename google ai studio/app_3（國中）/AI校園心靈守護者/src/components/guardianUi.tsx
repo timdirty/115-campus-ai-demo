@@ -107,9 +107,27 @@ function NodeMetric({label, value}: {label: string; value: string}) {
 }
 
 export function RiskPill({level}: {level: GuardianAlert['riskLevel']}) {
-  const label = level === 'high' ? '高優先' : level === 'medium' ? '中優先' : '觀察';
-  const tone = level === 'high' ? 'bg-rose-100 text-rose-700' : level === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700';
+  const config = {
+    high:   {label: '高風險', tone: 'bg-red-100 text-red-700 ring-1 ring-red-200'},
+    medium: {label: '中風險', tone: 'bg-orange-100 text-orange-700 ring-1 ring-orange-200'},
+    low:    {label: '低風險', tone: 'bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200'},
+  } as const;
+  const {label, tone} = config[level] ?? config.low;
   return <span className={`rounded-full px-2 py-1 text-[10px] font-black ${tone}`}>{label}</span>;
+}
+
+export function SeverityBadge({severity}: {severity: 'high' | 'medium' | 'low'}) {
+  const config = {
+    high:   {label: '高', bg: '#fef2f2', color: '#dc2626', border: '#fecaca'},
+    medium: {label: '中', bg: '#fff7ed', color: '#ea580c', border: '#fed7aa'},
+    low:    {label: '低', bg: '#fefce8', color: '#ca8a04', border: '#fde68a'},
+  } as const;
+  const c = config[severity];
+  return (
+    <span style={{backgroundColor: c.bg, color: c.color, border: `1px solid ${c.border}`, borderRadius: 8, padding: '2px 8px', fontSize: 11, fontWeight: 700}}>
+      {c.label}
+    </span>
+  );
 }
 
 export function TabButton({active, icon: Icon, label, onClick, compact}: {key?: unknown; active: boolean; icon: any; label: string; onClick: () => void; compact?: boolean}) {
