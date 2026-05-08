@@ -21,6 +21,29 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
   const visionCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const visionStreamRef = useRef<MediaStream | null>(null);
 
+  const [taskLogs, setTaskLogs] = useState<Array<{id: number; createdAt: string; command?: string; status?: string; destination?: string; taskType?: string; description?: string}>>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchLogs = async () => {
+      try {
+        const res = await fetch('http://localhost:3202/api/logs');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) {
+          const combined = [
+            ...(data.deliveryLogs ?? []),
+            ...(data.taskLogs ?? []),
+          ].sort((a: {id: number}, b: {id: number}) => b.id - a.id).slice(0, 10);
+          setTaskLogs(combined);
+        }
+      } catch { /* bridge offline */ }
+    };
+    fetchLogs();
+    const timer = setInterval(fetchLogs, 10000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, []);
+
   const activeRobot = state.robots.find((robot) => robot.id === activeRobotId) ?? state.robots[0] ?? null;
   const demoSteps = getDemoSteps(state);
   const demoHealth = getDemoHealth(state);
@@ -419,6 +442,20 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
               <span className="shrink-0 rounded-full bg-primary px-3 py-1 text-[10px] font-black text-white">{visionResult.confidence}%</span>
             </div>
             <p className="mt-3 text-sm font-bold leading-6 text-on-surface-variant">{visionResult.summary}</p>
+            {visionResult.quality && (
+              <div className={`mt-4 rounded-2xl border p-4 ${
+                visionResult.quality.level === 'good'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                  : visionResult.quality.level === 'warn'
+                    ? 'border-amber-200 bg-amber-50 text-amber-800'
+                    : 'border-error/30 bg-error/10 text-error'
+              }`}>
+                <p className="text-xs font-black">畫面品質 · {visionResult.quality.label}</p>
+                <p className="mt-1 text-xs font-bold leading-5">
+                  {visionResult.quality.hints[0] ?? '光線、對焦與畫面資訊量足夠，可直接轉成任務。'}
+                </p>
+              </div>
+            )}
             {visionResult.metrics && (
               <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {[
@@ -587,6 +624,32 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
           </motion.button>
         </div>
       </section>
+
+      {/* Task History from bridge */}
+      {taskLogs.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-base font-black text-on-surface">最近任務紀錄</h2>
+          <div className="space-y-2">
+            {taskLogs.map((log) => (
+              <div key={log.id} className="flex items-center justify-between rounded-2xl border border-outline-variant/20 bg-surface-container-low px-4 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-on-surface">{log.command ?? log.taskType ?? '任務'}</p>
+                  {(log.destination ?? log.description) && (
+                    <p className="truncate text-xs text-on-surface-variant">{log.destination ?? log.description}</p>
+                  )}
+                </div>
+                <span className={`ml-3 shrink-0 rounded-full px-2 py-1 text-[10px] font-black ${
+                  log.status === 'sent' || log.status === 'done' ? 'bg-emerald-100 text-emerald-700' :
+                  log.status === 'failed' ? 'bg-rose-100 text-rose-700' :
+                  'bg-amber-100 text-amber-700'
+                }`}>
+                  {log.status === 'sent' ? '已送出' : log.status === 'done' ? '完成' : log.status === 'failed' ? '失敗' : log.status ?? '待送'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Modals */}
       <BottomSheet isOpen={modal === 'speed'} onClose={() => setModal(null)} title="巡航速度校準">

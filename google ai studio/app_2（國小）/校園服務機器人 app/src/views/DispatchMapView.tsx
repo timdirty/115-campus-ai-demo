@@ -133,7 +133,7 @@ export function DispatchMapView({ goBack, showToast }: any) {
              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1 }}
              onClick={() => !dispatchingZone && setSelectedZone('A')}
              className={`absolute top-[15%] left-[12%] w-[140px] h-[120px] rounded-[2rem] flex flex-col items-center justify-center border-2 transition-all z-10 backdrop-blur-md
-              ${dispatchingZone === 'A' ? 'bg-cyan-50 border-primary shadow-xl shadow-primary/20 scale-110' : selectedZone === 'A' ? 'bg-cyan-50 border-primary shadow-lg shadow-primary/10 scale-110 active:scale-100' : 'bg-white border-slate-200 hover:bg-cyan-50 active:scale-95'}`}
+              ${dispatchingZone === 'A' ? 'bg-cyan-50 border-primary shadow-xl shadow-primary/20 scale-110 ring-2 ring-primary ring-offset-2' : selectedZone === 'A' ? 'bg-cyan-50 border-primary shadow-lg shadow-primary/10 scale-110 ring-2 ring-primary ring-offset-2 active:scale-100' : 'bg-white border-slate-200 hover:bg-cyan-50 active:scale-95'}`}
            >
               <span className="text-[10px] font-extrabold text-primary mb-1 opacity-80">一般引導</span>
               <p className="font-bold text-2xl tracking-tight text-slate-950">區域 A</p>
@@ -147,7 +147,7 @@ export function DispatchMapView({ goBack, showToast }: any) {
              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2 }}
              onClick={() => !dispatchingZone && setSelectedZone('B')}
              className={`absolute top-[45%] right-[8%] w-[130px] h-[140px] rounded-[2rem] flex flex-col items-center justify-center border-2 transition-all z-10 backdrop-blur-md
-              ${dispatchingZone === 'B' ? 'bg-amber-50 border-amber-400 shadow-xl shadow-amber-200 scale-110' : selectedZone === 'B' ? 'bg-amber-50 border-amber-400 shadow-lg shadow-amber-100 scale-110 active:scale-100' : 'bg-white border-slate-200 hover:bg-amber-50 active:scale-95'}`}
+              ${dispatchingZone === 'B' ? 'bg-amber-50 border-amber-400 shadow-xl shadow-amber-200 scale-110 ring-2 ring-amber-400 ring-offset-2' : selectedZone === 'B' ? 'bg-amber-50 border-amber-400 shadow-lg shadow-amber-100 scale-110 ring-2 ring-amber-400 ring-offset-2 active:scale-100' : 'bg-white border-slate-200 hover:bg-amber-50 active:scale-95'}`}
            >
               <span className="text-[10px] font-extrabold text-amber-600 mb-1 opacity-80">人流偏高</span>
               <p className="font-bold text-2xl tracking-tight text-slate-950">區域 B</p>
@@ -162,7 +162,7 @@ export function DispatchMapView({ goBack, showToast }: any) {
              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3 }}
              onClick={() => !dispatchingZone && setSelectedZone('C')}
              className={`absolute bottom-[10%] left-[18%] w-[170px] h-[100px] rounded-[2rem] flex flex-col items-center justify-center border-2 transition-all z-10 backdrop-blur-md
-              ${dispatchingZone === 'C' ? 'bg-emerald-50 border-emerald-400 shadow-xl shadow-emerald-100 scale-110' : selectedZone === 'C' ? 'bg-emerald-50 border-emerald-400 shadow-lg shadow-emerald-100 scale-110 active:scale-100' : 'bg-white border-slate-200 hover:bg-emerald-50 active:scale-95'}`}
+              ${dispatchingZone === 'C' ? 'bg-emerald-50 border-emerald-400 shadow-xl shadow-emerald-100 scale-110 ring-2 ring-emerald-400 ring-offset-2' : selectedZone === 'C' ? 'bg-emerald-50 border-emerald-400 shadow-lg shadow-emerald-100 scale-110 ring-2 ring-emerald-400 ring-offset-2 active:scale-100' : 'bg-white border-slate-200 hover:bg-emerald-50 active:scale-95'}`}
            >
               <span className="text-[10px] font-extrabold text-emerald-600 mb-1 opacity-80">安靜巡查</span>
               <p className="font-bold text-2xl tracking-tight text-slate-950">區域 C</p>

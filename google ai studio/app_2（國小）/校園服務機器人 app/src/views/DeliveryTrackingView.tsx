@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Package, MapPin, Truck, Clock, CheckCircle2 } from 'lucide-react';
 import { useAppActions, useAppState } from '../state/AppStateProvider';
+import {sendHardwareCommand} from '../services/hardwareBridge';
 
 export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
   const state = useAppState();
@@ -12,6 +13,17 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
     : orderStatus;
   const [eta, setEta] = useState(3);
   const [phase, setPhase] = useState<'departed' | 'arriving' | 'delivered'>('departed');
+  const [ev3RetractStatus, setEv3RetractStatus] = useState<'idle' | 'retracting' | 'done' | 'failed'>('idle');
+  const [deliveredAt, setDeliveredAt] = useState('');
+  const [queuedItems, setQueuedItems] = useState<string[]>(['保健室藥品', '101教室文具', '圖書館書籍']);
+
+  const moveItem = (index: number, direction: -1 | 1) => {
+    const newItems = [...queuedItems];
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= newItems.length) return;
+    [newItems[index], newItems[targetIndex]] = [newItems[targetIndex], newItems[index]];
+    setQueuedItems(newItems);
+  };
 
   useEffect(() => {
     if (!displayStatus) return;
@@ -28,7 +40,13 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
       if (activeOrder?.status === 'in_transit') {
         actions.completeOrder(activeOrder.id);
       }
+      setDeliveredAt(new Intl.DateTimeFormat('zh-TW', {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false}).format(new Date()));
       showToast('機器人已抵達，請取件！');
+      // Send EV3 arm retract
+      setEv3RetractStatus('retracting');
+      sendHardwareCommand('EV3_ARM_RETRACT', 'app2:delivery-confirm').then((result) => {
+        setEv3RetractStatus(result.ok ? 'done' : 'failed');
+      }).catch(() => setEv3RetractStatus('failed'));
     }
   }, [phase, activeOrder, actions, showToast]);
 
@@ -124,12 +142,53 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
                    <div>
                      <h5 className="font-bold text-xl leading-none text-on-surface group-hover:text-primary transition-colors mb-2">任務配送完成</h5>
                      <p className={`text-xs font-bold ${phase === 'delivered' ? 'text-[#87d46c]' : 'text-on-surface-variant'}`}>
-                       {phase === 'delivered' ? '已完成' : '等待抵達'}
+                       {phase === 'delivered' ? `已完成 · ${deliveredAt}` : '等待抵達'}
                      </p>
                    </div>
                 </div>
+
+                {phase === 'delivered' && (
+                  <div className="relative pl-9 mt-8">
+                    <div className={`absolute -left-[14px] top-1 w-6 h-6 rounded-full flex items-center justify-center shadow-[0_0_0_8px_var(--color-surface-container-lowest)] ${ev3RetractStatus === 'done' ? 'bg-[#87d46c]' : ev3RetractStatus === 'failed' ? 'bg-amber-400' : 'bg-surface-container-highest'}`}>
+                      {ev3RetractStatus === 'done' && <CheckCircle2 size={14} className="text-white" strokeWidth={4} />}
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-xl leading-none text-on-surface mb-2">EV3 手臂收回</h5>
+                      <p className="text-xs font-bold text-on-surface-variant">
+                        {ev3RetractStatus === 'retracting' ? '收回中…' : ev3RetractStatus === 'done' ? '已到位' : ev3RetractStatus === 'failed' ? '備援模式（已記錄）' : ''}
+                      </p>
+                    </div>
+                  </div>
+                )}
              </div>
           </div>
+        )}
+        {queuedItems.length > 0 && (
+          <section>
+            <h2 className="mb-3 text-base font-black text-on-surface">配送隊列</h2>
+            <div className="space-y-2">
+              {queuedItems.map((item, index) => (
+                <div key={item} className="flex items-center gap-3 rounded-2xl border border-outline-variant/20 bg-surface-container-low px-4 py-3">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-black text-primary">{index + 1}</span>
+                  <span className="flex-1 text-sm font-bold text-on-surface">{item}</span>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => moveItem(index, -1)}
+                      disabled={index === 0}
+                      className="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-container text-on-surface-variant transition active:scale-90 disabled:opacity-30"
+                      aria-label="上移"
+                    >▲</button>
+                    <button
+                      onClick={() => moveItem(index, 1)}
+                      disabled={index === queuedItems.length - 1}
+                      className="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-container text-on-surface-variant transition active:scale-90 disabled:opacity-30"
+                      aria-label="下移"
+                    >▼</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
         )}
       </main>
 
