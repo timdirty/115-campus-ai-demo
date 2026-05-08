@@ -4,11 +4,14 @@ import { TourProvider } from './components/tour/TourProvider';
 import { TourOverlay } from './components/tour/TourOverlay';
 import { useTour } from './components/tour/useTour';
 import { IssueReporter } from './components/IssueReporter';
+import {useHardwareSocket} from './hooks/useHardwareSocket';
+import {HardwareStatusBanner} from './components/HardwareStatusBanner';
 
 const AVATAR_SVG = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#1d4ed8"/><circle cx="50" cy="36" r="16" fill="#BFDBFE"/><ellipse cx="50" cy="80" rx="28" ry="22" fill="#BFDBFE"/></svg>')}`;
 import { motion, AnimatePresence } from 'motion/react';
 import { Bot, LayoutDashboard, GraduationCap, Truck, Building2, CheckCircle2, Download, Upload } from 'lucide-react';
 import { BottomSheet } from './components/ui';
+import { RemoteControlLauncher } from './components/RemoteControlPanel';
 import { useAppActions, useAppState } from './state/AppStateProvider';
 
 const DashboardView = React.lazy(() => import('./views/DashboardView').then((module) => ({default: module.DashboardView})));
@@ -61,6 +64,7 @@ export default function App() {
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const proxyOnline = useProxyHealth();
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const hwStatus = useHardwareSocket('http://localhost:3202');
 
   const showToast = (message: string) => {
     setToastMessage({ id: Date.now(), message });
@@ -114,10 +118,11 @@ export default function App() {
   return (
     <TourProvider onTabChange={setActiveTab}>
     <div className="app2-shell min-h-screen overflow-x-hidden text-on-surface md:flex md:bg-surface-container-low">
+      <HardwareStatusBanner status={hwStatus} />
       {/* Proxy Health Banner */}
       {proxyOnline === false && !bannerDismissed && (
         <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800">
-          <span>⚠️ AI 橋接伺服器未連線（localhost:3200），智慧功能將使用本地模式</span>
+          <span>⚠️ AI 橋接伺服器未連線，智慧功能將使用本機模式運作</span>
           <button
             onClick={() => setBannerDismissed(true)}
             className="shrink-0 w-11 h-11 flex items-center justify-center text-amber-600 hover:text-amber-900 font-medium"
@@ -373,6 +378,7 @@ export default function App() {
 
       </div>
     </div>
+    <RemoteControlLauncher />
     <TourOverlay />
     <IssueReporter storageKey="issues-app2:v1" accentColor="#6366f1" />
     </TourProvider>

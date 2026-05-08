@@ -14,6 +14,8 @@ import { TourProvider } from './components/tour/TourProvider';
 import { TourOverlay } from './components/tour/TourOverlay';
 import { useTour } from './components/tour/useTour';
 import { IssueReporter } from './components/IssueReporter';
+import {useHardwareSocket} from './hooks/useHardwareSocket';
+import {HardwareStatusBanner} from './components/HardwareStatusBanner';
 
 type AppTab = 'home' | 'teacher' | 'robot' | 'library' | 'chat' | 'review';
 
@@ -70,6 +72,8 @@ export default function App() {
     ].filter(Boolean).join(' ').toLowerCase().includes(searchQuery.toLowerCase()))
     : searchNotes.slice(0, 5);
 
+  const hwStatus = useHardwareSocket('http://localhost:3201');
+
   const navigateTo = (tab: string) => {
     if (isAppTab(tab)) {
       setCurrentTab(tab);
@@ -96,6 +100,7 @@ export default function App() {
   return (
     <TourProvider onTabChange={navigateTo}>
     <div className="app1-shell flex flex-col min-h-screen relative overflow-x-hidden bg-surface">
+      <HardwareStatusBanner status={hwStatus} />
       <div className="noise-overlay" />
       {/* TopAppBar */}
       <header className="sticky top-0 w-full z-30 flex items-center justify-between px-4 sm:px-6 py-2.5 sm:py-4 bg-surface/90 backdrop-blur-xl transition-all border-b border-outline-variant/10">

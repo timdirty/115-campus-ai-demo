@@ -4,6 +4,8 @@ import {TourOverlay} from './components/tour/TourOverlay';
 import {useTour} from './components/tour/useTour';
 import {IssueReporter} from './components/IssueReporter';
 import {useProxyHealth} from './hooks/useProxyHealth';
+import {useHardwareSocket} from './hooks/useHardwareSocket';
+import {HardwareStatusBanner} from './components/HardwareStatusBanner';
 import type {Dispatch, ReactNode} from 'react';
 import {AnimatePresence, motion} from 'motion/react';
 import {
@@ -46,12 +48,12 @@ import {analyzeEmotionTypography} from './services/emotionTypography';
 import {analyzePrivacyFrame, VisualPrivacyResult} from './services/visualPrivacyGuardian';
 import {evaluateProactiveGuardianState, ProactiveInsight} from './services/proactiveGuardian';
 import {buildSchoolZoneStatuses, SchoolZoneStatus} from './services/schoolSpaces';
-import {assignSensorPort, fetchSensorPorts, fetchZoneSensors, sendGuardianHardwareCommand} from './services/hardwareBridge';
+import {assignSensorPort, fetchBridgeHealth, fetchSensorPorts, fetchZoneSensors, sendGuardianHardwareCommand} from './services/hardwareBridge';
 import {AlertDetail, AlertRow, MetricCard, NodeRow, RiskPill} from './components/guardianUi';
 import {CampusMapSvg} from './components/CampusMapSvg';
 import {ZoneSensorPanel} from './components/ZoneSensorPanel';
 import {SensorSetupModal} from './components/SensorSetupModal';
-import {BridgeStatusPill, GuardianControlPanel, QuickAlertButton} from './components/GuardianControlPanel';
+import {BridgeStatusPill, GuardianControlPanel, GuardianDriveDock, QuickAlertButton} from './components/GuardianControlPanel';
 
 type ActivePanel = 'alerts' | 'sensing' | 'care' | 'nodes' | 'logs' | null;
 type RobotDispatchFeedback = {zoneId: string; zoneName: string; stage: '指令送出' | '前往現場' | '老師確認'; createdAt: number; missionId: string} | null;
@@ -149,6 +151,7 @@ function AppContent() {
   const robotTimersRef = useRef<number[]>([]);
   const proxyOnline = useProxyHealth();
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const hwStatus = useHardwareSocket('http://localhost:3203');
   const volumeHistoryRef = useRef<number[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -166,14 +169,13 @@ function AppContent() {
   useEffect(() => {
     let cancelled = false;
     const poll = async () => {
-      try {
-        const readings = await fetchZoneSensors();
-        if (!cancelled) {
-          setZoneSensors(readings);
-          setBridgeOnline(true);
-        }
-      } catch {
-        if (!cancelled) setBridgeOnline(false);
+      const [online, readings] = await Promise.all([
+        fetchBridgeHealth(),
+        fetchZoneSensors(),
+      ]);
+      if (!cancelled) {
+        setZoneSensors(readings);
+        setBridgeOnline(online);
       }
     };
     poll();
@@ -412,6 +414,7 @@ function AppContent() {
 
   return (
     <div className="guardian-shell min-h-screen overflow-x-hidden bg-[linear-gradient(160deg,#f5f9fc_0%,#eef3f8_60%,#e8f0f7_100%)] text-slate-950">
+      <HardwareStatusBanner status={hwStatus} />
       {/* Proxy Health Banner */}
       {proxyOnline === false && !bannerDismissed && (
         <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800">
@@ -486,7 +489,7 @@ function AppContent() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl gap-4 px-4 py-4 pb-24 sm:px-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:pb-8">
+      <main className="mx-auto grid max-w-7xl gap-4 px-4 py-4 pb-20 sm:px-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <CommandCenterScreen
           viewModel={viewModel}
           selectedZone={selectedZone}
@@ -507,6 +510,8 @@ function AppContent() {
           <div data-tour="panel-dock"><PanelDock activePanel={activePanel} onOpenPanel={setActivePanel} onShowDemo={restartTour} /></div>
         </aside>
       </main>
+
+      <GuardianDriveDock bridgeOnline={bridgeOnline} />
 
       <DetailDrawer
         activePanel={activePanel}
@@ -1208,6 +1213,55 @@ function AlertsPanel({state, selectedAlert, setSelectedAlert, dispatch, onHardwa
   );
 }
 
+const TREND_LS_KEY = 'guardian-sound-trend:v1';
+const MAX_SAMPLES = 180; // 30 min @ 10s interval
+
+function loadTrend(): {t: number; v: number}[] {
+  try {
+    const raw = localStorage.getItem(TREND_LS_KEY);
+    return raw ? (JSON.parse(raw) as {t: number; v: number}[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function SoundSparkline({trend}: {trend: {t: number; v: number}[]}) {
+  if (trend.length < 2) {
+    return <p className="mt-3 text-xs font-bold text-slate-400">趨勢資料收集中，麥克風啟用後每 10 秒記錄一次…</p>;
+  }
+  const W = 280;
+  const H = 48;
+  const vals = trend.map((p) => p.v);
+  const min = Math.min(...vals);
+  const max = Math.max(...vals) || 1;
+  const toX = (i: number) => (i / (trend.length - 1)) * W;
+  const toY = (v: number) => H - ((v - min) / (max - min)) * (H - 4) - 2;
+  const points = trend.map((p, i) => `${toX(i).toFixed(1)},${toY(p.v).toFixed(1)}`).join(' ');
+  const last3 = vals.slice(-3);
+  const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
+  const first3 = vals.slice(0, 3);
+  const trend3 = last3.length >= 2 ? avg(last3) - avg(first3) : 0;
+  const trendArrow = trend3 > 5 ? '↑ 上升' : trend3 < -5 ? '↓ 下降' : '→ 穩定';
+  const trendColor = trend3 > 5 ? 'text-rose-500' : trend3 < -5 ? 'text-emerald-600' : 'text-slate-500';
+  const latest = vals[vals.length - 1];
+  return (
+    <div className="mt-3">
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-xs font-black text-slate-500">過去 {Math.round(trend.length * 10 / 60)} 分鐘聲量趨勢</p>
+        <span className={`text-xs font-black ${trendColor}`}>{trendArrow}</span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{height: 48}}>
+        <polyline fill="none" stroke="#0d9488" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" points={points} />
+        <circle cx={toX(trend.length - 1)} cy={toY(latest)} r="3" fill="#0d9488" />
+      </svg>
+      <div className="flex justify-between text-[10px] font-bold text-slate-400 mt-1">
+        <span>{trend.length * 10 >= 60 ? `${Math.round(trend.length * 10 / 60)} 分前` : `${trend.length * 10} 秒前`}</span>
+        <span>現在 {latest}</span>
+      </div>
+    </div>
+  );
+}
+
 function SensingPanel({
   micActive,
   micError,
@@ -1229,10 +1283,23 @@ function SensingPanel({
   const visualVideoRef = useRef<HTMLVideoElement | null>(null);
   const visualCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const visualStreamRef = useRef<MediaStream | null>(null);
+  const [soundTrend, setSoundTrend] = useState<{t: number; v: number}[]>(loadTrend);
 
   useEffect(() => () => {
     visualStreamRef.current?.getTracks().forEach((track) => track.stop());
   }, []);
+
+  useEffect(() => {
+    if (!micActive) return;
+    const id = setInterval(() => {
+      setSoundTrend((prev) => {
+        const next = [...prev, {t: Date.now(), v: currentAcoustic.volumeIndex}].slice(-MAX_SAMPLES);
+        try { localStorage.setItem(TREND_LS_KEY, JSON.stringify(next)); } catch {}
+        return next;
+      });
+    }, 10_000);
+    return () => clearInterval(id);
+  }, [micActive, currentAcoustic.volumeIndex]);
 
   const toggleVisualCamera = async () => {
     if (visualCameraReady) {
@@ -1301,6 +1368,7 @@ function SensingPanel({
           <MiniMetric label="狀態" value={currentAcoustic.level === 'elevated' ? '偏高' : currentAcoustic.level === 'active' ? '活動' : '平穩'} />
         </div>
         <p className="mt-4 text-sm font-semibold leading-6 text-slate-600">{currentAcoustic.summary}</p>
+        <SoundSparkline trend={soundTrend} />
         <input value={acousticLocation} onChange={(event) => setAcousticLocation(event.target.value)} aria-label="感測位置" placeholder="例：穿堂、教室等位置" className="mt-4 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />
         <div className="mt-3 grid grid-cols-3 gap-2">
           <button onClick={() => onRecordAcoustic({source: micActive ? 'microphone' : 'demo', location: acousticLocation, ...currentAcoustic})} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-700">
@@ -1309,7 +1377,19 @@ function SensingPanel({
           <button onClick={onCreateAcousticAlert} className="rounded-xl bg-teal-600 px-3 py-3 text-xs font-black text-white">
             建立提醒
           </button>
-          <button onClick={onDemoSound} className="rounded-xl bg-slate-100 px-3 py-3 text-xs font-black text-slate-700">
+          <button
+            onClick={() => {
+              onDemoSound();
+              const now = Date.now();
+              const demo = Array.from({length: 25}, (_, i) => ({
+                t: now - (24 - i) * 10_000,
+                v: Math.round(18 + Math.sin(i * 0.55) * 20 + Math.max(0, i - 12) * 2.5),
+              }));
+              setSoundTrend(demo);
+              try { localStorage.setItem(TREND_LS_KEY, JSON.stringify(demo)); } catch {}
+            }}
+            className="rounded-xl bg-slate-100 px-3 py-3 text-xs font-black text-slate-700"
+          >
             示範
           </button>
         </div>
@@ -1347,6 +1427,16 @@ function SensingPanel({
           <MiniMetric label="狀態" value={visualResult.level === 'support' ? '關注' : visualResult.level === 'watch' ? '觀察' : '穩定'} />
         </div>
         <p className="mt-4 text-sm font-semibold leading-6 text-slate-600">{visualResult.summary}</p>
+        <div className={`mt-3 rounded-xl border px-4 py-3 text-xs font-bold leading-5 ${
+          visualResult.quality.level === 'good'
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+            : visualResult.quality.level === 'warn'
+              ? 'border-amber-200 bg-amber-50 text-amber-800'
+              : 'border-rose-200 bg-rose-50 text-rose-800'
+        }`}>
+          <span className="font-black">畫面品質 · {visualResult.quality.label}</span>
+          <span className="ml-2">{visualResult.quality.hints[0] ?? '環境畫面可用，系統只做低解析場域分析。'}</span>
+        </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {visualResult.evidence.map((item) => (
             <span key={item} className="rounded-full bg-teal-50 px-3 py-1 text-[10px] font-black text-teal-700">{item}</span>
