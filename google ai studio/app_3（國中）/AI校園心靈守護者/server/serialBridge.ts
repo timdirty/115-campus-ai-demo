@@ -18,6 +18,8 @@ import {
   sendCommand,
   tryAutoOpen,
 } from './serialPort';
+import {appendAlertLog, getAlertLogs, loadPortZoneAssignments, resetDemoData, savePortZoneAssignments} from './storage';
+import {analyzeGuardianAlert, isGeminiConfigured} from './aiService';
 
 function freeBridgePort(port: number) {
   try {
@@ -119,6 +121,7 @@ app.post('/api/sensors/assign', (req, res) => {
   }
   if (unassign === true) {
     portZoneMap.delete(portPath);
+    void savePortZoneAssignments(Object.fromEntries(portZoneMap)).catch(() => {});
     return res.json({ok: true, ports: serializeAssignments()});
   }
   if (typeof zoneId !== 'string' || !zoneId) {
@@ -129,6 +132,7 @@ app.post('/api/sensors/assign', (req, res) => {
     if (existingZone === zoneId) portZoneMap.delete(existingPath);
   }
   portZoneMap.set(portPath, zoneId);
+  void savePortZoneAssignments(Object.fromEntries(portZoneMap)).catch(() => {});
   res.json({ok: true, ports: serializeAssignments()});
 });
 
@@ -185,6 +189,69 @@ app.post('/api/robot/drive', async (req, res) => {
   broadcast({type: 'command_ack', command: normalized, ok: result.ok, response: result.ok ? `Drive ${normalized}` : result.message});
 });
 
+app.get('/api/ready', (_req, res) => {
+  res.json({
+    ok: true,
+    arduino: isConnected(),
+    ai: isGeminiConfigured(),
+    bridge_port: bridgePort,
+  });
+});
+
+app.post('/api/ai/guardian', async (req, res) => {
+  const {alertType, severity, zoneId, zoneName, message} = req.body ?? {};
+  try {
+    const result = await analyzeGuardianAlert({
+      alertType: typeof alertType === 'string' ? alertType : undefined,
+      severity: severity === 'high' || severity === 'medium' || severity === 'low' ? severity : undefined,
+      zoneId: typeof zoneId === 'string' ? zoneId : undefined,
+      zoneName: typeof zoneName === 'string' ? zoneName : undefined,
+      message: typeof message === 'string' ? message : undefined,
+    });
+    res.json({ok: true, reply: result.reply, source: result.source});
+  } catch (error) {
+    res.status(500).json({ok: false, error: error instanceof Error ? error.message : String(error)});
+  }
+});
+
+app.get('/api/logs/alerts', async (_req, res) => {
+  try {
+    const logs = await getAlertLogs();
+    res.json({ok: true, logs});
+  } catch (error) {
+    res.status(500).json({ok: false, error: error instanceof Error ? error.message : String(error)});
+  }
+});
+
+app.post('/api/logs/alerts', async (req, res) => {
+  const {zoneId, alertType, severity, message} = req.body ?? {};
+  if (typeof zoneId !== 'string' || !zoneId) {
+    return res.status(400).json({error: 'zoneId required'});
+  }
+  try {
+    const logs = await appendAlertLog({
+      zoneId,
+      alertType: typeof alertType === 'string' ? alertType : 'unknown',
+      severity: severity === 'high' || severity === 'medium' ? severity : 'low',
+      message: typeof message === 'string' ? message : undefined,
+      resolved: false,
+    });
+    res.json({ok: true, logs});
+  } catch (error) {
+    res.status(500).json({ok: false, error: error instanceof Error ? error.message : String(error)});
+  }
+});
+
+app.post('/api/ops/reset', async (_req, res) => {
+  try {
+    await resetDemoData();
+    portZoneMap.clear();
+    res.json({ok: true, message: 'Demo data reset'});
+  } catch (error) {
+    res.status(500).json({ok: false, error: error instanceof Error ? error.message : String(error)});
+  }
+});
+
 app.use('/api', (_req, res) => {
   res.status(404).json({error: 'API route not found'});
 });
@@ -206,6 +273,13 @@ async function startSensorPolling() {
 }
 
 freeBridgePort(bridgePort);
+
+// Load persisted zone assignments into portZoneMap
+loadPortZoneAssignments().then((saved) => {
+  for (const [port, zone] of Object.entries(saved)) {
+    portZoneMap.set(port, zone);
+  }
+}).catch(() => {});
 
 httpServer.listen(bridgePort, () => {
   console.log(`[bridge] App 3 guardian serial bridge listening on http://localhost:${bridgePort}`);
