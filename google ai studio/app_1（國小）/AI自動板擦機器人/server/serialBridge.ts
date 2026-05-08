@@ -1,13 +1,27 @@
 import express from 'express';
 import path from 'node:path';
 import {access} from 'node:fs/promises';
+import {createServer} from 'node:http';
+import {WebSocketServer, WebSocket} from 'ws';
 import {baudRate, bridgePort, distDir, nodeEnv} from './config';
 import {registerRoutes} from './routes';
 import {registerProxyRoutes} from './proxyRoutes';
 import {startSensorPolling} from './sensorManager';
 import {startEV3Manager} from './ev3Manager';
+import {setBroadcast} from './wsBroadcast';
 
 const app = express();
+const httpServer = createServer(app);
+const wss = new WebSocketServer({server: httpServer});
+
+setBroadcast((event) => {
+  const data = JSON.stringify(event);
+  for (const client of wss.clients) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(data, (err) => { if (err) { /* ignore */ } });
+    }
+  }
+});
 const distIndex = path.join(distDir, 'index.html');
 
 app.disable('x-powered-by');
@@ -78,7 +92,7 @@ async function registerStaticFrontend() {
 
 await registerStaticFrontend();
 
-app.listen(bridgePort, () => {
+httpServer.listen(bridgePort, () => {
   console.log(`Arduino serial bridge listening on http://localhost:${bridgePort}`);
   console.log(`Baud rate: ${baudRate}`);
   console.log(`Mode: ${nodeEnv}`);

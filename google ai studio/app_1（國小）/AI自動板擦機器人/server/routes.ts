@@ -1,6 +1,8 @@
 import type {Express, Request} from 'express';
-import {baudRate, bridgePort, chatFile, classroomFile, dataDir, notesFile, robotFile, taskLogFile} from './config';
+import {broadcast} from './wsBroadcast';
+import {baudRate, bridgePort, chatFile, classroomFile, dataDir, isHardwareSimulationEnabled, notesFile, robotFile, taskLogFile} from './config';
 import {analyzeBoardWithAI, chatWithAI, isGeminiConfigured, normalizeBoardRegions, reviewWithAI, transcribeWithAI} from './aiService';
+import {isOcrServiceReady, ocrImage} from './ocrBridge';
 import {commandCatalog, createNote, defaultClassroomSession, defaultNotes, defaultRobotStatus, supportedCommands, taskActions} from './defaults';
 import {ApiError, getErrorMessage, sendError} from './http';
 import {buildAppExport, getReadyStatus, importAppData, writeBackupFile} from './opsService';
@@ -13,6 +15,116 @@ import {assertMediaPayload, audioPayloadOptions, imagePayloadOptions} from './va
 
 function forceLocalAi(req: Request) {
   return req.get('x-ai-mode') === 'local-fallback' || req.get('x-ai-fallback') === '1' || req.body?.forceLocal === true;
+}
+
+function normalizeServoAngle(value: unknown, fallback: number) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+  return Math.max(0, Math.min(180, Math.round(numeric)));
+}
+
+function normalizeBoardPercent(value: unknown, fallback: number) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+  return Math.max(0, Math.min(100, Math.round(numeric * 10) / 10));
+}
+
+function normalizeConfidence(value: unknown, fallback: number) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+  return Math.max(0, Math.min(100, Math.round(numeric)));
+}
+
+function normalizeHardwareProfile(input: unknown, fallback = defaultClassroomSession.hardwareProfile) {
+  const source = input && typeof input === 'object' && !Array.isArray(input) ? input as Record<string, unknown> : {};
+  const servoAngles = source.servoAngles && typeof source.servoAngles === 'object' && !Array.isArray(source.servoAngles)
+    ? source.servoAngles as Record<string, unknown>
+    : {};
+  const boardCalibration = source.boardCalibration && typeof source.boardCalibration === 'object' && !Array.isArray(source.boardCalibration)
+    ? source.boardCalibration as Record<string, unknown>
+    : {};
+  const topLeft = boardCalibration.topLeft && typeof boardCalibration.topLeft === 'object' && !Array.isArray(boardCalibration.topLeft)
+    ? boardCalibration.topLeft as Record<string, unknown>
+    : {};
+  const topRight = boardCalibration.topRight && typeof boardCalibration.topRight === 'object' && !Array.isArray(boardCalibration.topRight)
+    ? boardCalibration.topRight as Record<string, unknown>
+    : {};
+  const bottomRight = boardCalibration.bottomRight && typeof boardCalibration.bottomRight === 'object' && !Array.isArray(boardCalibration.bottomRight)
+    ? boardCalibration.bottomRight as Record<string, unknown>
+    : {};
+  const bottomLeft = boardCalibration.bottomLeft && typeof boardCalibration.bottomLeft === 'object' && !Array.isArray(boardCalibration.bottomLeft)
+    ? boardCalibration.bottomLeft as Record<string, unknown>
+    : {};
+  const robotPose = source.robotPose && typeof source.robotPose === 'object' && !Array.isArray(source.robotPose)
+    ? source.robotPose as Record<string, unknown>
+    : {};
+  return {
+    ...fallback,
+    servoAngles: {
+      regionA: normalizeServoAngle(servoAngles.regionA, fallback.servoAngles.regionA),
+      regionB: normalizeServoAngle(servoAngles.regionB, fallback.servoAngles.regionB),
+      regionC: normalizeServoAngle(servoAngles.regionC, fallback.servoAngles.regionC),
+      eraseAll: normalizeServoAngle(servoAngles.eraseAll, fallback.servoAngles.eraseAll),
+      standby: normalizeServoAngle(servoAngles.standby, fallback.servoAngles.standby),
+    },
+    cameraMounted: Boolean(source.cameraMounted),
+    boardAnchored: Boolean(source.boardAnchored),
+    visionReady: Boolean(source.visionReady),
+    boardCalibrationMode: source.boardCalibrationMode === 'manual' || source.boardCalibrationMode === 'auto' ? source.boardCalibrationMode : fallback.boardCalibrationMode,
+    boardDetectionConfidence: normalizeConfidence(source.boardDetectionConfidence, fallback.boardDetectionConfidence),
+    boardCalibration: {
+      topLeft: {
+        x: normalizeBoardPercent(topLeft.x, fallback.boardCalibration.topLeft.x),
+        y: normalizeBoardPercent(topLeft.y, fallback.boardCalibration.topLeft.y),
+      },
+      topRight: {
+        x: normalizeBoardPercent(topRight.x, fallback.boardCalibration.topRight.x),
+        y: normalizeBoardPercent(topRight.y, fallback.boardCalibration.topRight.y),
+      },
+      bottomRight: {
+        x: normalizeBoardPercent(bottomRight.x, fallback.boardCalibration.bottomRight.x),
+        y: normalizeBoardPercent(bottomRight.y, fallback.boardCalibration.bottomRight.y),
+      },
+      bottomLeft: {
+        x: normalizeBoardPercent(bottomLeft.x, fallback.boardCalibration.bottomLeft.x),
+        y: normalizeBoardPercent(bottomLeft.y, fallback.boardCalibration.bottomLeft.y),
+      },
+    },
+    robotPose: {
+      x: normalizeBoardPercent(robotPose.x, fallback.robotPose.x),
+      y: normalizeBoardPercent(robotPose.y, fallback.robotPose.y),
+      heading: normalizeServoAngle(robotPose.heading, fallback.robotPose.heading),
+      stage: ['standby', 'preview', 'moving', 'erasing', 'paused', 'done'].includes(String(robotPose.stage))
+        ? String(robotPose.stage) as typeof fallback.robotPose.stage
+        : fallback.robotPose.stage,
+      label: typeof robotPose.label === 'string' && robotPose.label ? robotPose.label : fallback.robotPose.label,
+      targetRegion: typeof robotPose.targetRegion === 'string' && robotPose.targetRegion ? robotPose.targetRegion : undefined,
+      command: typeof robotPose.command === 'string' && robotPose.command ? robotPose.command : fallback.robotPose.command,
+      updatedAt: typeof robotPose.updatedAt === 'string' ? robotPose.updatedAt : fallback.robotPose.updatedAt,
+    },
+    notes: typeof source.notes === 'string' ? source.notes : fallback.notes,
+    lastCalibratedAt: typeof source.lastCalibratedAt === 'string' && source.lastCalibratedAt ? source.lastCalibratedAt : fallback.lastCalibratedAt,
+  };
+}
+
+function isExtendedCalibrationCommand(command: string) {
+  return /^(SERVO_SET|SET_REGION_A|SET_REGION_B|SET_REGION_C|SET_ERASE_ALL|SET_STANDBY):\d{1,3}$/.test(command)
+    || command === 'CALIBRATION_STATUS';
+}
+
+function normalizeSessionShape(session: ClassroomSession): ClassroomSession {
+  return {
+    ...defaultClassroomSession,
+    ...session,
+    boardRegions: normalizeBoardRegions(session.boardRegions),
+    hardwareProfile: normalizeHardwareProfile(session.hardwareProfile, defaultClassroomSession.hardwareProfile),
+  };
 }
 
 export function registerRoutes(app: Express) {
@@ -29,7 +141,15 @@ export function registerRoutes(app: Express) {
   });
 
   app.get('/api/health', (_req, res) => {
-    res.json({ok: true, bridgePort, baudRate, dataDir, geminiConfigured: isGeminiConfigured(), uptimeSeconds: Math.round(process.uptime())});
+    res.json({
+      ok: true,
+      bridgePort,
+      baudRate,
+      dataDir,
+      geminiConfigured: isGeminiConfigured(),
+      hardwareSimulation: isHardwareSimulationEnabled(),
+      uptimeSeconds: Math.round(process.uptime()),
+    });
   });
 
   app.get('/api/ready', async (_req, res) => {
@@ -68,7 +188,7 @@ export function registerRoutes(app: Express) {
   app.get('/api/classroom/session', async (_req, res) => {
     try {
       const session = await readJsonFile<ClassroomSession>(classroomFile, defaultClassroomSession);
-      const normalized = {...session, boardRegions: normalizeBoardRegions(session.boardRegions)};
+      const normalized = normalizeSessionShape(session);
       res.json({session: normalized});
     } catch (error) {
       sendError(res, error);
@@ -77,11 +197,12 @@ export function registerRoutes(app: Express) {
 
   app.post('/api/classroom/session', async (req, res) => {
     try {
-      const current = await readJsonFile<ClassroomSession>(classroomFile, defaultClassroomSession);
+      const current = normalizeSessionShape(await readJsonFile<ClassroomSession>(classroomFile, defaultClassroomSession));
       const next = {
         ...current,
         ...req.body,
         boardRegions: Array.isArray(req.body?.boardRegions) ? normalizeBoardRegions(req.body.boardRegions) : normalizeBoardRegions(current.boardRegions),
+        hardwareProfile: normalizeHardwareProfile(req.body?.hardwareProfile, current.hardwareProfile ?? defaultClassroomSession.hardwareProfile),
         updatedAt: new Date().toISOString(),
       };
       await writeJsonFile(classroomFile, next);
@@ -188,6 +309,22 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // ── Local OCR endpoint (Python EasyOCR service) ───────────────────────────
+  app.post('/api/ai/ocr-local', async (req, res) => {
+    try {
+      const imageBase64 = String(req.body?.imageBase64 ?? '').trim();
+      assertMediaPayload(imageBase64, imagePayloadOptions);
+      const result = await ocrImage(imageBase64);
+      res.json(result);
+    } catch (error) {
+      sendError(res, error);
+    }
+  });
+
+  app.get('/api/ai/ocr-status', async (_req, res) => {
+    res.json({ready: await isOcrServiceReady()});
+  });
+
   app.post('/api/ai/analyze-board', async (req, res) => {
     try {
       const imageBase64 = String(req.body?.imageBase64 ?? '').trim();
@@ -196,8 +333,25 @@ export function registerRoutes(app: Express) {
 
       assertMediaPayload(imageBase64, imagePayloadOptions);
 
-      const result = await analyzeBoardWithAI(imageBase64, transcript, subjectHint, {forceLocal: forceLocalAi(req)});
-      const current = await readJsonFile<ClassroomSession>(classroomFile, defaultClassroomSession);
+      // OCR quick-race: give OCR 2.5 s to respond; if pre-warmed it wins easily.
+      // Gemini starts immediately after the quick window regardless, so total
+      // latency = max(Gemini, OCR) instead of OCR + Gemini (was up to 17 s).
+      const OCR_QUICK_MS = 2_500;
+      const ocrPromise = ocrImage(imageBase64);
+      const quickOcr = await Promise.race([
+        ocrPromise,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), OCR_QUICK_MS)),
+      ]);
+      const realOcrText = quickOcr?.ok ? quickOcr.text : undefined;
+
+      // Start Gemini now; let OCR keep running concurrently so we get full text
+      const [result, finalOcr] = await Promise.all([
+        analyzeBoardWithAI(imageBase64, transcript, subjectHint, {forceLocal: forceLocalAi(req), realOcrText}),
+        ocrPromise.catch(() => null),
+      ]);
+
+      const boardOcrText = (finalOcr?.ok ? finalOcr.text : undefined) ?? realOcrText;
+      const current = normalizeSessionShape(await readJsonFile<ClassroomSession>(classroomFile, defaultClassroomSession));
       const nextSession: ClassroomSession = {
         ...current,
         focusPercent: result.focusPercent,
@@ -208,6 +362,7 @@ export function registerRoutes(app: Express) {
         boardRegions: result.boardRegions,
         lastCaptureAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        boardOcrText: boardOcrText ?? current.boardOcrText,
       };
       await writeJsonFile(classroomFile, nextSession);
       res.json({...result, session: nextSession});
@@ -267,7 +422,7 @@ export function registerRoutes(app: Express) {
   app.post('/api/robot/drive', async (req, res) => {
     const command = String(req.body?.command ?? '').trim().toUpperCase();
     const requestedPath = req.body?.port ? String(req.body.port) : undefined;
-    if (!/^(FORWARD|BACKWARD|LEFT|RIGHT|STOP|SPEED:\d+)$/.test(command)) {
+    if (!/^(FORWARD|BACKWARD|LEFT|RIGHT|STOP|SPEED:\d+|HEARTBEAT)$/.test(command)) {
       res.status(400).json({error: 'Invalid drive command'});
       return;
     }
@@ -336,6 +491,7 @@ export function registerRoutes(app: Express) {
       });
       const taskLog = await appendTaskLog({command, source, ok: true, message});
       res.json({ok: true, action, regionId, command, port: result.port, response: result.response, status, taskLog});
+      broadcast({type: 'command_ack', command, ok: true});
     } catch (error) {
       const message = getErrorMessage(error);
       const status = await updateRobotStatus({
@@ -346,6 +502,7 @@ export function registerRoutes(app: Express) {
       });
       const taskLog = await appendTaskLog({command, source, ok: false, message});
       res.status(503).json({error: message, action, regionId, command, status, taskLog});
+      broadcast({type: 'command_ack', command, ok: false});
     }
   });
 
@@ -359,7 +516,7 @@ export function registerRoutes(app: Express) {
       return;
     }
 
-    if (!supportedCommands.has(command) && !/^SPEED:\d+$/.test(command)) {
+    if (!supportedCommands.has(command) && !/^SPEED:\d+$/.test(command) && !isExtendedCalibrationCommand(command)) {
       const result = await recordUnsupportedTask(command, source, 'Unsupported command');
       res.status(400).json({error: 'Unsupported command', ...result});
       return;
@@ -384,6 +541,7 @@ export function registerRoutes(app: Express) {
           return;
         }
         res.json({ok: true, command, response: result.response, status, taskLog});
+        broadcast({type: 'command_ack', command, ok: true});
         return;
       }
 
@@ -410,6 +568,7 @@ export function registerRoutes(app: Express) {
         const status = await updateRobotStatus({connected: arduinoOk, activePort: port, lastCommand: command, lastResponse: message});
         const taskLog = await appendTaskLog({command, source, ok, message});
         res.json({ok, command, port, response: message, status, taskLog, arduinoOk, ev3Ok});
+        broadcast({type: 'command_ack', command, ok});
         return;
       }
 
@@ -424,6 +583,7 @@ export function registerRoutes(app: Express) {
       });
       const taskLog = await appendTaskLog({command, source, ok: true, message});
       res.json({ok: true, command, port: result.port, response: result.response, status, taskLog});
+      broadcast({type: 'command_ack', command, ok: true});
     } catch (error) {
       const message = getErrorMessage(error);
       const status = await updateRobotStatus({
@@ -434,7 +594,75 @@ export function registerRoutes(app: Express) {
       });
       const taskLog = await appendTaskLog({command, source, ok: false, message});
       res.status(503).json({error: message, status, taskLog});
+      broadcast({type: 'command_ack', command, ok: false});
     }
+  });
+
+  // ── SSE: erase region sequence ────────────────────────────────────────────
+  // GET /api/robot/erase-sequence?regions=A,B&gap=2000
+  // Streams per-region progress as the robot erases each one in order.
+  app.get('/api/robot/erase-sequence', async (req, res) => {
+    const regionParam = String(req.query.regions ?? '');
+    const gapMs = Math.max(500, Math.min(5000, Number(req.query.gap ?? 2000)));
+    const regionIds = regionParam
+      .split(',')
+      .map((s) => s.trim().toUpperCase())
+      .filter((s) => /^[A-D]$/.test(s));
+
+    if (regionIds.length === 0) {
+      res.status(400).json({error: 'No valid region IDs (A–D) provided'});
+      return;
+    }
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    });
+    res.write('retry: 3000\n\n');
+
+    const sse = (data: object) => {
+      try {res.write(`data: ${JSON.stringify(data)}\n\n`);}
+      catch {}
+    };
+
+    let okCount = 0;
+    let failCount = 0;
+
+    sse({type: 'start', regions: regionIds, gapMs});
+
+    for (const regionId of regionIds) {
+      const command = `ERASE_REGION_${regionId}`;
+      sse({type: 'sending', region: regionId, command});
+
+      try {
+        const result = await sendSerialCommand(command, undefined);
+        const timedOut = (result as any).timedOut ?? false;
+        const ok = !timedOut;
+        const message = ok ? result.response || `${command} sent` : `ACK timeout for ${command}`;
+        await appendTaskLog({command, source: 'erase-sequence', ok, message});
+        if (ok) {
+          okCount++;
+          sse({type: 'ok', region: regionId, command, response: message});
+        } else {
+          failCount++;
+          sse({type: 'timeout', region: regionId, command, message});
+        }
+      } catch (err) {
+        failCount++;
+        const message = err instanceof Error ? err.message : String(err);
+        await appendTaskLog({command, source: 'erase-sequence', ok: false, message});
+        sse({type: 'error', region: regionId, command, message});
+      }
+
+      // Inter-region gap: gives robot time to move and erase
+      if (regionId !== regionIds[regionIds.length - 1]) {
+        await new Promise((r) => setTimeout(r, gapMs));
+      }
+    }
+
+    sse({type: 'done', total: regionIds.length, ok: okCount, failed: failCount});
+    res.end();
   });
 
   app.get('/api/sensors/ports', (_req, res) => {
@@ -487,7 +715,7 @@ export function registerRoutes(app: Express) {
         throw new ApiError(400, 'Missing command');
       }
 
-      if (!supportedCommands.has(command)) {
+      if (!supportedCommands.has(command) && !isExtendedCalibrationCommand(command)) {
         const result = await recordUnsupportedTask(command, 'legacy-arduino-api', 'Unsupported command');
         res.status(400).json({ok: false, error: 'Unsupported command', ...result});
         return;
@@ -504,6 +732,7 @@ export function registerRoutes(app: Express) {
       await appendTaskLog({command, source: 'legacy-arduino-api', ok: true, message});
 
       res.json({ok: true, command, port: result.port, response: result.response});
+      broadcast({type: 'command_ack', command, ok: true});
     } catch (error) {
       sendError(res, error);
     }

@@ -3,6 +3,7 @@ import {SerialPort} from 'serialport';
 import {baudRate, dataDir} from './config';
 import {getActivePath, isArduinoLikePort, listPorts, readRobotSensors} from './robotService';
 import {readJsonFile, writeJsonFile} from './storage';
+import {broadcast} from './wsBroadcast';
 import type {PortInfo} from './types';
 
 const POLL_INTERVAL_MS = 5_000;
@@ -185,6 +186,11 @@ export async function startSensorPolling(): Promise<void> {
   const runPoll = async () => {
     try {
       await pollSensors();
+      const readings = getLiveZoneReadings();
+      if (readings.length > 0) {
+        const r = readings[0];
+        broadcast({type: 'sensor_snapshot', temp: r.temp, hum: r.hum, light: r.light});
+      }
     } catch (err) {
       console.error('[sensorManager] poll error:', err);
     }
@@ -209,7 +215,7 @@ export function getAllDetectedPorts(): DetectedPort[] {
   if (robotPath && !lastDetectedPorts.some((p) => p.path === robotPath)) {
     ports.unshift({
       path: robotPath,
-      manufacturer: '主要 Arduino 板 (R4 WiFi)',
+      manufacturer: '主要 Arduino 板 (R4 WiFi / Minima)',
       assignedZone: reverseMap.get(robotPath) ?? null,
     });
   }
