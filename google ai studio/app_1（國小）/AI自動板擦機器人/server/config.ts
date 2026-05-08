@@ -21,3 +21,8 @@ export const chatFile = path.join(dataDir, 'chat.json');
 export const classroomFile = path.join(dataDir, 'classroom-session.json');
 export const robotFile = path.join(dataDir, 'robot-status.json');
 export const taskLogFile = path.join(dataDir, 'task-log.json');
+export const calibrationFile = path.join(dataDir, 'calibration.json');
+
+export function isHardwareSimulationEnabled() {
+  return process.env.DEMO_SIMULATE_HARDWARE === '1' || process.env.ARDUINO_SIMULATE === '1' || process.env.EV3_SIMULATE === '1';
+}

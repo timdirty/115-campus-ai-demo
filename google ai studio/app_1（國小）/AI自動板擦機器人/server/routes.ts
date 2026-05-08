@@ -9,7 +9,8 @@ import {buildAppExport, getReadyStatus, importAppData, writeBackupFile} from './
 import {getEV3Status, sendEV3Command} from './ev3Manager';
 import {getActivePath, isArduinoLikePort, listPorts, recordUnsupportedTask, resolveTaskCommand, sendSerialCommand, sendSerialCommandDrive} from './robotService';
 import {assignPortToZone, getAllDetectedPorts, getLiveZoneReadings, unassignPort} from './sensorManager';
-import {appendTaskLog, readJsonFile, updateRobotStatus, writeJsonFile} from './storage';
+import {appendTaskLog, readCalibration, readJsonFile, saveCalibration, updateRobotStatus, writeJsonFile} from './storage';
+import type {CalibrationData} from './storage';
 import type {ChatMessage, ClassroomSession, RobotStatus, TaskLogItem, WhiteboardNote} from './types';
 import {assertMediaPayload, audioPayloadOptions, imagePayloadOptions} from './validation';
 
@@ -159,6 +160,36 @@ export function registerRoutes(app: Express) {
     } catch (error) {
       sendError(res, error);
     }
+  });
+
+  app.get('/api/calibration', async (_req, res) => {
+    try {
+      const calibration = await readCalibration();
+      res.json({ok: true, calibration});
+    } catch (error) {
+      res.status(500).json({error: getErrorMessage(error)});
+    }
+  });
+
+  app.put('/api/calibration', async (req, res) => {
+    const {topLeft, topRight, bottomRight, bottomLeft} = req.body ?? {};
+    const isCorner = (v: unknown): v is {x: number; y: number} =>
+      typeof v === 'object' && v !== null &&
+      typeof (v as {x?: unknown}).x === 'number' &&
+      typeof (v as {y?: unknown}).y === 'number';
+    if (!isCorner(topLeft) || !isCorner(topRight) || !isCorner(bottomRight) || !isCorner(bottomLeft)) {
+      return res.status(400).json({error: 'topLeft, topRight, bottomRight, bottomLeft with x/y required'});
+    }
+    const data: CalibrationData = {
+      version: 1,
+      topLeft: {x: topLeft.x, y: topLeft.y},
+      topRight: {x: topRight.x, y: topRight.y},
+      bottomRight: {x: bottomRight.x, y: bottomRight.y},
+      bottomLeft: {x: bottomLeft.x, y: bottomLeft.y},
+      savedAt: '',
+    };
+    void saveCalibration(data);
+    res.json({ok: true, calibration: {...data, savedAt: new Date().toISOString()}});
   });
 
   app.get('/api/export', async (_req, res) => {
