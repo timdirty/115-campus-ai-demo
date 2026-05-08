@@ -16,6 +16,7 @@ import { useTour } from './components/tour/useTour';
 import { IssueReporter } from './components/IssueReporter';
 import {useHardwareSocket} from './hooks/useHardwareSocket';
 import {HardwareStatusBanner} from './components/HardwareStatusBanner';
+import {CommandFeedbackToast} from './components/CommandFeedbackToast';
 
 type AppTab = 'home' | 'teacher' | 'robot' | 'library' | 'chat' | 'review';
 
@@ -101,6 +102,7 @@ export default function App() {
     <TourProvider onTabChange={navigateTo}>
     <div className="app1-shell flex flex-col min-h-screen relative overflow-x-hidden bg-surface">
       <HardwareStatusBanner status={hwStatus} />
+      <CommandFeedbackToast lastCommandAck={hwStatus.lastCommandAck} />
       <div className="noise-overlay" />
       {/* TopAppBar */}
       <header className="sticky top-0 w-full z-30 flex items-center justify-between px-4 sm:px-6 py-2.5 sm:py-4 bg-surface/90 backdrop-blur-xl transition-all border-b border-outline-variant/10">

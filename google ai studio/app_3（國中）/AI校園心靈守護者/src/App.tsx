@@ -6,6 +6,7 @@ import {IssueReporter} from './components/IssueReporter';
 import {useProxyHealth} from './hooks/useProxyHealth';
 import {useHardwareSocket} from './hooks/useHardwareSocket';
 import {HardwareStatusBanner} from './components/HardwareStatusBanner';
+import {CommandFeedbackToast} from './components/CommandFeedbackToast';
 import type {Dispatch, ReactNode} from 'react';
 import {AnimatePresence, motion} from 'motion/react';
 import {
@@ -415,6 +416,7 @@ function AppContent() {
   return (
     <div className="guardian-shell min-h-screen overflow-x-hidden bg-[linear-gradient(160deg,#f5f9fc_0%,#eef3f8_60%,#e8f0f7_100%)] text-slate-950">
       <HardwareStatusBanner status={hwStatus} />
+      <CommandFeedbackToast lastCommandAck={hwStatus.lastCommandAck} />
       {/* Proxy Health Banner */}
       {proxyOnline === false && !bannerDismissed && (
         <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800">

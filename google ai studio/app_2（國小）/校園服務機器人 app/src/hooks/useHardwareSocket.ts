@@ -5,6 +5,7 @@ export interface HardwareSocketStatus {
   port: string;
   simulated: boolean;
   mode: 'ws' | 'polling';
+  lastCommandAck: {command: string; ok: boolean; ts: number} | null;
 }
 
 export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
@@ -14,6 +15,7 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
     port: '',
     simulated: false,
     mode: 'polling',
+    lastCommandAck: null,
   });
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -79,7 +81,7 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
     ws.onmessage = (evt) => {
       if (!mountedRef.current) return;
       try {
-        const event = JSON.parse(String(evt.data)) as {type?: string; connected?: boolean; port?: string; simulated?: boolean};
+        const event = JSON.parse(String(evt.data)) as {type?: string; connected?: boolean; port?: string; simulated?: boolean; command?: string; ok?: boolean};
         if (event.type === 'arduino_status') {
           setStatus((s) => ({
             ...s,
@@ -87,6 +89,11 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
             port: event.port ?? '',
             simulated: Boolean(event.simulated),
             mode: 'ws',
+          }));
+        } else if (event.type === 'command_ack') {
+          setStatus((s) => ({
+            ...s,
+            lastCommandAck: {command: event.command ?? '', ok: Boolean(event.ok), ts: Date.now()},
           }));
         }
       } catch { /* ignore malformed */ }
