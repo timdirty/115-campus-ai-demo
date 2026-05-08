@@ -7,6 +7,8 @@ import {execSync} from 'node:child_process';
 import express from 'express';
 import {WebSocketServer, WebSocket} from 'ws';
 import {getActivePath, getTelemetry, isConnected, onConnectionChange, sendCommand, tryAutoOpen} from './serialPort';
+import {analyzeDeliveryTask, isGeminiConfigured} from './aiService';
+import {appendDeliveryLog, appendTaskLog, getRecentDeliveryLogs, getRecentTaskLogs, resetDemoData} from './storage';
 
 function freeBridgePort(port: number) {
   try {
@@ -86,6 +88,76 @@ app.post('/api/robot/command', async (req, res) => {
     source: typeof source === 'string' ? source : undefined,
   });
   broadcast({type: 'command_ack', command: normalized, ok: result.ok, response: result.ok ? `Sent ${normalized}` : result.message});
+});
+
+app.get('/api/ready', (_req, res) => {
+  res.json({
+    ok: true,
+    arduino: isConnected(),
+    ai: isGeminiConfigured(),
+    bridge_port: bridgePort,
+  });
+});
+
+app.post('/api/robot/task', async (req, res) => {
+  const {taskType, description, destination, command} = req.body ?? {};
+  if (typeof taskType !== 'string' || !taskType) {
+    return res.status(400).json({error: 'taskType required'});
+  }
+  try {
+    const logs = await appendTaskLog({
+      taskType,
+      description: typeof description === 'string' ? description : taskType,
+      status: 'pending',
+    });
+    if (typeof command === 'string' && command.trim()) {
+      const normalized = command.trim().toUpperCase();
+      const result = await sendCommand(normalized);
+      broadcast({type: 'command_ack', command: normalized, ok: result.ok});
+      await appendDeliveryLog({
+        command: normalized,
+        destination: typeof destination === 'string' ? destination : undefined,
+        status: result.ok ? 'sent' : 'failed',
+        message: result.message,
+      });
+    }
+    res.json({ok: true, logs});
+  } catch (error) {
+    res.status(500).json({ok: false, error: error instanceof Error ? error.message : String(error)});
+  }
+});
+
+app.post('/api/ai/campus', async (req, res) => {
+  const {command, destination, taskDescription, userMessage} = req.body ?? {};
+  try {
+    const result = await analyzeDeliveryTask({
+      command: typeof command === 'string' ? command : undefined,
+      destination: typeof destination === 'string' ? destination : undefined,
+      taskDescription: typeof taskDescription === 'string' ? taskDescription : undefined,
+      userMessage: typeof userMessage === 'string' ? userMessage : undefined,
+    });
+    res.json({ok: true, reply: result.reply, source: result.source});
+  } catch (error) {
+    res.status(500).json({ok: false, error: error instanceof Error ? error.message : String(error)});
+  }
+});
+
+app.get('/api/logs', async (_req, res) => {
+  try {
+    const [deliveryLogs, taskLogs] = await Promise.all([getRecentDeliveryLogs(), getRecentTaskLogs()]);
+    res.json({ok: true, deliveryLogs, taskLogs});
+  } catch (error) {
+    res.status(500).json({ok: false, error: error instanceof Error ? error.message : String(error)});
+  }
+});
+
+app.post('/api/ops/reset', async (_req, res) => {
+  try {
+    await resetDemoData();
+    res.json({ok: true, message: 'Demo data reset'});
+  } catch (error) {
+    res.status(500).json({ok: false, error: error instanceof Error ? error.message : String(error)});
+  }
 });
 
 app.use('/api', (_req, res) => {
