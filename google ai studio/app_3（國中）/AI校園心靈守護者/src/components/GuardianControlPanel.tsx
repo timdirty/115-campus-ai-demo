@@ -561,14 +561,14 @@ function DriveButton({dir, icon: Icon, active, onStart, onStop}: {
       onPointerCancel={onStop}
       onPointerLeave={onStop}
       className={[
-        'flex h-12 w-12 items-center justify-center rounded-xl border transition-all active:scale-95',
+        'flex h-10 w-10 items-center justify-center rounded-xl border transition-all active:scale-95',
         active
           ? 'border-teal-500 bg-teal-600 text-white shadow-sm shadow-teal-200'
           : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700',
       ].join(' ')}
       style={{touchAction: 'none'}}
     >
-      <Icon className="h-5 w-5" />
+      <Icon className="h-4 w-4" />
     </button>
   );
 }
@@ -694,30 +694,30 @@ export function GuardianDriveDock({bridgeOnline}: {bridgeOnline: boolean}) {
             onClick={() => setExpanded((prev) => !prev)}
             aria-expanded={expanded}
             aria-controls="guardian-drive-dock-panel"
-            className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-1 py-1 text-left transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
+            className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-1 py-1 text-left transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
           >
-            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${bridgeOnline ? 'bg-teal-600 text-white' : 'bg-slate-200 text-slate-500'}`}>
+            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${bridgeOnline ? 'bg-teal-600 text-white' : 'bg-slate-200 text-slate-500'}`}>
               <Bot className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">巡邏底盤</p>
-              <p className="truncate text-sm font-black text-slate-900">{statusText}</p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">巡邏底盤</p>
+              <p className="truncate text-xs font-black text-slate-900">{statusText}</p>
             </div>
-            <span className={`hidden rounded-full px-2.5 py-1 text-[10px] font-black sm:inline-flex ${lastResult.ok ? 'bg-teal-50 text-teal-700' : 'bg-amber-50 text-amber-700'}`}>
+            <span className={`hidden rounded-full px-2 py-0.5 text-[9px] font-black sm:inline-flex ${lastResult.ok ? 'bg-teal-50 text-teal-700' : 'bg-amber-50 text-amber-700'}`}>
               {bridgeOnline ? '橋接' : '備援'}
             </span>
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-              {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+              {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
             </span>
           </button>
           <button
             type="button"
             onPointerDown={emergencyStop}
-            className="flex h-10 items-center gap-1.5 rounded-xl bg-rose-500 px-3 text-xs font-black text-white shadow-sm transition hover:bg-rose-600 active:scale-95"
+            className="flex h-8 items-center gap-1 rounded-xl bg-rose-500 px-2.5 text-[11px] font-black text-white shadow-sm transition hover:bg-rose-600 active:scale-95"
             title="立即停止"
             style={{touchAction: 'none'}}
           >
-            <Square className="h-3.5 w-3.5" />
+            <Square className="h-3 w-3" />
             停止
           </button>
         </div>
@@ -733,85 +733,75 @@ export function GuardianDriveDock({bridgeOnline}: {bridgeOnline: boolean}) {
               transition={{duration: 0.22, ease: 'easeOut'}}
               className="overflow-hidden"
             >
-              <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 border-t border-slate-100 py-3 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
-                <div className="col-span-2 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 lg:col-span-2">
-                  <div className="grid grid-cols-3 gap-1.5 justify-self-start select-none" style={{touchAction: 'none'}}>
-                    <div />
-                    <DriveButton dir="FORWARD" icon={ArrowUp} active={driveActive === 'FORWARD'} onStart={startDrive} onStop={stopDrive} />
-                    <div />
-                    <DriveButton dir="LEFT" icon={ArrowLeft} active={driveActive === 'LEFT'} onStart={startDrive} onStop={stopDrive} />
+              <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 py-2.5 lg:flex-nowrap">
+                {/* D-Pad */}
+                <div className="grid grid-cols-3 gap-1 shrink-0 select-none" style={{touchAction: 'none'}}>
+                  <div />
+                  <DriveButton dir="FORWARD" icon={ArrowUp} active={driveActive === 'FORWARD'} onStart={startDrive} onStop={stopDrive} />
+                  <div />
+                  <DriveButton dir="LEFT" icon={ArrowLeft} active={driveActive === 'LEFT'} onStart={startDrive} onStop={stopDrive} />
+                  <button
+                    type="button"
+                    onPointerDown={emergencyStop}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600 transition hover:bg-rose-100 active:scale-95"
+                    title="立即停止"
+                    style={{touchAction: 'none'}}
+                  >
+                    <Square className="h-4 w-4" />
+                  </button>
+                  <DriveButton dir="RIGHT" icon={ArrowRight} active={driveActive === 'RIGHT'} onStart={startDrive} onStop={stopDrive} />
+                  <div />
+                  <DriveButton dir="BACKWARD" icon={ArrowDown} active={driveActive === 'BACKWARD'} onStart={startDrive} onStop={stopDrive} />
+                  <div />
+                </div>
+
+                {/* Speed + quick actions */}
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2 text-[11px] font-black text-slate-500">
+                    <span>速度</span>
+                    <span className="tabular-nums text-slate-900">{driveSpeed}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={70}
+                    max={255}
+                    value={driveSpeed}
+                    onChange={(event) => setSpeed(Number(event.target.value))}
+                    className="h-1.5 w-full cursor-pointer accent-teal-600"
+                  />
+                  <div className="flex gap-1.5">
+                    {SPEED_PRESETS.map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setSpeed(preset.value, true)}
+                        className={`h-7 flex-1 rounded-lg border text-[10px] font-black transition active:scale-95 ${
+                          driveSpeed === preset.value
+                            ? 'border-teal-600 bg-teal-600 text-white'
+                            : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-teal-200 hover:bg-teal-50'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
                     <button
                       type="button"
-                      onPointerDown={emergencyStop}
-                      className="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-50 text-rose-600 transition hover:bg-rose-100 active:scale-95"
-                      title="立即停止"
-                      style={{touchAction: 'none'}}
+                      onClick={() => void sendDrive('PATROL_START')}
+                      className="h-7 flex-1 rounded-lg border border-teal-600 bg-teal-600 px-2 text-[10px] font-black text-white transition hover:bg-teal-700 active:scale-95"
                     >
-                      <Square className="h-5 w-5" />
+                      巡邏
                     </button>
-                    <DriveButton dir="RIGHT" icon={ArrowRight} active={driveActive === 'RIGHT'} onStart={startDrive} onStop={stopDrive} />
-                    <div />
-                    <DriveButton dir="BACKWARD" icon={ArrowDown} active={driveActive === 'BACKWARD'} onStart={startDrive} onStop={stopDrive} />
-                    <div />
-                  </div>
-
-                  <div className="min-w-0 space-y-2">
-                    <div className="flex items-center justify-between gap-2 text-xs font-black text-slate-500">
-                      <span>移動速度</span>
-                      <span className="tabular-nums text-slate-900">{driveSpeed} / 255</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={70}
-                      max={255}
-                      value={driveSpeed}
-                      onChange={(event) => setSpeed(Number(event.target.value))}
-                      className="h-2 w-full cursor-pointer accent-teal-600"
-                    />
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {SPEED_PRESETS.map((preset) => (
-                        <button
-                          key={preset.label}
-                          type="button"
-                          onClick={() => setSpeed(preset.value, true)}
-                          className={`h-8 rounded-lg border text-[11px] font-black transition active:scale-95 ${
-                            driveSpeed === preset.value
-                              ? 'border-teal-600 bg-teal-600 text-white'
-                              : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700'
-                          }`}
-                        >
-                          {preset.label}
-                        </button>
-                      ))}
-                    </div>
                   </div>
                 </div>
 
-                <div className="col-span-2 grid grid-cols-2 gap-2 lg:col-span-1 lg:w-44">
-                  <button
-                    type="button"
-                    onClick={() => void sendDrive('PATROL_START')}
-                    className="h-10 rounded-xl bg-teal-600 px-3 text-xs font-black text-white transition hover:bg-teal-700 active:scale-95"
-                  >
-                    巡邏
-                  </button>
-                  <button
-                    type="button"
-                    onClick={emergencyStop}
-                    className="h-10 rounded-xl bg-rose-500 px-3 text-xs font-black text-white transition hover:bg-rose-600 active:scale-95"
-                  >
-                    停止
-                  </button>
+                {/* EV3 / SPIKE Prime */}
+                <div className="w-full border-t border-slate-100 pt-2.5 lg:w-auto lg:border-t-0 lg:pt-0 lg:border-l lg:pl-3">
+                  <ExternalRobotPanel />
                 </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
-
-      {/* EV3 / SPIKE Prime 外部機器人控制 */}
-      <div className="mt-3 px-4 pb-4">
-        <ExternalRobotPanel />
       </div>
     </div>
   );

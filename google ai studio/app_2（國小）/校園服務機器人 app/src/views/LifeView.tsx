@@ -60,14 +60,14 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
   }, [state.logs, modal]);
 
   return (
-    <div className="space-y-8 pb-10">
-      <section className="space-y-4 pb-2 px-1">
+    <div className="space-y-5 pb-10">
+      <section className="space-y-3 pb-1 px-1">
         <div className="flex items-center gap-3">
-          <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--color-primary),0.5)]"></div>
+          <div className="w-1.5 h-5 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--color-primary),0.5)]"></div>
           <span className="font-headline font-extrabold text-primary tracking-[0.3em] uppercase text-[10px] font-mono">校園生活引擎</span>
         </div>
         <div className="flex justify-between items-start">
-          <h2 className="font-headline text-4xl font-bold text-on-surface tracking-tight">校園生活智慧中心</h2>
+          <h2 className="font-headline text-2xl font-bold text-on-surface tracking-tight">校園生活智慧中心</h2>
           <motion.div
             role="button"
             tabIndex={0}
@@ -95,8 +95,8 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
       </section>
 
       {/* Environmental Sensors */}
-      <section className="grid grid-cols-2 gap-5 mb-8 px-1">
-        <p className="col-span-2 text-xs text-gray-400 text-right -mb-2">
+      <section className="grid grid-cols-2 gap-3 mb-4 px-1">
+        <p className="col-span-2 text-[10px] text-gray-400 text-right -mb-1">
           更新於 {lastUpdated.getHours().toString().padStart(2, '0')}:{lastUpdated.getMinutes().toString().padStart(2, '0')}
         </p>
         {[
@@ -106,42 +106,42 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
           { icon: Activity, label: '環境通風', val: isEmergency?'封閉':'良好', unit: '', color: isEmergency?'text-error':'text-tertiary', bg: 'bg-tertiary/5' }
         ].map((sensor, i) => (
           <motion.div
-            whileHover={{ y: -4, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}
+            whileHover={{ y: -2, boxShadow: '0 8px 20px -4px rgba(0,0,0,0.06)' }}
             whileTap={{ scale: 0.98 }}
             onClick={() => showToast(`正在同步 ${sensor.label} 感測器資料...`)}
             key={sensor.label}
-            className={`bg-surface-container-lowest p-6 rounded-[2.2rem] border transition-all cursor-pointer flex flex-col items-start gap-5 relative overflow-hidden group ${isEmergency ? 'border-error/40 bg-error/5 shadow-inner' : 'border-outline-variant/30 shadow-[0_4px_20px_rgba(0,0,0,0.02)]'}`}
+            className={`bg-surface-container-lowest p-4 rounded-2xl border transition-all cursor-pointer flex flex-col items-start gap-3 relative overflow-hidden group ${isEmergency ? 'border-error/40 bg-error/5 shadow-inner' : 'border-outline-variant/30 shadow-[0_2px_12px_rgba(0,0,0,0.03)]'}`}
           >
-             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border border-outline-variant/10 shadow-sm transition-transform group-hover:scale-110 ${sensor.bg} ${sensor.color}`}>
-               <sensor.icon size={26} className="shrink-0" />
+             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-outline-variant/10 shadow-sm transition-transform group-hover:scale-110 ${sensor.bg} ${sensor.color}`}>
+               <sensor.icon size={18} className="shrink-0" />
              </div>
              <div className="w-full">
-               <p className="text-[10px] text-on-surface-variant font-extrabold mb-1.5 tracking-[0.15em] uppercase truncate font-mono opacity-60">{sensor.label}</p>
-               <p className={`font-headline text-3xl font-bold leading-none tracking-tighter truncate ${isEmergency ? 'text-error animate-pulse' : 'text-on-surface'}`}>{sensor.val} <span className="text-xs font-sans font-bold opacity-40 uppercase ml-1">{sensor.unit}</span></p>
+               <p className="text-[9px] text-on-surface-variant font-extrabold mb-1 tracking-[0.12em] uppercase truncate font-mono opacity-60">{sensor.label}</p>
+               <p className={`font-headline text-2xl font-bold leading-none tracking-tighter truncate ${isEmergency ? 'text-error animate-pulse' : 'text-on-surface'}`}>{sensor.val} <span className="text-[10px] font-sans font-bold opacity-40 uppercase ml-0.5">{sensor.unit}</span></p>
              </div>
-             <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-surface-container opacity-20 rounded-full blur-xl group-hover:opacity-40 transition-opacity"></div>
+             <div className="absolute -bottom-4 -right-4 w-14 h-14 bg-surface-container opacity-20 rounded-full blur-lg group-hover:opacity-40 transition-opacity"></div>
           </motion.div>
         ))}
       </section>
 
-      <section data-tour="life-services" className="grid grid-cols-1 gap-6 px-1">
+      <section data-tour="life-services" className="grid grid-cols-1 gap-4 px-1">
         {/* Emergency Broadcasting Toggle */}
-        <div className={`rounded-[2.5rem] p-8 shadow-xl transition-all duration-500 border ${isEmergency ? 'bg-error text-white border-error shadow-error/30' : 'bg-surface-container-low border-outline-variant/30 shadow-[0_8px_30px_rgba(0,0,0,0.02)]'}`}>
-          <div className="flex items-center justify-between mb-4">
-             <div className="flex items-center gap-5">
-               <div className={`w-16 h-16 shrink-0 rounded-[1.5rem] shadow-xl flex items-center justify-center border-2 transition-all ${isEmergency ? 'bg-white text-error border-white animate-pulse' : 'bg-surface-container-lowest text-error border-error/10'}`}>
-                 <AlertOctagon size={36} strokeWidth={2.5} />
+        <div className={`rounded-2xl p-5 shadow-lg transition-all duration-500 border ${isEmergency ? 'bg-error text-white border-error shadow-error/30' : 'bg-surface-container-low border-outline-variant/30 shadow-[0_4px_16px_rgba(0,0,0,0.03)]'}`}>
+          <div className="flex items-center justify-between mb-3">
+             <div className="flex items-center gap-4">
+               <div className={`w-11 h-11 shrink-0 rounded-2xl shadow-lg flex items-center justify-center border-2 transition-all ${isEmergency ? 'bg-white text-error border-white animate-pulse' : 'bg-surface-container-lowest text-error border-error/10'}`}>
+                 <AlertOctagon size={24} strokeWidth={2.5} />
                </div>
                <div>
-                  <h3 className={`font-headline text-2xl font-bold tracking-tight leading-none mb-2 ${isEmergency ? 'text-white' : 'text-on-surface'}`}>全校安全應變</h3>
-                  <p className={`text-xs font-bold tracking-widest ${isEmergency ? 'text-white/80' : 'text-on-surface-variant/40'}`}>{isEmergency ? '應變啟動' : '待命部署'}</p>
+                  <h3 className={`font-headline text-base font-bold tracking-tight leading-none mb-1 ${isEmergency ? 'text-white' : 'text-on-surface'}`}>全校安全應變</h3>
+                  <p className={`text-[10px] font-bold tracking-widest ${isEmergency ? 'text-white/80' : 'text-on-surface-variant/40'}`}>{isEmergency ? '應變啟動' : '待命部署'}</p>
                </div>
              </div>
              <button
                onClick={() => { actions.setEmergency(!isEmergency); showToast(isEmergency ? '已解除緊急狀態，系統恢復正常運行' : '【警告】全校進入緊急安全封控模式！'); }}
-               className={`shrink-0 relative w-20 h-10 rounded-full transition-all duration-500 border-2 ${isEmergency ? 'bg-white border-white' : 'bg-surface-container-high border-outline-variant/30'}`}
+               className={`shrink-0 relative w-14 h-7 rounded-full transition-all duration-500 border-2 ${isEmergency ? 'bg-white border-white' : 'bg-surface-container-high border-outline-variant/30'}`}
              >
-               <motion.div animate={{ x: isEmergency ? 42 : 4 }} transition={{ type: "spring", stiffness: 400, damping: 25 }} className={`absolute top-1 w-7 h-7 rounded-full shadow-lg transition-colors ${isEmergency ? 'bg-error' : 'bg-white'}`} />
+               <motion.div animate={{ x: isEmergency ? 28 : 2 }} transition={{ type: "spring", stiffness: 400, damping: 25 }} className={`absolute top-0.5 w-5 h-5 rounded-full shadow-lg transition-colors ${isEmergency ? 'bg-error' : 'bg-white'}`} />
              </button>
           </div>
           {isEmergency && (
@@ -152,64 +152,61 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
         </div>
 
         {/* Broadcasting Interface */}
-        <div className="bg-surface-container-low rounded-[3rem] p-8 border border-outline-variant/30 flex flex-col gap-6 shadow-sm overflow-hidden relative group">
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/5 rounded-full blur-[60px] group-hover:bg-primary/10 transition-colors"></div>
+        <div className="bg-surface-container-low rounded-2xl p-5 border border-outline-variant/30 flex flex-col gap-4 shadow-sm overflow-hidden relative group">
+          <div className="absolute -top-8 -right-8 w-32 h-32 bg-primary/5 rounded-full blur-[50px] group-hover:bg-primary/10 transition-colors"></div>
 
-          <div className="flex items-center justify-between px-2">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="font-extrabold text-[10px] tracking-[0.25em] text-on-surface-variant font-mono uppercase opacity-60">實況廣播</p>
-              <div className="flex items-center gap-2 mt-2">
-                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_8px_rgba(var(--color-primary),0.8)]"></div>
-                 <p className="text-2xl font-bold font-headline tracking-tight text-primary">系統播放待命</p>
+              <p className="font-extrabold text-[9px] tracking-[0.25em] text-on-surface-variant font-mono uppercase opacity-60">實況廣播</p>
+              <div className="flex items-center gap-2 mt-1">
+                 <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse shadow-[0_0_8px_rgba(var(--color-primary),0.8)]"></div>
+                 <p className="text-base font-bold font-headline tracking-tight text-primary">系統播放待命</p>
               </div>
             </div>
-            <Megaphone size={32} className="text-primary opacity-20 group-hover:rotate-12 transition-transform" />
+            <Megaphone size={24} className="text-primary opacity-20 group-hover:rotate-12 transition-transform" />
           </div>
 
           <div className="h-px w-full bg-outline-variant/30"></div>
 
-          <div className="space-y-4">
-            <h3 className="font-headline text-[11px] font-extrabold uppercase tracking-[0.2em] px-2 text-on-surface-variant/40 font-mono">操作設定</h3>
-            <div
-              className="flex items-center justify-between p-6 bg-surface-container-lowest rounded-4xl shadow-sm cursor-pointer hover:shadow-xl hover:border-primary/30 border border-outline-variant/20 transition-all active:scale-[0.985] group/item"
-              onClick={() => { actions.setRemindWarning(!remindWarning); showToast(remindWarning ? '已關閉下課提醒' : '已開啟下課提醒'); }}
-            >
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${remindWarning ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant/40'}`}>
-                  <Volume2 size={24} />
-                </div>
-                <div>
-                  <p className="font-bold text-lg tracking-tight leading-none mb-1">智慧鐘聲提示</p>
-                  <p className="text-[10px] text-on-surface-variant font-extrabold font-mono uppercase tracking-widest opacity-60">自動提醒（1分鐘前）</p>
-                </div>
+          <div
+            className="flex items-center justify-between p-4 bg-surface-container-lowest rounded-2xl shadow-sm cursor-pointer hover:shadow-md hover:border-primary/30 border border-outline-variant/20 transition-all active:scale-[0.985] group/item"
+            onClick={() => { actions.setRemindWarning(!remindWarning); showToast(remindWarning ? '已關閉下課提醒' : '已開啟下課提醒'); }}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${remindWarning ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant/40'}`}>
+                <Volume2 size={18} />
               </div>
-              <div className={`w-14 h-8 rounded-full transition-all relative flex items-center px-1 border-2 ${remindWarning ? 'bg-primary shadow-[0_0_20px_rgba(var(--color-primary),0.3)] border-primary' : 'bg-surface-container-highest border-outline-variant/30'}`}>
-                <motion.div layout className="w-5 h-5 bg-white rounded-full shadow-md" animate={{ x: remindWarning ? 24 : 0 }} transition={{ type: "spring", stiffness: 450, damping: 25 }} />
+              <div>
+                <p className="font-bold text-sm tracking-tight leading-none mb-0.5">智慧鐘聲提示</p>
+                <p className="text-[9px] text-on-surface-variant font-extrabold font-mono uppercase tracking-widest opacity-60">自動提醒（1分鐘前）</p>
               </div>
+            </div>
+            <div className={`w-11 h-6 rounded-full transition-all relative flex items-center px-0.5 border-2 ${remindWarning ? 'bg-primary shadow-[0_0_16px_rgba(var(--color-primary),0.3)] border-primary' : 'bg-surface-container-highest border-outline-variant/30'}`}>
+              <motion.div layout className="w-4 h-4 bg-white rounded-full shadow-md" animate={{ x: remindWarning ? 18 : 0 }} transition={{ type: "spring", stiffness: 450, damping: 25 }} />
             </div>
           </div>
         </div>
 
         {/* Schedule */}
-        <div className="bg-surface-container-low rounded-[3rem] p-8 border border-outline-variant/30 shadow-sm mt-2 group">
-          <div className="flex items-center justify-between mb-8 px-2">
-            <h3 className="font-headline text-2xl font-bold tracking-tight">預約巡邏任務</h3>
-            <div className="bg-primary/10 text-primary px-3 py-1 rounded-xl text-[10px] font-extrabold uppercase tracking-widest border border-primary/20 font-mono shadow-sm">排程器</div>
+        <div className="bg-surface-container-low rounded-2xl p-5 border border-outline-variant/30 shadow-sm group">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-headline text-base font-bold tracking-tight">預約巡邏任務</h3>
+            <div className="bg-primary/10 text-primary px-2.5 py-1 rounded-xl text-[9px] font-extrabold uppercase tracking-widest border border-primary/20 font-mono shadow-sm">排程器</div>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-2.5">
             {state.schedules.map(schedule => {
               const Icon = schedule.kind === 'broadcast' ? Volume2 : Calendar;
               return (
-                <motion.div key={schedule.id} whileHover={{ x: 4 }} whileTap={{ scale: 0.985 }} onClick={() => handleOpenSchedule(schedule.id, schedule.time, schedule.area)} className="group/card flex items-center gap-6 p-6 bg-surface-container-lowest rounded-[2.2rem] shadow-sm cursor-pointer border border-outline-variant/20 hover:border-primary/40 hover:shadow-xl transition-all">
-                  <div className="bg-surface-container-low p-4 rounded-2xl text-on-surface-variant group-hover/card:text-primary transition-all group-hover/card:bg-primary/5 group-hover/card:rotate-6 border border-transparent group-hover/card:border-primary/10">
-                    <Icon size={26} />
+                <motion.div key={schedule.id} whileHover={{ x: 2 }} whileTap={{ scale: 0.985 }} onClick={() => handleOpenSchedule(schedule.id, schedule.time, schedule.area)} className="group/card flex items-center gap-4 p-4 bg-surface-container-lowest rounded-2xl shadow-sm cursor-pointer border border-outline-variant/20 hover:border-primary/40 hover:shadow-md transition-all">
+                  <div className="bg-surface-container-low p-3 rounded-xl text-on-surface-variant group-hover/card:text-primary transition-all group-hover/card:bg-primary/5 border border-transparent group-hover/card:border-primary/10">
+                    <Icon size={20} />
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex justify-between items-center">
-                       <p className="text-xl font-bold tracking-tight text-on-surface">{schedule.title}</p>
-                       <span className="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-lg border border-primary/20">{schedule.time}</span>
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    <div className="flex justify-between items-center gap-2">
+                       <p className="text-sm font-bold tracking-tight text-on-surface truncate">{schedule.title}</p>
+                       <span className="text-[10px] font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-lg border border-primary/20 shrink-0">{schedule.time}</span>
                     </div>
-                    <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest opacity-60 font-mono">地點: {schedule.area}</p>
+                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-60 font-mono truncate">地點: {schedule.area}</p>
                   </div>
                 </motion.div>
               );
@@ -220,7 +217,7 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
 
       {/* Map Control - Radar View */}
       <section className="px-1">
-        <div className="relative min-h-[460px] bg-[#0c121d] rounded-[3rem] overflow-hidden shadow-2xl border-4 border-surface-container-low cursor-pointer active:scale-[0.99] transition-all group" onClick={(e) => {
+        <div className="relative min-h-80 bg-[#0c121d] rounded-2xl overflow-hidden shadow-2xl border-4 border-surface-container-low cursor-pointer active:scale-[0.99] transition-all group" onClick={(e) => {
            if ((e.target as HTMLElement).closest('.mapcam-trigger')) return;
            navigateTo('dispatch-map');
         }}>
