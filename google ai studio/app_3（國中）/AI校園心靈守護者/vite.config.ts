@@ -19,6 +19,10 @@ export default defineConfig(() => {
     },
     build: {
       rollupOptions: {
+        input: {
+          main: path.resolve(__dirname, 'index.html'),
+          robotDisplay: path.resolve(__dirname, 'robot-display.html'),
+        },
         output: {
           manualChunks: {
             'vendor-motion': ['motion/react'],

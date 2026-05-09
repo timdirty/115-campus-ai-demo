@@ -4,6 +4,7 @@
 
 import {createServer} from 'node:http';
 import {execSync} from 'node:child_process';
+import {networkInterfaces} from 'node:os';
 import express from 'express';
 import {WebSocketServer, WebSocket} from 'ws';
 import {getActivePath, getTelemetry, isConnected, onConnectionChange, sendCommand, tryAutoOpen} from './serialPort';
@@ -11,6 +12,15 @@ import {analyzeDeliveryTask, isGeminiConfigured} from './aiService';
 import {appendDeliveryLog, appendTaskLog, getRecentDeliveryLogs, getRecentTaskLogs, resetDemoData} from './storage';
 import {getEV3Status, sendEV3Command, startEV3Manager} from './ev3Manager';
 import {getSpikeStatus, sendSpikeCommand, startSpikeManager} from './spikeManager';
+
+function getLanIp(): string {
+  for (const ifaces of Object.values(networkInterfaces())) {
+    for (const iface of ifaces ?? []) {
+      if (iface.family === 'IPv4' && !iface.internal) return iface.address;
+    }
+  }
+  return 'localhost';
+}
 
 function freeBridgePort(port: number) {
   try {
@@ -44,9 +54,18 @@ const wsKeepalive = setInterval(() => {
     ws.ping();
   }
 }, 25000);
-wss.on('connection', (ws) => {
+
+// Robot face display clients (iPad on robot, connected via LAN WebSocket)
+const displayClients = new Set<WebSocket>();
+
+wss.on('connection', (ws, req) => {
   wsAlive.set(ws, true);
   ws.on('pong', () => wsAlive.set(ws, true));
+  if (req.url === '/display') {
+    displayClients.add(ws);
+    ws.send(JSON.stringify({type: 'display_ready'}));
+    ws.on('close', () => displayClients.delete(ws));
+  }
 });
 httpServer.on('close', () => clearInterval(wsKeepalive));
 
@@ -210,6 +229,37 @@ app.post('/api/spike/command', async (req, res) => {
   if (!command) { res.status(400).json({ok: false, error: 'command required'}); return; }
   const result = await sendSpikeCommand(command);
   res.json(result);
+});
+
+// Robot face display info — returns LAN IP + full robot-display URL for QR generation
+app.get('/api/display/info', (_req, res) => {
+  const ip = getLanIp();
+  const vitePort = Number(process.env.VITE_PORT ?? 3000);
+  res.json({
+    ok: true,
+    ip,
+    bridgePort,
+    robotDisplayUrl: `http://${ip}:${vitePort}/robot-display.html?bridge=${ip}:${bridgePort}`,
+  });
+});
+
+// Robot face display: push emotion to all connected iPad display clients
+app.post('/api/display/emotion', (req, res) => {
+  const {emotion} = req.body as {emotion?: string};
+  if (!emotion || typeof emotion !== 'string') {
+    res.status(400).json({ok: false, error: 'missing emotion'});
+    return;
+  }
+  const data = JSON.stringify({type: 'display_emotion', emotion});
+  let sent = 0;
+  for (const client of displayClients) {
+    if (client.readyState === WebSocket.OPEN) { client.send(data); sent++; }
+  }
+  res.json({ok: true, emotion, clients: sent});
+});
+
+app.get('/api/display/status', (_req, res) => {
+  res.json({ok: true, clients: displayClients.size});
 });
 
 app.use('/api', (_req, res) => {

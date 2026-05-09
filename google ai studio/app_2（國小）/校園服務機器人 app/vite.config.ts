@@ -17,5 +17,13 @@ export default defineConfig(() => {
       // Do not modify; file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
     },
+    build: {
+      rollupOptions: {
+        input: {
+          main: path.resolve(__dirname, 'index.html'),
+          robotDisplay: path.resolve(__dirname, 'robot-display.html'),
+        },
+      },
+    },
   };
 });

@@ -55,6 +55,7 @@ import {CampusMapSvg} from './components/CampusMapSvg';
 import {ZoneSensorPanel} from './components/ZoneSensorPanel';
 import {SensorSetupModal} from './components/SensorSetupModal';
 import {BridgeStatusPill, GuardianControlPanel, GuardianDriveDock, QuickAlertButton} from './components/GuardianControlPanel';
+import {RobotDisplaySync} from './components/RobotDisplaySync';
 
 type ActivePanel = 'alerts' | 'care' | 'robot' | null;
 type RobotDispatchFeedback = {zoneId: string; zoneName: string; stage: '指令送出' | '前往現場' | '老師確認'; createdAt: number; missionId: string} | null;
@@ -534,6 +535,11 @@ function AppContent() {
           </div>
           <div data-tour="zone-inspector" className="flex-1"><ZoneInspector zone={selectedZone} robotFeedback={robotFeedback} onDispatchRobot={dispatchRobotToZone} /></div>
           <div data-tour="panel-dock"><PanelDock activePanel={activePanel} onOpenPanel={setActivePanel} onShowDemo={restartTour} /></div>
+          {/* 機器人顯示同步面板 */}
+          <RobotDisplaySync
+            latestMood={latestMood?.mood}
+            alertCount={viewModel.highPriorityCount}
+          />
         </aside>
       </main>
 

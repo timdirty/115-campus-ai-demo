@@ -123,21 +123,25 @@ function classifyByPixels(metrics: CampusVisionMetrics): {scene: VisionScene; ev
     `暗區 ${metrics.darkArea}`,
   ];
 
-  if (metrics.edgeDensity >= 34 && metrics.warmArea >= 16) {
-    evidence.push('畫面邊緣與暖色區塊偏多');
+  // crowd: 走廊人潮 — 多人體邊緣 + 暖色衣物 (門檻降低以匹配實測數據)
+  if (metrics.edgeDensity >= 28 && metrics.warmArea >= 13) {
+    evidence.push('走廊人員熱區與邊緣偏高');
     return {scene: 'crowd', evidence};
   }
-  if (metrics.darkArea >= 38 || (metrics.edgeDensity >= 42 && metrics.brightness < 46)) {
+  // delivery: 室內取餐 — 先於 safety 判斷，避免暗教室被誤判
+  if (metrics.saturation >= 28 && metrics.warmArea >= 20 && metrics.darkArea >= 30) {
+    evidence.push('色彩飽和且暗區偏高，疑似室內配送情境');
+    return {scene: 'delivery', evidence};
+  }
+  // safety: 阻塞/暗區 (門檻提高避免誤判 delivery)
+  if (metrics.darkArea >= 42 || (metrics.edgeDensity >= 42 && metrics.brightness < 46)) {
     evidence.push('暗區或阻塞感偏高');
     return {scene: 'safety', evidence};
   }
-  if (metrics.saturation <= 22 && metrics.brightness >= 44 && metrics.edgeDensity >= 18) {
+  // cleaning: 低彩度明亮走廊 (edgeDensity 門檻降低)
+  if (metrics.saturation <= 22 && metrics.brightness >= 44 && metrics.edgeDensity >= 15) {
     evidence.push('低彩度平面與細碎邊緣');
     return {scene: 'cleaning', evidence};
-  }
-  if (metrics.saturation >= 34 && metrics.warmArea >= 10 && metrics.edgeDensity < 36) {
-    evidence.push('色彩集中且疑似取物區');
-    return {scene: 'delivery', evidence};
   }
   evidence.push('未達高風險門檻');
   return {scene: 'patrol', evidence};
