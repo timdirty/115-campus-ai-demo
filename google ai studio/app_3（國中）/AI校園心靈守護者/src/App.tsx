@@ -425,24 +425,11 @@ function AppContent() {
     <div className="guardian-shell min-h-screen overflow-x-hidden bg-[linear-gradient(160deg,#f5f9fc_0%,#eef3f8_60%,#e8f0f7_100%)] text-slate-950">
       <HardwareStatusBanner status={hwStatus} />
       <CommandFeedbackToast lastCommandAck={hwStatus.lastCommandAck} />
-      {/* Proxy Health Banner */}
-      {proxyOnline === false && !bannerDismissed && (
-        <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800">
-          <span>⚠️ AI 雲端功能暫時離線，系統切換為本機示範模式</span>
-          <button
-            onClick={() => setBannerDismissed(true)}
-            aria-label="關閉提示"
-            className="shrink-0 w-11 h-11 flex items-center justify-center text-amber-600 hover:text-amber-900 font-medium"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
       <input ref={importInputRef} type="file" accept="application/json,.json" className="hidden" onChange={(event) => void importDemoData(event.target.files?.[0])} />
       <Toast message={toastMessage} />
 
-      <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/95 shadow-[0_1px_12px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/95 shadow-[0_1px_12px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <button className="flex min-w-0 items-center gap-3 text-left" onClick={() => setActivePanel(null)}>
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-teal-500 to-teal-700 text-white shadow-md shadow-teal-200/60">
@@ -496,7 +483,21 @@ function AppContent() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl gap-4 px-4 py-4 pb-24 sm:px-6 lg:pb-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      {/* Proxy Health Banner — below header so it never covers navigation */}
+      {proxyOnline === false && !bannerDismissed && (
+        <div className="flex items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+          <span>⚠️ AI 雲端功能暫時離線，系統切換為本機示範模式</span>
+          <button
+            onClick={() => setBannerDismissed(true)}
+            aria-label="關閉提示"
+            className="flex h-11 w-11 shrink-0 items-center justify-center font-medium text-amber-600 hover:text-amber-900"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      <main className="mx-auto grid max-w-7xl gap-4 px-4 py-4 pb-28 sm:px-6 lg:pb-20 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <CommandCenterScreen
           viewModel={viewModel}
           selectedZone={selectedZone}
@@ -552,7 +553,7 @@ function AppContent() {
         ))}
       </nav>
 
-      <GuardianDriveDock bridgeOnline={bridgeOnline} />
+      <div className="hidden lg:block"><GuardianDriveDock bridgeOnline={bridgeOnline} /></div>
 
       <DetailDrawer
         activePanel={activePanel}
@@ -1194,7 +1195,7 @@ function DetailDrawer(props: {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto py-4">
+            <div className="min-h-0 flex-1 overflow-y-auto py-4 pb-safe">
               {panel === 'alerts' && <AlertsPanel {...props} />}
               {panel === 'care' && <CarePanel {...props} />}
               {panel === 'robot' && (

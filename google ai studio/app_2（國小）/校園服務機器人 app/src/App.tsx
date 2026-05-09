@@ -122,12 +122,13 @@ export default function App() {
     <div className="app2-shell min-h-screen overflow-x-hidden text-on-surface md:bg-surface-container-low">
       <HardwareStatusBanner status={hwStatus} />
       <CommandFeedbackToast lastCommandAck={hwStatus.lastCommandAck} />
-      {/* Proxy Health Banner */}
+      {/* Proxy Health Banner — sits below fixed header (header h-18 = 4.5rem) */}
       {proxyOnline === false && !bannerDismissed && (
-        <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800">
+        <div className="fixed top-[4.5rem] inset-x-0 md:left-65 z-[55] flex items-center justify-between gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800">
           <span>⚠️ AI 雲端功能暫時離線，系統切換為本機示範模式</span>
           <button
             onClick={() => setBannerDismissed(true)}
+            aria-label="關閉提示"
             className="shrink-0 w-11 h-11 flex items-center justify-center text-amber-600 hover:text-amber-900 font-medium"
           >
             ✕
@@ -144,7 +145,7 @@ export default function App() {
             exit={{ opacity: 0, y: -20, x: '-50%' }}
             role="status"
             aria-live="polite"
-            className="fixed top-20 left-1/2 bg-surface-container-lowest text-on-surface shadow-xl border border-primary/20 rounded-full px-5 py-3 flex items-center gap-3 z-200 whitespace-nowrap"
+            className="fixed top-28 left-1/2 bg-surface-container-lowest text-on-surface shadow-xl border border-primary/20 rounded-full px-5 py-3 flex items-center gap-3 z-200 whitespace-nowrap"
           >
             <CheckCircle2 size={18} className="text-primary shrink-0" />
             <span className="text-sm font-bold tracking-wide">{toastMessage.message}</span>
