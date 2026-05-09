@@ -119,7 +119,7 @@ export default function App() {
 
   return (
     <TourProvider onTabChange={setActiveTab}>
-    <div className="app2-shell min-h-screen overflow-x-hidden text-on-surface md:flex md:bg-surface-container-low">
+    <div className="app2-shell min-h-screen overflow-x-hidden text-on-surface md:bg-surface-container-low">
       <HardwareStatusBanner status={hwStatus} />
       <CommandFeedbackToast lastCommandAck={hwStatus.lastCommandAck} />
       {/* Proxy Health Banner */}

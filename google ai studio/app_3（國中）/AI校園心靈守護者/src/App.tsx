@@ -492,10 +492,6 @@ function AppContent() {
               icon={RefreshCw}
               emphasis
             />
-            <div className="hidden items-center gap-2 sm:flex">
-              <IconButton onClick={exportDemoData} label="匯出展示資料" icon={Download} />
-              <IconButton onClick={() => importInputRef.current?.click()} label="匯入展示資料" icon={Upload} />
-            </div>
           </div>
         </div>
       </header>
@@ -515,13 +511,13 @@ function AppContent() {
           onDispatchRobot={dispatchRobotToZone}
         />
 
-        <aside className="hidden lg:grid gap-4 lg:sticky lg:top-21 lg:max-h-[calc(100vh-6rem)] lg:grid-rows-[auto_1fr_auto]">
-          {/* Top-3 open alerts preview — always visible */}
+        <aside className="hidden lg:flex lg:flex-col gap-4 lg:sticky lg:top-21 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+          {/* Top open alerts */}
           <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-            <p className="mb-2 text-[10px] font-black tracking-widest text-slate-400 uppercase">最新需注意狀況</p>
+            <p className="mb-2 text-[10px] font-black tracking-widest text-slate-400 uppercase">需注意狀況</p>
             {viewModel.openAlerts.length === 0 ? (
               <p className="text-xs text-slate-400 font-bold py-1">目前無待處理預警</p>
-            ) : viewModel.openAlerts.slice(0, 3).map((alert) => (
+            ) : viewModel.openAlerts.slice(0, 4).map((alert) => (
               <button
                 key={alert.id}
                 onClick={() => setActivePanel('alerts')}
@@ -535,8 +531,7 @@ function AppContent() {
               查看全部 →
             </button>
           </div>
-          <div data-tour="zone-inspector"><ZoneInspector zone={selectedZone} robotFeedback={robotFeedback} onDispatchRobot={dispatchRobotToZone} /></div>
-          <div data-tour="mission-timeline"><MissionTimeline state={state} robotFeedback={robotFeedback} /></div>
+          <div data-tour="zone-inspector" className="flex-1"><ZoneInspector zone={selectedZone} robotFeedback={robotFeedback} onDispatchRobot={dispatchRobotToZone} /></div>
           <div data-tour="panel-dock"><PanelDock activePanel={activePanel} onOpenPanel={setActivePanel} onShowDemo={restartTour} /></div>
         </aside>
       </main>
@@ -695,9 +690,8 @@ function CommandCenterScreen({
         <CampusMap2D zones={viewModel.zones} selectedZone={selectedZone} selectedZoneId={selectedZoneId} robotFeedback={robotFeedback} onSelectZone={onSelectZone} onDispatchRobot={onDispatchRobot} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         <OperationsBrief viewModel={viewModel} onOpenPanel={onOpenPanel} />
-        <RobotReadinessCard state={state} robotFeedback={robotFeedback} />
         <div data-tour="dispatch-robot">
           <Surface className="h-full p-4">
             <div className="flex items-center justify-between gap-3">
@@ -723,18 +717,7 @@ function CommandCenterScreen({
             </PrimaryAction>
           </Surface>
         </div>
-
-        <Surface className="h-full p-4">
-          <p className="text-xs font-black text-slate-500">訊號總覽</p>
-          <div className="mt-4 space-y-2">
-            {viewModel.signalSummary.map((item) => (
-              <StatusLine key={item.label} label={item.label} value={item.value} tone={item.tone} />
-            ))}
-          </div>
-        </Surface>
       </div>
-
-      <InsightStrip proactiveInsight={viewModel.proactiveInsight} dispatchableCount={viewModel.dispatchableZones.length} onCreateProactiveAlert={onCreateProactiveAlert} onOpenPanel={onOpenPanel} />
     </section>
   );
 }
@@ -785,7 +768,7 @@ function CampusMap2D({
           <LegendDot tone="rose" label="高風險" />
         </div>
       </div>
-      <div className="relative min-h-[44rem] overflow-hidden rounded-2xl border border-slate-200/80 bg-[linear-gradient(145deg,#eef4fb,#e6f0f9)] shadow-inner lg:min-h-[56rem]">
+      <div className="relative min-h-112 overflow-hidden rounded-2xl border border-slate-200/80 bg-[linear-gradient(145deg,#eef4fb,#e6f0f9)] shadow-inner lg:min-h-152">
         <CampusMapSvg
           zones={zones.map((z) => ({id: z.id, riskLevel: z.riskLevel, sensor: z.sensor}))}
           selectedZoneId={selectedZoneId}

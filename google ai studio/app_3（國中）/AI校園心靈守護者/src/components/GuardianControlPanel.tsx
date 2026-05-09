@@ -683,7 +683,7 @@ export function GuardianDriveDock({bridgeOnline}: {bridgeOnline: boolean}) {
     void sendDrive('STOP');
   };
 
-  const statusText = driveActive ? DRIVE_LABELS[driveActive] : lastResult.text;
+  const statusText = driveActive ? DRIVE_LABELS[driveActive] : (!bridgeOnline && !lastResult.ok) ? '示範模式・未連接裝置' : lastResult.text;
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-35 border-t border-slate-200/80 bg-white/95 shadow-[0_-12px_36px_rgba(15,23,42,0.12)] backdrop-blur-xl">
