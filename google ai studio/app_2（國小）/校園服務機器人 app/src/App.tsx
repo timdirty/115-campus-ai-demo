@@ -155,7 +155,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Header */}
-      <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-65 flex-col border-r border-outline-variant/20 bg-background/95 backdrop-blur-2xl px-5 py-6 shadow-[6px_0_32px_rgba(20,31,50,0.04)]">
+      <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-65 flex-col overflow-y-auto border-r border-outline-variant/20 bg-background/95 backdrop-blur-2xl px-5 py-6 shadow-[6px_0_32px_rgba(20,31,50,0.04)] scrollbar-hide">
         <button
           onClick={() => showToast('核心系統診斷正常，展示資料已同步')}
           className="flex items-center gap-3 text-left text-primary transition-opacity hover:opacity-80"
