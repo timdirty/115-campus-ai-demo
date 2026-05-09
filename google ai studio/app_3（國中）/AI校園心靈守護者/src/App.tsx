@@ -876,7 +876,7 @@ function CampusMap2D({
             <button
               onClick={() => onDispatchRobot(selectedZone)}
               disabled={selectedZone.riskLevel === 'low' || activeDispatch}
-              className={`min-h-10 rounded-xl px-4 text-xs font-black text-white transition active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500 ${activeDispatch ? 'bg-emerald-600 ring-4 ring-emerald-100' : 'bg-teal-600 hover:bg-teal-700'}`}
+              className={`min-h-10 rounded-xl px-4 text-xs font-black text-white transition active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed ${activeDispatch ? 'bg-emerald-600 ring-4 ring-emerald-100' : 'bg-teal-600 hover:bg-teal-700'}`}
             >
               {selectedZone.riskLevel === 'low' ? '維持巡查' : activeDispatch ? robotFeedback?.stage : '派遣'}
             </button>

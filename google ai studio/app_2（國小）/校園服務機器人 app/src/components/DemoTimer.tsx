@@ -52,7 +52,7 @@ export function DemoTimer() {
       title={running ? '點擊暫停' : seconds === TOTAL ? '點擊開始 3 分鐘比賽計時' : '點擊繼續'}
       style={{
         position: 'fixed',
-        bottom: 100,
+        bottom: 172,
         right: 12,
         zIndex: 9998,
         backgroundColor: bg,
