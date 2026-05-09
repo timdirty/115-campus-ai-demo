@@ -57,7 +57,7 @@ import {SensorSetupModal} from './components/SensorSetupModal';
 import {BridgeStatusPill, GuardianControlPanel, GuardianDriveDock, QuickAlertButton} from './components/GuardianControlPanel';
 import {RobotDisplaySync} from './components/RobotDisplaySync';
 
-type ActivePanel = 'alerts' | 'care' | 'robot' | null;
+type ActivePanel = 'alerts' | 'sensing' | 'care' | 'robot' | null;
 type RobotDispatchFeedback = {zoneId: string; zoneName: string; stage: '指令送出' | '前往現場' | '老師確認'; createdAt: number; missionId: string} | null;
 type RobotDispatchStage = NonNullable<RobotDispatchFeedback>['stage'];
 
@@ -83,6 +83,7 @@ const moodOptions: Array<{mood: MoodType; label: string; note: string; tone: str
 
 const panelNav: Array<{id: Exclude<ActivePanel, null>; label: string; icon: LucideIcon}> = [
   {id: 'alerts', label: '預警', icon: Bell},
+  {id: 'sensing', label: '感知', icon: Radar},
   {id: 'care', label: '照護', icon: Leaf},
   {id: 'robot', label: '機器人', icon: Bot},
 ];
@@ -152,6 +153,7 @@ function AppContent() {
   const [bridgeOnline, setBridgeOnline] = useState(false);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const robotTimersRef = useRef<number[]>([]);
+  const autoDemoRunningRef = useRef(false);
   const proxyOnline = useProxyHealth();
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const hwStatus = useHardwareSocket('http://localhost:3203');
@@ -250,6 +252,8 @@ function AppContent() {
       return;
     }
     const createdAt = Date.now();
+    robotTimersRef.current.forEach(clearTimeout);
+    robotTimersRef.current = [];
     setRobotFeedback({zoneId: zone.id, zoneName: zone.name, stage: '指令送出', createdAt, missionId: `R-${createdAt.toString().slice(-4)}`});
     robotTimersRef.current.push(window.setTimeout(() => {
       setRobotFeedback((current) => current?.createdAt === createdAt ? {...current, stage: '前往現場'} : current);
@@ -376,11 +380,13 @@ function AppContent() {
         setMicActive(true);
 
         const buffer = new Uint8Array(analyser.fftSize);
+        let rafFrameCount = 0;
         const tick = () => {
           analyser.getByteTimeDomainData(buffer);
           const reading = analyzeAcousticFrame(buffer, volumeHistoryRef.current);
           volumeHistoryRef.current = [...volumeHistoryRef.current.slice(-24), reading.volumeIndex];
-          setCurrentAcoustic(reading);
+          rafFrameCount = (rafFrameCount + 1) % 6;
+          if (rafFrameCount === 0) setCurrentAcoustic(reading);
           animationFrameRef.current = requestAnimationFrame(tick);
         };
         tick();
@@ -395,6 +401,30 @@ function AppContent() {
       setMicStarting(false);
     }
   };
+
+  const runAutoDemo = useCallback(() => {
+    if (autoDemoRunningRef.current) { showToast('示範進行中，請稍後再試'); return; }
+    autoDemoRunningRef.current = true;
+    dispatch({type: 'RESET_DEMO'});
+    showToast('自動示範開始，3 步快速展示全流程…');
+    window.setTimeout(() => {
+      dispatch({type: 'CREATE_PROACTIVE_ALERT', payload: viewModel.proactiveInsight});
+      setActivePanel('alerts');
+      showToast('① AI 主動巡查偵測到異常，建立預警');
+    }, 800);
+    window.setTimeout(() => {
+      const elevated = {source: 'demo' as const, location: '穿堂', level: 'elevated' as const, volumeIndex: 72, volatility: 34, summary: '示範：下課時間穿堂聲量偏高，AI 融合多來源訊號建議低壓確認。'};
+      dispatch({type: 'RECORD_ACOUSTIC_SIGNAL', payload: elevated});
+      setActivePanel('sensing');
+      showToast('② 環境聲量偏高訊號已記錄到感知中心');
+    }, 2400);
+    window.setTimeout(() => {
+      dispatchRobotToZone(viewModel.highestZone);
+      setActivePanel('robot');
+      showToast('③ 機器人已派往最高風險區，任務追蹤中');
+    }, 4200);
+    window.setTimeout(() => { autoDemoRunningRef.current = false; }, 5200);
+  }, [dispatch, viewModel.proactiveInsight, viewModel.highestZone, showToast, dispatchRobotToZone]);
 
   const exportDemoData = () => {
     const blob = new Blob([JSON.stringify({app: 'AI 校園心靈守護者', exportedAt: new Date().toISOString(), state}, null, 2)], {
@@ -470,6 +500,13 @@ function AppContent() {
             <button onClick={restartTour} className="hidden min-h-10 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 shadow-sm transition hover:border-teal-200 hover:text-teal-700 md:block">
               導覽
             </button>
+            <button
+              onClick={runAutoDemo}
+              className="hidden min-h-10 rounded-xl border border-teal-200 bg-teal-50 px-4 text-xs font-black text-teal-700 shadow-sm transition hover:bg-teal-100 md:block"
+              title="自動執行完整示範流程（預警→感知→機器人）"
+            >
+              自動示範
+            </button>
             <IconButton
               onClick={() => {
                 dispatch({type: 'RESET_DEMO'});
@@ -544,7 +581,7 @@ function AppContent() {
       </main>
 
       {/* Mobile bottom 3-tab nav */}
-      <nav className="fixed bottom-0 inset-x-0 z-40 lg:hidden border-t border-slate-200/80 bg-white/95 backdrop-blur-xl grid grid-cols-3">
+      <nav className="fixed bottom-0 inset-x-0 z-40 lg:hidden border-t border-slate-200/80 bg-white/95 backdrop-blur-xl grid grid-cols-4">
         {panelNav.map((item) => (
           <button
             key={item.id}
@@ -1115,7 +1152,7 @@ function PanelDock({activePanel, onOpenPanel, onShowDemo}: {activePanel: ActiveP
           導覽
         </button>
       </div>
-      <div className="grid grid-cols-3 gap-1">
+      <div className="grid grid-cols-4 gap-1">
         {panelNav.map((item) => (
           <button
             key={item.id}
@@ -1203,15 +1240,20 @@ function DetailDrawer(props: {
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto py-4 pb-safe">
               {panel === 'alerts' && <AlertsPanel {...props} />}
+              {panel === 'sensing' && <SensingPanel {...props} />}
               {panel === 'care' && <CarePanel {...props} />}
               {panel === 'robot' && (
-                <GuardianControlPanel
-                  bridgeOnline={props.bridgeOnline}
-                  zones={props.zones}
-                  sensors={props.sensors}
-                  state={props.state}
-                  onDispatchRobot={props.onDispatchRobot}
-                />
+                <div className="space-y-4">
+                  <GuardianControlPanel
+                    bridgeOnline={props.bridgeOnline}
+                    zones={props.zones}
+                    sensors={props.sensors}
+                    state={props.state}
+                    onDispatchRobot={props.onDispatchRobot}
+                  />
+                  <NodesPanel {...props} />
+                  <LogsPanel {...props} />
+                </div>
               )}
             </div>
           </motion.aside>
@@ -1275,8 +1317,9 @@ function SoundSparkline({trend}: {trend: {t: number; v: number}[]}) {
   const vals = trend.map((p) => p.v);
   const min = Math.min(...vals);
   const max = Math.max(...vals) || 1;
+  const range = max - min || 1;
   const toX = (i: number) => (i / (trend.length - 1)) * W;
-  const toY = (v: number) => H - ((v - min) / (max - min)) * (H - 4) - 2;
+  const toY = (v: number) => H - ((v - min) / range) * (H - 4) - 2;
   const points = trend.map((p, i) => `${toX(i).toFixed(1)},${toY(p.v).toFixed(1)}`).join(' ');
   const last3 = vals.slice(-3);
   const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
@@ -1325,6 +1368,9 @@ function SensingPanel({
   const visualCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const visualStreamRef = useRef<MediaStream | null>(null);
   const [soundTrend, setSoundTrend] = useState<{t: number; v: number}[]>(loadTrend);
+  const acousticRef = useRef(currentAcoustic);
+
+  useEffect(() => { acousticRef.current = currentAcoustic; }, [currentAcoustic]);
 
   useEffect(() => () => {
     visualStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -1334,13 +1380,13 @@ function SensingPanel({
     if (!micActive) return;
     const id = setInterval(() => {
       setSoundTrend((prev) => {
-        const next = [...prev, {t: Date.now(), v: currentAcoustic.volumeIndex}].slice(-MAX_SAMPLES);
+        const next = [...prev, {t: Date.now(), v: acousticRef.current.volumeIndex}].slice(-MAX_SAMPLES);
         try { localStorage.setItem(TREND_LS_KEY, JSON.stringify(next)); } catch {}
         return next;
       });
     }, 10_000);
     return () => clearInterval(id);
-  }, [micActive, currentAcoustic.volumeIndex]);
+  }, [micActive]);
 
   const toggleVisualCamera = async () => {
     if (visualCameraReady) {
@@ -1981,6 +2027,7 @@ function InsightStrip({
 
 function panelTitle(panel: Exclude<ActivePanel, null>) {
   if (panel === 'alerts') return '注意警報';
+  if (panel === 'sensing') return '感知中心';
   if (panel === 'care') return '學生照護';
   return '控制機器人';
 }
