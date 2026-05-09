@@ -498,8 +498,8 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
               </div>
             )}
             <div className="mt-4 flex flex-wrap gap-2">
-              {[...visionResult.tags, ...visionResult.evidence].map((tag) => (
-                <span key={tag} className="rounded-full bg-white/70 px-3 py-1 text-[10px] font-black text-primary shadow-sm">{tag}</span>
+              {[...visionResult.tags, ...visionResult.evidence].map((tag, i) => (
+                <span key={`tag-${i}`} className="rounded-full bg-white/70 px-3 py-1 text-[10px] font-black text-primary shadow-sm">{tag}</span>
               ))}
             </div>
           </div>
