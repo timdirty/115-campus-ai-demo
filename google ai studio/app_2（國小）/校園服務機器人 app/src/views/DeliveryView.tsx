@@ -84,8 +84,26 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
     pendingTimers.current.push(t1);
   };
 
+  const inProgressCount = state.tasks.filter((t) => t.status === 'in_progress').length;
+  const completedCount = state.tasks.filter((t) => t.status === 'completed').length;
+  const commandCount = state.robotCommandLogs.length;
+
   return (
     <div className="space-y-8 pb-6">
+      {/* Summary bar */}
+      <section className="grid grid-cols-3 gap-3 px-1">
+        {[
+          { label: '進行中', value: inProgressCount },
+          { label: '已完成', value: completedCount },
+          { label: '指令紀錄', value: commandCount },
+        ].map(({ label, value }) => (
+          <div key={label} className="rounded-2xl border border-outline-variant/20 bg-surface-container-low px-4 py-3 text-center shadow-inner">
+            <p className="text-[10px] font-extrabold text-on-surface-variant tracking-widest uppercase">{label}</p>
+            <p className="mt-1 text-2xl font-extrabold text-primary">{value}</p>
+          </div>
+        ))}
+      </section>
+
       {/* Search */}
       <section className="relative px-1">
         <div className="group relative flex items-center bg-surface-container-low rounded-4xl px-6 py-5 transition-all focus-within:bg-surface-container-lowest focus-within:ring-4 focus-within:ring-primary/5 shadow-inner border border-outline-variant/10">

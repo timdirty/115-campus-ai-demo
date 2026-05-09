@@ -500,7 +500,7 @@ function AppContent() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl gap-4 px-4 py-4 pb-20 sm:px-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <main className="mx-auto grid max-w-7xl gap-4 px-4 py-4 pb-24 sm:px-6 lg:pb-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <CommandCenterScreen
           viewModel={viewModel}
           selectedZone={selectedZone}
@@ -515,12 +515,47 @@ function AppContent() {
           onDispatchRobot={dispatchRobotToZone}
         />
 
-        <aside className="grid gap-4 lg:sticky lg:top-21 lg:max-h-[calc(100vh-6rem)] lg:grid-rows-[auto_1fr_auto]">
+        <aside className="hidden lg:grid gap-4 lg:sticky lg:top-21 lg:max-h-[calc(100vh-6rem)] lg:grid-rows-[auto_1fr_auto]">
+          {/* Top-3 open alerts preview — always visible */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+            <p className="mb-2 text-[10px] font-black tracking-widest text-slate-400 uppercase">即時預警 Top-3</p>
+            {viewModel.openAlerts.length === 0 ? (
+              <p className="text-xs text-slate-400 font-bold py-1">目前無待處理預警</p>
+            ) : viewModel.openAlerts.slice(0, 3).map((alert) => (
+              <button
+                key={alert.id}
+                onClick={() => setActivePanel('alerts')}
+                className="w-full text-left mb-1.5 last:mb-0 flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition hover:bg-rose-50"
+              >
+                <span className={`h-2 w-2 shrink-0 rounded-full ${alert.riskLevel === 'high' ? 'bg-rose-500' : alert.riskLevel === 'medium' ? 'bg-amber-400' : 'bg-teal-400'}`} />
+                <span className="truncate text-slate-700">{alert.location} — {alert.description}</span>
+              </button>
+            ))}
+            <button onClick={() => setActivePanel('alerts')} className="mt-2 w-full rounded-xl bg-slate-50 py-1.5 text-[10px] font-black text-slate-500 transition hover:bg-rose-50 hover:text-rose-600">
+              查看全部預警 →
+            </button>
+          </div>
           <div data-tour="zone-inspector"><ZoneInspector zone={selectedZone} robotFeedback={robotFeedback} onDispatchRobot={dispatchRobotToZone} /></div>
           <div data-tour="mission-timeline"><MissionTimeline state={state} robotFeedback={robotFeedback} /></div>
           <div data-tour="panel-dock"><PanelDock activePanel={activePanel} onOpenPanel={setActivePanel} onShowDemo={restartTour} /></div>
         </aside>
       </main>
+
+      {/* Mobile bottom 3-tab nav */}
+      <nav className="fixed bottom-0 inset-x-0 z-40 lg:hidden border-t border-slate-200/80 bg-white/95 backdrop-blur-xl grid grid-cols-3">
+        {panelNav.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setActivePanel(activePanel === item.id ? null : item.id)}
+            className={`flex flex-col items-center justify-center gap-1 py-3 text-[10px] font-black transition-colors ${
+              activePanel === item.id ? 'text-teal-600 bg-teal-50/60' : 'text-slate-500 hover:text-teal-600'
+            }`}
+          >
+            <item.icon className="h-5 w-5" />
+            {item.label}
+          </button>
+        ))}
+      </nav>
 
       <GuardianDriveDock bridgeOnline={bridgeOnline} />
 

@@ -1,5 +1,3 @@
-export type ViewType = 'dashboard' | 'alerts' | 'self-care' | 'sensing' | 'nodes';
-
 export interface ZoneSensorReading {
   zoneId: string;
   portPath?: string | null;
