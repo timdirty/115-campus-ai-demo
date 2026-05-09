@@ -95,6 +95,8 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
         </div>
       </div>
 
+      {/* Attendance + Focus — side by side on tablet */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Attendance & Roll Call */}
       <section data-tour="attendance-card" className="bg-surface-container-lowest rounded-2xl p-5 border border-outline-variant/30 shadow-md flex items-center justify-between gap-4 relative overflow-hidden group">
          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
@@ -157,6 +159,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
           {/* Decorative Graph Grid */}
           <div className="absolute inset-0 top-auto h-28 opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(to top, var(--color-primary) 1.5px, transparent 1.5px)', backgroundSize: '100% 24px' }}></div>
         </div>
+      </div>{/* end attendance+focus grid */}
 
       {/* AI Signals */}
       <section data-tour="alert-list" className="space-y-3">
@@ -171,7 +174,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
              目前無異常或提問訊號
            </div>
         ) : (
-          <div className="space-y-2.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
             {state.teachingSignals.map((sig) => (
               <motion.div
                 key={sig.id}

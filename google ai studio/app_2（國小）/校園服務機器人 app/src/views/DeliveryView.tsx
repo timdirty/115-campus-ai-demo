@@ -217,7 +217,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
             initial="hidden"
             animate="show"
             key={activeCategory + searchQuery}
-            className="grid grid-cols-1 gap-3"
+            className="grid grid-cols-1 md:grid-cols-2 gap-3"
           >
             {filteredProducts.map(product => (
               <motion.div
@@ -263,77 +263,77 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
       {/* Product Detail Modal */}
       <BottomSheet isOpen={modal === 'product'} onClose={() => setModal(null)} title="商品詳細細節">
         {selectedProduct && (
-          <div className="p-6 space-y-10 pb-10">
-            <div className="w-full aspect-square rounded-[3rem] overflow-hidden bg-surface-container mb-6 shadow-2xl relative border-4 border-surface-container-highest">
+          <div className="p-4 space-y-5 pb-8">
+            <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-surface-container shadow-xl relative border-2 border-surface-container-highest">
                <img src={selectedProduct.img} className="w-full h-full object-cover transition-transform duration-1000" />
                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div>
-               <div className="absolute bottom-8 left-8">
-                  <span className="bg-primary px-4 py-1.5 rounded-xl text-xs font-extrabold text-white shadow-lg shadow-primary/30">品質認證</span>
+               <div className="absolute bottom-4 left-4">
+                  <span className="bg-primary px-3 py-1 rounded-lg text-xs font-extrabold text-white shadow-lg shadow-primary/30">品質認證</span>
                </div>
             </div>
 
-            <div className="space-y-4 px-1">
-              <div className="flex items-center gap-3">
-                 <span className="bg-primary/10 text-primary px-3 py-1 rounded-lg text-xs font-extrabold leading-none border border-primary/20">
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2">
+                 <span className="bg-primary/10 text-primary px-2.5 py-1 rounded-lg text-xs font-extrabold leading-none border border-primary/20">
                    {CATEGORIES.find(c => c.id === selectedProduct.category)?.label || '推薦'}
                  </span>
                  <div className="h-1 w-1 bg-outline-variant rounded-full"></div>
                  <span className="text-xs text-on-surface-variant/60 font-bold">庫存 {selectedProduct.stock}</span>
               </div>
-              <h2 className="text-4xl font-headline font-bold text-on-surface tracking-tight leading-none">{selectedProduct.name}</h2>
-              <p className="text-on-surface-variant font-medium mt-6 leading-relaxed text-base bg-surface-container-low/50 p-7 rounded-4xl border border-outline-variant/10 shadow-inner">
+              <h2 className="text-2xl font-headline font-bold text-on-surface tracking-tight leading-none">{selectedProduct.name}</h2>
+              <p className="text-on-surface-variant font-medium leading-relaxed text-sm bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/10 shadow-inner">
                 {selectedProduct.desc}
               </p>
             </div>
 
-            <div className="flex items-center justify-between border-y border-outline-variant/20 py-10 my-10 px-2">
+            <div className="flex items-center justify-between border-y border-outline-variant/20 py-4 px-1">
                <div className="flex flex-col">
-                 <span className="text-xs font-bold text-on-surface-variant/60 mb-2">訂單總計</span>
+                 <span className="text-xs font-bold text-on-surface-variant/60 mb-1">訂單總計</span>
                  <motion.span
                    key={qty}
                    initial={{ scale: 0.9, opacity: 0 }}
                    animate={{ scale: 1, opacity: 1 }}
-                   className="font-bold text-5xl text-primary tracking-tight"
+                   className="font-bold text-3xl text-primary tracking-tight"
                  >
-                   <span className="text-2xl mr-1.5 opacity-60">NT$</span>{selectedProduct.price * qty}
+                   <span className="text-lg mr-1 opacity-60">NT$</span>{selectedProduct.price * qty}
                  </motion.span>
                </div>
 
-               <div className="flex items-center gap-5 bg-surface-container rounded-4xl p-2.5 shadow-inner border border-outline-variant/10">
-                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQty(Math.max(1, qty - 1))} disabled={isOrdering} className="w-14 h-14 rounded-2xl bg-surface-container-lowest text-on-surface shadow-sm flex items-center justify-center border border-outline-variant/20 hover:bg-white transition-colors active:shadow-inner disabled:opacity-30">
-                    <span className="text-3xl font-bold leading-none">-</span>
+               <div className="flex items-center gap-3 bg-surface-container rounded-2xl p-2 shadow-inner border border-outline-variant/10">
+                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQty(Math.max(1, qty - 1))} disabled={isOrdering} className="w-11 h-11 rounded-xl bg-surface-container-lowest text-on-surface shadow-sm flex items-center justify-center border border-outline-variant/20 hover:bg-white transition-colors active:shadow-inner disabled:opacity-30">
+                    <span className="text-2xl font-bold leading-none">-</span>
                   </motion.button>
-                  <span className="font-headline font-bold text-3xl w-10 text-center text-on-surface">{qty}</span>
-                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQty(Math.min(selectedProduct.stock, qty + 1))} className="w-14 h-14 rounded-2xl bg-primary text-white shadow-xl shadow-primary/20 flex items-center justify-center disabled:opacity-30 hover:bg-primary/95 transition-all" disabled={qty >= selectedProduct.stock || isOrdering}>
-                    <span className="text-3xl font-bold leading-none">+</span>
+                  <span className="font-headline font-bold text-xl w-8 text-center text-on-surface">{qty}</span>
+                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQty(Math.min(selectedProduct.stock, qty + 1))} className="w-11 h-11 rounded-xl bg-primary text-white shadow-lg shadow-primary/20 flex items-center justify-center disabled:opacity-30 hover:bg-primary/95 transition-all" disabled={qty >= selectedProduct.stock || isOrdering}>
+                    <span className="text-2xl font-bold leading-none">+</span>
                   </motion.button>
                </div>
             </div>
 
-             <div className="mb-10 px-2">
-                <label className="block text-xs font-extrabold text-on-surface-variant/60 mb-4">選擇目的地</label>
+             <div>
+                <label className="block text-xs font-extrabold text-on-surface-variant/60 mb-2">選擇目的地</label>
                 <div className="relative group">
-                  <select value={dest} onChange={(e) => setDest(e.target.value)} className="w-full bg-surface-container-lowest border border-outline-variant/30 rounded-3xl px-8 py-5 text-lg font-bold focus:outline-none focus:ring-4 focus:ring-primary/5 appearance-none shadow-sm cursor-pointer transition-all hover:border-primary/40 focus:border-primary">
+                  <select value={dest} onChange={(e) => setDest(e.target.value)} className="w-full bg-surface-container-lowest border border-outline-variant/30 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/10 appearance-none shadow-sm cursor-pointer transition-all hover:border-primary/40 focus:border-primary">
                     {LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
                   </select>
-                  <div className="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none text-primary bg-primary/10 w-10 h-10 rounded-xl flex items-center justify-center border border-primary/20 group-focus-within:bg-primary group-focus-within:text-white transition-all"><Rocket size={20} className="-rotate-12" /></div>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-primary bg-primary/10 w-8 h-8 rounded-xl flex items-center justify-center border border-primary/20 group-focus-within:bg-primary group-focus-within:text-white transition-all"><Rocket size={16} className="-rotate-12" /></div>
                 </div>
              </div>
 
             <button
               onClick={handleOrder}
               disabled={isOrdering}
-              className="w-full py-6 bg-primary hover:bg-primary/95 text-white font-bold text-xl tracking-tight rounded-4xl shadow-[0_12px_40px_rgba(var(--color-primary),0.3)] active:scale-[0.985] transition-all flex items-center justify-center gap-4 disabled:opacity-80 relative overflow-hidden group/btn"
+              className="w-full py-4 bg-primary hover:bg-primary/95 text-white font-bold text-base tracking-tight rounded-2xl shadow-[0_8px_24px_rgba(var(--color-primary),0.25)] active:scale-[0.985] transition-all flex items-center justify-center gap-3 disabled:opacity-80 relative overflow-hidden group/btn"
             >
               <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000"></div>
               {isOrdering ? (
                 <div className="flex items-center gap-3">
-                  <Loader2 size={24} className="animate-spin" />
+                  <Loader2 size={20} className="animate-spin" />
                   <span className="text-sm">正在建立訂單...</span>
                 </div>
               ) : (
                 <>
-                  <Truck size={28} className="transition-transform group-hover/btn:-translate-y-1 group-hover/btn:rotate-6" />
+                  <Truck size={22} className="transition-transform group-hover/btn:-translate-y-1 group-hover/btn:rotate-6" />
                   <span className="tracking-tight">確認訂單並分派機器人</span>
                 </>
               )}

@@ -95,7 +95,7 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
       </section>
 
       {/* Environmental Sensors */}
-      <section className="grid grid-cols-2 gap-3 mb-4 px-1">
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 px-1">
         <p className="col-span-2 text-[10px] text-gray-400 text-right -mb-1">
           更新於 {lastUpdated.getHours().toString().padStart(2, '0')}:{lastUpdated.getMinutes().toString().padStart(2, '0')}
         </p>
@@ -124,8 +124,9 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
         ))}
       </section>
 
-      <section data-tour="life-services" className="grid grid-cols-1 gap-4 px-1">
-        {/* Emergency Broadcasting Toggle */}
+      <section data-tour="life-services" className="grid grid-cols-1 md:grid-cols-2 gap-4 px-1">
+        {/* Emergency Broadcasting Toggle — full width */}
+        <div className="md:col-span-2">
         <div className={`rounded-2xl p-5 shadow-lg transition-all duration-500 border ${isEmergency ? 'bg-error text-white border-error shadow-error/30' : 'bg-surface-container-low border-outline-variant/30 shadow-[0_4px_16px_rgba(0,0,0,0.03)]'}`}>
           <div className="flex items-center justify-between mb-3">
              <div className="flex items-center gap-4">
@@ -150,6 +151,8 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
             </motion.p>
           )}
         </div>
+
+        </div>{/* end md:col-span-2 emergency wrapper */}
 
         {/* Broadcasting Interface */}
         <div className="bg-surface-container-low rounded-2xl p-5 border border-outline-variant/30 flex flex-col gap-4 shadow-sm overflow-hidden relative group">

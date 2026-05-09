@@ -13,7 +13,7 @@ const AVATAR_SVG = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://
 import { motion, AnimatePresence } from 'motion/react';
 import { Bot, GraduationCap, Truck, Building2, CheckCircle2, Download, Upload } from 'lucide-react';
 import { BottomSheet } from './components/ui';
-import { RemoteControlLauncher } from './components/RemoteControlPanel';
+import { RemoteControlLauncher, RemoteControlSidebarButton } from './components/RemoteControlPanel';
 import { useAppActions, useAppState } from './state/AppStateProvider';
 
 const DashboardView = React.lazy(() => import('./views/DashboardView').then((module) => ({default: module.DashboardView})));
@@ -187,6 +187,9 @@ export default function App() {
               </button>
             );
           })}
+          <div className="pt-2 border-t border-outline-variant/20">
+            <RemoteControlSidebarButton />
+          </div>
         </nav>
 
         <div className="mt-auto rounded-2xl border border-outline-variant/20 bg-surface-container-low p-4">
