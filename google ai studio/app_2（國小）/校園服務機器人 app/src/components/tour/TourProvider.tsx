@@ -77,7 +77,7 @@ export function TourProvider({
 
   const restartTour = useCallback(() => {
     localStorage.removeItem(TOUR_STORAGE_KEY);
-    onTabChangeRef.current('dashboard');
+    onTabChangeRef.current('delivery');
     currentStepIndexRef.current = 0;
     setCurrentStepIndex(0);
     setIsActive(true);

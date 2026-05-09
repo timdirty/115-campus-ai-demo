@@ -60,7 +60,7 @@ export const TOUR_STEPS: TourStep[] = [
     id: 'panel-dock',
     targetDataTour: 'panel-dock',
     title: '工作面板',
-    body: '這裡有五個功能面板：預警清單、聲音感知、心理照護、節點管理、任務紀錄，點按鈕就能展開對應面板。',
+    body: '這裡有三個功能面板：預警清單、學生照護、機器人派遣，點按鈕就能展開對應面板。',
     demoTip: '「我示範點「照護」，裡面有心情簽到和匿名心情牆——學生可以安全表達感受。」',
     tooltipSide: 'top',
   },
@@ -68,7 +68,7 @@ export const TOUR_STEPS: TourStep[] = [
     id: 'complete',
     isFullscreen: true,
     title: '你準備好了！',
-    body: '所有功能都看過了。比賽時按照這個順序介紹：地圖 → 風險 → 派遣 → 五大面板，評審會有最清楚的印象。',
+    body: '所有功能都看過了。比賽時按照這個順序介紹：地圖 → 風險 → 派遣 → 三大面板（預警/照護/機器人），評審會有最清楚的印象。',
     demoTip: '「謝謝評審，這套系統讓老師能即時掌握校園心理動態，並用 AI 機器人主動關懷高風險學生。」',
   },
 ];

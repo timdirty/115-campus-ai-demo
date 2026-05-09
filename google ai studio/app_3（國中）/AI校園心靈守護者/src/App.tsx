@@ -909,8 +909,8 @@ function OperationsBrief({viewModel, onOpenPanel}: {viewModel: CommandCenterView
             <p className="mt-1 text-2xl font-black text-slate-950">{viewModel.highPriorityCount}</p>
           </button>
           <button onClick={() => onOpenPanel('care')} className="rounded-xl border border-slate-200/70 bg-slate-50/80 p-3 text-left transition hover:border-teal-200 hover:bg-teal-50">
-            <p className="text-[10px] font-black text-slate-400">聲量</p>
-            <p className="mt-1 text-2xl font-black text-slate-950">{viewModel.latestSoundLabel}</p>
+            <p className="text-[10px] font-black text-slate-400">照護</p>
+            <p className="mt-1 text-2xl font-black text-slate-950">學生關懷</p>
           </button>
         </div>
       </div>
