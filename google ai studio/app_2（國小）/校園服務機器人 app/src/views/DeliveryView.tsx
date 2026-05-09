@@ -95,7 +95,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
         {[
           { label: '進行中', value: inProgressCount },
           { label: '已完成', value: completedCount },
-          { label: '指令紀錄', value: commandCount },
+          { label: '配送次數', value: commandCount },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-2xl border border-outline-variant/20 bg-surface-container-low px-4 py-3 text-center shadow-inner">
             <p className="text-[10px] font-extrabold text-on-surface-variant tracking-widest uppercase">{label}</p>

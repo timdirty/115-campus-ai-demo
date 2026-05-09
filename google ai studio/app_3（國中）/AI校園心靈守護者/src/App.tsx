@@ -428,7 +428,7 @@ function AppContent() {
       {/* Proxy Health Banner */}
       {proxyOnline === false && !bannerDismissed && (
         <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800">
-          <span>⚠️ AI 橋接伺服器未連線，智慧功能將使用本機模式運作</span>
+          <span>⚠️ AI 雲端功能暫時離線，系統切換為本機示範模式</span>
           <button
             onClick={() => setBannerDismissed(true)}
             aria-label="關閉提示"
@@ -518,7 +518,7 @@ function AppContent() {
         <aside className="hidden lg:grid gap-4 lg:sticky lg:top-21 lg:max-h-[calc(100vh-6rem)] lg:grid-rows-[auto_1fr_auto]">
           {/* Top-3 open alerts preview — always visible */}
           <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-            <p className="mb-2 text-[10px] font-black tracking-widest text-slate-400 uppercase">即時預警 Top-3</p>
+            <p className="mb-2 text-[10px] font-black tracking-widest text-slate-400 uppercase">最新需注意狀況</p>
             {viewModel.openAlerts.length === 0 ? (
               <p className="text-xs text-slate-400 font-bold py-1">目前無待處理預警</p>
             ) : viewModel.openAlerts.slice(0, 3).map((alert) => (
@@ -532,7 +532,7 @@ function AppContent() {
               </button>
             ))}
             <button onClick={() => setActivePanel('alerts')} className="mt-2 w-full rounded-xl bg-slate-50 py-1.5 text-[10px] font-black text-slate-500 transition hover:bg-rose-50 hover:text-rose-600">
-              查看全部預警 →
+              查看全部 →
             </button>
           </div>
           <div data-tour="zone-inspector"><ZoneInspector zone={selectedZone} robotFeedback={robotFeedback} onDispatchRobot={dispatchRobotToZone} /></div>
@@ -1990,7 +1990,7 @@ function InsightStrip({
 }
 
 function panelTitle(panel: Exclude<ActivePanel, null>) {
-  if (panel === 'alerts') return '預警與處置';
+  if (panel === 'alerts') return '注意警報';
   if (panel === 'care') return '學生照護';
-  return '機器人派遣';
+  return '控制機器人';
 }

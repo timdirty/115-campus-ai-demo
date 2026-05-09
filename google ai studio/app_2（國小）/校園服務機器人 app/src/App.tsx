@@ -124,7 +124,7 @@ export default function App() {
       {/* Proxy Health Banner */}
       {proxyOnline === false && !bannerDismissed && (
         <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800">
-          <span>⚠️ AI 橋接伺服器未連線，智慧功能將使用本機模式運作</span>
+          <span>⚠️ AI 雲端功能暫時離線，系統切換為本機示範模式</span>
           <button
             onClick={() => setBannerDismissed(true)}
             className="shrink-0 w-11 h-11 flex items-center justify-center text-amber-600 hover:text-amber-900 font-medium"

@@ -53,13 +53,13 @@ export const HardwareStatusBanner = memo(function HardwareStatusBanner({status}:
   if (reconnecting) {
     return (
       <div role="status" aria-live="polite" style={{...BANNER_BASE, backgroundColor: '#6366f1'}}>
-        <span style={TEXT_STYLE}>↺ 橋接重連中… 請稍候</span>
+        <span style={TEXT_STYLE}>↺ 機器人重新連線中… 請稍候</span>
       </div>
     );
   }
 
   const bg = connected ? '#f59e0b' : '#ef4444';
-  const text = connected ? '⚠ 模擬模式 · 未連接實體 Arduino' : '✕ 硬體離線 · 請連接 Arduino 並確認 bridge 已啟動';
+  const text = connected ? '⚠ 示範模式 · 未連接實體機器人' : '✕ 機器人離線 · 請確認 Arduino 已接上並啟動';
 
   return (
     <div role="status" aria-live="polite" style={{...BANNER_BASE, backgroundColor: bg}}>
