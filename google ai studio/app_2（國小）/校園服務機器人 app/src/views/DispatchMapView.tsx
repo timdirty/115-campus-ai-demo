@@ -15,6 +15,8 @@ const DISPATCH_PROGRESS: Record<string, number> = {
   '待命': 0, '確認區域': 28, '機器人出勤': 68, '任務回報': 100,
 };
 
+const DISPATCH_STAGES = ['確認區域', '機器人出勤', '任務回報'] as const;
+
 export function DispatchMapView({ goBack, showToast }: {goBack: () => void; showToast: (msg: string) => void}) {
   const actions = useAppActions();
   const [selectedZone, setSelectedZone] = useState('none');
@@ -263,7 +265,7 @@ export function DispatchMapView({ goBack, showToast }: {goBack: () => void; show
 
                  {dispatchingZone && (
                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-5 grid grid-cols-3 gap-2">
-                     {['確認區域', '機器人出勤', '任務回報'].map((step, index) => (
+                     {DISPATCH_STAGES.map((step, index) => (
                        <div key={step} className={`rounded-2xl border px-3 py-2 text-center text-[10px] font-black ${index <= (dispatchStage === '確認區域' ? 0 : dispatchStage === '機器人出勤' ? 1 : 2) ? 'border-primary/30 bg-primary/10 text-primary' : 'border-slate-200 bg-slate-50 text-slate-400'}`}>
                          {step}
                        </div>

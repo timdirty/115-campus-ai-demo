@@ -1,5 +1,6 @@
 import type {Dispatch} from 'react';
 import {AlertCircle, CheckCircle2, MapPin, Sparkles} from 'lucide-react';
+import type {LucideIcon} from 'lucide-react';
 import {GuardianAlert, GuardianNode, ViewType} from '../types';
 import {recommendationForAlert} from '../services/localGuardianAi';
 
@@ -130,7 +131,7 @@ export function SeverityBadge({severity}: {severity: 'high' | 'medium' | 'low'})
   );
 }
 
-export function TabButton({active, icon: Icon, label, onClick, compact}: {key?: unknown; active: boolean; icon: any; label: string; onClick: () => void; compact?: boolean}) {
+export function TabButton({active, icon: Icon, label, onClick, compact}: {key?: unknown; active: boolean; icon: LucideIcon; label: string; onClick: () => void; compact?: boolean}) {
   return (
     <button onClick={onClick} className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl px-3 text-xs font-black transition active:scale-95 ${active ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'} ${compact ? 'min-w-24' : 'flex-col'}`}>
       <Icon className="h-5 w-5" />

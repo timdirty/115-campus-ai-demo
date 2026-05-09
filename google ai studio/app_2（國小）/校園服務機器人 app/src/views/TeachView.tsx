@@ -9,6 +9,8 @@ import { openPrintableReport } from '../services/reports';
 
 const SUBJECTS = ['數學', '語文', '自然', '社會', '英語', '體育', '藝術'] as const;
 
+const CHAT_SUGGESTIONS = ['好問題！我先簡單說明。', '請大家看黑板這邊的說明。', '好問題，稍後全班統一說明！'] as const;
+
 export function TeachView({ showToast, navigateTo }: { showToast: (m: string) => void, navigateTo: (id: string, props?: any) => void }) {
   const state = useAppState();
   const actions = useAppActions();
@@ -258,7 +260,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
             {/* AI Suggestions */}
             {!isTyping && !chatReply && (
               <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-5 pt-3 -mx-4 px-4 snap-x">
-                {['好問題！我先簡單說明。', '請大家看黑板這邊的說明。', '好問題，稍後全班統一說明！'].map((sug, idx) => (
+                {CHAT_SUGGESTIONS.map((sug, idx) => (
                   <button
                     key={idx}
                     onClick={() => setChatInput(sug)}

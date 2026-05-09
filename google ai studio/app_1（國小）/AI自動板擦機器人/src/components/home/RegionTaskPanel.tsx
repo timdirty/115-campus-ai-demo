@@ -1,6 +1,12 @@
 import {CheckCircle2, Eraser, Loader2, Save, ShieldCheck} from 'lucide-react';
 import type {BoardAnalysisResponse, BoardRegion, ClassroomSession} from '../../services/classroomApi';
 
+const FOCUS_METRICS = [
+  {label: '專注', color: 'bg-green-500', key: 'focusPercent' as const},
+  {label: '困惑', color: 'bg-amber-500', key: 'confusedPercent' as const},
+  {label: '疲憊', color: 'bg-red-400', key: 'tiredPercent' as const},
+] as const;
+
 type RegionTaskPanelProps = {
   analysis: BoardAnalysisResponse | null;
   classroom: ClassroomSession | null;
@@ -104,20 +110,16 @@ export function RegionTaskPanel({analysis, classroom, boardRegions, busy, onSave
         <div className="mt-4 bg-surface rounded-lg p-4 border border-outline-variant/20">
           <p className="text-xs font-bold text-on-surface-variant mb-3">學習狀態分析</p>
           <div className="space-y-2">
-            {([
-              {label: '專注', color: 'bg-green-500', value: analysis.focusPercent},
-              {label: '困惑', color: 'bg-amber-500', value: analysis.confusedPercent},
-              {label: '疲憊', color: 'bg-red-400', value: analysis.tiredPercent},
-            ] as const).map(({label, color, value}) => (
+            {FOCUS_METRICS.map(({label, color, key}) => (
               <div key={label} className="flex items-center gap-2">
                 <span className="w-8 text-xs text-on-surface-variant shrink-0">{label}</span>
                 <div className="flex-1 h-2 bg-surface-container-highest rounded-full overflow-hidden">
                   <div
                     className={`h-full ${color} rounded-full transition-all duration-500`}
-                    style={{width: `${value}%`}}
+                    style={{width: `${analysis[key]}%`}}
                   />
                 </div>
-                <span className="w-8 text-right text-xs font-medium text-on-surface-variant">{value}%</span>
+                <span className="w-8 text-right text-xs font-medium text-on-surface-variant">{analysis[key]}%</span>
               </div>
             ))}
           </div>

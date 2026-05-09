@@ -1,4 +1,25 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+
+const VISION_SAMPLES = [
+  '福利社前取物配送',
+  '五年級走廊地板垃圾清掃',
+  '下課穿堂人流擁擠',
+  '操場入口通道阻塞安全巡查',
+] as const;
+
+const VISION_METRIC_LABELS = [
+  ['亮度', 'brightness'],
+  ['彩度', 'saturation'],
+  ['邊緣', 'edgeDensity'],
+  ['暗區', 'darkArea'],
+] as const;
+
+const DIAGNOSTIC_ITEMS = [
+  {id: 'env-scan', n: '環境掃描', s: '正常', t: '即時回傳'},
+  {id: 'obstacle', n: '避障感測', s: '正常', t: '路線安全'},
+  {id: 'task-judge', n: '任務判斷', s: '正常', t: '狀態穩定'},
+  {id: 'motion-mod', n: '移動模組', s: '正常', t: '輸出穩定'},
+] as const;
 import { motion, AnimatePresence } from 'motion/react';
 import { BottomSheet } from '../components/ui';
 import { BatteryCharging, MapPin, Activity, Navigation, Wind, Building2, Route, Terminal, CheckCircle2, CircleDashed, FileText, Bot, ArrowRight, Package, CalendarClock, Camera, ScanSearch, Sparkles } from 'lucide-react';
@@ -75,13 +96,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
   if (!activeRobot) return null;
 
   const runVisionDemo = () => {
-    const samples = [
-      '福利社前取物配送',
-      '五年級走廊地板垃圾清掃',
-      '下課穿堂人流擁擠',
-      '操場入口通道阻塞安全巡查',
-    ];
-    const sample = samples[Math.floor(Date.now() / 1000) % samples.length];
+    const sample = VISION_SAMPLES[Math.floor(Date.now() / 1000) % VISION_SAMPLES.length];
     setVisionResult(analyzeCampusFrame(sample));
     setVisionSourceName('示範畫面');
     showToast('已完成本機影像辨識');
@@ -474,15 +489,10 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
             )}
             {visionResult.metrics && (
               <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {[
-                  ['亮度', visionResult.metrics.brightness],
-                  ['彩度', visionResult.metrics.saturation],
-                  ['邊緣', visionResult.metrics.edgeDensity],
-                  ['暗區', visionResult.metrics.darkArea],
-                ].map(([label, value]) => (
+                {VISION_METRIC_LABELS.map(([label, key]) => (
                   <div key={label} className="rounded-xl bg-white/75 px-3 py-2 shadow-sm">
                     <p className="text-[9px] font-black text-on-surface-variant/50">{label}</p>
-                    <p className="mt-0.5 text-sm font-black text-primary">{value}</p>
+                    <p className="mt-0.5 text-sm font-black text-primary">{visionResult.metrics?.[key]}</p>
                   </div>
                 ))}
               </div>
@@ -750,12 +760,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
 
       <BottomSheet isOpen={modal === 'robot' || modal === 'radar'} onClose={() => setModal(null)} title="系統診斷">
         <div className="p-4 space-y-4">
-          {[
-            { id: 'env-scan', n: '環境掃描', s: '正常', t: '即時回傳' },
-            { id: 'obstacle', n: '避障感測', s: '正常', t: '路線安全' },
-            { id: 'task-judge', n: '任務判斷', s: '正常', t: '狀態穩定' },
-            { id: 'motion-mod', n: '移動模組', s: '正常', t: '輸出穩定' }
-          ].map((s, i) => (
+          {DIAGNOSTIC_ITEMS.map((s, i) => (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }} key={s.id} className="flex justify-between items-center p-5 bg-surface-container-low rounded-2xl border border-outline-variant/10 shadow-sm hover:shadow transition-shadow">
               <span className="font-bold text-sm tracking-wide text-on-surface">{s.n}</span>
               <div className="text-right">
