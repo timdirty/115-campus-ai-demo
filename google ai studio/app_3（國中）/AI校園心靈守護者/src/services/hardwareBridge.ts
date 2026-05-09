@@ -132,10 +132,13 @@ export async function sendGuardianDriveCommand(command: string) {
 }
 
 export async function resetBridgeDemoData(): Promise<boolean> {
+  const {signal, clear} = withTimeout(3000);
   try {
-    const response = await fetch(`${BRIDGE_URL}/api/ops/reset`, {method: 'POST'});
+    const response = await fetch(`${BRIDGE_URL}/api/ops/reset`, {method: 'POST', signal});
     return response.ok;
   } catch {
     return false;
+  } finally {
+    clear();
   }
 }
