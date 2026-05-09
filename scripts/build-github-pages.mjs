@@ -3,7 +3,7 @@
 import {spawnSync} from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import {appDir, apps, guidePath, pagesDir} from './app-catalog.mjs';
+import {allGuidesUrl, appDir, apps, guidePath, guideUrl, pagesDir} from './app-catalog.mjs';
 
 function run(command, args, cwd) {
   const result = spawnSync(command, args, {cwd, stdio: 'inherit', shell: process.platform === 'win32'});
@@ -92,7 +92,7 @@ function renderGuideMarkdown(markdown) {
 function writeGuidePage(app) {
   const markdown = fs.readFileSync(guidePath(app), 'utf8');
   const guideHtml = renderGuideMarkdown(markdown);
-  fs.writeFileSync(path.join(pagesDir, `${app.id}-guide.html`), `<!doctype html>
+  fs.writeFileSync(path.join(pagesDir, guideUrl(app)), `<!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
@@ -128,6 +128,103 @@ function writeGuidePage(app) {
 `, 'utf8');
 }
 
+function writeAllGuidesPage() {
+  const tabs = apps.map((app, index) => `
+      <a class="tab${index === 0 ? ' current' : ''}" href="#${app.id}">${app.shortName} 講稿</a>
+  `).join('');
+  const sections = apps.map((app) => {
+    const markdown = fs.readFileSync(guidePath(app), 'utf8');
+    const guideHtml = renderGuideMarkdown(markdown);
+    return `
+      <section id="${app.id}" class="guide-card" style="--accent:${app.accent}">
+        <div class="card-top">
+          <div>
+            <span class="tag">${app.team}</span>
+            <h2>${app.name}</h2>
+            <p>${app.desc}</p>
+          </div>
+          <div class="actions">
+            <a class="primary" href="./${app.id}/">開啟 ${app.shortName}</a>
+            <a class="secondary" href="./${guideUrl(app)}">獨立講稿頁</a>
+          </div>
+        </div>
+        <article>${guideHtml}</article>
+      </section>
+    `;
+  }).join('');
+
+  fs.writeFileSync(path.join(pagesDir, allGuidesUrl()), `<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>115 資通訊三隊學生講稿總覽</title>
+  <style>
+    :root { color-scheme: light; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif; }
+    * { box-sizing: border-box; min-width: 0; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: linear-gradient(180deg, #f7fafc 0%, #edf4fb 100%); color: #172033; }
+    main { width: min(1080px, calc(100% - 24px)); margin: 0 auto; padding: 24px 0 42px; }
+    .topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 10px; }
+    a { color: #0f4c81; font-weight: 900; }
+    .nav-links a, .tab { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #d6e2f0; border-radius: 999px; background: rgb(255 255 255 / .82); padding: 0 14px; text-decoration: none; }
+    header { display: grid; gap: 12px; margin-bottom: 18px; }
+    .eyebrow { width: fit-content; border-radius: 999px; background: #dbeafe; color: #1d4ed8; padding: 8px 12px; font-size: 12px; font-weight: 950; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(2rem, 5vw, 4rem); line-height: 1.02; }
+    .lead { max-width: 880px; margin: 0; color: #4f5c70; font-weight: 750; line-height: 1.75; }
+    .tab-row { position: sticky; top: 0; z-index: 4; display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; padding: 12px 0; backdrop-filter: blur(10px); }
+    .tab.current { background: #111827; color: #fff; border-color: #111827; }
+    .guide-list { display: grid; gap: 18px; }
+    .guide-card { border: 1px solid #d7e1ee; border-radius: 18px; background: rgb(255 255 255 / .88); padding: clamp(18px, 3vw, 28px); box-shadow: 0 22px 64px rgb(27 35 52 / .08); }
+    .card-top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+    .tag { display: inline-flex; margin-bottom: 10px; border-radius: 999px; background: color-mix(in srgb, var(--accent), white 86%); color: var(--accent); padding: 7px 10px; font-size: 12px; font-weight: 950; }
+    h2 { margin: 0 0 8px; font-size: clamp(1.4rem, 3vw, 2rem); }
+    p, li { color: #465366; font-weight: 650; line-height: 1.78; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .actions a { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; padding: 0 14px; text-decoration: none; }
+    .primary { background: #111827; color: #fff; }
+    .secondary { border: 1px solid #cbd5e1; background: #fff; color: #334155; }
+    article { border-top: 1px solid #e2e8f0; padding-top: 18px; }
+    article h1 { font-size: clamp(1.6rem, 4vw, 2.6rem); margin-bottom: 14px; }
+    article h2 { margin: 30px 0 12px; padding-top: 20px; border-top: 1px solid #e3e9f2; font-size: 1.28rem; }
+    article h3 { margin: 22px 0 8px; font-size: 1.04rem; color: #334155; }
+    article ul, article ol { padding-left: 1.35rem; }
+    article code { border-radius: 6px; background: #eef3f8; padding: 2px 5px; font-size: .92em; }
+    @media (max-width: 820px) {
+      main { width: min(100% - 20px, 680px); padding: 18px 0 32px; }
+      .topbar { align-items: flex-start; }
+      .tab-row { top: 0; margin: 14px 0; padding: 10px 0; }
+      .tab, .nav-links a { width: 100%; justify-content: flex-start; border-radius: 12px; }
+      .actions a { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <nav class="topbar" aria-label="快速切換">
+      <div class="nav-links">
+        <a href="./">返回總入口</a>
+        <a href="./app1/">App 1</a>
+        <a href="./app2/">App 2</a>
+        <a href="./app3/">App 3</a>
+      </div>
+    </nav>
+    <header>
+      <span class="eyebrow">All Student Guides</span>
+      <h1>115 資通訊三隊學生講稿總覽</h1>
+      <p class="lead">這一頁把三隊作品操作入口和學生講稿放在同一個地方。可以先在這裡挑隊伍看講稿，也可以直接跳去對應 App 做現場展示。</p>
+    </header>
+    <nav class="tab-row" aria-label="講稿導覽">${tabs}
+    </nav>
+    <section class="guide-list">${sections}
+    </section>
+  </main>
+</body>
+</html>
+`, 'utf8');
+}
+
 fs.rmSync(pagesDir, {recursive: true, force: true});
 fs.mkdirSync(pagesDir, {recursive: true});
 
@@ -138,6 +235,8 @@ for (const app of apps) {
   copyDir(path.join(sourceDir, 'dist'), path.join(pagesDir, app.id));
   writeGuidePage(app);
 }
+
+writeAllGuidesPage();
 
 const cards = apps.map((app) => `
   <article class="card" style="--accent:${app.accent}">
@@ -214,6 +313,7 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
       <span class="eyebrow">Student Live Demo</span>
       <h1>115 資通訊三隊 App 展示入口</h1>
       <p class="lead">學生可以直接點選下方作品操作。App 1 在 GitHub Pages 會使用瀏覽器展示模式保存資料與模擬硬體指令；接上本機 bridge 後再走 Arduino UNO R4 Serial。</p>
+      <div class="quick"><a href="./${allGuidesUrl()}">一次看三隊講稿</a></div>
       <div class="status"><span>手機可操作</span><span>資料存在本機瀏覽器</span><span>無硬體也可展示</span></div>
     </header>
     <section class="grid">${cards}</section>

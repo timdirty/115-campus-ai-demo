@@ -131,6 +131,9 @@ try {
   assert.equal(typeof session.body.session.focusPercent, 'number');
   assert.ok(Array.isArray(session.body.session.boardRegions));
   assert.ok(session.body.session.boardRegions.length >= 3);
+  assert.equal(typeof session.body.session.hardwareProfile.servoAngles.regionA, 'number');
+  assert.equal(typeof session.body.session.hardwareProfile.boardDetectionConfidence, 'number');
+  assert.equal(typeof session.body.session.hardwareProfile.robotPose.x, 'number');
 
   const updatedSession = await request('/api/classroom/session', {
     method: 'POST',
@@ -140,11 +143,24 @@ try {
       tiredPercent: 11,
       teacherPace: 'slow_down',
       currentRecommendation: '建議先保留左側圖解區，清空右側練習區。',
+      hardwareProfile: {
+        servoAngles: {regionA: 25, regionB: 95, regionC: 155, eraseAll: 178, standby: 88},
+        cameraMounted: true,
+        boardAnchored: true,
+        visionReady: false,
+        boardCalibrationMode: 'auto',
+        boardDetectionConfidence: 81,
+        notes: '已經在白板前固定攝影機，待校正最後一段擦除行程。',
+      },
     }),
   });
   assert.equal(updatedSession.response.status, 200);
   assert.equal(updatedSession.body.session.focusPercent, 71);
   assert.equal(updatedSession.body.session.teacherPace, 'slow_down');
+  assert.equal(updatedSession.body.session.hardwareProfile.cameraMounted, true);
+  assert.equal(updatedSession.body.session.hardwareProfile.servoAngles.regionB, 95);
+  assert.equal(updatedSession.body.session.hardwareProfile.boardCalibrationMode, 'auto');
+  assert.equal(updatedSession.body.session.hardwareProfile.boardDetectionConfidence, 81);
 
   const normalizedSession = await request('/api/classroom/session', {
     method: 'POST',
@@ -214,6 +230,13 @@ try {
   assert.equal(robotCommand.body.status.lastCommand, 'PAUSE_TASK');
   assert.ok(Array.isArray(robotCommand.body.taskLog));
   assert.equal(robotCommand.body.taskLog[0].command, 'PAUSE_TASK');
+
+  const calibrationCommand = await request('/api/robot/command', {
+    method: 'POST',
+    body: JSON.stringify({command: 'SET_REGION_A:42', source: 'contract-test'}),
+  });
+  assert.ok([200, 503].includes(calibrationCommand.response.status));
+  assert.equal(calibrationCommand.body.status.lastCommand, 'SET_REGION_A:42');
 
   for (const [regionId, expectedCommand] of [['A', 'ERASE_REGION_A'], ['B', 'ERASE_REGION_B'], ['C', 'ERASE_REGION_C']]) {
     const robotTask = await request('/api/robot/task', {

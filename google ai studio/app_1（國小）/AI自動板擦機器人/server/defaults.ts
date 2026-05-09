@@ -1,4 +1,4 @@
-import type {ClassroomSession, RobotCommandInfo, RobotStatus, WhiteboardNote} from './types';
+import type {ClassroomSession, HardwareCalibrationProfile, RobotCommandInfo, RobotStatus, WhiteboardNote} from './types';
 
 function svgUri(svg: string) { return `data:image/svg+xml,${encodeURIComponent(svg)}`; }
 
@@ -100,7 +100,41 @@ export const defaultClassroomSession: ClassroomSession = {
     {id: 'B', label: '練習作答區', x: 54, y: 20, width: 34, height: 50, status: 'erasable', reason: '練習已保存，可換下一題'},
     {id: 'C', label: '口訣提醒區', x: 22, y: 78, width: 58, height: 16, status: 'keep', reason: '保留給孩子回頭檢查'},
   ],
+  hardwareProfile: {
+    servoAngles: {
+      regionA: 20,
+      regionB: 92,
+      regionC: 160,
+      eraseAll: 180,
+      standby: 90,
+    },
+    cameraMounted: false,
+    boardAnchored: false,
+    visionReady: false,
+    boardCalibrationMode: 'default',
+    boardDetectionConfidence: 0,
+    boardCalibration: {
+      topLeft: {x: 10, y: 12},
+      topRight: {x: 90, y: 12},
+      bottomRight: {x: 90, y: 88},
+      bottomLeft: {x: 10, y: 88},
+    },
+    robotPose: {
+      x: 94,
+      y: 14,
+      heading: 180,
+      stage: 'standby',
+      label: '待命位置',
+      command: 'SET_STANDBY',
+      updatedAt: '',
+    },
+    notes: '待實機安裝：先固定白板前方攝影機，再校正 A/B/C 板擦角度。',
+  },
   updatedAt: new Date().toISOString(),
+};
+
+export const defaultHardwareCalibrationProfile: HardwareCalibrationProfile = {
+  ...defaultClassroomSession.hardwareProfile,
 };
 
 export const defaultRobotStatus: RobotStatus = {
@@ -121,6 +155,13 @@ export const commandCatalog: RobotCommandInfo[] = [
   {command: 'SERVO_0', label: '伺服 0 度', group: 'hardware'},
   {command: 'SERVO_90', label: '伺服 90 度', group: 'hardware'},
   {command: 'SERVO_180', label: '伺服 180 度', group: 'hardware'},
+  {command: 'SERVO_SET', label: '伺服自訂角度', group: 'hardware'},
+  {command: 'CALIBRATION_STATUS', label: '校正狀態', group: 'hardware'},
+  {command: 'SET_REGION_A', label: '設定區塊 A 角度', group: 'hardware'},
+  {command: 'SET_REGION_B', label: '設定區塊 B 角度', group: 'hardware'},
+  {command: 'SET_REGION_C', label: '設定區塊 C 角度', group: 'hardware'},
+  {command: 'SET_ERASE_ALL', label: '設定全擦角度', group: 'hardware'},
+  {command: 'SET_STANDBY', label: '設定待命角度', group: 'hardware'},
   {command: 'CLEAN_START', label: '清潔開始', group: 'task'},
   {command: 'CLEAN_STOP', label: '清潔完成', group: 'task'},
   {command: 'ERASE_ALL', label: '一鍵全擦', group: 'task'},

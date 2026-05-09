@@ -1,6 +1,8 @@
 import {apiRequest} from './apiClient';
 import {analyzeWhiteboardImage, WhiteboardVisionResult} from './boardVision';
 import {loadNotes, normalizeNotes, saveNotes} from './notesStore';
+import {defaultRobotPose, RobotPoseEstimate} from './robotPose';
+import {BoardCalibration, BoardCalibrationMode, defaultBoardCalibration, normalizeBoardCalibration} from './whiteboardCalibration';
 
 export type BoardRegionStatus = 'keep' | 'erasable' | 'erased';
 export type TeacherPace = 'normal' | 'slow_down' | 'review_needed';
@@ -16,6 +18,25 @@ export type BoardRegion = {
   reason: string;
 };
 
+export type HardwareCalibrationProfile = {
+  servoAngles: {
+    regionA: number;
+    regionB: number;
+    regionC: number;
+    eraseAll: number;
+    standby: number;
+  };
+  cameraMounted: boolean;
+  boardAnchored: boolean;
+  visionReady: boolean;
+  boardCalibration: BoardCalibration;
+  boardCalibrationMode: BoardCalibrationMode;
+  boardDetectionConfidence: number;
+  robotPose: RobotPoseEstimate;
+  notes: string;
+  lastCalibratedAt?: string;
+};
+
 export type ClassroomSession = {
   focusPercent: number;
   confusedPercent: number;
@@ -24,8 +45,10 @@ export type ClassroomSession = {
   savedMinutes: number;
   currentRecommendation: string;
   boardRegions: BoardRegion[];
+  hardwareProfile: HardwareCalibrationProfile;
   lastCaptureAt?: string;
   updatedAt: string;
+  boardOcrText?: string;
 };
 
 export type RobotStatus = {
@@ -51,6 +74,7 @@ export type BridgeHealth = {
   baudRate: number;
   dataDir: string;
   geminiConfigured: boolean;
+  hardwareSimulation?: boolean;
 };
 
 export type ReadyStatus = BridgeHealth & {
@@ -220,6 +244,24 @@ const REGION_POSITIONS: Array<{id: string; x: number; y: number; width: number; 
   {id: 'C', x: 22, y: 78, width: 58, height: 16},
 ];
 
+export const defaultHardwareCalibrationProfile: HardwareCalibrationProfile = {
+  servoAngles: {
+    regionA: 20,
+    regionB: 92,
+    regionC: 160,
+    eraseAll: 180,
+    standby: 90,
+  },
+  cameraMounted: false,
+  boardAnchored: false,
+  visionReady: false,
+  boardCalibration: defaultBoardCalibration(),
+  boardCalibrationMode: 'default',
+  boardDetectionConfidence: 0,
+  robotPose: defaultRobotPose(),
+  notes: '待實機安裝：先固定白板前方攝影機，再校正 A/B/C 板擦角度。',
+};
+
 function buildBoardRegions(subject: string): BoardRegion[] {
   const templates = SUBJECT_BOARD_REGIONS[subject] ?? SUBJECT_BOARD_REGIONS['default'];
   return templates.map((tmpl, i) => ({
@@ -238,6 +280,7 @@ const fallbackSession: ClassroomSession = {
   savedMinutes: 3.1,
   currentRecommendation: '本機展示模式：白板重點與教師決策會保存在這台瀏覽器，接上本機橋接後可再送到 UNO R4。',
   boardRegions: buildBoardRegions('綜合'),
+  hardwareProfile: defaultHardwareCalibrationProfile,
   updatedAt: new Date().toISOString(),
 };
 
@@ -259,6 +302,7 @@ const fallbackCommands: RobotCommandInfo[] = [
   {command: 'SERVO_0', label: '伺服 0 度', group: 'hardware'},
   {command: 'SERVO_90', label: '伺服 90 度', group: 'hardware'},
   {command: 'SERVO_180', label: '伺服 180 度', group: 'hardware'},
+  {command: 'CALIBRATION_STATUS', label: '校正狀態', group: 'hardware'},
   {command: 'ERASE_ALL', label: '一鍵全擦', group: 'task'},
   {command: 'ERASE_REGION_A', label: '擦除區塊 A', group: 'task'},
   {command: 'ERASE_REGION_B', label: '擦除區塊 B', group: 'task'},
@@ -299,8 +343,67 @@ function writeJson(key: string, value: unknown) {
   }
 }
 
+function normalizeServoAngle(value: unknown, fallback: number) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+  return Math.max(0, Math.min(180, Math.round(numeric)));
+}
+
+function normalizeHardwareProfile(value: unknown): HardwareCalibrationProfile {
+  const source = value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+  const servoAngles = source.servoAngles && typeof source.servoAngles === 'object' && !Array.isArray(source.servoAngles)
+    ? source.servoAngles as Record<string, unknown>
+    : {};
+  const rawRobotPose = source.robotPose && typeof source.robotPose === 'object' && !Array.isArray(source.robotPose)
+    ? source.robotPose as Record<string, unknown>
+    : {};
+  const fallbackPose = defaultRobotPose();
+  return {
+    ...defaultHardwareCalibrationProfile,
+    servoAngles: {
+      regionA: normalizeServoAngle(servoAngles.regionA, defaultHardwareCalibrationProfile.servoAngles.regionA),
+      regionB: normalizeServoAngle(servoAngles.regionB, defaultHardwareCalibrationProfile.servoAngles.regionB),
+      regionC: normalizeServoAngle(servoAngles.regionC, defaultHardwareCalibrationProfile.servoAngles.regionC),
+      eraseAll: normalizeServoAngle(servoAngles.eraseAll, defaultHardwareCalibrationProfile.servoAngles.eraseAll),
+      standby: normalizeServoAngle(servoAngles.standby, defaultHardwareCalibrationProfile.servoAngles.standby),
+    },
+    cameraMounted: Boolean(source.cameraMounted),
+    boardAnchored: Boolean(source.boardAnchored),
+    visionReady: Boolean(source.visionReady),
+    boardCalibration: normalizeBoardCalibration(source.boardCalibration),
+    boardCalibrationMode: source.boardCalibrationMode === 'manual' || source.boardCalibrationMode === 'auto' ? source.boardCalibrationMode : 'default',
+    boardDetectionConfidence: Math.max(0, Math.min(100, Math.round(Number(source.boardDetectionConfidence) || 0))),
+    robotPose: {
+      ...fallbackPose,
+      x: Math.max(0, Math.min(100, Math.round((Number(rawRobotPose.x) || fallbackPose.x) * 10) / 10)),
+      y: Math.max(0, Math.min(100, Math.round((Number(rawRobotPose.y) || fallbackPose.y) * 10) / 10)),
+      heading: Math.round(Number(rawRobotPose.heading) || fallbackPose.heading),
+      stage: ['standby', 'preview', 'moving', 'erasing', 'paused', 'done'].includes(String(rawRobotPose.stage))
+        ? String(rawRobotPose.stage) as RobotPoseEstimate['stage']
+        : fallbackPose.stage,
+      label: typeof rawRobotPose.label === 'string' ? rawRobotPose.label : fallbackPose.label,
+      targetRegion: typeof rawRobotPose.targetRegion === 'string' ? rawRobotPose.targetRegion : undefined,
+      command: typeof rawRobotPose.command === 'string' ? rawRobotPose.command : fallbackPose.command,
+      updatedAt: typeof rawRobotPose.updatedAt === 'string' ? rawRobotPose.updatedAt : fallbackPose.updatedAt,
+    },
+    notes: typeof source.notes === 'string' ? source.notes : defaultHardwareCalibrationProfile.notes,
+    lastCalibratedAt: typeof source.lastCalibratedAt === 'string' && source.lastCalibratedAt ? source.lastCalibratedAt : undefined,
+  };
+}
+
+function normalizeSession(session: ClassroomSession): ClassroomSession {
+  return {
+    ...fallbackSession,
+    ...session,
+    boardRegions: Array.isArray(session.boardRegions) ? session.boardRegions : fallbackSession.boardRegions,
+    hardwareProfile: normalizeHardwareProfile(session.hardwareProfile),
+  };
+}
+
 function loadLocalSession(): ClassroomSession {
-  return readJson<ClassroomSession>(SESSION_KEY, fallbackSession);
+  return normalizeSession(readJson<ClassroomSession>(SESSION_KEY, fallbackSession));
 }
 
 function saveLocalSession(update: Partial<ClassroomSession>): ClassroomSession {
@@ -308,10 +411,11 @@ function saveLocalSession(update: Partial<ClassroomSession>): ClassroomSession {
     ...loadLocalSession(),
     ...update,
     boardRegions: update.boardRegions ?? loadLocalSession().boardRegions,
+    hardwareProfile: normalizeHardwareProfile(update.hardwareProfile ?? loadLocalSession().hardwareProfile),
     updatedAt: new Date().toISOString(),
   };
   writeJson(SESSION_KEY, session);
-  return session;
+  return normalizeSession(session);
 }
 
 function loadLocalRobotStatus(): RobotStatus {
@@ -382,7 +486,7 @@ function localExportPayload(): AppDataExport {
   };
 }
 
-function localBoardAnalysis(input: {imageBase64: string; transcript?: string; subjectHint?: string}, vision?: WhiteboardVisionResult): BoardAnalysisResponse {
+function localBoardAnalysis(input: {imageBase64: string; transcript?: string; subjectHint?: string; boardCalibration?: BoardCalibration}, vision?: WhiteboardVisionResult): BoardAnalysisResponse {
   const subject = input.subjectHint?.trim() || '綜合';
   const status = SUBJECT_LEARNING_STATUS[subject] ?? SUBJECT_LEARNING_STATUS['綜合'];
   const boardRegions = vision?.regions ?? buildBoardRegions(subject);
@@ -512,8 +616,9 @@ export async function importAppData(payload: unknown): Promise<ImportResult> {
 export async function loadClassroomSession(): Promise<ClassroomSession> {
   try {
     const result = await apiRequest<SessionResponse>('/api/classroom/session');
-    writeJson(SESSION_KEY, result.session);
-    return result.session;
+    const normalized = normalizeSession(result.session);
+    writeJson(SESSION_KEY, normalized);
+    return normalized;
   } catch {
     return loadLocalSession();
   }
@@ -525,8 +630,9 @@ export async function saveClassroomSession(update: Partial<ClassroomSession>): P
       method: 'POST',
       body: JSON.stringify(update),
     });
-    writeJson(SESSION_KEY, result.session);
-    return result.session;
+    const normalized = normalizeSession(result.session);
+    writeJson(SESSION_KEY, normalized);
+    return normalized;
   } catch {
     return saveLocalSession(update);
   }
@@ -577,7 +683,7 @@ export async function sendRobotTask(action: string, regionId?: string, source = 
   }
 }
 
-export async function analyzeBoardCapture(input: {imageBase64: string; transcript?: string; subjectHint?: string}): Promise<BoardAnalysisResponse> {
+export async function analyzeBoardCapture(input: {imageBase64: string; transcript?: string; subjectHint?: string; boardCalibration?: BoardCalibration}): Promise<BoardAnalysisResponse> {
   try {
     return await apiRequest<BoardAnalysisResponse>('/api/ai/analyze-board', {
       method: 'POST',
@@ -586,11 +692,74 @@ export async function analyzeBoardCapture(input: {imageBase64: string; transcrip
     });
   } catch {
     try {
-      return localBoardAnalysis(input, await analyzeWhiteboardImage(input.imageBase64));
+      return localBoardAnalysis(input, await analyzeWhiteboardImage(input.imageBase64, input.boardCalibration));
     } catch {
       return localBoardAnalysis(input);
     }
   }
+}
+
+export type OcrLocalResult = {
+  ok: boolean;
+  text: string;
+  blocks: {text: string; confidence: number; bbox: number[][]}[];
+  engine: string;
+  error?: string;
+};
+
+export async function ocrBoardLocal(imageBase64: string): Promise<OcrLocalResult> {
+  try {
+    return await apiRequest<OcrLocalResult>('/api/ai/ocr-local', {
+      method: 'POST',
+      body: JSON.stringify({imageBase64}),
+      timeoutMs: 14_000,
+    });
+  } catch {
+    return {ok: false, text: '', blocks: [], engine: 'none', error: 'service unavailable'};
+  }
+}
+
+export async function getOcrStatus(): Promise<boolean> {
+  try {
+    const r = await apiRequest<{ready: boolean}>('/api/ai/ocr-status', {timeoutMs: 3000});
+    return r.ready;
+  } catch {
+    return false;
+  }
+}
+
+export type EraseSequenceEvent =
+  | {type: 'start'; regions: string[]; gapMs: number}
+  | {type: 'sending'; region: string; command: string}
+  | {type: 'ok'; region: string; command: string; response: string}
+  | {type: 'timeout'; region: string; command: string; message: string}
+  | {type: 'error'; region: string; command: string; message: string}
+  | {type: 'done'; total: number; ok: number; failed: number};
+
+/**
+ * Opens an SSE stream that sends ERASE_REGION_X for each region in order.
+ * Calls onEvent for each progress update. Returns a cancel function.
+ */
+export function eraseRegionSequence(
+  regionIds: string[],
+  onEvent: (event: EraseSequenceEvent) => void,
+  gapMs = 1500,
+): () => void {
+  const base = (window as any).__BRIDGE_BASE__ ?? '';
+  const url = `${base}/api/robot/erase-sequence?regions=${regionIds.join(',')}&gap=${gapMs}`;
+  const es = new EventSource(url);
+  es.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data) as EraseSequenceEvent;
+      onEvent(data);
+      if (data.type === 'done') es.close();
+    } catch {}
+  };
+  es.onerror = () => {
+    onEvent({type: 'done', total: regionIds.length, ok: 0, failed: regionIds.length});
+    es.close();
+  };
+  return () => es.close();
 }
 
 export async function transcribeAudio(input: {audioBase64: string; mimeType: string}): Promise<{transcript: string; aiMode: 'gemini' | 'local-fallback'}> {

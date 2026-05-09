@@ -1,27 +1,68 @@
+import type React from 'react';
 import type {HardwareSocketStatus} from '../hooks/useHardwareSocket';
 
 interface Props {
   status: HardwareSocketStatus;
 }
 
+const BANNER_BASE: React.CSSProperties = {
+  height: 28,
+  width: '100%',
+  position: 'sticky',
+  top: 0,
+  zIndex: 60,
+  transition: 'all 0.4s ease',
+  flexShrink: 0,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 8,
+};
+
+const GREEN_BAR: React.CSSProperties = {
+  height: 4,
+  width: '100%',
+  position: 'sticky',
+  top: 0,
+  zIndex: 60,
+  transition: 'all 0.4s ease',
+  flexShrink: 0,
+};
+
+const TEXT_STYLE: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 700,
+  color: '#fff',
+  letterSpacing: '0.04em',
+  textShadow: '0 1px 2px rgba(0,0,0,0.25)',
+};
+
 export function HardwareStatusBanner({status}: Props) {
-  const color = status.connected
-    ? (status.simulated ? '#f59e0b' : '#22c55e')
-    : '#ef4444';
+  const {connected, simulated, mode, reconnecting} = status;
+
+  if (connected && !simulated) {
+    return (
+      <div
+        aria-hidden="true"
+        style={{...GREEN_BAR, backgroundColor: mode === 'ws' ? '#22c55e' : '#86efac'}}
+      />
+    );
+  }
+
+  if (reconnecting) {
+    return (
+      <div role="status" aria-live="polite" style={{...BANNER_BASE, backgroundColor: '#6366f1'}}>
+        <span style={TEXT_STYLE}>↺ 橋接重連中… 請稍候</span>
+      </div>
+    );
+  }
+
+  const bg = connected ? '#f59e0b' : '#ef4444';
+  const text = connected ? '⚠ 模擬模式 · 未連接實體 Arduino' : '✕ 硬體離線 · 請連接 Arduino 並確認 bridge 已啟動';
 
   return (
-    <div
-      aria-hidden="true"
-      style={{
-        height: 4,
-        backgroundColor: color,
-        width: '100%',
-        position: 'sticky',
-        top: 0,
-        zIndex: 60,
-        transition: 'background-color 0.6s ease',
-        flexShrink: 0,
-      }}
-    />
+    <div role="status" aria-live="polite" style={{...BANNER_BASE, backgroundColor: bg}}>
+      <span style={TEXT_STYLE}>{text}</span>
+    </div>
   );
 }

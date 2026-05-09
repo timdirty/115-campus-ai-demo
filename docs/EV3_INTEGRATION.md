@@ -5,12 +5,11 @@
 ## Architecture
 
 ```text
-App 1 / App 2 / App 3
-  -> http://localhost:3200/api/robot/command
-  -> App 1 Node bridge
-  -> Arduino Serial for normal commands
-  -> EV3 WebSocket for EV3_* commands
-  -> EV3 brick running ev3/ev3_server.py
+App 1 -> localhost:3201 bridge -> Arduino Serial / EV3 WebSocket
+App 2 -> localhost:3202 bridge -> Arduino Serial
+App 3 -> localhost:3203 bridge -> Arduino Serial
+App 1 bridge 也承擔 EV3_* 轉發（三隊共用）
+EV3 brick running ev3/ev3_server.py
 ```
 
 三隊作品資訊與 EV3 指令規格集中在：
@@ -54,7 +53,7 @@ npm run dev
 固定服務：
 
 ```text
-App 1 bridge: http://localhost:3200
+App 1 bridge: http://localhost:3201（dev）/ http://localhost:3200（prod）
 EV3 server:   ws://192.168.0.1:8765 or ws://ev3dev.local:8765
 ```
 

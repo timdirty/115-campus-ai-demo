@@ -1,3 +1,5 @@
+import {analyzeFrameQuality, FrameQualityResult} from './frameQuality';
+
 export type VisualPrivacyLevel = 'calm' | 'watch' | 'support';
 
 export interface VisualPrivacyResult {
@@ -6,6 +8,7 @@ export interface VisualPrivacyResult {
   score: number;
   summary: string;
   evidence: string[];
+  quality: FrameQualityResult;
   metrics: {
     brightness: number;
     motionEdges: number;
@@ -51,8 +54,9 @@ export function analyzePrivacyFrame(width: number, height: number, data: Uint8Cl
     crowdTexture: clamp((busyPixels / Math.max(1, samples)) * 100),
     lowLightArea: clamp((lowLightPixels / Math.max(1, samples)) * 100),
   };
+  const quality = analyzeFrameQuality(width, height, data);
   const riskScore = clamp(metrics.motionEdges * 0.45 + metrics.crowdTexture * 0.32 + metrics.lowLightArea * 0.3);
-  const evidence = [`亮度 ${metrics.brightness}`, `紋理 ${metrics.crowdTexture}`, `低光 ${metrics.lowLightArea}`];
+  const evidence = [`畫面品質 ${quality.label}`, ...quality.hints, `亮度 ${metrics.brightness}`, `紋理 ${metrics.crowdTexture}`, `低光 ${metrics.lowLightArea}`];
 
   if (riskScore >= 58) {
     return {
@@ -61,6 +65,7 @@ export function analyzePrivacyFrame(width: number, height: number, data: Uint8Cl
       score: riskScore,
       summary: '畫面只做場域紋理與低光分析，顯示活動密度或視線死角偏高。',
       evidence: [...evidence, '不做人臉或身分辨識'],
+      quality,
       metrics,
     };
   }
@@ -71,6 +76,7 @@ export function analyzePrivacyFrame(width: number, height: number, data: Uint8Cl
       score: riskScore,
       summary: '場域有活動變化，建議保留低解析度環境紀錄並搭配聲量訊號判斷。',
       evidence: [...evidence, '隱私保護模式'],
+      quality,
       metrics,
     };
   }
@@ -80,6 +86,7 @@ export function analyzePrivacyFrame(width: number, height: number, data: Uint8Cl
     score: riskScore,
     summary: '目前畫面紋理與低光區不高，維持一般守護模式。',
     evidence: [...evidence, '未觸發影像提醒'],
+    quality,
     metrics,
   };
 }

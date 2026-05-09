@@ -161,7 +161,7 @@ export function GuardianDemoPanel({
   ];
 
   return (
-    <section className="mb-6 rounded-[2rem] border border-teal-100 bg-white p-5 shadow-sm">
+    <section className="mb-6 rounded-4xl border border-teal-100 bg-white p-5 shadow-sm">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
         <div>
           <p className="text-xs font-black text-teal-700">評審展示模式</p>

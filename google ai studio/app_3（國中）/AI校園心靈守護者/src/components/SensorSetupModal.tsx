@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useRef, useState} from 'react';
 import {AnimatePresence, motion} from 'motion/react';
 import {
   CheckCircle2,
@@ -63,12 +63,14 @@ export function SensorSetupModal({ports, sensors, onClose, onChanged}: Props) {
   );
   const [busyPath, setBusyPath] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selectedPort = ports.find((p) => p.path === selectedPath) ?? null;
 
   const triggerFlash = (id: string) => {
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
     setFlash(id);
-    setTimeout(() => setFlash(null), 1400);
+    flashTimerRef.current = setTimeout(() => setFlash(null), 1400);
   };
 
   const handleAssign = async (zoneId: string) => {
@@ -116,7 +118,7 @@ export function SensorSetupModal({ports, sensors, onClose, onChanged}: Props) {
         style={{maxHeight: '92dvh'}}
       >
         {/* ── Header ── */}
-        <div className="flex shrink-0 items-center justify-between bg-gradient-to-r from-teal-600 to-teal-700 px-6 py-5">
+        <div className="flex shrink-0 items-center justify-between bg-linear-to-r from-teal-600 to-teal-700 px-6 py-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
               <Wifi className="h-5 w-5 text-white" />

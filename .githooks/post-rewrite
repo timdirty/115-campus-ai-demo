@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+cd "$ROOT_DIR"
+
+if [ -f ".skillshare/config.yaml" ] && command -v skillshare >/dev/null 2>&1; then
+  echo "[skillshare] post-rewrite sync"
+  skillshare sync -p >/dev/null
+fi

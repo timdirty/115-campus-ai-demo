@@ -28,10 +28,10 @@ cd "/Volumes/Tim aaddtional/Download/115資通訊/tedt/google ai studio/app_3（
 npm run preview -- --host 0.0.0.0 --port 3202
 ```
 
-展示網址：
+展示網址（dev 模式）：
 
 ```text
-App 1: http://localhost:3200
-App 2: http://localhost:3201
-App 3: http://localhost:3202
+App 1: http://localhost:11501   bridge: http://localhost:3201
+App 2: http://localhost:11502   bridge: http://localhost:3202
+App 3: http://localhost:11503   bridge: http://localhost:3203
 ```

@@ -144,6 +144,7 @@ select {
     max-width: 100vw !important;
   }
 
+  .guardian-shell [class*="rounded-4xl"],
   .guardian-shell [class*="rounded-[2rem]"],
   .guardian-shell [class*="rounded-[2.5rem]"],
   .guardian-shell [class*="rounded-[3rem]"] {

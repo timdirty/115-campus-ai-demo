@@ -7,6 +7,8 @@ import type { TeachingSignal } from '../state/appState';
 import { generateTeacherReply } from '../services/localAi';
 import { openPrintableReport } from '../services/reports';
 
+const SUBJECTS = ['數學', '語文', '自然', '社會', '英語', '體育', '藝術'] as const;
+
 export function TeachView({ showToast, navigateTo }: { showToast: (m: string) => void, navigateTo: (id: string, props?: any) => void }) {
   const state = useAppState();
   const actions = useAppActions();
@@ -16,7 +18,6 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [currentSubject, setCurrentSubject] = useState<string>('');
-  const SUBJECTS = ['數學', '語文', '自然', '社會', '英語', '體育', '藝術'];
   const [focusScore, setFocusScore] = useState(87);
   const [waveData, setWaveData] = useState([40, 60, 85, 70, 90, 55, 45, 30]);
 
@@ -114,7 +115,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
         </div>
         <button
           onClick={handleRollCall}
-          className="relative z-10 shrink-0 bg-primary hover:bg-primary/95 text-white active:scale-95 transition-all w-24 h-24 rounded-[2rem] shadow-[0_0_30px_rgba(var(--color-primary),0.4)] border-2 border-primary/20 flex flex-col items-center justify-center gap-2 group-hover:shadow-[0_0_40px_rgba(var(--color-primary),0.6)]"
+          className="relative z-10 shrink-0 bg-primary hover:bg-primary/95 text-white active:scale-95 transition-all w-24 h-24 rounded-4xl shadow-[0_0_30px_rgba(var(--color-primary),0.4)] border-2 border-primary/20 flex flex-col items-center justify-center gap-2 group-hover:shadow-[0_0_40px_rgba(var(--color-primary),0.6)]"
         >
           <Camera size={28} className="drop-shadow-md" />
           <span className="text-[11px] font-bold tracking-widest text-center shadow-black drop-shadow-md">環場<br/>確認</span>
@@ -164,7 +165,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
             )}
         </div>
         {state.teachingSignals.length === 0 ? (
-           <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-[2rem] p-10 text-center text-on-surface-variant font-medium text-[15px] shadow-sm">
+           <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-4xl p-10 text-center text-on-surface-variant font-medium text-[15px] shadow-sm">
              目前無異常或提問訊號
            </div>
         ) : (
@@ -198,7 +199,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       {/* Video Feed */}
       <section role="button" tabIndex={0} aria-label="開啟攝影機即時影像" onKeyDown={(e) => e.key === 'Enter' && setModal('video')} onClick={() => setModal('video')} className="bg-inverse-surface rounded-[2.5rem] h-80 relative overflow-hidden shadow-2xl cursor-pointer group mt-10">
         <div className="w-full h-full group-hover:scale-105 transition-transform duration-1000" style={{background: 'linear-gradient(135deg, #0d2137 0%, #1e3a5f 50%, #0a1a2e 100%)'}} />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
+        <div className="absolute inset-0 bg-linear-to-t from-black via-black/20 to-transparent"></div>
         {/* Simulating Bounding Boxes */}
         <div className="absolute top-[20%] left-[30%] w-20 h-20 border-[3px] border-primary/50  rounded-xl pointer-events-none group-hover:border-primary transition-colors shadow-[0_0_15px_rgba(var(--color-primary),0.3)]">
           <div className="absolute -top-6 left-0 bg-primary/90 backdrop-blur-md text-white text-[10px] px-2.5 py-0.5 rounded-md font-bold tracking-widest shadow-sm">區域 A 專注</div>
@@ -320,7 +321,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
             <div className="grid grid-cols-1 gap-4">
               <button
                 onClick={() => handleAlertAction('已發送硬體震動提醒')}
-                className="py-5 px-6 bg-tertiary text-white rounded-[1.75rem] font-bold text-[16px] tracking-wide active:scale-95 shadow-[0_4px_15px_rgba(var(--color-tertiary),0.3)] border border-tertiary/20 flex flex-col items-center justify-center transition-all bg-gradient-to-br from-tertiary to-tertiary/80"
+                className="py-5 px-6 bg-tertiary text-white rounded-[1.75rem] font-bold text-[16px] tracking-wide active:scale-95 shadow-[0_4px_15px_rgba(var(--color-tertiary),0.3)] border border-tertiary/20 flex flex-col items-center justify-center transition-all bg-linear-to-br from-tertiary to-tertiary/80"
               >
                 <span>發送平板震動提醒 (柔性)</span>
                 <span className="text-[12px] opacity-80 font-medium mt-1">僅提醒本人，不影響他人</span>
@@ -349,7 +350,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
              <div className="absolute inset-0 border-[4px] border-primary/20 rounded-full animate-ping [animation-duration:2.5s] shadow-[0_0_30px_rgba(var(--color-primary),0.3)]"></div>
              <div className="absolute inset-4 border-2 border-primary/40 rounded-full animate-spin [animation-duration:4s] border-dashed"></div>
              <div className="w-full h-full bg-surface-container rounded-full flex items-center justify-center overflow-hidden relative shadow-inner">
-                <motion.div animate={{ y: ['-100%', '100%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }} className="absolute w-full h-[8px] bg-primary/60 blur-sm shadow-[0_0_20px_rgba(var(--color-primary),1)]"></motion.div>
+                <motion.div animate={{ y: ['-100%', '100%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }} className="absolute w-full h-2 bg-primary/60 blur-sm shadow-[0_0_20px_rgba(var(--color-primary),1)]"></motion.div>
                 <div className="grid grid-cols-2 gap-3 opacity-50 p-8">
                   {[...Array(4)].map((_, i) => <div key={i} className="w-12 h-12 rounded-full border-[3px] border-primary/40 border-dashed"></div>)}
                 </div>
@@ -365,7 +366,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       {/* Fullscreen Video Modal */}
       <BottomSheet isOpen={modal === 'video'} onClose={() => setModal(null)} fullScreen={true}>
         <div className="w-full h-full bg-black relative flex flex-col justify-center overflow-hidden">
-          <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-black/90 to-transparent z-10 pointer-events-none"></div>
+          <div className="absolute top-0 inset-x-0 h-32 bg-linear-to-b from-black/90 to-transparent z-10 pointer-events-none"></div>
 
           <div className="w-full h-full min-h-60 scale-[1.02]" style={{background: 'linear-gradient(160deg, #0d2137 0%, #1e3a5f 60%, #0a1a2e 100%)'}} />
 
@@ -374,7 +375,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
             <motion.div
               animate={{ y: ['0%', '100%', '0%'] }}
               transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
-              className="w-full h-[2px] bg-primary/50 shadow-[0_0_10px_rgba(var(--color-primary),1)]"
+              className="w-full h-0.5 bg-primary/50 shadow-[0_0_10px_rgba(var(--color-primary),1)]"
             />
             {/* 場域狀態框 */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="absolute top-[25%] left-[30%] w-[15%] h-[20%] border-2 border-primary/70 rounded-lg">
@@ -385,7 +386,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
             </motion.div>
           </div>
 
-          <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-10 pointer-events-none flex items-end p-6">
+          <div className="absolute bottom-0 inset-x-0 h-40 bg-linear-to-t from-black/90 via-black/50 to-transparent z-10 pointer-events-none flex items-end p-6">
              <div className="w-full">
                <div className="flex justify-between items-end">
                  <div>

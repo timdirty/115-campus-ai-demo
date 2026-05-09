@@ -164,6 +164,11 @@ function attachListeners(port: SerialPort, parser: ReadlineParser) {
       console.log('[bridge] arduino disconnected');
       notifyConnectionChange(false, null);
       scheduleReconnect('port closed');
+      // Flush dangling resolvers so callers don't leak on reconnect
+      const stale = pendingSensorResolvers;
+      pendingSensorResolvers = [];
+      const nullSnap: SensorSnapshot = {temp: null, hum: null, light: null, receivedAt: new Date().toISOString()};
+      for (const resolve of stale) resolve(nullSnap);
     }
   });
   port.on('error', (error) => {

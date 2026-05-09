@@ -23,8 +23,9 @@ function getRegionStyle(status: BoardRegion['status']) {
 
 export function RegionTaskPanel({analysis, classroom, boardRegions, busy, onSaveAnalysis, onRunRegionTask, onKeepAll}: RegionTaskPanelProps) {
   const visionEvidence = (analysis?.noteDraft.keywords ?? []).filter((keyword) =>
-    /筆跡密度|邊緣密度|留白比例|對比|像素辨識/.test(keyword),
+    /畫面品質|光線偏暗|畫面過曝|畫面資訊太少|可能失焦|筆跡密度|邊緣密度|留白比例|對比|像素辨識/.test(keyword),
   );
+  const qualityEvidence = visionEvidence.filter((item) => /畫面品質|光線偏暗|畫面過曝|畫面資訊太少|可能失焦/.test(item));
 
   return (
     <section className="xl:col-span-5 bg-surface-container-high rounded-lg p-4 sm:p-5 border border-outline-variant/20" data-tour="region-panel">
@@ -137,6 +138,11 @@ export function RegionTaskPanel({analysis, classroom, boardRegions, busy, onSave
               <span key={item} className="rounded-full bg-surface px-3 py-1 text-[10px] font-black text-primary shadow-sm">{item}</span>
             ))}
           </div>
+          {qualityEvidence.length > 0 && (
+            <div className="mt-3 rounded-md bg-surface/70 p-3 text-xs font-bold leading-5 text-on-surface-variant">
+              畫面品質提示：{qualityEvidence.join('、')}
+            </div>
+          )}
         </div>
       )}
     </section>

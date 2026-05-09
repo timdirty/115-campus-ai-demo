@@ -1,24 +1,29 @@
-// Static emotion heatmap: campus zones × time periods
-// Color intensity represents emotional health score (higher = better)
+// Emotion heatmap: campus zones × time periods
+// Demo mode: randomly updates one cell every 12s to simulate live monitoring
+
+import {useEffect, useRef, useState} from 'react';
 
 const ZONES = ['圖書館', '穿堂', '操場', '教室', '廁所'];
 const TIME_SLOTS = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00'];
 
-// Demo data: score 0-100, higher = healthier emotional state
-const DEMO_DATA: number[][] = [
-  [85, 82, 79, 80, 88, 90, 86],  // 圖書館
-  [70, 75, 65, 68, 72, 74, 71],  // 穿堂
-  [90, 92, 88, 91, 86, 89, 93],  // 操場
-  [78, 74, 70, 72, 75, 78, 76],  // 教室
-  [60, 58, 62, 55, 64, 66, 61],  // 廁所
+const BASE_DATA: number[][] = [
+  [85, 82, 79, 80, 88, 90, 86],
+  [70, 75, 65, 68, 72, 74, 71],
+  [90, 92, 88, 91, 86, 89, 93],
+  [78, 74, 70, 72, 75, 78, 76],
+  [60, 58, 62, 55, 64, 66, 61],
 ];
 
+function clamp(n: number, lo: number, hi: number) {
+  return Math.min(hi, Math.max(lo, n));
+}
+
 function scoreToColor(score: number): string {
-  if (score >= 85) return '#d1fae5';  // emerald-100
-  if (score >= 75) return '#d9f99d';  // lime-200
-  if (score >= 65) return '#fef9c3';  // yellow-100
-  if (score >= 55) return '#fed7aa';  // orange-200
-  return '#fecaca';                   // red-200
+  if (score >= 85) return '#d1fae5';
+  if (score >= 75) return '#d9f99d';
+  if (score >= 65) return '#fef9c3';
+  if (score >= 55) return '#fed7aa';
+  return '#fecaca';
 }
 
 function scoreToBorder(score: number): string {
@@ -30,8 +35,34 @@ function scoreToBorder(score: number): string {
 }
 
 export function EmotionHeatmap() {
+  const [data, setData] = useState(() => BASE_DATA.map((row) => [...row]));
+  const [flashCell, setFlashCell] = useState<[number, number] | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    function tick() {
+      const zi = Math.floor(Math.random() * ZONES.length);
+      const ti = Math.floor(Math.random() * TIME_SLOTS.length);
+      const delta = Math.round((Math.random() - 0.5) * 10);
+      setData((prev) => {
+        const next = prev.map((row) => [...row]);
+        next[zi][ti] = clamp(next[zi][ti] + delta, 40, 98);
+        return next;
+      });
+      setFlashCell([zi, ti]);
+      setTimeout(() => setFlashCell(null), 800);
+      timerRef.current = setTimeout(tick, 12000 + Math.random() * 4000);
+    }
+    timerRef.current = setTimeout(tick, 8000);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, []);
+
   return (
     <div style={{overflowX: 'auto'}}>
+      <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6}}>
+        <span style={{width: 7, height: 7, borderRadius: '50%', backgroundColor: '#22c55e', display: 'inline-block', boxShadow: '0 0 6px #22c55e', animation: 'pulse 2s infinite'}} />
+        <span style={{fontSize: 10, fontWeight: 700, color: '#6b7280'}}>即時監測中</span>
+      </div>
       <table style={{borderCollapse: 'collapse', width: '100%', minWidth: 360, fontSize: 11}}>
         <thead>
           <tr>
@@ -45,24 +76,28 @@ export function EmotionHeatmap() {
           {ZONES.map((zone, zi) => (
             <tr key={zone}>
               <td style={{padding: '4px 8px', fontWeight: 700, color: '#374151', whiteSpace: 'nowrap'}}>{zone}</td>
-              {DEMO_DATA[zi].map((score, ti) => (
-                <td
-                  key={ti}
-                  title={`${zone} ${TIME_SLOTS[ti]}: ${score}`}
-                  style={{
-                    padding: '6px',
-                    textAlign: 'center',
-                    backgroundColor: scoreToColor(score),
-                    border: `1px solid ${scoreToBorder(score)}`,
-                    borderRadius: 4,
-                    fontWeight: 600,
-                    color: '#374151',
-                    minWidth: 36,
-                  }}
-                >
-                  {score}
-                </td>
-              ))}
+              {data[zi].map((score, ti) => {
+                const isFlashing = flashCell?.[0] === zi && flashCell?.[1] === ti;
+                return (
+                  <td
+                    key={ti}
+                    title={`${zone} ${TIME_SLOTS[ti]}: ${score}`}
+                    style={{
+                      padding: '6px',
+                      textAlign: 'center',
+                      backgroundColor: isFlashing ? '#bfdbfe' : scoreToColor(score),
+                      border: `1px solid ${isFlashing ? '#3b82f6' : scoreToBorder(score)}`,
+                      borderRadius: 4,
+                      fontWeight: 600,
+                      color: '#374151',
+                      minWidth: 36,
+                      transition: 'background-color 0.5s ease, border-color 0.5s ease',
+                    }}
+                  >
+                    {score}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>

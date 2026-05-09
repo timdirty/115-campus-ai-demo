@@ -6,6 +6,7 @@ import type {PortInfo} from './types';
 
 let activePort: SerialPort | null = null;
 let activePath = process.env.ARDUINO_PORT ?? '';
+let openingPromise: Promise<SerialPort> | null = null;
 const simulatedPortPath = 'simulated://arduino-uno-r4';
 
 function isSimulated() {
@@ -75,7 +76,7 @@ async function choosePortPath(requestedPath?: string) {
   const likelyArduino = ports.find(isArduinoLikePort);
 
   if (!likelyArduino) {
-    throw new Error('No Arduino-like serial port found. Set ARDUINO_PORT or plug in the UNO R4 WiFi.');
+    throw new Error('No Arduino-like serial port found. Set ARDUINO_PORT or plug in an UNO R4 (WiFi or Minima).');
   }
 
   return likelyArduino.path;
@@ -88,44 +89,55 @@ async function getPort(requestedPath?: string) {
     return activePort;
   }
 
-  if (activePort?.isOpen) {
-    await new Promise<void>((resolve, reject) => {
-      activePort?.close((error) => (error ? reject(error) : resolve()));
-    });
-  }
+  // Serialize concurrent open attempts — return the in-flight promise if already opening
+  if (openingPromise) return openingPromise;
 
-  activePath = path;
-  activePort = new SerialPort({path, baudRate, autoOpen: false});
+  openingPromise = (async () => {
+    try {
+      if (activePort?.isOpen) {
+        await new Promise<void>((resolve, reject) => {
+          activePort?.close((error) => (error ? reject(error) : resolve()));
+        });
+      }
 
-  await new Promise<void>((resolve, reject) => {
-    activePort?.open((error) => (error ? reject(error) : resolve()));
-  });
+      activePath = path;
+      activePort = new SerialPort({path, baudRate, autoOpen: false});
 
-  activePort.on('data', (data) => {
-    process.stdout.write(`[arduino] ${data.toString()}`);
-  });
+      await new Promise<void>((resolve, reject) => {
+        activePort?.open((error) => (error ? reject(error) : resolve()));
+      });
 
-  return activePort;
+      activePort.on('data', (data) => {
+        process.stdout.write(`[arduino] ${data.toString()}`);
+      });
+
+      return activePort;
+    } finally {
+      openingPromise = null;
+    }
+  })();
+
+  return openingPromise;
 }
 
-async function waitForSerialResponse(port: SerialPort, timeoutMs = 1800) {
-  return new Promise<string>((resolve) => {
+async function waitForSerialResponse(port: SerialPort, timeoutMs = 2500) {
+  return new Promise<{response: string; timedOut: boolean}>((resolve) => {
     let buffer = '';
     const cleanup = () => {
       clearTimeout(timer);
       port.off('data', onData);
     };
-    const finish = () => {
-      cleanup();
-      resolve(buffer.trim());
-    };
     const onData = (data: Buffer) => {
       buffer += data.toString();
       if (buffer.includes('\n')) {
-        finish();
+        cleanup();
+        resolve({response: buffer.trim(), timedOut: false});
       }
     };
-    const timer = setTimeout(finish, timeoutMs);
+    const timer = setTimeout(() => {
+      cleanup();
+      resolve({response: buffer.trim(), timedOut: true});
+    }, timeoutMs);
     port.on('data', onData);
   });
 }
@@ -161,7 +173,8 @@ export async function sendSerialCommand(command: string, requestedPath?: string)
     });
   });
 
-  return {port: activePath, response: await responsePromise};
+  const {response, timedOut} = await responsePromise;
+  return {port: activePath, response, timedOut};
 }
 
 function parseSensorLine(raw: string): {temp: number; hum: number; light: number} | null {

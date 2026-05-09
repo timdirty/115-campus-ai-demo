@@ -146,15 +146,15 @@ for (const route of routes) {
         clientHeight: el.clientHeight,
         className: String(el.className).slice(0, 120),
       }))
-      .filter((item) => item.text && !item.className.includes('line-clamp') && (item.scrollWidth > item.clientWidth + 2 || item.scrollHeight > item.clientHeight + 8))
+      .filter((item) => item.text && !item.className.includes('line-clamp') && !item.className.includes('truncate') && !item.className.includes('overflow-hidden') && (item.scrollWidth > item.clientWidth + 2 || item.scrollHeight > item.clientHeight + 8))
       .slice(0, 10);
     const smallButtons = [...document.querySelectorAll('button,a')]
       .filter((el) => el.offsetParent !== null)
       .map((el) => {
         const rect = el.getBoundingClientRect();
-        return {text: (el.innerText || el.getAttribute('aria-label') || '').replace(/\\s+/g, ' ').trim().slice(0, 50), width: Math.round(rect.width), height: Math.round(rect.height)};
+        return {text: (el.innerText || el.getAttribute('aria-label') || '').replace(/\\s+/g, ' ').trim().slice(0, 50), width: Math.round(rect.width), height: Math.round(rect.height), className: String(el.className).slice(0, 120)};
       })
-      .filter((item) => item.width > 0 && item.height > 0 && (item.width < 40 || item.height < 40))
+      .filter((item) => item.width > 0 && item.height > 0 && !item.className.includes('absolute') && (item.width < 40 || item.height < 40))
       .slice(0, 10);
     return {
       route: location.pathname,

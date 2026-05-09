@@ -1,4 +1,5 @@
 import type {DispatchTaskType} from '../state/appState';
+import {analyzeFrameQuality, FrameQualityResult} from './frameQuality';
 
 export type VisionScene = 'delivery' | 'cleaning' | 'crowd' | 'safety' | 'patrol';
 
@@ -14,6 +15,7 @@ export interface CampusVisionResult {
   tags: string[];
   evidence: string[];
   metrics?: CampusVisionMetrics;
+  quality?: FrameQualityResult;
 }
 
 export interface CampusVisionMetrics {
@@ -183,6 +185,7 @@ export function analyzeCampusPixels(width: number, height: number, data: Uint8Cl
     darkArea: clampScore((darkPixels / Math.max(1, samples)) * 100),
     warmArea: clampScore((warmPixels / Math.max(1, samples)) * 100),
   };
+  const quality = analyzeFrameQuality(width, height, data);
   const {scene, evidence} = classifyByPixels(metrics);
   const confidence = clampScore(58 + Math.max(metrics.edgeDensity, metrics.darkArea, metrics.saturation) * 0.42);
   const zone = zonePool[(width + height + metrics.edgeDensity + metrics.darkArea) % zonePool.length];
@@ -191,8 +194,9 @@ export function analyzeCampusPixels(width: number, height: number, data: Uint8Cl
     ...sceneProfiles[scene],
     confidence,
     zone,
-    evidence,
+    evidence: [`畫面品質 ${quality.label}`, ...quality.hints, ...evidence],
     metrics,
+    quality,
   };
 }
 

@@ -7,6 +7,8 @@
     "dev": "concurrently \"npm:dev:web\" \"npm:dev:bridge\"",
     "dev:web": "vite --port=3000 --host=0.0.0.0",
     "dev:bridge": "tsx server/serialBridge.ts",
+    "ocr": "python3 server/ocr_service.py",
+    "dev:full": "concurrently \"npm:dev:web\" \"npm:dev:bridge\" \"npm:ocr\"",
     "build": "vite build",
     "start": "NODE_ENV=production tsx server/serialBridge.ts",
     "check": "npm run lint && tsx src/services/notesStore.test.ts && tsx src/services/boardVision.test.ts && npm run build && node server/api-contract.test.mjs && tsx server/ev3Manager.test.ts && tsx server/hardwareSimulation.test.ts",

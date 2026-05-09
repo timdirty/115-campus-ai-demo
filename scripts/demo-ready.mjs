@@ -21,6 +21,12 @@ function run(name, command, args, env = {}) {
 
 run('Generate student demo docs', 'node', ['scripts/generate-demo-docs.mjs']);
 run('Competition readiness', 'node', ['scripts/competition-readiness-check.mjs']);
+run('Generate demo evidence report', 'node', ['scripts/generate-demo-evidence.mjs']);
+run('Generate demo scorecard', 'node', ['scripts/generate-demo-scorecard.mjs']);
+run('Generate rehearsal runbook', 'node', ['scripts/generate-rehearsal-runbook.mjs']);
+run('Generate EV3 field test report', 'node', ['scripts/generate-ev3-field-report.mjs']);
+run('Generate hardware wiring map', 'node', ['scripts/generate-hardware-wiring-map.mjs']);
+run('Generate judge one pager', 'node', ['scripts/generate-judge-one-pager.mjs']);
 
 const report = {
   ok: true,
@@ -36,6 +42,14 @@ const report = {
     'docs/DEMO_READY.md',
     'docs/STUDENT_PITCHES.md',
     'docs/EV3_CALIBRATION_TABLE.md',
+    'docs/FIELD_CHECKLIST.md',
+    'docs/JUDGE_QA.md',
+    'docs/DEMO_EVIDENCE.md',
+    'docs/DEMO_SCORECARD.md',
+    'docs/REHEARSAL_RUNBOOK.md',
+    'docs/EV3_FIELD_TEST_REPORT.md',
+    'docs/HARDWARE_WIRING_MAP.md',
+    'docs/JUDGE_ONE_PAGER.md',
   ],
   nextPublicCheck: 'CHECK_PUBLIC_URLS=1 node scripts/competition-readiness-check.mjs',
 };

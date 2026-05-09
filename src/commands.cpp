@@ -9,8 +9,47 @@ namespace {
 Servo servoD9;
 DHT dht(4, DHT11);
 
+struct ServoCalibration {
+  int regionA = 20;
+  int regionB = 92;
+  int regionC = 160;
+  int eraseAll = 180;
+  int standby = 90;
+} servoCalibration;
+
 void setStatusLed(bool enabled) {
   digitalWrite(LED_BUILTIN, enabled ? HIGH : LOW);
+}
+
+int clampServoAngle(int value) {
+  if (value < 0) return 0;
+  if (value > 180) return 180;
+  return value;
+}
+
+bool parseAngleCommand(const String &command, const String &prefix, int &outAngle) {
+  if (!command.startsWith(prefix)) {
+    return false;
+  }
+  outAngle = clampServoAngle(command.substring(prefix.length()).toInt());
+  return true;
+}
+
+void moveServoTo(int angle) {
+  servoD9.write(clampServoAngle(angle));
+}
+
+void printCalibrationStatus() {
+  Serial.print("CALIBRATION:A=");
+  Serial.print(servoCalibration.regionA);
+  Serial.print(",B=");
+  Serial.print(servoCalibration.regionB);
+  Serial.print(",C=");
+  Serial.print(servoCalibration.regionC);
+  Serial.print(",ALL=");
+  Serial.print(servoCalibration.eraseAll);
+  Serial.print(",STANDBY=");
+  Serial.println(servoCalibration.standby);
 }
 }
 
@@ -25,10 +64,12 @@ void setupCommandHardware() {
 
 void printReadyMessage() {
   Serial.println("UNO R4 WiFi command test ready.");
-  Serial.println("Commands: LED_ON, LED_OFF, SERVO_0, SERVO_90, SERVO_180, STOP, SHOW_ON, SHOW_OFF, FIREWORK, RESET, CLEAN_START, CLEAN_STOP, ERASE_ALL, ERASE_REGION_A, ERASE_REGION_B, ERASE_REGION_C, KEEP_REGION_A, KEEP_REGION_B, KEEP_REGION_C, PAUSE_TASK, DELIVERY_START, DELIVERY_DONE, CLEAN_SCHEDULE, BROADCAST_SCHEDULE, TEACH_SCAN, FOCUS_NUDGE, QUESTION_ACK, TEACH_REPLY, SAFETY_LOCKDOWN, SAFETY_CLEAR, BELL_REMIND_ON, BELL_REMIND_OFF, BROADCAST_START, PATROL_START, ROBOT_RESUME, ROBOT_PAUSE, SPEED_SET, NODE_HEARTBEAT, ALERT_SIGNAL, CARE_DEPLOYED, NODE_RESTART, READ_SENSORS, FORWARD, BACKWARD, LEFT, RIGHT");
+  Serial.println("Commands: LED_ON, LED_OFF, SERVO_0, SERVO_90, SERVO_180, SERVO_SET:<0-180>, SET_REGION_A:<0-180>, SET_REGION_B:<0-180>, SET_REGION_C:<0-180>, SET_ERASE_ALL:<0-180>, SET_STANDBY:<0-180>, CALIBRATION_STATUS, STOP, SHOW_ON, SHOW_OFF, FIREWORK, RESET, CLEAN_START, CLEAN_STOP, ERASE_ALL, ERASE_REGION_A, ERASE_REGION_B, ERASE_REGION_C, KEEP_REGION_A, KEEP_REGION_B, KEEP_REGION_C, PAUSE_TASK, DELIVERY_START, DELIVERY_DONE, CLEAN_SCHEDULE, BROADCAST_SCHEDULE, TEACH_SCAN, FOCUS_NUDGE, QUESTION_ACK, TEACH_REPLY, SAFETY_LOCKDOWN, SAFETY_CLEAR, BELL_REMIND_ON, BELL_REMIND_OFF, BROADCAST_START, PATROL_START, ROBOT_RESUME, ROBOT_PAUSE, SPEED_SET, NODE_HEARTBEAT, ALERT_SIGNAL, CARE_DEPLOYED, NODE_RESTART, READ_SENSORS, FORWARD, BACKWARD, LEFT, RIGHT");
+  printCalibrationStatus();
 }
 
 void handleCommand(const String &command) {
+  int angle = 0;
   if (command == "LED_ON") {
     setStatusLed(true);
     Serial.println("LED is ON.");
@@ -44,9 +85,38 @@ void handleCommand(const String &command) {
   } else if (command == "SERVO_180") {
     servoD9.write(180);
     Serial.println("Servo on D9 moved to 180 degrees.");
+  } else if (parseAngleCommand(command, "SERVO_SET:", angle)) {
+    moveServoTo(angle);
+    Serial.print("Servo on D9 moved to ");
+    Serial.print(angle);
+    Serial.println(" degrees.");
+  } else if (parseAngleCommand(command, "SET_REGION_A:", angle)) {
+    servoCalibration.regionA = angle;
+    Serial.print("Region A angle set to ");
+    Serial.println(angle);
+  } else if (parseAngleCommand(command, "SET_REGION_B:", angle)) {
+    servoCalibration.regionB = angle;
+    Serial.print("Region B angle set to ");
+    Serial.println(angle);
+  } else if (parseAngleCommand(command, "SET_REGION_C:", angle)) {
+    servoCalibration.regionC = angle;
+    Serial.print("Region C angle set to ");
+    Serial.println(angle);
+  } else if (parseAngleCommand(command, "SET_ERASE_ALL:", angle)) {
+    servoCalibration.eraseAll = angle;
+    Serial.print("Erase-all angle set to ");
+    Serial.println(angle);
+  } else if (parseAngleCommand(command, "SET_STANDBY:", angle)) {
+    servoCalibration.standby = angle;
+    moveServoTo(servoCalibration.standby);
+    Serial.print("Standby angle set to ");
+    Serial.println(angle);
+  } else if (command == "CALIBRATION_STATUS") {
+    printCalibrationStatus();
   } else if (command == "STOP") {
     setStatusLed(false);
     setMatrixShowEnabled(false);
+    moveServoTo(servoCalibration.standby);
     Serial.println("Stop command received. LED is OFF.");
   } else if (command == "SHOW_ON") {
     setMatrixShowEnabled(true);
@@ -71,42 +141,50 @@ void handleCommand(const String &command) {
   } else if (command == "ERASE_ALL") {
     setStatusLed(true);
     setMatrixShowEnabled(false);
-    servoD9.write(180);
-    Serial.println("Erase all command received. Servo moved to 180 degrees.");
+    moveServoTo(servoCalibration.eraseAll);
+    Serial.print("Erase all command received. Servo moved to ");
+    Serial.print(servoCalibration.eraseAll);
+    Serial.println(" degrees.");
   } else if (command == "ERASE_REGION_A") {
     setStatusLed(true);
     triggerFireworks();
-    servoD9.write(0);
-    Serial.println("Erase region A command received. Servo moved to 0 degrees.");
+    moveServoTo(servoCalibration.regionA);
+    Serial.print("Erase region A command received. Servo moved to ");
+    Serial.print(servoCalibration.regionA);
+    Serial.println(" degrees.");
   } else if (command == "ERASE_REGION_B") {
     setStatusLed(true);
     setMatrixShowEnabled(true);
-    servoD9.write(90);
-    Serial.println("Erase region B command received. Servo moved to 90 degrees.");
+    moveServoTo(servoCalibration.regionB);
+    Serial.print("Erase region B command received. Servo moved to ");
+    Serial.print(servoCalibration.regionB);
+    Serial.println(" degrees.");
   } else if (command == "ERASE_REGION_C") {
     setStatusLed(true);
     triggerFireworks();
-    servoD9.write(180);
-    Serial.println("Erase region C command received. Servo moved to 180 degrees.");
+    moveServoTo(servoCalibration.regionC);
+    Serial.print("Erase region C command received. Servo moved to ");
+    Serial.print(servoCalibration.regionC);
+    Serial.println(" degrees.");
   } else if (command == "KEEP_REGION_A") {
     setStatusLed(false);
     resetMatrixShow();
-    servoD9.write(90);
-    Serial.println("Keep region A command received. Matrix show reset.");
+    moveServoTo(servoCalibration.standby);
+    Serial.println("Keep region A command received. Servo returned to standby.");
   } else if (command == "KEEP_REGION_B") {
     setStatusLed(false);
     setMatrixShowEnabled(false);
-    servoD9.write(90);
-    Serial.println("Keep region B command received. Servo returned to 90 degrees.");
+    moveServoTo(servoCalibration.standby);
+    Serial.println("Keep region B command received. Servo returned to standby.");
   } else if (command == "KEEP_REGION_C") {
     setStatusLed(false);
     resetMatrixShow();
-    servoD9.write(180);
-    Serial.println("Keep region C command received. Servo moved to 180 degrees.");
+    moveServoTo(servoCalibration.standby);
+    Serial.println("Keep region C command received. Servo returned to standby.");
   } else if (command == "PAUSE_TASK") {
     setStatusLed(false);
     setMatrixShowEnabled(false);
-    servoD9.write(90);
+    moveServoTo(servoCalibration.standby);
     Serial.println("Robot task paused.");
   } else if (command == "DELIVERY_START") {
     setStatusLed(true);

@@ -155,6 +155,15 @@ export default function RobotControl() {
     if (activePort) sendDriveCommand(`SPEED:${driveSpeed}`);
   }, [activePort]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Watchdog keepalive: firmware auto-STOPs after 3 s without HEARTBEAT
+  useEffect(() => {
+    if (!driveActive) return;
+    const id = setInterval(() => {
+      sendDriveCommand('HEARTBEAT');
+    }, 1000);
+    return () => clearInterval(id);
+  }, [driveActive]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const sendCommand = async (command: string) => {
     const trimmedCommand = command.trim();
     if (!trimmedCommand) return;

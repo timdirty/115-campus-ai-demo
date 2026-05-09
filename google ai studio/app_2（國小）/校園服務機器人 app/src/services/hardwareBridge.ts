@@ -1,6 +1,6 @@
-const BRIDGE_URL =
+export const BRIDGE_URL =
   ((import.meta as unknown as {env?: Record<string, string>}).env?.VITE_ARDUINO_BRIDGE_URL) ||
-  'http://localhost:3200';
+  'http://localhost:3202';
 
 export type HardwareBridgeResult = {
   ok: boolean;
@@ -8,9 +8,9 @@ export type HardwareBridgeResult = {
   message: string;
 };
 
-export async function sendHardwareCommand(command: string, source: string): Promise<HardwareBridgeResult> {
+async function doPost(command: string, source: string, timeoutMs: number): Promise<HardwareBridgeResult> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(`${BRIDGE_URL}/api/robot/command`, {
       method: 'POST',
@@ -23,14 +23,20 @@ export async function sendHardwareCommand(command: string, source: string): Prom
     return {ok: response.ok, statusCode: response.status, message};
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      return {ok: false, statusCode: 0, message: '硬體橋接請求逾時（5 秒）'};
+      return {ok: false, statusCode: 0, message: '硬體橋接請求逾時'};
     }
-    return {
-      ok: false,
-      statusCode: 0,
-      message: error instanceof Error ? error.message : '無法連接硬體橋接',
-    };
+    return {ok: false, statusCode: 0, message: error instanceof Error ? error.message : '無法連接硬體橋接'};
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+export async function sendHardwareCommand(command: string, source: string): Promise<HardwareBridgeResult> {
+  const first = await doPost(command, source, 5000);
+  // Auto-retry once on transient 503/timeout (bridge momentarily busy)
+  if (!first.ok && (first.statusCode === 503 || first.statusCode === 0)) {
+    await new Promise((r) => setTimeout(r, 400));
+    return doPost(command, source, 5000);
+  }
+  return first;
 }

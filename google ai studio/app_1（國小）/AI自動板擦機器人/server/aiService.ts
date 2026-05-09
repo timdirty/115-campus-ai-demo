@@ -13,6 +13,9 @@ export function isGeminiConfigured() {
 
 type AiOptions = {
   forceLocal?: boolean;
+  /** Real OCR text extracted by the local Python EasyOCR service. When present,
+   *  replaces the placeholder ocrText in local-fallback mode. */
+  realOcrText?: string;
 };
 
 function parseJsonFromText<T>(text: string): T {
@@ -79,7 +82,7 @@ function normalizePace(value: unknown): TeacherPace {
   return value === 'review_needed' || value === 'slow_down' ? value : 'normal';
 }
 
-function localBoardAnalysis(transcript: string, subjectHint: string, imageBase64: string): BoardAnalysisResult {
+function localBoardAnalysis(transcript: string, subjectHint: string, imageBase64: string, realOcrText?: string): BoardAnalysisResult {
   const subject = subjectHint.trim() || '國小數學';
   const transcriptLine = transcript.trim() || '尚未提供老師講解，系統先依白板快照建立國小課堂紀錄草稿。';
   const boardRegions = [
@@ -109,7 +112,9 @@ function localBoardAnalysis(transcript: string, subjectHint: string, imageBase64
         '- 請孩子用自己的話說出今天最重要的一句話。',
       ].join('\n'),
       captureSource: 'camera',
-      ocrText: `本機辨識摘要：${subject} 白板快照已擷取，請老師確認圖解、例題與口訣是否完整。`,
+      ocrText: realOcrText
+        ? realOcrText
+        : `本機辨識摘要：${subject} 白板快照已擷取，請老師確認圖解、例題與口訣是否完整。`,
       transcript: transcriptLine,
       imageUrl: imageBase64,
       img: imageBase64,
@@ -216,11 +221,12 @@ async function notesByIds(noteIds: number[]) {
 
 export async function analyzeBoardWithAI(imageBase64: string, transcript: string, subjectHint: string, options: AiOptions = {}): Promise<BoardAnalysisResult> {
   if (!ai || options.forceLocal) {
-    return localBoardAnalysis(transcript, subjectHint, imageBase64);
+    return localBoardAnalysis(transcript, subjectHint, imageBase64, options.realOcrText);
   }
 
   try {
     const media = stripDataUrl(imageBase64, 'image/png');
+    const ocrHint = options.realOcrText ? `\n本機 OCR 辨識到的白板文字：${options.realOcrText}` : '';
     const prompt = [
       '你是繁體中文國小課堂白板 AI 助教，服務國小組競賽作品。請分析白板照片與教師逐字稿，產生可以直接保存的本機 JSON。',
       '所有內容必須適合國小生與國小老師：句子短、用生活例子、避免高中以上術語，不做個人身份辨識。',
@@ -230,7 +236,7 @@ export async function analyzeBoardWithAI(imageBase64: string, transcript: string
       'noteDraft.content 請包含「今日學習目標」、「板書重點」、「小朋友練習」、「老師提醒」。',
       'boardRegions 至少三個區塊，每個區塊包含 id, label, x, y, width, height, status, reason；status 只能是 keep, erasable, erased。',
       `科目提示：${subjectHint || '未提供'}`,
-      `教師逐字稿：${transcript || '未提供'}`,
+      `教師逐字稿：${transcript || '未提供'}${ocrHint}`,
     ].join('\n');
     const response = await ai.models.generateContent({
       model: 'gemini-2.0-flash',
@@ -238,7 +244,7 @@ export async function analyzeBoardWithAI(imageBase64: string, transcript: string
       config: {temperature: 0.35},
     });
     const parsed = parseJsonFromText<Partial<BoardAnalysisResult>>(response.text ?? '');
-    const fallback = localBoardAnalysis(transcript, subjectHint, imageBase64);
+    const fallback = localBoardAnalysis(transcript, subjectHint, imageBase64, options.realOcrText);
     const noteDraft = {
       ...fallback.noteDraft,
       ...parsed.noteDraft,
@@ -263,7 +269,7 @@ export async function analyzeBoardWithAI(imageBase64: string, transcript: string
     };
   } catch (error) {
     console.warn('Gemini board analysis failed, using local fallback:', error);
-    return localBoardAnalysis(transcript, subjectHint, imageBase64);
+    return localBoardAnalysis(transcript, subjectHint, imageBase64, options.realOcrText);
   }
 }
 

@@ -5,16 +5,16 @@
 ## 共用架構
 
 ```text
-App 1 前端/Node bridge  http://localhost:3200
-App 2 前端              http://localhost:3201
-App 3 前端              http://localhost:3202
-Arduino command API     http://localhost:3200/api/robot/command
+App 1 前端              http://localhost:11501   App 1 bridge  http://localhost:3201（dev）
+App 2 前端              http://localhost:11502   App 2 bridge  http://localhost:3202
+App 3 前端              http://localhost:11503   App 3 bridge  http://localhost:3203
+App 1 prod bridge       http://localhost:3200（npm run start）
 ```
 
-App 2 與 App 3 預設送到 `http://localhost:3200`。如果 bridge 改 port，啟動前端時設定：
+各 App 有獨立 bridge；如需手動覆蓋，啟動前端時設定 `VITE_ARDUINO_BRIDGE_URL`：
 
 ```zsh
-VITE_ARDUINO_BRIDGE_URL=http://localhost:3200 npm run preview -- --host 0.0.0.0 --port 3201
+VITE_ARDUINO_BRIDGE_URL=http://localhost:3202 npm run dev
 ```
 
 ## 上傳與啟動

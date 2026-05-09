@@ -172,7 +172,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
           <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8 mb-6 md:mb-10">
             <div onClick={() => notes[0] && setSelectedNote(notes[0])} className="md:col-span-8 group cursor-pointer relative rounded-2xl sm:rounded-[2.5rem] overflow-hidden bg-surface-container-high aspect-[16/10] md:h-[320px] shadow-sm hover:shadow-2xl transition-all duration-700 border border-outline-variant/5 hover:border-primary/20">
               <img className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 filter group-hover:brightness-110" src={notes[0]?.img} alt="精選課堂紀錄" />
-              <div className="absolute inset-0 bg-gradient-to-t from-inverse-surface/90 via-inverse-surface/20 to-transparent"></div>
+              <div className="absolute inset-0 bg-linear-to-t from-inverse-surface/90 via-inverse-surface/20 to-transparent"></div>
               <div className="absolute top-4 left-4 w-10 h-10 bg-surface/20 backdrop-blur-md rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity shadow-lg"><Eye className="text-white w-4.5 h-4.5"/></div>
               <div className="absolute bottom-0 left-0 p-5 sm:p-8 text-on-primary">
                 <span className="bg-primary text-on-primary px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase mb-3 inline-block shadow-md">今日焦點</span>
@@ -187,7 +187,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
                   <span className="text-2xl sm:text-3xl font-extrabold font-headline">{notes.length}<span className="text-xs sm:text-sm font-medium opacity-60">筆</span></span>
                 </div>
                 <div className="w-full h-2 sm:h-3 bg-surface-container-highest rounded-full overflow-hidden mt-1 sm:mt-2 mb-3 sm:mb-4 shadow-inner relative">
-                  <motion.div initial={{width:0}} animate={{width:`${Math.min(100, notes.length * 12)}%`}} className="h-full bg-gradient-to-r from-primary to-tertiary rounded-full shadow-[0_0_12px_rgba(80,107,79,0.5)]"></motion.div>
+                  <motion.div initial={{width:0}} animate={{width:`${Math.min(100, notes.length * 12)}%`}} className="h-full bg-linear-to-r from-primary to-tertiary rounded-full shadow-[0_0_12px_rgba(80,107,79,0.5)]"></motion.div>
                 </div>
                 <p className="text-[10px] sm:text-xs text-on-surface-variant leading-relaxed">優先保存到本機資料；硬體服務不可用時會暫存在瀏覽器，孩子的原始錄音不會被保存。</p>
               </div>
@@ -230,7 +230,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
                 <motion.div
                   key={note.id} layoutId={`note-card-${note.id}`} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8, filter: "blur(8px)" }} transition={{ type: "spring", bounce: 0.2 }}
                   onClick={() => setSelectedNote(note)}
-                  className={`group bg-surface-container-lowest rounded-[2rem] p-4 transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer border border-outline-variant/5 hover:border-primary/20 overflow-hidden relative ${viewMode==='grid' ? 'flex flex-col' : 'flex flex-col md:flex-row md:items-center gap-6'}`}
+                  className={`group bg-surface-container-lowest rounded-4xl p-4 transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer border border-outline-variant/5 hover:border-primary/20 overflow-hidden relative ${viewMode==='grid' ? 'flex flex-col' : 'flex flex-col md:flex-row md:items-center gap-6'}`}
                 >
                   <div className={`rounded-2xl overflow-hidden bg-surface-container relative shrink-0 z-10 ${viewMode==='grid' ? 'w-full aspect-video mb-3' : 'w-full md:w-56 h-28 sm:h-36 border border-outline-variant/10'}`}>
                     <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src={note.img} alt={note.subject} />
@@ -289,7 +289,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
 
               <div className="w-full md:w-[45%] h-56 md:h-full bg-inverse-surface relative shrink-0">
                 <img className="w-full h-full object-cover" src={selectedNote.img} alt={selectedNote.title} />
-                <div className="absolute inset-0 bg-gradient-to-t from-inverse-surface/90 via-transparent to-transparent"></div>
+                <div className="absolute inset-0 bg-linear-to-t from-inverse-surface/90 via-transparent to-transparent"></div>
                 <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-2 text-white">
                   <span className="font-bold tracking-widest text-[10px] uppercase bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">課堂白板快照</span>
                   <div className="flex gap-2">

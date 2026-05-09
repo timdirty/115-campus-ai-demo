@@ -25,7 +25,9 @@ export function useBridgeStatus() {
       setHealth(nextHealth);
       setClassroom(nextClassroom);
       setLatestNote(notes[0] ?? null);
-      setNotice(nextHealth.geminiConfigured ? 'Gemini 已在本機橋接端就緒' : 'Gemini Key 未設定，正在使用本機示範分析');
+      setNotice(nextHealth.hardwareSimulation
+        ? '硬體模擬模式已啟用，Arduino/EV3 指令會回傳展示成功'
+        : nextHealth.geminiConfigured ? 'Gemini 已在本機橋接端就緒' : 'Gemini Key 未設定，正在使用本機示範分析');
     } catch (error) {
       setNotice('本機橋接服務未啟動，使用本機展示模式');
     } finally {

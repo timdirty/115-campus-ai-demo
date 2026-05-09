@@ -27,8 +27,16 @@ function run() {
   }
   const pixelResult = analyzeCampusPixels(32, 32, noisyWarmFrame);
   assert.ok(pixelResult.metrics, 'pixel result should include metrics');
+  assert.ok(pixelResult.quality, 'pixel result should include frame quality');
+  assert.ok(pixelResult.evidence.some((item) => item.includes('畫面品質')));
   assert.ok(pixelResult.evidence.length >= 3);
   assert.ok(pixelResult.confidence >= 58);
+
+  const emptyDarkFrame = new Uint8ClampedArray(24 * 24 * 4).fill(12);
+  for (let i = 3; i < emptyDarkFrame.length; i += 4) emptyDarkFrame[i] = 255;
+  const lowQuality = analyzeCampusPixels(24, 24, emptyDarkFrame);
+  assert.notEqual(lowQuality.quality?.level, 'good');
+  assert.ok(lowQuality.quality?.hints.some((item) => item.includes('光線偏暗')));
 
   const seenScenes = new Set<string>();
   for (let round = 0; round < 500; round += 1) {
@@ -51,6 +59,7 @@ function run() {
     seenScenes.add(result.scene);
     assert.ok(result.confidence >= 0 && result.confidence <= 100, `round ${round}: confidence out of bounds`);
     assert.ok(result.metrics, `round ${round}: missing metrics`);
+    assert.ok(result.quality, `round ${round}: missing quality`);
     assert.ok(result.evidence.length >= 3, `round ${round}: missing evidence`);
     assert.match(result.command, /^VISION_/, `round ${round}: expected vision command`);
     assert.ok(result.zone.length > 0, `round ${round}: missing zone`);

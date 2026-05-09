@@ -5,6 +5,7 @@ export interface HardwareSocketStatus {
   port: string;
   simulated: boolean;
   mode: 'ws' | 'polling';
+  reconnecting: boolean;
   lastCommandAck: {command: string; ok: boolean; ts: number} | null;
 }
 
@@ -15,6 +16,7 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
     port: '',
     simulated: false,
     mode: 'polling',
+    reconnecting: false,
     lastCommandAck: null,
   });
 
@@ -22,12 +24,20 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
   const reconnectDelayRef = useRef(1000);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mountedRef = useRef(true);
 
   function stopPolling() {
     if (pollingTimerRef.current !== null) {
       clearInterval(pollingTimerRef.current);
       pollingTimerRef.current = null;
+    }
+  }
+
+  function stopHeartbeat() {
+    if (heartbeatRef.current !== null) {
+      clearInterval(heartbeatRef.current);
+      heartbeatRef.current = null;
     }
   }
 
@@ -41,7 +51,7 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
         .then((data: {arduinoConnected?: boolean; activePath?: string}) => {
           clearTimeout(t);
           if (!mountedRef.current) return;
-          setStatus((s) => ({...s, connected: Boolean(data.arduinoConnected), port: data.activePath ?? '', mode: 'polling'}));
+          setStatus((s) => ({...s, connected: Boolean(data.arduinoConnected), port: data.activePath ?? '', mode: 'polling', reconnecting: false}));
         })
         .catch(() => {
           clearTimeout(t);
@@ -75,7 +85,12 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
       clearTimeout(connectDeadline);
       reconnectDelayRef.current = 1000;
       stopPolling();
-      if (mountedRef.current) setStatus((s) => ({...s, mode: 'ws'}));
+      if (mountedRef.current) setStatus((s) => ({...s, mode: 'ws', reconnecting: false}));
+      // Client-side keepalive: send heartbeat every 15s to traverse NAT/proxies
+      stopHeartbeat();
+      heartbeatRef.current = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) ws.send('"heartbeat"');
+      }, 15000);
     };
 
     ws.onmessage = (evt) => {
@@ -89,6 +104,7 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
             port: event.port ?? '',
             simulated: Boolean(event.simulated),
             mode: 'ws',
+            reconnecting: false,
           }));
         } else if (event.type === 'command_ack') {
           setStatus((s) => ({
@@ -101,17 +117,20 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
 
     ws.onclose = () => {
       clearTimeout(connectDeadline);
+      stopHeartbeat();
       wsRef.current = null;
       if (!mountedRef.current) return;
-      setStatus((s) => ({...s, mode: 'polling'}));
+      setStatus((s) => ({...s, mode: 'polling', reconnecting: true}));
       startPolling();
       const delay = reconnectDelayRef.current;
       reconnectDelayRef.current = Math.min(delay * 2, 30000);
+      // Jitter: spread reconnects by ±20% so multiple tabs don't thundering-herd the bridge
+      const jitter = delay * 0.2 * (Math.random() * 2 - 1);
       reconnectTimerRef.current = setTimeout(() => {
         if (!mountedRef.current) return;
         stopPolling();
         connect();
-      }, delay);
+      }, delay + jitter);
     };
 
     ws.onerror = () => { /* onclose fires after onerror */ };
@@ -124,6 +143,7 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
       mountedRef.current = false;
       if (reconnectTimerRef.current !== null) clearTimeout(reconnectTimerRef.current);
       stopPolling();
+      stopHeartbeat();
       if (wsRef.current) {
         const ws = wsRef.current;
         ws.onopen = null;

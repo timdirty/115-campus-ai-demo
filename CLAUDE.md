@@ -1,114 +1,77 @@
+<!-- AUTO-GENERATED: edit docs/SHARED_AGENT_CORE.md and the appendix docs, then run python3 scripts/sync-agent-guides.py -->
+
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with this repository.
 
-## Project Overview
+Use this file as the compact entrypoint. Keep shared project guidance in `docs/SHARED_AGENT_CORE.md` and tool-specific guidance in the appendix docs.
 
-Three competition apps (two 國小, one 國中) sharing one Arduino UNO R4 WiFi firmware. All three apps send Serial commands through App 1's Node.js bridge (`server/serialBridge.ts`), which is the shared hardware gateway.
+# Shared Agent Core
 
-- **App 1** `google ai studio/app_1（國小）/AI自動板擦機器人` — AI whiteboard assistant. Has both a Vite frontend (`npm run dev:web`, port 3000) and a Node.js Express/serialport bridge server (`npm run dev:bridge`). Production: `npm run build && BRIDGE_PORT=3200 NODE_ENV=production npm run start`.
-- **App 2** `google ai studio/app_2（國小）/校園服務機器人 app` — Campus service robot. Pure frontend, `npm run dev`.
-- **App 3** `google ai studio/app_3（國中）/AI校園心靈守護者` — Guardian app with Firebase. Pure frontend, `npm run dev`.
+This is the canonical project guidance shared by Claude Code and Codex for this repository.
 
-## Environment
+## Project Shape
 
-- macOS / zsh
-- PlatformIO Core installed through Homebrew
-- Do not install PlatformIO with `python3 -m pip install platformio`
-- Board id: `uno_r4_wifi`, framework: `arduino`, monitor speed: `115200`
+- Three competition apps share one Arduino UNO R4 WiFi firmware target.
+- App 1 is the hardware gateway through `server/serialBridge.ts`.
+- App 2 and App 3 are frontend-first apps that still depend on the shared command model.
 
-## Safety Rules
+## Canonical Paths
 
-- Do not delete existing project files unless explicitly asked.
-- Keep `platformio.ini`, `src/`, `include/`, `lib/`, and `test/` as project paths, not shell commands.
+- Firmware: `platformio.ini`, `src/`, `include/`, `lib/`, `test/`
+- Shared skills source: `.skillshare/skills/`
+- Project interop notes: `docs/AGENT_INTEROP.md`
+- Task handoff scratchpad: `.orchestra/handoff.md`
+
+## Shared Rules
+
 - Prefer small, reversible edits.
-- After firmware changes, run `pio run` and fix compile errors before reporting completion.
+- Do not delete project files unless the user explicitly asks.
+- Treat `.orchestra/handoff.md` as transient workflow state, not the source of truth.
+- Treat `docs/AGENT_INTEROP.md` and this file as the source of truth for Claude/Codex project alignment.
+- Keep secrets out of git, including `.env`, Firebase credentials, Arduino secrets, and App 1 live session data.
 
-## Firmware Commands
+## Firmware Rules
 
-```zsh
+- PlatformIO is managed through Homebrew, not `pip`.
+- Keep per-project physical firmware separated by PlatformIO env; do not overwrite one team's firmware file with another team's sketch.
+- Shared command demo firmware: env `uno_r4_wifi`, files `src/main.cpp`, `src/commands.cpp`, `src/matrix_show.cpp`.
+- App 1 whiteboard dual-motor firmware: env `uno_r4_minima_app1_whiteboard_drive`, file `src/app1_whiteboard_drive/main.cpp`, L293D M3/M4.
+- App 2 sweeper robot firmware: envs `uno_r4_wifi_app2_sweeper` (R4 WiFi) and `uno_r4_minima_app2_sweeper` (R4 Minima, DFU upload), file `src/app2_sweeper_drive/main.cpp`, L293D M1+M2 wheels and M3+M4 sweeper rollers.
+- App 3 guardian sensor firmware: envs `uno_r4_wifi_sensor` (R4 WiFi) and `uno_r4_minima` (R4 Minima, DFU upload), file `src/app3_guardian_sensor/main.cpp`, HY-M302 / DHT11 / photoresistor / RGB LED.
+- App 3 guardian four-wheel firmware: envs `uno_r4_wifi_app3_guardian_drive` (R4 WiFi) and `uno_r4_minima_app3_guardian_drive` (R4 Minima, DFU upload), file `src/app3_guardian_drive/main.cpp`, L293D M1+M4 left side and M2+M3 right side.
+- Full firmware reference lives in `docs/FIRMWARE_ENV_MAP.md`.
+- All serial commands stay in `UPPER_SNAKE_CASE`.
+- For shared command-demo changes, `src/main.cpp` is the serial entry point and `src/commands.cpp` is the single command dispatch surface.
+- If you add a shared command, update `src/commands.cpp`, the ready message list, and the App 1 bridge catalog.
+
+## High-Signal Commands
+
+```bash
+npm run dev
+npm run build
+npm run check
 pio run
-pio run -t upload
-pio device monitor -b 115200
-pio run -t clean
-zsh scripts/doctor.sh
-```
-
-## Firmware Architecture
-
-- `src/main.cpp`: Serial entry point; reads newline-terminated commands and calls `handleCommand()`.
-- `src/commands.cpp`: Single `handleCommand()` dispatch for all three apps. Hardware: LED_BUILTIN + Servo on D9 + LED matrix.
-- `src/matrix_show.cpp`: LED matrix animation (`setMatrixShowEnabled`, `triggerFireworks`, `resetMatrixShow`).
-- All Serial commands use `UPPER_SNAKE_CASE`. Adding a command requires: new `else if` branch in `handleCommand()`, entry in the `printReadyMessage()` list, and sync with App 1 bridge catalog.
-
-## Root Commands (run from repo root)
-
-| Command | Effect |
-|---|---|
-| `npm run dev` | Start all three apps concurrently (App1: 11501, App2: 11502, App3: 11503; bridge: 3200) |
-| `npm run preview` | Rebuild pages-dist + serve unified entry at http://localhost:11500 |
-| `npm run build` | Rebuild pages-dist only (no server) |
-| `npm run check` | Run all three apps' CI gates in sequence |
-
-## App Commands (per-app, run from each app directory)
-
-| Command | Effect |
-|---|---|
-| `npm run dev` | Start dev server (port 3000) |
-| `npm run check` | Type-check + tests + build (CI gate) |
-| `npm run build` | Production build |
-| `npm run lint` | TypeScript type-check only |
-| `npm run test` | Unit tests (App 2 & 3 only) |
-
-App 1 also has `npm run dev:web` (Vite) and `npm run dev:bridge` (serialBridge) started together by `npm run dev`.
-
-## Verify Command Catalog
-
-After editing commands in `src/commands.cpp` or App 1's bridge (`server/defaults.ts`):
-
-```zsh
-node scripts/verify-command-catalog.mjs
-```
-
-Checks that the bridge command catalog, `handleCommand()` branches, and the `printReadyMessage()` list are all consistent.
-
-## Competition Readiness
-
-```zsh
-# One-shot full check (compile + all apps + Pages build + mobile layout)
+pio run -e uno_r4_minima_app1_whiteboard_drive
+pio run -e uno_r4_wifi_app2_sweeper
+pio run -e uno_r4_minima_app2_sweeper
+pio run -e uno_r4_wifi_sensor
+pio run -e uno_r4_wifi_app3_guardian_drive
+pio run -e uno_r4_minima_app3_guardian_drive
 node scripts/competition-readiness-check.mjs
-
-# After GitHub Pages deploys, add public URL verification
-CHECK_PUBLIC_URLS=1 node scripts/competition-readiness-check.mjs
-
-# Before pushing to GitHub
-node scripts/github-prepublish-check.mjs
+npm run skills:sync
+npm run skills:validate
+npm run agent-guides:sync
 ```
 
-Sub-checks that `competition-readiness-check.mjs` wraps:
+## Shared Guide Model
 
-```zsh
-zsh scripts/demo-check.sh
-node scripts/build-github-pages.mjs
-node scripts/pages-artifact-check.mjs
-node scripts/mobile-layout-check.mjs
-```
+- `CLAUDE.md` and `AGENTS.md` are generated adapters.
+- Shared project guidance should be edited here first.
+- Tool-specific differences belong in `docs/CLAUDE_APPENDIX.md` and `docs/AGENTS_APPENDIX.md`.
 
-## Arduino Cloud
+## Claude-Specific Notes
 
-Use `docs/ARDUINO_CLOUD.md` before adding Arduino Cloud code.
-
-- Keep `handleCommand()` as the single command execution path.
-- Let Serial Monitor and Arduino Cloud callbacks both call `handleCommand()`.
-- Do not create or commit real secrets. Use `include/arduino_secrets.example.h` as the template and keep real values in ignored `include/arduino_secrets.h`.
-- Do not add Cloud libraries to `platformio.ini` until the Thing variables and credentials are ready.
-
-## GitHub Pages
-
-Static student entry pages live in `pages-dist/`. Built by `scripts/build-github-pages.mjs`. Deployed to `https://timdirty.github.io/115-campus-ai-demo/`.
-
-Do not commit real `.env`, Firebase config, Arduino secrets, or App 1 live session data. The CI workflow (`.github/workflows/demo-check.yml`) auto-runs all three app checks, bridge/firmware catalog verification, and firmware compile on every push.
-
-## Project Skill
-
-There is a project-local skill at `.codex/skills/arduino-uno-r4-vibecoding/SKILL.md`. Use it as the compact operating guide for AI-assisted firmware edits in this repo.
+- This file is consumed by Claude Code as `CLAUDE.md`.
+- Project-local Claude permission overrides currently live in `.claude/settings.local.json`.
+- Claude-oriented workflow state may also appear in `.orchestra/handoff.md`, but that file is not the source of truth for shared project rules.

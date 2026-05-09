@@ -35,6 +35,16 @@ export type WhiteboardNote = {
 };
 
 const NOTES_KEY = 'whiteboard-notes:elementary:v1';
+const DEMO_RESET_KEYS = [
+  NOTES_KEY,
+  'whiteboard-notes:selected-id',
+  'whiteboard-session:elementary:v1',
+  'whiteboard-robot-status:elementary:v1',
+  'whiteboard-task-log:elementary:v1',
+  'whiteboard-chat:elementary:v1',
+  'whiteboard-assistant-tour:v1',
+  'issues-app1:v1',
+];
 const THEMES: NoteTheme[] = ['primary', 'secondary', 'tertiary'];
 
 const svgUri = (svg: string) => `data:image/svg+xml,${encodeURIComponent(svg)}`;
@@ -258,6 +268,18 @@ export function updateNote(id: number, input: Partial<WhiteboardNote>) {
 
 export function deleteNote(id: number) {
   saveNotes(loadNotes().filter((note) => note.id !== id));
+}
+
+export function resetWhiteboardDemoState() {
+  try {
+    for (const key of DEMO_RESET_KEYS) {
+      localStorage.removeItem(key);
+    }
+  } catch {
+    // storage disabled — continue with in-memory UI reset
+  }
+  saveNotes(DEFAULT_NOTES);
+  return DEFAULT_NOTES;
 }
 
 export async function loadNotesAsync(): Promise<WhiteboardNote[]> {

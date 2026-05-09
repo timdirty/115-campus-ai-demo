@@ -19,9 +19,20 @@ const allBridgeCommands = [...bridgeDefaults.matchAll(/\{command:\s*'([A-Z0-9_]+
 // so they are excluded from the firmware/handler/ready-line consistency checks.
 const isEV3Command = (cmd) => cmd.startsWith('EV3_');
 const bridgeCommands = allBridgeCommands.filter((cmd) => !isEV3Command(cmd));
-const handledCommands = [...firmwareCommands.matchAll(/command\s*==\s*"([A-Z0-9_]+)"/g)].map((match) => match[1]);
+const handledCommands = [
+  // Direct equality checks: command == "NAME"
+  ...[...firmwareCommands.matchAll(/command\s*==\s*"([A-Z0-9_]+)"/g)].map((m) => m[1]),
+  // Prefix-parse helpers: parseAngleCommand(command, "NAME:", ...) / parsePrefixedSpeed(command, "NAME:", ...)
+  ...[...firmwareCommands.matchAll(/parse\w+\s*\(\s*command\s*,\s*"([A-Z0-9_]+):/g)].map((m) => m[1]),
+];
 const readyLineMatch = firmwareCommands.match(/Serial\.println\("Commands:\s*([^"]+)"\);/);
-const readyCommands = readyLineMatch ? readyLineMatch[1].split(',').map((item) => item.trim()).filter(Boolean) : [];
+// Strip parameter annotations like ":<0-180>" so "SERVO_SET:<0-180>" matches "SERVO_SET" in bridge catalog
+const readyCommands = readyLineMatch
+  ? readyLineMatch[1]
+      .split(',')
+      .map((item) => item.trim().replace(/:.*$/, ''))
+      .filter(Boolean)
+  : [];
 
 const requiredAppCommands = {
   app1: ['SHOW_ON', 'ERASE_REGION_A', 'ERASE_ALL', 'PAUSE_TASK'],

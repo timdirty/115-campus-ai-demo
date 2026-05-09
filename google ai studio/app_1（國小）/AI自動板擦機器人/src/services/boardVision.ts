@@ -1,4 +1,6 @@
 import type {BoardRegion} from './classroomApi';
+import {analyzeFrameQuality, FrameQualityResult} from './frameQuality';
+import {BoardCalibration, calibrationBounds} from './whiteboardCalibration';
 
 export interface WhiteboardVisionMetrics {
   inkDensity: number;
@@ -9,6 +11,7 @@ export interface WhiteboardVisionMetrics {
 
 export interface WhiteboardVisionResult {
   metrics: WhiteboardVisionMetrics;
+  quality: FrameQualityResult;
   regions: BoardRegion[];
   recommendation: string;
   evidence: string[];
@@ -52,38 +55,44 @@ function summarizeMetrics(width: number, height: number, data: Uint8ClampedArray
   };
 }
 
-export function analyzeWhiteboardPixels(width: number, height: number, data: Uint8ClampedArray | number[]): WhiteboardVisionResult {
+export function analyzeWhiteboardPixels(width: number, height: number, data: Uint8ClampedArray | number[], calibration?: BoardCalibration): WhiteboardVisionResult {
   const metrics = summarizeMetrics(width, height, data);
+  const quality = analyzeFrameQuality(width, height, data);
   const denseInk = metrics.inkDensity >= 34 || metrics.edgeDensity >= 28;
   const mostlyBlank = metrics.blankArea >= 48 && metrics.inkDensity < 22;
+  const boardFrame = calibration ? calibrationBounds(calibration) : {x: 6, y: 12, width: 86, height: 80};
+  const toBoardX = (offset: number) => boardFrame.x + boardFrame.width * offset;
+  const toBoardY = (offset: number) => boardFrame.y + boardFrame.height * offset;
+  const toBoardW = (size: number) => boardFrame.width * size;
+  const toBoardH = (size: number) => boardFrame.height * size;
   const regions: BoardRegion[] = [
     {
       id: 'A',
       label: denseInk ? '主要板書區' : '圖解保留區',
-      x: 6,
-      y: 12,
-      width: 42,
-      height: 58,
+      x: Math.round(toBoardX(0.02) * 10) / 10,
+      y: Math.round(toBoardY(0.06) * 10) / 10,
+      width: Math.round(toBoardW(0.44) * 10) / 10,
+      height: Math.round(toBoardH(0.62) * 10) / 10,
       status: denseInk ? 'keep' : 'erasable',
       reason: denseInk ? '像素顯示此區筆跡與邊緣較多，先保留給學生回看。' : '筆跡密度較低，可先清出空間。',
     },
     {
       id: 'B',
       label: mostlyBlank ? '可用留白區' : '練習與計算區',
-      x: 52,
-      y: 16,
-      width: 40,
-      height: 52,
+      x: Math.round(toBoardX(0.52) * 10) / 10,
+      y: Math.round(toBoardY(0.1) * 10) / 10,
+      width: Math.round(toBoardW(0.42) * 10) / 10,
+      height: Math.round(toBoardH(0.56) * 10) / 10,
       status: mostlyBlank ? 'keep' : 'erasable',
       reason: mostlyBlank ? '留白比例高，適合作為下一題空間。' : '右側像素變化明顯，判定為可整理的練習內容。',
     },
     {
       id: 'C',
       label: '下方提醒區',
-      x: 16,
-      y: 76,
-      width: 68,
-      height: 16,
+      x: Math.round(toBoardX(0.12) * 10) / 10,
+      y: Math.round(toBoardY(0.78) * 10) / 10,
+      width: Math.round(toBoardW(0.72) * 10) / 10,
+      height: Math.round(toBoardH(0.16) * 10) / 10,
       status: metrics.contrast >= 24 ? 'keep' : 'erasable',
       reason: metrics.contrast >= 24 ? '下方可能有口訣或收束重點，建議保留。' : '低對比且資訊量較少，可清除。',
     },
@@ -93,18 +102,21 @@ export function analyzeWhiteboardPixels(width: number, height: number, data: Uin
 
   return {
     metrics,
+    quality,
     regions,
-    recommendation: `本機像素辨識：保留「${keepLabels}」，優先清理「${eraseLabels}」。`,
+    recommendation: `${quality.level === 'poor' ? `${quality.label}：${quality.hints[0]} ` : ''}本機像素辨識：保留「${keepLabels}」，優先清理「${eraseLabels}」。`,
     evidence: [
+      `畫面品質 ${quality.label}`,
       `筆跡密度 ${metrics.inkDensity}`,
       `邊緣密度 ${metrics.edgeDensity}`,
       `留白比例 ${metrics.blankArea}`,
       `對比 ${metrics.contrast}`,
+      calibration ? '已套用 webcam 白板四角校正' : '未套用白板四角校正',
     ],
   };
 }
 
-export async function analyzeWhiteboardImage(imageDataUrl: string): Promise<WhiteboardVisionResult> {
+export async function analyzeWhiteboardImage(imageDataUrl: string, calibration?: BoardCalibration): Promise<WhiteboardVisionResult> {
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
@@ -120,5 +132,14 @@ export async function analyzeWhiteboardImage(imageDataUrl: string): Promise<Whit
   if (!context) throw new Error('canvas-unavailable');
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
   const frame = context.getImageData(0, 0, canvas.width, canvas.height);
-  return analyzeWhiteboardPixels(frame.width, frame.height, frame.data);
+  const bounds = calibration ? calibrationBounds(calibration) : null;
+  if (!bounds) {
+    return analyzeWhiteboardPixels(frame.width, frame.height, frame.data);
+  }
+  const cropX = Math.max(0, Math.floor((bounds.x / 100) * frame.width));
+  const cropY = Math.max(0, Math.floor((bounds.y / 100) * frame.height));
+  const cropWidth = Math.max(1, Math.floor((bounds.width / 100) * frame.width));
+  const cropHeight = Math.max(1, Math.floor((bounds.height / 100) * frame.height));
+  const cropped = context.getImageData(cropX, cropY, cropWidth, cropHeight);
+  return analyzeWhiteboardPixels(cropped.width, cropped.height, cropped.data, calibration);
 }

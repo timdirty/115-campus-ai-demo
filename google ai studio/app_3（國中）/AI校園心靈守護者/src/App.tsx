@@ -163,7 +163,10 @@ function AppContent() {
   const animationFrameRef = useRef<number | null>(null);
 
   const viewModel = useMemo(() => buildCommandCenterViewModel(state, zoneSensors), [state, zoneSensors]);
-  const selectedZone = viewModel.zones.find((zone) => zone.id === selectedZoneId) ?? viewModel.highestZone;
+  const selectedZone = useMemo(
+    () => viewModel.zones.find((zone) => zone.id === selectedZoneId) ?? viewModel.highestZone,
+    [viewModel.zones, viewModel.highestZone, selectedZoneId],
+  );
   const latestMood = state.moodLogs[0];
 
   useEffect(() => {

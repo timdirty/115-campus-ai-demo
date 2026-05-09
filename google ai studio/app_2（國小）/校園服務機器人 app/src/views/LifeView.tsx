@@ -166,12 +166,12 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
             <Megaphone size={32} className="text-primary opacity-20 group-hover:rotate-12 transition-transform" />
           </div>
 
-          <div className="h-[1px] w-full bg-outline-variant/30"></div>
+          <div className="h-px w-full bg-outline-variant/30"></div>
 
           <div className="space-y-4">
             <h3 className="font-headline text-[11px] font-extrabold uppercase tracking-[0.2em] px-2 text-on-surface-variant/40 font-mono">操作設定</h3>
             <div
-              className="flex items-center justify-between p-6 bg-surface-container-lowest rounded-[2rem] shadow-sm cursor-pointer hover:shadow-xl hover:border-primary/30 border border-outline-variant/20 transition-all active:scale-[0.985] group/item"
+              className="flex items-center justify-between p-6 bg-surface-container-lowest rounded-4xl shadow-sm cursor-pointer hover:shadow-xl hover:border-primary/30 border border-outline-variant/20 transition-all active:scale-[0.985] group/item"
               onClick={() => { actions.setRemindWarning(!remindWarning); showToast(remindWarning ? '已關閉下課提醒' : '已開啟下課提醒'); }}
             >
               <div className="flex items-center gap-4">
@@ -233,10 +233,10 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
               <motion.div animate={{ scale: [1, 2, 3], opacity: [0.6, 0.2, 0] }} transition={{ duration: 4, delay: 2, repeat: Infinity, ease: "easeOut" }} className="w-32 h-32 rounded-full border border-primary/40 absolute shadow-[0_0_15px_rgba(var(--color-primary),0.3)]"></motion.div>
 
               {/* Grid Lines */}
-              <div className="absolute w-[200%] h-[1px] bg-primary/10 rotate-45"></div>
-              <div className="absolute w-[200%] h-[1px] bg-primary/10 -rotate-45"></div>
-              <div className="absolute w-full h-[1px] bg-primary/10"></div>
-              <div className="absolute h-full w-[1px] bg-primary/10"></div>
+              <div className="absolute w-[200%] h-px bg-primary/10 rotate-45"></div>
+              <div className="absolute w-[200%] h-px bg-primary/10 -rotate-45"></div>
+              <div className="absolute w-full h-px bg-primary/10"></div>
+              <div className="absolute h-full w-px bg-primary/10"></div>
 
               {/* Rotating Sweep */}
               <motion.div
@@ -286,7 +286,7 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
                 </div>
                 <div className="bg-white/5 rounded-2xl border border-white/10 p-4 relative overflow-hidden group-hover/cam:bg-white/10 transition-colors">
                   <div className="flex items-center gap-4 relative z-10">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center shrink-0 shadow-lg border border-white/10"><span className="font-bold text-xs font-mono">XM</span></div>
+                    <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-primary to-primary-container text-white flex items-center justify-center shrink-0 shadow-lg border border-white/10"><span className="font-bold text-xs font-mono">XM</span></div>
                     <div>
                       <p className="text-sm font-bold text-white tracking-wide">人流密度：偏高</p>
                       <p className="text-[10px] text-white/40 font-bold mt-1 tracking-widest leading-none">不辨識身分，只看場域狀態</p>
@@ -365,15 +365,15 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
              <div className="text-[10px] text-white/30 font-mono tracking-widest font-bold ml-6">延遲：12ms • 狀態：追蹤中</div>
           </div>
 
-          <div className="absolute top-0 inset-x-0 h-48 bg-gradient-to-b from-[#050912] to-transparent z-10 pointer-events-none opacity-80"></div>
+          <div className="absolute top-0 inset-x-0 h-48 bg-linear-to-b from-[#050912] to-transparent z-10 pointer-events-none opacity-80"></div>
           <div className="absolute inset-0 bg-[#0c121d]">
             <div className="w-full h-full scale-110" style={{background: 'linear-gradient(180deg, #0c1829 0%, #1a2d4a 50%, #0a1525 100%)'}} />
           </div>
 
           <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden opacity-30">
-             <div className="w-full h-[1px] bg-white absolute top-1/4 animate-[scan_4s_ease-in-out_infinite]"></div>
-             <div className="w-full h-[1px] bg-white absolute top-2/4 animate-[scan_4s_ease-in-out_infinite_1s]"></div>
-             <div className="w-full h-[1px] bg-white absolute top-3/4 animate-[scan_4s_ease-in-out_infinite_2s]"></div>
+             <div className="w-full h-px bg-white absolute top-1/4 animate-[scan_4s_ease-in-out_infinite]"></div>
+             <div className="w-full h-px bg-white absolute top-2/4 animate-[scan_4s_ease-in-out_infinite_1s]"></div>
+             <div className="w-full h-px bg-white absolute top-3/4 animate-[scan_4s_ease-in-out_infinite_2s]"></div>
           </div>
 
           {/* Scanning Box Map Cam */}
@@ -381,12 +381,12 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
              <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} className="w-56 h-56 border-2 border-primary/50 relative shadow-[0_0_100px_rgba(var(--color-primary),0.2)]">
                 <div className="absolute -top-10 left-0 bg-primary shadow-xl shadow-primary/30 text-white font-mono text-[10px] px-3 py-1 rounded-full uppercase tracking-[0.2em] font-bold border border-white/20">目標分析：匹配度 98%</div>
 
-                <div className="absolute -top-[4px] -left-[4px] w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-xl shadow-[-5px_-5px_15px_rgba(var(--color-primary),0.4)]"></div>
-                <div className="absolute -top-[4px] -right-[4px] w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-xl shadow-[5px_-5px_15px_rgba(var(--color-primary),0.4)]"></div>
-                <div className="absolute -bottom-[4px] -left-[4px] w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-xl shadow-[-5px_5px_15px_rgba(var(--color-primary),0.4)]"></div>
-                <div className="absolute -bottom-[4px] -right-[4px] w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-xl shadow-[5px_5px_15px_rgba(var(--color-primary),0.4)]"></div>
+                <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-xl shadow-[-5px_-5px_15px_rgba(var(--color-primary),0.4)]"></div>
+                <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-xl shadow-[5px_-5px_15px_rgba(var(--color-primary),0.4)]"></div>
+                <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-xl shadow-[-5px_5px_15px_rgba(var(--color-primary),0.4)]"></div>
+                <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-xl shadow-[5px_5px_15px_rgba(var(--color-primary),0.4)]"></div>
 
-                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[2px] bg-primary/40 animate-[radar-line_2s_ease-in-out_infinite]"></div>
+                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-primary/40 animate-[radar-line_2s_ease-in-out_infinite]"></div>
              </motion.div>
           </div>
 
@@ -396,7 +396,7 @@ export function LifeView({ showToast, navigateTo }: { showToast: (msg: string) =
 
                 <div className="flex justify-between items-center mb-6">
                   <div className="flex items-center gap-4">
-                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center shrink-0 shadow-2xl border border-white/20 font-bold font-mono text-xl">XM</div>
+                     <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-primary to-primary-container text-white flex items-center justify-center shrink-0 shadow-2xl border border-white/20 font-bold font-mono text-xl">XM</div>
                      <div>
                         <p className="text-[10px] text-primary font-extrabold tracking-[0.3em] mb-1">場域狀態</p>
                         <p className="text-white text-3xl font-bold tracking-tight">走廊人流偏高</p>

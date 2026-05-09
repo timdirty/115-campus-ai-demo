@@ -2,15 +2,17 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import {apps, guideUrl, pagesDir} from './app-catalog.mjs';
+import {allGuidesUrl, apps, guideUrl, pagesDir} from './app-catalog.mjs';
 
 const requiredFiles = [
   'index.html',
   '.nojekyll',
+  allGuidesUrl(),
   ...apps.flatMap((app) => [`${app.id}/index.html`, guideUrl(app)]),
 ];
 
 const requiredIndexLinks = [
+  `./${allGuidesUrl()}`,
   ...apps.flatMap((app) => [`./${app.id}/`, `./${guideUrl(app)}`]),
 ];
 
@@ -44,6 +46,16 @@ if (!fs.existsSync(pagesDir)) {
     for (const phrase of phrases) {
       if (!guideHtml.includes(phrase)) {
         failures.push(`${file} is missing expected phrase: ${phrase}`);
+      }
+    }
+  }
+
+  const allGuidesPath = path.join(pagesDir, allGuidesUrl());
+  if (fs.existsSync(allGuidesPath)) {
+    const allGuidesHtml = fs.readFileSync(allGuidesPath, 'utf8');
+    for (const app of apps) {
+      if (!allGuidesHtml.includes(app.name)) {
+        failures.push(`${allGuidesUrl()} is missing app name: ${app.name}`);
       }
     }
   }

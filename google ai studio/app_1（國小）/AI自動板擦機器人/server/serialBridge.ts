@@ -14,6 +14,21 @@ const app = express();
 const httpServer = createServer(app);
 const wss = new WebSocketServer({server: httpServer});
 
+// Server-side keepalive: terminate ghost connections within 2 ping cycles (~50s)
+const wsAlive = new WeakMap<WebSocket, boolean>();
+const wsKeepalive = setInterval(() => {
+  for (const ws of wss.clients) {
+    if (wsAlive.get(ws) === false) { ws.terminate(); continue; }
+    wsAlive.set(ws, false);
+    ws.ping();
+  }
+}, 25000);
+wss.on('connection', (ws) => {
+  wsAlive.set(ws, true);
+  ws.on('pong', () => wsAlive.set(ws, true));
+});
+httpServer.on('close', () => clearInterval(wsKeepalive));
+
 setBroadcast((event) => {
   const data = JSON.stringify(event);
   for (const client of wss.clients) {
@@ -26,9 +41,14 @@ const distIndex = path.join(distDir, 'index.html');
 
 app.disable('x-powered-by');
 
+const ALLOWED_ORIGINS_ENV = process.env.ALLOWED_ORIGINS ?? '';
+const extraOrigins = ALLOWED_ORIGINS_ENV ? ALLOWED_ORIGINS_ENV.split(',').map((s) => s.trim()) : [];
+
 app.use((req, res, next) => {
   const origin = req.get('origin') ?? '';
-  if (/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
+  const isLocal = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+  const isAllowed = extraOrigins.includes(origin);
+  if (isLocal || isAllowed) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-AI-Mode, X-AI-Fallback, X-Proxy-Key');
@@ -41,6 +61,16 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
     res.setHeader('Cache-Control', 'no-store');
   }
+  next();
+});
+
+// Timeout middleware: command endpoints must respond within 6s
+app.use('/api/robot', (req, res, next) => {
+  if (req.method !== 'POST') { next(); return; }
+  const t = setTimeout(() => {
+    if (!res.headersSent) res.status(503).json({ok: false, error: 'request timeout — bridge busy'});
+  }, 6000);
+  res.on('finish', () => clearTimeout(t));
   next();
 });
 
@@ -91,6 +121,14 @@ async function registerStaticFrontend() {
 }
 
 await registerStaticFrontend();
+
+// Keep bridge alive through non-fatal errors so demo doesn't crash mid-presentation
+process.on('uncaughtException', (err) => {
+  console.error('[bridge] uncaughtException (bridge stays up):', err.message);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[bridge] unhandledRejection (bridge stays up):', reason);
+});
 
 httpServer.listen(bridgePort, () => {
   console.log(`Arduino serial bridge listening on http://localhost:${bridgePort}`);

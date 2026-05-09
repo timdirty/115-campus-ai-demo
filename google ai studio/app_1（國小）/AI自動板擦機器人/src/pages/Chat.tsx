@@ -181,7 +181,7 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
           </div>
         </motion.div>
 
-        <motion.div variants={messageVariants} className="bg-surface-container-highest rounded-[2rem] p-6 space-y-4 border border-outline-variant/10 hidden lg:block">
+        <motion.div variants={messageVariants} className="bg-surface-container-highest rounded-4xl p-6 space-y-4 border border-outline-variant/10 hidden lg:block">
           <h3 className="font-headline font-bold text-on-surface text-sm tracking-wide">建議追問</h3>
           <div className="flex flex-col gap-3">
             <button onClick={() => submitMessage('請把最新紀錄改成三年級會懂的說法')} className="text-left px-4 py-3 bg-surface rounded-xl hover:bg-primary-container text-sm font-bold text-on-surface-variant hover:text-primary transition-colors border border-transparent hover:border-primary/20">改成孩子聽得懂</button>

@@ -3,6 +3,8 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Clock, Calendar, CheckCircle2, ChevronRight, MapPin, Search, Wind, Save } from 'lucide-react';
 import { useAppActions, useAppState } from '../state/AppStateProvider';
 
+const DAY_LABELS = ['日', '一', '二', '三', '四', '五', '六'] as const;
+
 export function TaskScheduleView({ goBack, showToast }: any) {
   const state = useAppState();
   const actions = useAppActions();
@@ -98,7 +100,7 @@ export function TaskScheduleView({ goBack, showToast }: any) {
         <section className="space-y-4 pt-2">
           <h3 className="font-bold text-on-surface-variant text-xs px-2">重複頻率</h3>
           <div className="flex justify-between items-center bg-surface-container-lowest p-3 rounded-[1.75rem] border border-outline-variant/20 shadow-sm">
-             {['日', '一', '二', '三', '四', '五', '六'].map((day, i) => (
+             {DAY_LABELS.map((day, i) => (
                 <button
                   key={i}
                   onClick={() => toggleDay(i)}

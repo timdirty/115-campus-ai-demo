@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {DEFAULT_NOTES, normalizeNotes} from './notesStore';
+import {DEFAULT_NOTES, normalizeNotes, resetWhiteboardDemoState} from './notesStore';
 
 const recovered = normalizeNotes([
   {
@@ -23,3 +23,31 @@ assert.deepEqual(recovered[0].linkedTaskIds, [1]);
 
 const fallback = normalizeNotes({bad: true});
 assert.equal(fallback.length, DEFAULT_NOTES.length);
+
+const storage = new Map<string, string>();
+(globalThis as any).localStorage = {
+  getItem: (key: string) => storage.get(key) ?? null,
+  setItem: (key: string, value: string) => storage.set(key, value),
+  removeItem: (key: string) => storage.delete(key),
+};
+(globalThis as any).window = {
+  dispatchEvent: () => undefined,
+};
+(globalThis as any).CustomEvent = class {
+  type: string;
+
+  constructor(type: string) {
+    this.type = type;
+  }
+};
+
+storage.set('whiteboard-chat:elementary:v1', 'stale');
+storage.set('whiteboard-session:elementary:v1', 'stale');
+storage.set('whiteboard-assistant-tour:v1', 'done');
+
+const resetNotes = resetWhiteboardDemoState();
+assert.equal(resetNotes.length, DEFAULT_NOTES.length);
+assert.equal(storage.has('whiteboard-chat:elementary:v1'), false);
+assert.equal(storage.has('whiteboard-session:elementary:v1'), false);
+assert.equal(storage.has('whiteboard-assistant-tour:v1'), false);
+assert.deepEqual(JSON.parse(storage.get('whiteboard-notes:elementary:v1') ?? '[]').length, DEFAULT_NOTES.length);

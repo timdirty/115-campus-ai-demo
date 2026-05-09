@@ -2,7 +2,7 @@ import {access, mkdir, readdir, readFile, unlink, writeFile} from 'node:fs/promi
 import path from 'node:path';
 import {constants} from 'node:fs';
 import {backupsDir, baudRate, bridgePort, chatFile, classroomFile, dataDir, distDir, nodeEnv, notesFile, robotFile, taskLogFile} from './config';
-import {defaultClassroomSession, defaultNotes, defaultRobotStatus, createNote} from './defaults';
+import {defaultClassroomSession, defaultHardwareCalibrationProfile, defaultNotes, defaultRobotStatus, createNote} from './defaults';
 import {ApiError} from './http';
 import {normalizeBoardRegions} from './aiService';
 import {ensureDataDir, readJsonFile, writeJsonFile} from './storage';
@@ -77,6 +77,88 @@ function normalizePercent(value: unknown, fallback: number) {
     return fallback;
   }
   return Math.max(0, Math.min(100, numeric));
+}
+
+function normalizeServoAngle(value: unknown, fallback: number) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+  return Math.max(0, Math.min(180, Math.round(numeric)));
+}
+
+function normalizeBoardPercent(value: unknown, fallback: number) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+  return Math.max(0, Math.min(100, Math.round(numeric * 10) / 10));
+}
+
+function normalizeConfidence(value: unknown, fallback: number) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+  return Math.max(0, Math.min(100, Math.round(numeric)));
+}
+
+function sanitizeHardwareProfile(value: unknown) {
+  const source = isObject(value) ? value : {};
+  const servoAngles = isObject(source.servoAngles) ? source.servoAngles : {};
+  const boardCalibration = isObject(source.boardCalibration) ? source.boardCalibration : {};
+  const topLeft = isObject(boardCalibration.topLeft) ? boardCalibration.topLeft : {};
+  const topRight = isObject(boardCalibration.topRight) ? boardCalibration.topRight : {};
+  const bottomRight = isObject(boardCalibration.bottomRight) ? boardCalibration.bottomRight : {};
+  const bottomLeft = isObject(boardCalibration.bottomLeft) ? boardCalibration.bottomLeft : {};
+  const robotPose = isObject(source.robotPose) ? source.robotPose : {};
+  return {
+    ...defaultHardwareCalibrationProfile,
+    servoAngles: {
+      regionA: normalizeServoAngle(servoAngles.regionA, defaultHardwareCalibrationProfile.servoAngles.regionA),
+      regionB: normalizeServoAngle(servoAngles.regionB, defaultHardwareCalibrationProfile.servoAngles.regionB),
+      regionC: normalizeServoAngle(servoAngles.regionC, defaultHardwareCalibrationProfile.servoAngles.regionC),
+      eraseAll: normalizeServoAngle(servoAngles.eraseAll, defaultHardwareCalibrationProfile.servoAngles.eraseAll),
+      standby: normalizeServoAngle(servoAngles.standby, defaultHardwareCalibrationProfile.servoAngles.standby),
+    },
+    cameraMounted: Boolean(source.cameraMounted),
+    boardAnchored: Boolean(source.boardAnchored),
+    visionReady: Boolean(source.visionReady),
+    boardCalibrationMode: source.boardCalibrationMode === 'manual' || source.boardCalibrationMode === 'auto' ? source.boardCalibrationMode : defaultHardwareCalibrationProfile.boardCalibrationMode,
+    boardDetectionConfidence: normalizeConfidence(source.boardDetectionConfidence, defaultHardwareCalibrationProfile.boardDetectionConfidence),
+    boardCalibration: {
+      topLeft: {
+        x: normalizeBoardPercent(topLeft.x, defaultHardwareCalibrationProfile.boardCalibration.topLeft.x),
+        y: normalizeBoardPercent(topLeft.y, defaultHardwareCalibrationProfile.boardCalibration.topLeft.y),
+      },
+      topRight: {
+        x: normalizeBoardPercent(topRight.x, defaultHardwareCalibrationProfile.boardCalibration.topRight.x),
+        y: normalizeBoardPercent(topRight.y, defaultHardwareCalibrationProfile.boardCalibration.topRight.y),
+      },
+      bottomRight: {
+        x: normalizeBoardPercent(bottomRight.x, defaultHardwareCalibrationProfile.boardCalibration.bottomRight.x),
+        y: normalizeBoardPercent(bottomRight.y, defaultHardwareCalibrationProfile.boardCalibration.bottomRight.y),
+      },
+      bottomLeft: {
+        x: normalizeBoardPercent(bottomLeft.x, defaultHardwareCalibrationProfile.boardCalibration.bottomLeft.x),
+        y: normalizeBoardPercent(bottomLeft.y, defaultHardwareCalibrationProfile.boardCalibration.bottomLeft.y),
+      },
+    },
+    robotPose: {
+      x: normalizeBoardPercent(robotPose.x, defaultHardwareCalibrationProfile.robotPose.x),
+      y: normalizeBoardPercent(robotPose.y, defaultHardwareCalibrationProfile.robotPose.y),
+      heading: normalizeServoAngle(robotPose.heading, defaultHardwareCalibrationProfile.robotPose.heading),
+      stage: ['standby', 'preview', 'moving', 'erasing', 'paused', 'done'].includes(optionalString(robotPose.stage))
+        ? optionalString(robotPose.stage) as typeof defaultHardwareCalibrationProfile.robotPose.stage
+        : defaultHardwareCalibrationProfile.robotPose.stage,
+      label: optionalString(robotPose.label, defaultHardwareCalibrationProfile.robotPose.label),
+      targetRegion: optionalString(robotPose.targetRegion) || undefined,
+      command: optionalString(robotPose.command, defaultHardwareCalibrationProfile.robotPose.command),
+      updatedAt: optionalString(robotPose.updatedAt, defaultHardwareCalibrationProfile.robotPose.updatedAt),
+    },
+    notes: optionalString(source.notes, defaultHardwareCalibrationProfile.notes),
+    lastCalibratedAt: optionalString(source.lastCalibratedAt) || undefined,
+  };
 }
 
 function sanitizeNotes(value: unknown): WhiteboardNote[] {
@@ -161,6 +243,7 @@ function sanitizeClassroomSession(value: unknown): ClassroomSession {
     savedMinutes: Number.isFinite(Number(value.savedMinutes)) ? Number(value.savedMinutes) : defaultClassroomSession.savedMinutes,
     currentRecommendation: optionalString(value.currentRecommendation, defaultClassroomSession.currentRecommendation),
     boardRegions: normalizeBoardRegions(value.boardRegions),
+    hardwareProfile: sanitizeHardwareProfile(value.hardwareProfile),
     lastCaptureAt: optionalString(value.lastCaptureAt) || undefined,
     updatedAt: new Date().toISOString(),
   };

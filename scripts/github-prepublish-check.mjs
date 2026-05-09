@@ -62,9 +62,10 @@ function* walk(dir) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       yield* walk(fullPath);
-    } else {
+    } else if (entry.isFile()) {
       yield fullPath;
     }
+    // skip symlinks, sockets, fifos, etc. — readFileSync would EISDIR on dir-symlinks
   }
 }
 
@@ -88,7 +89,7 @@ for (const file of walk(rootDir)) {
     continue;
   }
   if (rel.endsWith('.log')) {
-    failures.push(`log file should not be published: ${rel}`);
+    if (isGitTracked(rel)) failures.push(`log file should not be published: ${rel}`);
     continue;
   }
   const text = fs.readFileSync(file, 'utf8');

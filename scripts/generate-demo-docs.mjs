@@ -21,6 +21,10 @@ function commandLine(app) {
 
 function pitchFor(app) {
   const steps = app.flow.join(' -> ');
+  const hardwareExtra = app.hardwarePitchNote ? `${app.hardwarePitchNote}` : '';
+  const hardwareLine = hardwareExtra
+    ? `硬體連動部分，我們預留 LEGO EV3 角色：「${app.ev3.role}」。沒有接硬體時也能用模擬模式完整展示；接上 EV3 後，會使用 ${commandLine(app)} 等指令。${hardwareExtra}`
+    : `硬體連動部分，我們預留 LEGO EV3 角色：「${app.ev3.role}」。沒有接硬體時也能用模擬模式完整展示；接上 EV3 後，會使用 ${commandLine(app)} 等指令。`;
   return `## ${app.team} - ${app.name}
 
 ### 1 minute
@@ -29,7 +33,7 @@ function pitchFor(app) {
 
 展示時我們會照著三步驟：${steps}。第一步讓系統取得現場資料，第二步由 AI 或本機辨識做判斷，第三步把結果轉成機器人可以執行的指令。
 
-硬體連動部分，我們預留 LEGO EV3 角色：「${app.ev3.role}」。沒有接硬體時也能用模擬模式完整展示；接上 EV3 後，會使用 ${commandLine(app)} 等指令。
+${hardwareLine}
 
 ### 3 minutes
 
@@ -122,9 +126,83 @@ CHECK_PUBLIC_URLS=1 node scripts/competition-readiness-check.mjs
 \`\`\``;
 }
 
+function buildFieldChecklist() {
+  return `# Field Checklist
+
+這份是比賽當天放在桌上的最後檢查表。每次出發前、上台前、換場前各跑一次。
+
+## 10 Minutes Before Demo
+
+- [ ] 執行 \`npm run demo:ready\`，確認最後出現 \`Competition readiness check passed\`。
+- [ ] 打開 \`demo-ready-report.json\`，確認三隊 app 與 EV3 指令清單都在。
+- [ ] 確認三隊學生知道自己的入口：\`${publicBase}/app1/\`、\`${publicBase}/app2/\`、\`${publicBase}/app3/\`。
+- [ ] 若 GitHub Pages 已部署，執行 \`CHECK_PUBLIC_URLS=1 node scripts/competition-readiness-check.mjs\`。
+- [ ] 若現場網路不穩，改用本機展示與 Pages artifact。
+
+## Hardware
+
+- [ ] UNO R4 已接 USB，或已決定使用 \`DEMO_SIMULATE_HARDWARE=1\`。
+- [ ] EV3 已開機並確認 \`EV3_STOP\` 可用。
+- [ ] 沒接 EV3 時，學生說法使用「模擬模式保留完整指令流程」。
+- [ ] 真機測試順序：\`EV3_STATUS\` -> \`EV3_SAFE_POSE\` / \`EV3_HOME\` -> 單一動作 -> \`EV3_STOP\`。
+
+${apps.map((app) => {
+  const items = (app.checklistItems ?? []).map((item) => `- [ ] ${item}`).join('\n');
+  return `## ${app.shortName}\n\n${items}`;
+}).join('\n\n')}
+
+## Recovery Lines
+
+- 網路不穩：使用本機 fallback 與已 build 的 Pages artifact。
+- 相機不能開：使用照片上傳或範例資料。
+- EV3/Arduino 未連線：切到 \`DEMO_SIMULATE_HARDWARE=1\`，展示同一套指令流程。
+- 評審問「是否真能接硬體」：指出 \`docs/EV3_CALIBRATION_TABLE.md\`、\`docs/EV3_INTEGRATION.md\` 與已通過的 PlatformIO/EV3 catalog check。`;
+}
+
+function buildJudgeQa() {
+  const appSections = apps.map((app) => {
+    const extraQa = (app.judgeQaExtra ?? []).map(({q, a}) => `### Q: ${q}\n\nA: ${a}\n`).join('\n');
+    return `## ${app.team} - ${app.name}
+
+### Q: 這跟一般展示網頁差在哪？
+
+A: 這不是只放圖片的網頁，而是可以操作的作品。它有自己的資料流程、任務狀態、展示備援，並且可透過 bridge 接 Arduino UNO R4 與 LEGO EV3。
+
+### Q: AI 真的做了什麼？
+
+A: ${app.name} 會把輸入資料整理成可執行的建議。若雲端 AI 不可用，作品仍有本機 fallback；影像功能也會回傳像素證據與畫面品質提示，不只是固定文字。
+
+### Q: 沒網路或沒有 Gemini key 怎麼辦？
+
+A: 三隊都保留本機展示模式。沒有 key 時仍可操作主要流程、保存紀錄、產生任務與說明備援狀態。
+
+### Q: EV3 怎麼接？
+
+A: ${app.team} 的 EV3 角色是「${app.ev3.role}」。app 送出 \`${app.ev3.commands.join('`, `')}\` 等指令，App 1 bridge 再轉到 EV3 brick 的 WebSocket server。
+
+### Q: 如果硬體當場故障呢？
+
+A: 使用 \`DEMO_SIMULATE_HARDWARE=1\`，畫面會保留同一套任務流程；接回真機時移除環境變數即可。
+
+${extraQa}`;
+  }).join('\n');
+
+  return `# Judge Q&A Cards
+
+這份給學生準備評審追問。回答原則：先講作品目的，再講真實可用的流程，最後講備援。
+
+${appSections}
+
+## Common Closing Line
+
+我們的重點不是只做出一個畫面，而是讓三隊作品在沒有網路、沒有硬體、或現場環境不穩時，仍能完整展示核心流程；接上硬體後，同一套指令會變成實體動作。`;
+}
+
 ensureDocsDir();
 writeDoc('STUDENT_PITCHES.md', buildPitches());
 writeDoc('EV3_CALIBRATION_TABLE.md', buildCalibration());
 writeDoc('DEMO_READY.md', buildReadyGuide());
+writeDoc('FIELD_CHECKLIST.md', buildFieldChecklist());
+writeDoc('JUDGE_QA.md', buildJudgeQa());
 
-console.log('Demo docs generated: docs/STUDENT_PITCHES.md, docs/EV3_CALIBRATION_TABLE.md, docs/DEMO_READY.md');
+console.log('Demo docs generated: docs/STUDENT_PITCHES.md, docs/EV3_CALIBRATION_TABLE.md, docs/DEMO_READY.md, docs/FIELD_CHECKLIST.md, docs/JUDGE_QA.md');

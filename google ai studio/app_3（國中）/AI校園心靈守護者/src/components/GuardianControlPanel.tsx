@@ -1,10 +1,16 @@
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {AnimatePresence, motion} from 'motion/react';
 import {
   AlertTriangle,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
   Bot,
   CheckCircle2,
   ChevronDown,
+  ChevronUp,
+  Gauge,
   HeartHandshake,
   Loader2,
   MapPin,
@@ -16,12 +22,28 @@ import {
   ShieldOff,
   Siren,
   Sparkles,
+  Square,
   WifiOff,
   Zap,
 } from 'lucide-react';
 import type {GuardianState, ZoneSensorReading} from '../types';
 import type {SchoolZoneStatus} from '../services/schoolSpaces';
-import {sendGuardianHardwareCommand} from '../services/hardwareBridge';
+import {sendGuardianDriveCommand, sendGuardianHardwareCommand} from '../services/hardwareBridge';
+import {ExternalRobotPanel} from './ExternalRobotPanel';
+
+const DRIVE_LABELS: Record<string, string> = {
+  FORWARD: '前進',
+  BACKWARD: '後退',
+  LEFT: '左轉',
+  RIGHT: '右轉',
+  STOP: '停止',
+};
+
+const SPEED_PRESETS = [
+  {label: '巡邏', value: 110},
+  {label: '穩定', value: 180},
+  {label: '到場', value: 235},
+] as const;
 
 // ── command catalog ────────────────────────────────────────────────────────────
 const QUICK_CMDS = [
@@ -126,6 +148,8 @@ interface Props {
 // ── component ─────────────────────────────────────────────────────────────────
 export function GuardianControlPanel({bridgeOnline, zones, sensors, state, onDispatchRobot}: Props) {
   const [busy, setBusy] = useState(false);
+  const [driveActive, setDriveActive] = useState<string | null>(null);
+  const [driveSpeed, setDriveSpeed] = useState(180);
   const [activeCmds, setActiveCmds] = useState<Set<string>>(new Set());
   const [feedback, setFeedback] = useState<HwResult>({
     ok: true,
@@ -134,6 +158,8 @@ export function GuardianControlPanel({bridgeOnline, zones, sensors, state, onDis
     detail: '選擇指令或直接派遣到校園空間，結果會即時顯示。',
   });
   const [logOpen, setLogOpen] = useState(false);
+  const speedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flashTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const connectedSensorCount = sensors.filter((s) => s.connected).length;
   const avgTemp = (() => {
@@ -144,8 +170,49 @@ export function GuardianControlPanel({bridgeOnline, zones, sensors, state, onDis
 
   const flash = (cmd: string) => {
     setActiveCmds((p) => new Set([...p, cmd]));
-    setTimeout(() => setActiveCmds((p) => {const n = new Set(p); n.delete(cmd); return n;}), 800);
+    const t = setTimeout(() => setActiveCmds((p) => {const n = new Set(p); n.delete(cmd); return n;}), 800);
+    flashTimers.current.push(t);
   };
+
+  const sendDrive = async (cmd: string, announce = false) => {
+    const result = await sendGuardianDriveCommand(cmd);
+    if (announce || !result.ok) {
+      setFeedback({
+        ok: result.ok,
+        cmd,
+        title: result.ok ? `底盤指令已接收：${cmd}` : '底盤指令已記錄',
+        detail: result.ok ? '四輪 L293D 底盤正在依照方向與速度移動。' : result.message,
+      });
+    }
+    return result;
+  };
+
+  const startDrive = (dir: string) => {
+    setDriveActive(dir);
+    void sendDrive(dir, true);
+  };
+
+  const stopDrive = () => {
+    if (!driveActive) return;
+    setDriveActive(null);
+    void sendDrive('STOP', true);
+  };
+
+  const handleSpeedChange = (value: number) => {
+    setDriveSpeed(value);
+    if (speedTimer.current) clearTimeout(speedTimer.current);
+    speedTimer.current = setTimeout(() => {
+      void sendDrive(`SPEED:${value}`);
+    }, 120);
+  };
+
+  useEffect(() => {
+    void sendDrive(`SPEED:${driveSpeed}`);
+    return () => {
+      if (speedTimer.current) clearTimeout(speedTimer.current);
+      void sendGuardianDriveCommand('STOP').catch(() => {});
+    };
+  }, []);
 
   const send = async (cmd: string, source = 'control-panel') => {
     if (busy) return;
@@ -237,6 +304,62 @@ export function GuardianControlPanel({bridgeOnline, zones, sensors, state, onDis
           <p className="text-xs text-slate-500">{feedback.detail}</p>
         </div>
       </motion.div>
+
+      {/* ── Drive base ── */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">巡邏底盤</p>
+            <p className="mt-0.5 text-xs font-semibold text-slate-500">M1/M4 左側，M2/M3 右側</p>
+          </div>
+          <div className="flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
+            <Gauge className="h-3.5 w-3.5" />
+            {driveSpeed}
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="grid grid-cols-3 gap-1.5 select-none" style={{touchAction: 'none'}}>
+            <div />
+            <DriveButton dir="FORWARD" icon={ArrowUp} active={driveActive === 'FORWARD'} onStart={startDrive} onStop={stopDrive} />
+            <div />
+            <DriveButton dir="LEFT" icon={ArrowLeft} active={driveActive === 'LEFT'} onStart={startDrive} onStop={stopDrive} />
+            <button
+              type="button"
+              onPointerDown={() => {
+                setDriveActive(null);
+                void sendDrive('STOP', true);
+              }}
+              className="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-50 text-rose-600 transition hover:bg-rose-100 active:scale-95"
+              title="立即停止"
+              style={{touchAction: 'none'}}
+            >
+              <Square className="h-5 w-5" />
+            </button>
+            <DriveButton dir="RIGHT" icon={ArrowRight} active={driveActive === 'RIGHT'} onStart={startDrive} onStop={stopDrive} />
+            <div />
+            <DriveButton dir="BACKWARD" icon={ArrowDown} active={driveActive === 'BACKWARD'} onStart={startDrive} onStop={stopDrive} />
+            <div />
+          </div>
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex items-center justify-between gap-2 text-xs font-black text-slate-500">
+              <span>移動速度</span>
+              <span className="tabular-nums">{driveSpeed} / 255</span>
+            </div>
+            <input
+              type="range"
+              min={70}
+              max={255}
+              value={driveSpeed}
+              onChange={(e) => handleSpeedChange(Number(e.target.value))}
+              className="h-2 w-full cursor-pointer accent-teal-600"
+            />
+            <div className="flex justify-between text-[10px] font-bold text-slate-400">
+              <span>穩定巡邏</span>
+              <span>快速到場</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* ── Quick command grid ── */}
       <div>
@@ -416,5 +539,280 @@ export function QuickAlertButton({disabled}: {disabled?: boolean}) {
     >
       {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
     </motion.button>
+  );
+}
+
+function DriveButton({dir, icon: Icon, active, onStart, onStop}: {
+  dir: string;
+  icon: typeof ArrowUp;
+  active: boolean;
+  onStart: (dir: string) => void;
+  onStop: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      title={dir}
+      onPointerDown={(event) => {
+        event.currentTarget.setPointerCapture(event.pointerId);
+        onStart(dir);
+      }}
+      onPointerUp={onStop}
+      onPointerCancel={onStop}
+      onPointerLeave={onStop}
+      className={[
+        'flex h-12 w-12 items-center justify-center rounded-xl border transition-all active:scale-95',
+        active
+          ? 'border-teal-500 bg-teal-600 text-white shadow-sm shadow-teal-200'
+          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700',
+      ].join(' ')}
+      style={{touchAction: 'none'}}
+    >
+      <Icon className="h-5 w-5" />
+    </button>
+  );
+}
+
+const DRIVE_DOCK_EXPANDED_KEY = 'guardian-drive-dock-expanded';
+
+export function GuardianDriveDock({bridgeOnline}: {bridgeOnline: boolean}) {
+  const [driveActive, setDriveActive] = useState<string | null>(null);
+  const [driveSpeed, setDriveSpeed] = useState(180);
+  const [lastResult, setLastResult] = useState<{ok: boolean; text: string}>({
+    ok: true,
+    text: '底盤待命',
+  });
+  const [expanded, setExpanded] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(DRIVE_DOCK_EXPANDED_KEY) === '1';
+  });
+  const speedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(DRIVE_DOCK_EXPANDED_KEY, expanded ? '1' : '0');
+  }, [expanded]);
+
+  const sendDrive = async (cmd: string, announce = true) => {
+    const result = await sendGuardianDriveCommand(cmd);
+    if (announce || !result.ok) {
+      const label = DRIVE_LABELS[cmd] ?? (cmd.startsWith('SPEED:') ? '速度' : cmd);
+      setLastResult({
+        ok: result.ok,
+        text: result.ok ? `${label} 已送出` : result.message,
+      });
+    }
+    return result;
+  };
+
+  const startDrive = (dir: string) => {
+    activeRef.current = dir;
+    setDriveActive(dir);
+    void sendDrive(dir);
+  };
+
+  const stopDrive = () => {
+    if (!activeRef.current) return;
+    activeRef.current = null;
+    setDriveActive(null);
+    void sendDrive('STOP');
+  };
+
+  const setSpeed = (value: number, announce = false) => {
+    setDriveSpeed(value);
+    if (speedTimer.current) clearTimeout(speedTimer.current);
+    speedTimer.current = setTimeout(() => {
+      void sendDrive(`SPEED:${value}`, announce);
+    }, 120);
+  };
+
+  useEffect(() => {
+    void sendDrive(`SPEED:${driveSpeed}`, false);
+    return () => {
+      if (speedTimer.current) clearTimeout(speedTimer.current);
+      void sendGuardianDriveCommand('STOP').catch(() => {});
+    };
+  }, []);
+
+  // Heartbeat: keep firmware watchdog alive while a drive command is active.
+  useEffect(() => {
+    if (!driveActive || driveActive === 'STOP') return;
+    const id = setInterval(() => {
+      void sendGuardianDriveCommand('HEARTBEAT').catch(() => {});
+    }, 1000);
+    return () => clearInterval(id);
+  }, [driveActive]);
+
+  useEffect(() => {
+    const commandForKey: Record<string, string> = {
+      ArrowUp: 'FORWARD',
+      ArrowDown: 'BACKWARD',
+      ArrowLeft: 'LEFT',
+      ArrowRight: 'RIGHT',
+    };
+    const isTypingTarget = (target: EventTarget | null) => {
+      const el = target as HTMLElement | null;
+      return Boolean(el?.closest('input, textarea, select, [contenteditable="true"]'));
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isTypingTarget(event.target)) return;
+      const command = commandForKey[event.key];
+      if (!command || activeRef.current === command) return;
+      event.preventDefault();
+      startDrive(command);
+    };
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (!commandForKey[event.key]) return;
+      event.preventDefault();
+      stopDrive();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', stopDrive);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', stopDrive);
+    };
+  }, []);
+
+  const emergencyStop = () => {
+    activeRef.current = null;
+    setDriveActive(null);
+    void sendDrive('STOP');
+  };
+
+  const statusText = driveActive ? DRIVE_LABELS[driveActive] : lastResult.text;
+
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-35 border-t border-slate-200/80 bg-white/95 shadow-[0_-12px_36px_rgba(15,23,42,0.12)] backdrop-blur-xl">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="flex items-center gap-3 py-2">
+          <button
+            type="button"
+            onClick={() => setExpanded((prev) => !prev)}
+            aria-expanded={expanded}
+            aria-controls="guardian-drive-dock-panel"
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-1 py-1 text-left transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
+          >
+            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${bridgeOnline ? 'bg-teal-600 text-white' : 'bg-slate-200 text-slate-500'}`}>
+              <Bot className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">巡邏底盤</p>
+              <p className="truncate text-sm font-black text-slate-900">{statusText}</p>
+            </div>
+            <span className={`hidden rounded-full px-2.5 py-1 text-[10px] font-black sm:inline-flex ${lastResult.ok ? 'bg-teal-50 text-teal-700' : 'bg-amber-50 text-amber-700'}`}>
+              {bridgeOnline ? '橋接' : '備援'}
+            </span>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+              {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </span>
+          </button>
+          <button
+            type="button"
+            onPointerDown={emergencyStop}
+            className="flex h-10 items-center gap-1.5 rounded-xl bg-rose-500 px-3 text-xs font-black text-white shadow-sm transition hover:bg-rose-600 active:scale-95"
+            title="立即停止"
+            style={{touchAction: 'none'}}
+          >
+            <Square className="h-3.5 w-3.5" />
+            停止
+          </button>
+        </div>
+
+        <AnimatePresence initial={false}>
+          {expanded && (
+            <motion.div
+              id="guardian-drive-dock-panel"
+              key="panel"
+              initial={{height: 0, opacity: 0}}
+              animate={{height: 'auto', opacity: 1}}
+              exit={{height: 0, opacity: 0}}
+              transition={{duration: 0.22, ease: 'easeOut'}}
+              className="overflow-hidden"
+            >
+              <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 border-t border-slate-100 py-3 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
+                <div className="col-span-2 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 lg:col-span-2">
+                  <div className="grid grid-cols-3 gap-1.5 justify-self-start select-none" style={{touchAction: 'none'}}>
+                    <div />
+                    <DriveButton dir="FORWARD" icon={ArrowUp} active={driveActive === 'FORWARD'} onStart={startDrive} onStop={stopDrive} />
+                    <div />
+                    <DriveButton dir="LEFT" icon={ArrowLeft} active={driveActive === 'LEFT'} onStart={startDrive} onStop={stopDrive} />
+                    <button
+                      type="button"
+                      onPointerDown={emergencyStop}
+                      className="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-50 text-rose-600 transition hover:bg-rose-100 active:scale-95"
+                      title="立即停止"
+                      style={{touchAction: 'none'}}
+                    >
+                      <Square className="h-5 w-5" />
+                    </button>
+                    <DriveButton dir="RIGHT" icon={ArrowRight} active={driveActive === 'RIGHT'} onStart={startDrive} onStop={stopDrive} />
+                    <div />
+                    <DriveButton dir="BACKWARD" icon={ArrowDown} active={driveActive === 'BACKWARD'} onStart={startDrive} onStop={stopDrive} />
+                    <div />
+                  </div>
+
+                  <div className="min-w-0 space-y-2">
+                    <div className="flex items-center justify-between gap-2 text-xs font-black text-slate-500">
+                      <span>移動速度</span>
+                      <span className="tabular-nums text-slate-900">{driveSpeed} / 255</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={70}
+                      max={255}
+                      value={driveSpeed}
+                      onChange={(event) => setSpeed(Number(event.target.value))}
+                      className="h-2 w-full cursor-pointer accent-teal-600"
+                    />
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {SPEED_PRESETS.map((preset) => (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => setSpeed(preset.value, true)}
+                          className={`h-8 rounded-lg border text-[11px] font-black transition active:scale-95 ${
+                            driveSpeed === preset.value
+                              ? 'border-teal-600 bg-teal-600 text-white'
+                              : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="col-span-2 grid grid-cols-2 gap-2 lg:col-span-1 lg:w-44">
+                  <button
+                    type="button"
+                    onClick={() => void sendDrive('PATROL_START')}
+                    className="h-10 rounded-xl bg-teal-600 px-3 text-xs font-black text-white transition hover:bg-teal-700 active:scale-95"
+                  >
+                    巡邏
+                  </button>
+                  <button
+                    type="button"
+                    onClick={emergencyStop}
+                    className="h-10 rounded-xl bg-rose-500 px-3 text-xs font-black text-white transition hover:bg-rose-600 active:scale-95"
+                  >
+                    停止
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* EV3 / SPIKE Prime 外部機器人控制 */}
+      <div className="mt-3 px-4 pb-4">
+        <ExternalRobotPanel />
+      </div>
+    </div>
   );
 }

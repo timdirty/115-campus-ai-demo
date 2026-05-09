@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, Package, Cookie, PencilLine, Coffee, X, Truck, Loader2, Rocket, MapPin } from 'lucide-react';
 import { BottomSheet } from '../components/ui';
@@ -11,6 +11,18 @@ const CATEGORIES = [
   { id: 'drinks', icon: Coffee, label: '飲品' },
 ];
 
+const LOCATIONS = ['101 教室', '507 教室', '教職員辦公室', '圖書館', '操場 A 區'] as const;
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } },
+};
+
 export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: string) => void, navigateTo: (id: string, props?: any) => void }) {
   const state = useAppState();
   const actions = useAppActions();
@@ -21,10 +33,21 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
   const [qty, setQty] = useState(1);
   const [isOrdering, setIsOrdering] = useState(false);
   const [dest, setDest] = useState('101 教室');
+  const pendingTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  const LOCATIONS = ['101 教室', '507 教室', '教職員辦公室', '圖書館', '操場 A 區'];
-  const activeOrder = state.orders.find((order) => order.status === 'in_transit') ?? null;
-  const orderStatus = activeOrder ? `送達 ${activeOrder.destination}: ${activeOrder.productName} x${activeOrder.quantity}` : null;
+  useEffect(() => {
+    return () => {
+      for (const t of pendingTimers.current) clearTimeout(t);
+    };
+  }, []);
+
+  const activeOrder = useMemo(
+    () => state.orders.find((order) => order.status === 'in_transit') ?? null,
+    [state.orders],
+  );
+  const orderStatus = activeOrder
+    ? `送達 ${activeOrder.destination}: ${activeOrder.productName} x${activeOrder.quantity}`
+    : null;
 
   const filteredProducts = useMemo(() => {
     let filtered = state.products;
@@ -46,38 +69,26 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
   const handleOrder = () => {
     if (!selectedProduct) return;
     setIsOrdering(true);
-    setTimeout(() => {
-      actions.createDeliveryOrder({ productId: selectedProduct.id, quantity: qty, destination: dest });
+    const t1 = setTimeout(() => {
+      actions.createDeliveryOrder({ productId: selectedProduct!.id, quantity: qty, destination: dest });
       showToast(`預約成功！機器人即將前往 ${dest}`);
       setIsOrdering(false);
       setModal(null);
-      // Auto-complete the order after 35 seconds for demo purposes
-      setTimeout(() => {
+      const t2 = setTimeout(() => {
         actions.autoCompleteInTransit();
         showToast('✅ 配送完成！機器人已送達目的地');
       }, 35000);
-      setTimeout(() => navigateTo('delivery-tracking'), 600);
+      const t3 = setTimeout(() => navigateTo('delivery-tracking'), 600);
+      pendingTimers.current.push(t2, t3);
     }, 1200);
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } }
+    pendingTimers.current.push(t1);
   };
 
   return (
     <div className="space-y-8 pb-6">
       {/* Search */}
       <section className="relative px-1">
-        <div className="group relative flex items-center bg-surface-container-low rounded-[2rem] px-6 py-5 transition-all focus-within:bg-surface-container-lowest focus-within:ring-4 focus-within:ring-primary/5 shadow-inner border border-outline-variant/10">
+        <div className="group relative flex items-center bg-surface-container-low rounded-4xl px-6 py-5 transition-all focus-within:bg-surface-container-lowest focus-within:ring-4 focus-within:ring-primary/5 shadow-inner border border-outline-variant/10">
           <Search className="text-on-surface-variant mr-4 shrink-0 transition-colors group-focus-within:text-primary" size={22} />
           <input
             type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value.slice(0, 50))}
@@ -113,14 +124,14 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
                   </p>
                 </div>
               </div>
-              <div className="w-[72px] h-[72px] bg-primary text-white rounded-[1.75rem] flex items-center justify-center shadow-[0_8px_25px_rgba(var(--color-primary),0.3)] shrink-0 group-hover:-translate-y-1 transition-transform rotate-3">
+              <div className="w-18 h-18 bg-primary text-white rounded-[1.75rem] flex items-center justify-center shadow-[0_8px_25px_rgba(var(--color-primary),0.3)] shrink-0 group-hover:-translate-y-1 transition-transform rotate-3">
                 <Package size={34} />
               </div>
             </div>
 
             {/* Minimal Timeline preview inside Hero */}
             <div className="relative pl-6 space-y-8 mt-2 z-10">
-              <div className="absolute left-[9px] top-2 bottom-2 w-[2px] bg-outline-variant/30"></div>
+              <div className="absolute left-[9px] top-2 bottom-2 w-0.5 bg-outline-variant/30"></div>
               <div className="relative flex items-center gap-5">
                 <div className={`z-10 w-5 h-5 rounded-full border-4 border-surface-container-lowest ${orderStatus ? 'bg-primary shadow-[0_0_15px_rgba(var(--color-primary),0.4)]' : 'bg-surface-container-highest animate-pulse'}`}></div>
                 <div className={`flex-1 px-5 py-3 rounded-2xl transition-all border ${orderStatus ? 'bg-surface-container-low border-outline-variant/30 text-on-surface shadow-sm' : 'opacity-40 border-transparent'}`}>
@@ -197,7 +208,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
                 onClick={() => openProduct(product)}
                 className={`flex gap-6 items-center group cursor-pointer bg-surface-container-lowest p-5 rounded-[2.5rem] border transition-all active:scale-[0.985] ${product.stock === 0 ? 'opacity-60 grayscale-[50%] pointer-events-none border-outline-variant/10' : 'border-outline-variant/30 shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-xl hover:border-primary/20'}`}
               >
-                <div className="w-[124px] h-[124px] rounded-[2rem] overflow-hidden bg-surface-container-low shrink-0 relative shadow-inner">
+                <div className="w-[124px] h-[124px] rounded-4xl overflow-hidden bg-surface-container-low shrink-0 relative shadow-inner">
                   <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent z-10 transition-colors"></div>
                   <img src={product.img} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 ease-out" />
                   {product.stock === 0 && (
@@ -218,7 +229,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
                   <div className="flex items-center justify-between pt-1">
                     <div className="flex items-center gap-3">
                        <span className="font-bold text-2xl text-primary tracking-tight">NT${product.price}</span>
-                       <div className="h-4 w-[1px] bg-outline-variant/30"></div>
+                       <div className="h-4 w-px bg-outline-variant/30"></div>
                        <span className={`text-xs font-bold ${product.stock > 10 ? 'text-[#87d46c]' : 'text-error'}`}>
                          庫存: {product.stock}
                        </span>
@@ -241,7 +252,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
           <div className="p-6 space-y-10 pb-10">
             <div className="w-full aspect-square rounded-[3rem] overflow-hidden bg-surface-container mb-6 shadow-2xl relative border-4 border-surface-container-highest">
                <img src={selectedProduct.img} className="w-full h-full object-cover transition-transform duration-1000" />
-               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+               <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div>
                <div className="absolute bottom-8 left-8">
                   <span className="bg-primary px-4 py-1.5 rounded-xl text-xs font-extrabold text-white shadow-lg shadow-primary/30">品質認證</span>
                </div>
@@ -256,7 +267,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
                  <span className="text-xs text-on-surface-variant/60 font-bold">庫存 {selectedProduct.stock}</span>
               </div>
               <h2 className="text-4xl font-headline font-bold text-on-surface tracking-tight leading-none">{selectedProduct.name}</h2>
-              <p className="text-on-surface-variant font-medium mt-6 leading-relaxed text-base bg-surface-container-low/50 p-7 rounded-[2rem] border border-outline-variant/10 shadow-inner">
+              <p className="text-on-surface-variant font-medium mt-6 leading-relaxed text-base bg-surface-container-low/50 p-7 rounded-4xl border border-outline-variant/10 shadow-inner">
                 {selectedProduct.desc}
               </p>
             </div>
@@ -274,7 +285,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
                  </motion.span>
                </div>
 
-               <div className="flex items-center gap-5 bg-surface-container rounded-[2rem] p-2.5 shadow-inner border border-outline-variant/10">
+               <div className="flex items-center gap-5 bg-surface-container rounded-4xl p-2.5 shadow-inner border border-outline-variant/10">
                   <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQty(Math.max(1, qty - 1))} disabled={isOrdering} className="w-14 h-14 rounded-2xl bg-surface-container-lowest text-on-surface shadow-sm flex items-center justify-center border border-outline-variant/20 hover:bg-white transition-colors active:shadow-inner disabled:opacity-30">
                     <span className="text-3xl font-bold leading-none">-</span>
                   </motion.button>
@@ -298,9 +309,9 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
             <button
               onClick={handleOrder}
               disabled={isOrdering}
-              className="w-full py-6 bg-primary hover:bg-primary/95 text-white font-bold text-xl tracking-tight rounded-[2rem] shadow-[0_12px_40px_rgba(var(--color-primary),0.3)] active:scale-[0.985] transition-all flex items-center justify-center gap-4 disabled:opacity-80 relative overflow-hidden group/btn"
+              className="w-full py-6 bg-primary hover:bg-primary/95 text-white font-bold text-xl tracking-tight rounded-4xl shadow-[0_12px_40px_rgba(var(--color-primary),0.3)] active:scale-[0.985] transition-all flex items-center justify-center gap-4 disabled:opacity-80 relative overflow-hidden group/btn"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000"></div>
+              <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000"></div>
               {isOrdering ? (
                 <div className="flex items-center gap-3">
                   <Loader2 size={24} className="animate-spin" />

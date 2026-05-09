@@ -2,7 +2,7 @@
 
 本專案是校園服務機器人的本機比賽展示版。手機寬度用來展示現場操作，平板以上寬度用來展示校園中控台。這版不接真雲端、不做商用登入、不依賴 Gemini API；資料以共享 state 和 `localStorage` 串起完整 demo 流程。
 
-硬體路徑已接到 App 1 的本機 Arduino bridge。預設會送到 `http://localhost:3200/api/robot/command`，可用 `VITE_ARDUINO_BRIDGE_URL` 改成其他 bridge URL；沒有插 Arduino 時，App 會顯示未連線但保留任務紀錄，插上並上傳韌體後同一批指令會走 Serial。
+硬體路徑使用 App 2 專屬本機 bridge，預設 `http://localhost:3202/api/robot/command`，可用 `VITE_ARDUINO_BRIDGE_URL` 改成其他 bridge URL；沒有插 Arduino 時，App 會顯示未連線但保留任務紀錄，插上並上傳韌體後同一批指令會走 Serial。
 
 ## Run Locally
 
@@ -37,6 +37,7 @@ npm run check
 - 庫存不足或商品不存在時只寫系統錯誤，不派遣機器人也不送 Arduino 指令
 - 可列印報表流程
 - 重置展示資料
+- 手動遙控中心：右下角 FAB 按鈕召喚虛擬搖桿面板，D-pad 控制底盤方向（前後左右）與滾筒啟停、正反向、速度；放開搖桿自動停車，另有緊急停止按鈕；韌體看門狗 3 秒保護防止失控
 
 資料會保存在：
 

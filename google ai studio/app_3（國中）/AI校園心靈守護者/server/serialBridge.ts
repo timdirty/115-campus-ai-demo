@@ -351,6 +351,13 @@ httpServer.on('error', (error: NodeJS.ErrnoException) => {
   console.error(`[bridge] server error: ${error.message}`);
 });
 
+process.on('uncaughtException', (err) => {
+  console.error('[bridge] uncaughtException (bridge stays up):', err.message);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[bridge] unhandledRejection (bridge stays up):', reason);
+});
+
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, () => {
     pollingActive = false;

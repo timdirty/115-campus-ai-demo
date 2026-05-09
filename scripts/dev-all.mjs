@@ -1,10 +1,18 @@
 #!/usr/bin/env node
+// 一鍵啟動三組獨立的開發環境（vite + 自家 bridge）。
+// 每組互不依賴，bridge port 各自獨立（3201 / 3202 / 3203）。
 import concurrently from 'concurrently';
 import {execSync} from 'node:child_process';
-import {appDir, apps, sharedBridgePort} from './app-catalog.mjs';
+import {appDir, apps} from './app-catalog.mjs';
 
-// Kill any leftover processes holding dev ports so restarts don't accumulate zombies
-for (const port of [sharedBridgePort, 3201, ...apps.map((app) => app.devPort)]) {
+// Clear any leftover processes holding any of our dev / bridge ports
+const portsToClear = new Set();
+for (const app of apps) {
+  portsToClear.add(app.devPort);
+  portsToClear.add(app.bridgePort);
+}
+
+for (const port of portsToClear) {
   try {
     const pids = execSync(`lsof -ti :${port} 2>/dev/null`, {encoding: 'utf8'}).trim();
     if (pids) {
@@ -12,28 +20,31 @@ for (const port of [sharedBridgePort, 3201, ...apps.map((app) => app.devPort)]) 
       console.log(`[dev] cleared port ${port}`);
     }
   } catch {
-    // port already free, nothing to do
+    // port already free
   }
 }
 
-const [app1, ...staticApps] = apps;
+const tasks = [];
+for (const app of apps) {
+  tasks.push({
+    command: `npm run dev:web -- --port ${app.devPort}`,
+    cwd: appDir(app),
+    name: `${app.shortName.replace(/\s+/g, '')}-Web`,
+    prefixColor: app.devColor,
+  });
+  tasks.push({
+    command: 'npm run dev:bridge',
+    cwd: appDir(app),
+    name: `${app.shortName.replace(/\s+/g, '')}-Bridge`,
+    prefixColor: 'cyan',
+    env: {BRIDGE_PORT: String(app.bridgePort)},
+  });
+}
 
-const {result} = concurrently(
-  [
-    {command: `npm run dev:web -- --port ${app1.devPort}`, cwd: appDir(app1), name: app1.devName, prefixColor: app1.devColor},
-    {command: 'npm run dev:bridge', cwd: appDir(app1), name: 'App1-Bridge', prefixColor: 'cyan'},
-    ...staticApps.map((app) => ({
-      command: `npm run dev -- --port ${app.devPort}`,
-      cwd: appDir(app),
-      name: app.devName,
-      prefixColor: app.devColor,
-    })),
-  ],
-  {
-    killOthers: ['failure'],
-    prefix: 'name',
-    timestampFormat: 'HH:mm:ss',
-  },
-);
+const {result} = concurrently(tasks, {
+  killOthers: ['failure'],
+  prefix: 'name',
+  timestampFormat: 'HH:mm:ss',
+});
 
 result.then(() => process.exit(0)).catch(() => process.exit(1));

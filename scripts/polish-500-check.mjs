@@ -4,49 +4,66 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {apps, appDir, appUrl, allPublishedRoutes, guidePath, guideUrl, rootDir} from './app-catalog.mjs';
 
-const requiredRootScripts = ['dev', 'app', 'dev:app1', 'dev:app2', 'dev:app3', 'check:app1', 'check:app2', 'check:app3', 'check:ev3', 'check:visual', 'demo:docs', 'demo:ready'];
+const requiredRootScripts = ['dev', 'app', 'dev:app1', 'dev:app2', 'dev:app3', 'check:app1', 'check:app2', 'check:app3', 'check:ev3', 'check:hardware', 'check:polish', 'check:public', 'check:visual', 'demo:docs', 'demo:evidence', 'demo:ev3-report', 'demo:judge', 'demo:rehearsal', 'demo:scorecard', 'demo:wiring', 'demo:ready'];
 const requiredAppScripts = ['dev', 'build', 'check'];
 const routes = allPublishedRoutes();
 const requiredDemoDocs = {
   'docs/DEMO_READY.md': ['demo:ready', 'DEMO_SIMULATE_HARDWARE', 'CHECK_PUBLIC_URLS'],
   'docs/STUDENT_PITCHES.md': ['1 minute', '3 minutes', '5 minutes', 'EV3'],
   'docs/EV3_CALIBRATION_TABLE.md': ['EV3_STOP', 'Port hint', 'Safety note'],
+  'docs/FIELD_CHECKLIST.md': ['10 Minutes Before Demo', 'DEMO_SIMULATE_HARDWARE', 'Recovery Lines'],
+  'docs/JUDGE_QA.md': ['Judge Q&A Cards', 'AI 真的做了什麼', 'DEMO_SIMULATE_HARDWARE'],
+  'docs/DEMO_EVIDENCE.md': ['Verified Checks', '500-round polish validation passed', 'responsive layout checks passed'],
+  'docs/DEMO_SCORECARD.md': ['Demo Scorecard', '60 Second Proof Flow', 'Final Teacher Sign-Off', 'DEMO_SIMULATE_HARDWARE'],
+  'docs/REHEARSAL_RUNBOOK.md': ['Rehearsal Runbook', '15 Minute Team Rotation', 'Reset Contract', 'DEMO_SIMULATE_HARDWARE'],
+  'docs/EV3_FIELD_TEST_REPORT.md': ['EV3 Field Test Report', 'Host Probe', 'Command Checklist', 'EV3_STOP'],
+  'docs/HARDWARE_WIRING_MAP.md': ['Hardware Wiring Map', 'Topology', 'Failure Recovery', 'EV3 WebSocket'],
+  'docs/JUDGE_ONE_PAGER.md': ['Judge One Pager', 'Three Teams', 'What AI Does', 'What Hardware Does'],
 };
 const featureContracts = {
   app1: {
     serviceFiles: [
       'src/services/boardVision.ts',
       'src/services/boardVision.test.ts',
+      'src/services/frameQuality.ts',
       'src/services/classroomApi.ts',
       'src/components/home/RegionTaskPanel.tsx',
+      'src/pages/Home.tsx',
       'server/hardwareSimulation.test.ts',
     ],
     scriptPhrases: ['boardVision.test.ts', 'hardwareSimulation.test.ts'],
     sourcePhrases: [
-      ['src/services/boardVision.ts', 'analyzeWhiteboardPixels', 'analyzeWhiteboardImage', 'inkDensity', 'edgeDensity'],
-      ['src/services/boardVision.test.ts', '500', 'analyzeWhiteboardPixels', '500-round pixel validation'],
+      ['src/services/boardVision.ts', 'analyzeWhiteboardPixels', 'analyzeWhiteboardImage', 'quality', '畫面品質'],
+      ['src/services/boardVision.test.ts', '500', 'quality', '光線偏暗', '500-round pixel validation'],
+      ['src/services/frameQuality.ts', 'analyzeFrameQuality', '畫面過曝', '畫面資訊太少'],
       ['src/services/classroomApi.ts', 'analyzeWhiteboardImage', 'localBoardAnalysis'],
       ['src/components/home/RegionTaskPanel.tsx', '本機影像證據'],
+      ['src/components/home/RegionTaskPanel.tsx', '畫面品質提示'],
+      ['src/pages/Home.tsx', '重置展示資料', 'resetWhiteboardDemoState'],
       ['server/hardwareSimulation.test.ts', 'DEMO_SIMULATE_HARDWARE', 'simulated://ev3', 'simulated://arduino-uno-r4'],
     ],
   },
   app2: {
     serviceFiles: [
       'src/services/localVision.ts',
+      'src/services/frameQuality.ts',
       'src/__tests__/localVision.test.ts',
       'src/views/DashboardView.tsx',
     ],
     scriptPhrases: ['localVision.test.ts'],
     sourcePhrases: [
-      ['src/services/localVision.ts', 'analyzeCampusPixels', 'analyzeCampusImage', 'edgeDensity', 'darkArea'],
-      ['src/__tests__/localVision.test.ts', '500', 'analyzeCampusPixels', '500-round pixel validation'],
+      ['src/services/localVision.ts', 'analyzeCampusPixels', 'analyzeCampusImage', 'quality', '畫面品質'],
+      ['src/services/frameQuality.ts', 'analyzeFrameQuality', '畫面過曝', '畫面資訊太少'],
+      ['src/__tests__/localVision.test.ts', '500', 'quality', '光線偏暗', '500-round pixel validation'],
       ['src/views/DashboardView.tsx', 'analyzeCampusImage', 'navigator.mediaDevices.getUserMedia', '轉成機器人任務'],
+      ['src/views/DashboardView.tsx', '畫面品質 ·', 'visionResult.quality'],
     ],
   },
   app3: {
     serviceFiles: [
       'src/services/emotionTypography.ts',
       'src/services/visualPrivacyGuardian.ts',
+      'src/services/frameQuality.ts',
       'src/__tests__/emotionTypography.test.ts',
       'src/__tests__/visualPrivacyGuardian.test.ts',
       'src/App.tsx',
@@ -54,9 +71,11 @@ const featureContracts = {
     scriptPhrases: ['emotionTypography.test.ts', 'visualPrivacyGuardian.test.ts'],
     sourcePhrases: [
       ['src/services/emotionTypography.ts', 'analyzeEmotionTypography', 'guidance', 'preview'],
-      ['src/services/visualPrivacyGuardian.ts', 'analyzePrivacyFrame', '隱私保護模式', 'motionEdges'],
-      ['src/__tests__/visualPrivacyGuardian.test.ts', '500', 'analyzePrivacyFrame', '500-round pixel validation'],
+      ['src/services/visualPrivacyGuardian.ts', 'analyzePrivacyFrame', 'quality', '畫面品質'],
+      ['src/services/frameQuality.ts', 'analyzeFrameQuality', '個人特寫', '畫面過曝'],
+      ['src/__tests__/visualPrivacyGuardian.test.ts', '500', 'quality', '光線偏暗', '500-round pixel validation'],
       ['src/App.tsx', 'analyzeEmotionTypography', 'analyzePrivacyFrame', 'navigator.mediaDevices.getUserMedia', '情緒字體', '隱私影像感知'],
+      ['src/App.tsx', '畫面品質 ·', 'visualResult.quality'],
     ],
   },
 };
@@ -138,7 +157,7 @@ function run() {
     assert(fs.existsSync(fullPath), `demo doc missing: ${docPath}`);
     assertFileContains(fullPath, phrases, docPath);
   }
-  assert(routes.length === 7, `expected 7 published routes, got ${routes.length}`);
+  assert(routes.length === 8, `expected 8 published routes, got ${routes.length}`);
   assert(new Set(routes).size === routes.length, 'published routes must be unique');
 
   for (let round = 0; round < 500; round += 1) {

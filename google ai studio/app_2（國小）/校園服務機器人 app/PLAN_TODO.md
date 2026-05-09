@@ -17,6 +17,7 @@
 - 行動版已解除主畫面 `max-w-md` 手機殼限制，改成可吃滿螢幕的中控台版面；子頁與 bottom sheet 也改為手機優先寬度。
 - 已新增根目錄 `scripts/mobile-layout-check.mjs`，可用 390px 手機 viewport 量測水平溢出、截字與過小按鈕。
 - 已新增 `STUDENT_DEMO_GUIDE.md`，提供學生操作入口、上台分工、3 分鐘講稿、評審問答與 Arduino 連動後續計畫。
+- 已新增手動遙控中心（FAB + 虛擬搖桿），可控制底盤前後左右與滾筒；放開搖桿自動停車；韌體看門狗 3 秒保護。
 
 ## Demo 腳本
 
@@ -33,7 +34,7 @@
 
 ## Arduino R4 WiFi 對接
 
-- 目前已直接使用 App 1 共用 bridge，預設 URL 為 `http://localhost:3200`，也可用 `VITE_ARDUINO_BRIDGE_URL` 覆蓋。
+- App 2 使用獨立 bridge，預設 URL 為 `http://localhost:3202`，也可用 `VITE_ARDUINO_BRIDGE_URL` 覆蓋。
 - 代表指令：`DELIVERY_START`、`DELIVERY_DONE`、`CLEAN_SCHEDULE`、`BROADCAST_SCHEDULE`、`TEACH_SCAN`、`FOCUS_NUDGE`、`QUESTION_ACK`、`TEACH_REPLY`、`PATROL_START`、`BROADCAST_START`、`SAFETY_LOCKDOWN`、`SAFETY_CLEAR`、`ROBOT_PAUSE`、`ROBOT_RESUME`、`SPEED_SET`。
 - 未插 Arduino 時 bridge 回傳 fallback 狀態，App 不會中斷；插上並上傳韌體後同一批指令走 Serial。
 

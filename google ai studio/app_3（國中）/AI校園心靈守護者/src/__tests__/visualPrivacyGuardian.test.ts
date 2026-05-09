@@ -6,6 +6,8 @@ function run() {
   for (let i = 3; i < calmFrame.length; i += 4) calmFrame[i] = 255;
   const calm = analyzePrivacyFrame(24, 24, calmFrame);
   assert.equal(calm.level, 'calm');
+  assert.notEqual(calm.quality.level, 'poor');
+  assert.ok(calm.evidence.some((item) => item.includes('畫面品質')));
   assert.ok(calm.evidence.some((item) => item.includes('亮度')));
 
   const busyFrame = new Uint8ClampedArray(24 * 24 * 4);
@@ -19,6 +21,12 @@ function run() {
   const busy = analyzePrivacyFrame(24, 24, busyFrame);
   assert.ok(busy.level === 'watch' || busy.level === 'support');
   assert.ok(busy.score > calm.score);
+
+  const blankDark = new Uint8ClampedArray(24 * 24 * 4).fill(10);
+  for (let i = 3; i < blankDark.length; i += 4) blankDark[i] = 255;
+  const lowQuality = analyzePrivacyFrame(24, 24, blankDark);
+  assert.notEqual(lowQuality.quality.level, 'good');
+  assert.ok(lowQuality.quality.hints.some((item) => item.includes('光線偏暗')));
 
   const seenLevels = new Set<string>();
   for (let round = 0; round < 500; round += 1) {
@@ -41,6 +49,7 @@ function run() {
     seenLevels.add(result.level);
     assert.ok(result.score >= 0 && result.score <= 100, `round ${round}: score out of bounds`);
     assert.ok(result.metrics.brightness >= 0 && result.metrics.brightness <= 100, `round ${round}: brightness out of bounds`);
+    assert.ok(result.quality.metrics.brightness >= 0 && result.quality.metrics.brightness <= 100, `round ${round}: quality brightness out of bounds`);
     assert.ok(result.evidence.some((item) => item.includes('亮度')), `round ${round}: missing brightness evidence`);
     assert.ok(result.summary.length > 0, `round ${round}: missing summary`);
   }

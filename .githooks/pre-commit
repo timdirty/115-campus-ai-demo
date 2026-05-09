@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+cd "$ROOT_DIR"
+
+changed_files="$(git diff --cached --name-only --diff-filter=ACMR)"
+
+needs_agent_sync=false
+for path in $changed_files; do
+  case "$path" in
+    docs/SHARED_AGENT_CORE.md|docs/CLAUDE_APPENDIX.md|docs/AGENTS_APPENDIX.md|scripts/sync-agent-guides.py|scripts/sync-agent-guides.sh)
+      needs_agent_sync=true
+      ;;
+  esac
+done
+
+if [ "$needs_agent_sync" = true ]; then
+  echo "[agent-guides] sync project guide adapters"
+  python3 scripts/sync-agent-guides.py
+  git add CLAUDE.md AGENTS.md
+fi
+
+if [ -f ".skillshare/config.yaml" ] && command -v skillshare >/dev/null 2>&1; then
+  echo "[skillshare] pre-commit project validation"
+  bash scripts/validate-agent-interop.sh >/dev/null
+fi

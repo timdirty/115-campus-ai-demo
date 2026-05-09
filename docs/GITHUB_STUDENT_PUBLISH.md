@@ -33,7 +33,7 @@ CHECK_PUBLIC_URLS=1 node scripts/competition-readiness-check.mjs
 
 ## 學生操作方式
 
-三隊 App 都能在沒有 Gemini key、沒有 Firebase、沒有 Arduino 的狀態下操作主要流程。若老師先啟動 App 1 的 Node bridge，App 2、App 3 也會把硬體提示送到同一個 `http://localhost:3200` gateway；bridge 沒開時會顯示 fallback 紀錄，不會卡住學生操作。
+三隊 App 都能在沒有 Gemini key、沒有 Firebase、沒有 Arduino 的狀態下操作主要流程。App 2 有自己的 bridge（`localhost:3202`），App 3 有自己的 bridge（`localhost:3203`）；bridge 沒開時會顯示 fallback 紀錄，不會卡住學生操作。
 
 ### App 2 與 App 3
 
@@ -51,10 +51,10 @@ npm run dev
 
 如果部署到 Vercel、Netlify 或其他靜態前端平台，直接使用各 App 的 build output 即可。沒有 Arduino bridge 時，硬體提示會走 fallback，不影響學生操作主流程。
 
-若要接同一台教室電腦上的 App 1 bridge，可在 `.env` 設定：
+若要覆蓋橋接服務網址，可在 `.env` 設定（App 2 預設 3202，App 3 預設 3203）：
 
 ```zsh
-VITE_ARDUINO_BRIDGE_URL="http://localhost:3200"
+VITE_ARDUINO_BRIDGE_URL="http://localhost:3202"
 ```
 
 ### App 1

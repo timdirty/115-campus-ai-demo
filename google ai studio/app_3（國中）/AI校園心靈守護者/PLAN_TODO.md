@@ -22,6 +22,7 @@
 - 行動版 header 已改為雙列操作區，匯出、匯入、重置在手機上不再互相擠壓；卡片與節點地圖在小螢幕會降低圓角與 padding。
 - 已新增根目錄 `scripts/mobile-layout-check.mjs`，可用 390px 手機 viewport 量測水平溢出、截字與過小按鈕。
 - 已新增 `STUDENT_DEMO_GUIDE.md`，提供學生操作入口、上台分工、講稿、評審問答與 Arduino 連動後續計畫。
+- 已新增底部可收折遙控列，D-pad 手動控制前後左右、速度與緊急停車；韌體看門狗 3 秒保護。
 
 ## Demo 腳本
 
@@ -38,7 +39,7 @@
 
 ## Arduino R4 WiFi 對接
 
-- 目前已直接使用 App 1 共用 bridge，預設 URL 為 `http://localhost:3200`，也可用 `VITE_ARDUINO_BRIDGE_URL` 覆蓋。
+- App 3 使用獨立 bridge，預設 URL 為 `http://localhost:3203`，也可用 `VITE_ARDUINO_BRIDGE_URL` 覆蓋。
 - 已支援指令：`ALERT_SIGNAL`、`CARE_DEPLOYED`、`NODE_RESTART`；firmware 也保留 `NODE_HEARTBEAT` 給下一階段節點回報。
 - 未插 Arduino 時 bridge 回傳 fallback 並寫入硬體提示紀錄，不中斷關懷流程；插上並上傳韌體後同一批指令走 Serial。
 

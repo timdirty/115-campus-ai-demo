@@ -45,9 +45,10 @@ node scripts/full-demo-smoke.mjs
 三隊共用硬體路徑：
 
 ```text
-App 1 Node 橋接服務：http://localhost:3200/api/robot/command
-App 2 預設橋接網址：http://localhost:3200
-App 3 預設橋接網址：http://localhost:3200
+App 1 橋接服務（prod mode）：http://localhost:3200
+App 1 橋接服務（dev mode）：http://localhost:3201
+App 2 獨立橋接服務：http://localhost:3202
+App 3 獨立橋接服務：http://localhost:3203
 ```
 
 App 2 與 App 3 可用 `VITE_ARDUINO_BRIDGE_URL` 指到其他橋接服務。未插 Arduino 時，橋接服務會回傳可理解的備援狀態；插上 UNO R4 並上傳韌體後，同一批 App 操作會送到序列埠。
@@ -147,7 +148,7 @@ mindful-guardian:v1
 ## 現場備援
 
 - 先跑 `zsh scripts/demo-check.sh`，再開三個 App。
-- App 1 正式橋接服務建議固定用 `http://localhost:3200`，App 2 用 `http://localhost:3201`，App 3 用 `http://localhost:3202`。
+- App 1 正式橋接服務用 `http://localhost:3200`（prod）或 `http://localhost:3201`（dev），App 2 用 `http://localhost:3202`，App 3 用 `http://localhost:3203`。
 - Arduino 沒偵測到時，先確認 USB 線、連接埠、`pio device monitor -b 115200`。
 - Gemini 金鑰、Firebase 或網路不穩時，不要現場除錯；三個 App 都有本機備援或本機優先流程。
 - 現場資料亂掉時，App 2 與 App 3 會先嘗試修復瀏覽器本機資料；仍不理想時再直接重置展示資料。

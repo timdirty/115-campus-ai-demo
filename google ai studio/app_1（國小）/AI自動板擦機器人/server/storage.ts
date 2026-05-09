@@ -7,13 +7,18 @@ export async function ensureDataDir() {
   await mkdir(dataDir, {recursive: true});
 }
 
+const initializingFiles = new Set<string>();
+
 export async function readJsonFile<T>(file: string, fallback: T): Promise<T> {
   await ensureDataDir();
   try {
     const raw = await readFile(file, 'utf8');
     return JSON.parse(raw) as T;
   } catch {
-    await writeJsonFile(file, fallback);
+    if (!initializingFiles.has(file)) {
+      initializingFiles.add(file);
+      await writeJsonFile(file, fallback).finally(() => initializingFiles.delete(file));
+    }
     return fallback;
   }
 }

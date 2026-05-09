@@ -21,6 +21,39 @@ export type BoardRegion = {
   reason: string;
 };
 
+export type HardwareCalibrationProfile = {
+  servoAngles: {
+    regionA: number;
+    regionB: number;
+    regionC: number;
+    eraseAll: number;
+    standby: number;
+  };
+  cameraMounted: boolean;
+  boardAnchored: boolean;
+  visionReady: boolean;
+  boardCalibrationMode: 'default' | 'manual' | 'auto';
+  boardDetectionConfidence: number;
+  boardCalibration: {
+    topLeft: {x: number; y: number};
+    topRight: {x: number; y: number};
+    bottomRight: {x: number; y: number};
+    bottomLeft: {x: number; y: number};
+  };
+  robotPose: {
+    x: number;
+    y: number;
+    heading: number;
+    stage: 'standby' | 'preview' | 'moving' | 'erasing' | 'paused' | 'done';
+    label: string;
+    targetRegion?: string;
+    command: string;
+    updatedAt: string;
+  };
+  notes: string;
+  lastCalibratedAt?: string;
+};
+
 export type WhiteboardNote = {
   id: number;
   title: string;
@@ -58,8 +91,11 @@ export type ClassroomSession = {
   savedMinutes: number;
   currentRecommendation: string;
   boardRegions: BoardRegion[];
+  hardwareProfile: HardwareCalibrationProfile;
   lastCaptureAt?: string;
   updatedAt: string;
+  /** Raw OCR text extracted from the last whiteboard capture. */
+  boardOcrText?: string;
 };
 
 export type RobotStatus = {

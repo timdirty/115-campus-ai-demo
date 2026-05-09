@@ -110,8 +110,8 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
             <motion.div initial={{ scale: 0.8, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-surface-container p-12 rounded-[3.5rem] flex flex-col items-center shadow-premium text-center max-w-md border border-outline-variant/10">
               <div className="relative">
                 <div className="absolute inset-0 bg-primary/30 rounded-full blur-2xl animate-pulse"></div>
-                <div className="w-24 h-24 bg-primary text-on-primary rounded-[2rem] flex items-center justify-center relative z-10 shadow-inner overflow-hidden">
-                  <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 3, ease: "linear" }} className="absolute inset-0 border-[6px] border-dashed border-white/20 rounded-[2rem]" />
+                <div className="w-24 h-24 bg-primary text-on-primary rounded-4xl flex items-center justify-center relative z-10 shadow-inner overflow-hidden">
+                  <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 3, ease: "linear" }} className="absolute inset-0 border-[6px] border-dashed border-white/20 rounded-4xl" />
                   <Sparkles className="w-10 h-10 fill-current animate-pulse outline-none" />
                 </div>
               </div>
@@ -258,8 +258,8 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
             <h2 className="text-5xl font-extrabold font-headline mb-4 tracking-tight">小測驗完成！</h2>
             <p className="text-xl font-medium text-on-surface-variant mb-12">可以把結果當成課堂即時檢核，看看哪些重點需要再說一次。</p>
 
-            <div className="bg-surface-container-lowest rounded-[2rem] md:rounded-[3rem] p-8 md:p-12 border border-outline-variant/20 shadow-premium mb-10 md:mb-12 relative overflow-hidden group mx-4 md:mx-0">
-              <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
+            <div className="bg-surface-container-lowest rounded-4xl md:rounded-[3rem] p-8 md:p-12 border border-outline-variant/20 shadow-premium mb-10 md:mb-12 relative overflow-hidden group mx-4 md:mx-0">
+              <div className="absolute inset-0 bg-linear-to-tr from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
               <span className="text-7xl sm:text-[100px] md:text-[120px] leading-none font-black text-primary font-headline tracking-tighter relative z-10 drop-shadow-md">{score}<span className="text-3xl sm:text-5xl text-on-surface-variant opacity-40 ml-1 md:ml-2">/{quizQuestions.length}</span></span>
             </div>
 
@@ -281,7 +281,7 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
             </div>
 
             <div className="bg-surface-container-lowest rounded-[2.5rem] p-8 md:p-16 shadow-premium border border-outline-variant/10 relative overflow-hidden">
-               <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary via-tertiary to-secondary opacity-50"></div>
+               <div className="absolute top-0 left-0 w-full h-2 bg-linear-to-r from-primary via-tertiary to-secondary opacity-50"></div>
 
                <div className="prose prose-lg max-w-none text-on-surface/90 font-medium leading-loose marker:text-primary font-body markdown-body">
                  <ReactMarkdown>{summaryText}</ReactMarkdown>
