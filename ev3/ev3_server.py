@@ -127,6 +127,10 @@ async def dispatch(cmd: str) -> dict:
         _current_motion = None
         return {'ok': True, 'response': 'stopped'}
 
+    # Keepalive — never blocked, never enqueued
+    if cmd == 'HEARTBEAT':
+        return {'ok': True, 'response': 'PONG'}
+
     # Read-only — never blocked
     if cmd == 'EV3_STATUS':
         return {
