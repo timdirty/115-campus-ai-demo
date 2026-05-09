@@ -1,16 +1,13 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {motion} from 'motion/react';
-import {ArrowRight, Bot, Database, Loader2, Radio, RefreshCw, ShieldCheck, Video} from 'lucide-react';
+import {Loader2, RefreshCw} from 'lucide-react';
 import {CapturePanel} from '../components/home/CapturePanel';
 import {NoticeBar} from '../components/home/NoticeBar';
-import {QuickNotePanel} from '../components/home/QuickNotePanel';
 import {RegionTaskPanel} from '../components/home/RegionTaskPanel';
-import {SavedNotePanel} from '../components/home/SavedNotePanel';
-import {StatusTile} from '../components/home/StatusTile';
 import {useBridgeStatus} from '../hooks/useBridgeStatus';
 import {useMediaCapture} from '../hooks/useMediaCapture';
 import {analyzeBoardCapture, BoardAnalysisResponse, BoardRegion, ocrBoardLocal, OcrLocalResult, saveClassroomSession, transcribeAudio} from '../services/classroomApi';
-import {resetWhiteboardDemoState, addNoteAsync} from '../services/notesStore';
+import {addNoteAsync} from '../services/notesStore';
 import {defaultRobotPose} from '../services/robotPose';
 import {BoardCalibration, BoardCalibrationMode, CalibrationCornerId, defaultBoardCalibration, detectBoardCalibrationFromImage, normalizeBoardCalibration} from '../services/whiteboardCalibration';
 
@@ -25,17 +22,9 @@ const itemVariants: any = {
   show: {opacity: 1, y: 0, transition: {type: 'spring', bounce: 0.18, duration: 0.45}},
 };
 
-const DEMO_STEPS = [
-  {num: '1', label: '拍白板', detail: '開啟攝影機或上傳黑板照'},
-  {num: '2', label: '選區塊', detail: '老師確認 A/B/C 保留或擦除'},
-  {num: '3', label: '派機器人', detail: '區塊式送出板擦任務'},
-];
-
-export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) {
+export default function Home(_props: {onNavigate: (tab: string) => void}) {
   const {
-    health,
     classroom,
-    latestNote,
     notice,
     statusBusy,
     refreshStatus,
@@ -45,7 +34,6 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
   } = useBridgeStatus();
   const media = useMediaCapture();
   const [subjectHint, setSubjectHint] = useState('國小數學');
-  const [quickNote, setQuickNote] = useState('');
   const [transcript, setTranscript] = useState('');
   const [previewImage, setPreviewImage] = useState('');
   const [analysis, setAnalysis] = useState<BoardAnalysisResponse | null>(null);
@@ -202,28 +190,6 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
     }
   };
 
-  const saveQuickNote = async () => {
-    if (!quickNote.trim()) {
-      return;
-    }
-    setBusy('quick');
-    try {
-      const note = await addNoteAsync({
-        title: quickNote.trim().slice(0, 28),
-        subject: '國小快速紀錄',
-        content: quickNote.trim(),
-        desc: '由首頁快速記錄建立，可再整理成學習單。',
-      });
-      setLatestNote(note);
-      setQuickNote('');
-      setNotice('快速紀錄已保存到課堂紀錄本');
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : '快速紀錄保存失敗');
-    } finally {
-      setBusy('');
-    }
-  };
-
   const applyRegions = async (regions: BoardRegion[], recommendation: string) => {
     const nextSession = await saveClassroomSession({boardRegions: regions, currentRecommendation: recommendation});
     setClassroom(nextSession);
@@ -261,21 +227,6 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
     } finally {
       setBusy('');
     }
-  };
-
-  const resetDemoState = () => {
-    const notes = resetWhiteboardDemoState();
-    setAnalysis(null);
-    setPreviewImage('');
-    setTranscript('');
-    setQuickNote('');
-    setOcrResult(null);
-    setBoardCalibration(defaultBoardCalibration());
-    setCalibrationMode('default');
-    setDetectionConfidence(0);
-    setCalibrationDirty(false);
-    setLatestNote(notes[0] ?? null);
-    setNotice('展示資料已重置：白板紀錄、課堂狀態、聊天、導覽與問題回報已回到初始 demo 狀態');
   };
 
   const handleCalibrationChange = (cornerId: CalibrationCornerId, point: {x: number; y: number}) => {
@@ -336,16 +287,6 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
   };
 
   const boardRegions = analysis?.boardRegions ?? classroom?.boardRegions ?? [];
-  const {keepCount, erasableCount} = useMemo(() => {
-    let keep = 0, erasable = 0;
-    for (const r of boardRegions) {
-      if (r.status === 'keep') keep++;
-      else if (r.status === 'erasable' || r.status === 'erased') erasable++;
-    }
-    return {keepCount: keep, erasableCount: erasable};
-  }, [boardRegions]);
-  const hasCaptureEvidence = Boolean(previewImage || latestNote?.imageUrl || classroom?.lastCaptureAt);
-  const operatingMode = health?.ok ? '半自動展示版' : '半自動備援版';
 
   useEffect(() => {
     const calibration = classroom?.hardwareProfile?.boardCalibration ?? analysis?.session.hardwareProfile.boardCalibration;
@@ -376,81 +317,6 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
             {statusBusy ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="w-4 h-4" aria-hidden="true" />}
             重新同步
           </button>
-        </motion.section>
-
-        <motion.section variants={itemVariants} className="mb-5 grid grid-cols-1 xl:grid-cols-[1.2fr_.8fr] gap-4">
-          <div className="rounded-3xl border border-primary/10 bg-primary-container/50 p-5 sm:p-6 shadow-sm">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-xs font-black text-primary">主流程</p>
-                <h2 className="mt-2 text-xl font-extrabold leading-snug text-primary sm:text-2xl">看白板，決定擦哪裡。</h2>
-                <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-on-surface-variant">沒有硬體也能留下派遣紀錄。</p>
-              </div>
-              <button onClick={() => onNavigate('teacher')} className="min-h-11 shrink-0 rounded-2xl bg-primary px-4 text-sm font-extrabold text-on-primary transition active:scale-95 flex items-center justify-center gap-2">
-                前往教師決策
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="mt-5 grid gap-3 md:grid-cols-3">
-              {DEMO_STEPS.map((step) => (
-                <div key={step.label} className="rounded-2xl bg-surface/80 p-4 border border-white/60">
-                  <div className="w-7 h-7 rounded-full bg-primary text-on-primary flex items-center justify-center text-xs font-black">
-                    {step.num}
-                  </div>
-                  <p className="mt-3 text-sm font-extrabold">{step.label}</p>
-                  <p className="mt-1 text-xs font-semibold leading-5 text-on-surface-variant">{step.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="rounded-3xl border border-outline-variant/10 bg-surface-container-low p-5 sm:p-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-on-primary">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-extrabold">現場可靠性</p>
-                <p className="text-xs font-semibold text-on-surface-variant">所有核心展示都能在本機完成</p>
-              </div>
-            </div>
-            <div className="mt-4 space-y-2">
-              {[
-                {label: '運作模式', value: `${operatingMode}，老師最後確認`, ok: true},
-                {label: 'AI 分析', value: health?.geminiConfigured ? '雲端分析可用' : '本機示範可用', ok: Boolean(health?.geminiConfigured)},
-                {label: '機器人', value: health?.ok ? '已連線可派遣' : '未連線仍可展示', ok: Boolean(health?.ok)},
-                {label: '課堂紀錄', value: '決策與派遣自動保存', ok: true},
-              ].map(({label, value, ok}) => (
-                <div key={label} className="flex items-center gap-2.5 text-sm font-bold">
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${ok ? 'bg-primary' : 'bg-outline-variant/60'}`} />
-                  <span className="text-on-surface-variant">{label}：</span>
-                  <span className={ok ? 'text-primary' : 'text-on-surface-variant'}>{value}</span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 rounded-2xl border border-outline-variant/10 bg-surface p-4">
-              <p className="text-xs font-black text-primary">展示邏輯</p>
-              <div className="mt-3 space-y-2 text-xs font-bold leading-5 text-on-surface-variant">
-                <p>1. 先讀白板內容，再產生可保留與可清空區塊。</p>
-                <p>2. 老師一定要確認，不讓機器人直接自動亂擦。</p>
-                <p>3. 目前先用 A/B/C 區塊展示，下一階段再補固定攝影機定位。</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={resetDemoState}
-              className="mt-4 min-h-11 w-full rounded-2xl bg-surface-container-lowest px-4 text-sm font-extrabold text-primary shadow-sm transition hover:bg-primary/10 active:scale-95"
-            >
-              重置展示資料
-            </button>
-          </div>
-        </motion.section>
-
-        <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5" data-tour="status-tiles">
-          <StatusTile icon={ShieldCheck} label="運作模式" value={operatingMode} ok={true} />
-          <StatusTile icon={Radio} label="本機硬體" value={health?.hardwareSimulation ? '硬體模擬模式' : health?.ok ? '可展示' : '未連線'} ok={Boolean(health?.ok)} />
-          <StatusTile icon={Bot} label="AI 模式" value={health?.geminiConfigured ? '伺服器端已設定' : '本機展示模式'} ok={health?.geminiConfigured ?? false} />
-          <StatusTile icon={Video} label="白板證據" value={hasCaptureEvidence ? '已有白板畫面或快照' : media.cameraReady ? '可立即拍照' : '待取得畫面'} ok={hasCaptureEvidence || media.cameraReady} />
-          <StatusTile icon={Database} label="教師決策" value={boardRegions.length > 0 ? `保留 ${keepCount} 區，可清空 ${erasableCount} 區` : '等待白板分析'} ok={boardRegions.length > 0} />
         </motion.section>
 
         <motion.div variants={itemVariants}>
@@ -521,11 +387,6 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
             )}
           </motion.section>
         )}
-
-        <motion.section variants={itemVariants} className="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <SavedNotePanel latestNote={latestNote} onNavigate={onNavigate} />
-          <QuickNotePanel value={quickNote} busy={busy === 'quick'} onChange={setQuickNote} onSave={saveQuickNote} />
-        </motion.section>
       </div>
     </motion.div>
   );
