@@ -1,3 +1,4 @@
+import {memo} from 'react';
 import type {WhiteboardNote} from '../../services/notesStore';
 
 type SavedNotePanelProps = {
@@ -5,7 +6,7 @@ type SavedNotePanelProps = {
   onNavigate: (tab: string) => void;
 };
 
-export function SavedNotePanel({latestNote, onNavigate}: SavedNotePanelProps) {
+export const SavedNotePanel = memo(function SavedNotePanel({latestNote, onNavigate}: SavedNotePanelProps) {
   return (
     <section className="lg:col-span-2 bg-surface-container-low rounded-lg p-5 border border-outline-variant/20">
       <h2 className="text-xl font-extrabold mb-4">最新課堂紀錄</h2>
@@ -29,4 +30,4 @@ export function SavedNotePanel({latestNote, onNavigate}: SavedNotePanelProps) {
       </div>
     </section>
   );
-}
+});

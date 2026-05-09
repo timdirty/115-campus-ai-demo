@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {memo, useEffect, useState} from 'react';
 import {ChevronDown, Cpu, X} from 'lucide-react';
 import type {DetectedPort} from '../types';
 import {assignSensorPort} from '../services/hardwareBridge';
@@ -16,7 +16,7 @@ interface SensorAssignmentWidgetProps {
   onAssigned: () => void;
 }
 
-export function SensorAssignmentWidget({ports, onAssigned}: SensorAssignmentWidgetProps) {
+export const SensorAssignmentWidget = memo(function SensorAssignmentWidget({ports, onAssigned}: SensorAssignmentWidgetProps) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [selections, setSelections] = useState<Record<string, string>>({});
@@ -138,4 +138,4 @@ export function SensorAssignmentWidget({ports, onAssigned}: SensorAssignmentWidg
       )}
     </div>
   );
-}
+});

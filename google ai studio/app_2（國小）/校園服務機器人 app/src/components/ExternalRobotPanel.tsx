@@ -2,7 +2,7 @@
 // 以折疊卡片形式嵌入 RemoteControlPanel BottomSheet。
 // 自動輪詢 /api/ev3/status 或 /api/spike/status 顯示連線狀態。
 
-import {useEffect, useState} from 'react';
+import {memo, useEffect, useState} from 'react';
 import {Bot, ChevronDown, ChevronUp, Cpu, Navigation2, PackageCheck, TriangleAlert, Volume2} from 'lucide-react';
 import {BRIDGE_URL} from '../services/hardwareBridge';
 
@@ -65,7 +65,7 @@ async function sendCmd(hw: RobotHW, command: string): Promise<boolean> {
   }
 }
 
-export function ExternalRobotPanel() {
+export const ExternalRobotPanel = memo(function ExternalRobotPanel() {
   const [expanded, setExpanded] = useState(false);
   const [hw, setHw] = useState<RobotHW>('ev3');
   const [status, setStatus] = useState<HWStatus | null>(null);
@@ -195,4 +195,4 @@ export function ExternalRobotPanel() {
       )}
     </div>
   );
-}
+});

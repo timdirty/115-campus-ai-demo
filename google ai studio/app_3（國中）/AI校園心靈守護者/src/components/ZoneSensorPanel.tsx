@@ -1,3 +1,4 @@
+import {memo} from 'react';
 import {Droplets, Sun, Thermometer} from 'lucide-react';
 import type {ZoneSensorReading} from '../types';
 
@@ -103,7 +104,7 @@ function HumidityArc({value}: {value: number}) {
   );
 }
 
-export function ZoneSensorPanel({sensor}: ZoneSensorPanelProps) {
+export const ZoneSensorPanel = memo(function ZoneSensorPanel({sensor}: ZoneSensorPanelProps) {
   if (!sensor.connected) {
     return (
       <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
@@ -182,4 +183,4 @@ export function ZoneSensorPanel({sensor}: ZoneSensorPanelProps) {
       {(() => { const d = new Date(sensor.updatedAt); return isNaN(d.getTime()) ? null : <p className="text-[9px] text-slate-400 text-right">更新 {d.toLocaleTimeString('zh-TW', {hour: '2-digit', minute: '2-digit', second: '2-digit'})}</p>; })()}
     </div>
   );
-}
+});

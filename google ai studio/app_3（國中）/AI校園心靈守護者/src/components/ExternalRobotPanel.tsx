@@ -2,7 +2,7 @@
 // 折疊卡片，嵌入 GuardianControlPanel 底部。
 // 提供守護巡邏相關指令：巡邏、前往區域、警報、返回、方向控制。
 
-import {useEffect, useState} from 'react';
+import {memo, useEffect, useState} from 'react';
 import {Bot, ChevronDown, ChevronUp, Cpu, MapPin, Navigation2, Siren, TriangleAlert} from 'lucide-react';
 
 const BRIDGE_URL =
@@ -70,7 +70,7 @@ async function sendCmd(hw: RobotHW, command: string): Promise<boolean> {
   }
 }
 
-export function ExternalRobotPanel() {
+export const ExternalRobotPanel = memo(function ExternalRobotPanel() {
   const [expanded, setExpanded] = useState(false);
   const [hw, setHw] = useState<RobotHW>('ev3');
   const [status, setStatus] = useState<HWStatus | null>(null);
@@ -203,4 +203,4 @@ export function ExternalRobotPanel() {
       )}
     </div>
   );
-}
+});
