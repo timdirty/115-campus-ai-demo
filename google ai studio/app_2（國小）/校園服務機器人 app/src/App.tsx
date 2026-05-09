@@ -47,7 +47,7 @@ function RestartTourButton({ onClose }: { onClose: () => void }) {
   return (
     <button
       onClick={() => { restartTour(); onClose(); }}
-      className="w-full flex items-center justify-between text-left font-bold text-base text-on-surface bg-surface-container-lowest border border-outline-variant/20 hover:border-primary/30 hover:bg-surface-container-low p-5 rounded-[1.5rem] active:scale-[0.98] transition-all shadow-sm"
+      className="w-full flex items-center justify-between text-left font-bold text-base text-on-surface bg-surface-container-lowest border border-outline-variant/20 hover:border-primary/30 hover:bg-surface-container-low p-5 rounded-3xl active:scale-[0.98] transition-all shadow-sm"
     >
       <span>重看功能導覽</span>
       <span style={{ fontSize: 18 }}>▶</span>
@@ -187,9 +187,6 @@ export default function App() {
               </button>
             );
           })}
-          <div className="pt-2 border-t border-outline-variant/20">
-            <RemoteControlSidebarButton />
-          </div>
         </nav>
 
         <div className="mt-auto rounded-2xl border border-outline-variant/20 bg-surface-container-low p-4">
@@ -217,7 +214,7 @@ export default function App() {
         </div>
       </aside>
 
-      <div className="min-h-screen w-full md:w-auto pb-32 md:ml-[260px] md:pb-0">
+      <div className="min-h-screen w-full md:w-auto pb-32 md:ml-65 md:pb-0">
       <header className="fixed top-0 w-full z-50 bg-background/85 backdrop-blur-2xl border-b border-outline-variant/10 flex justify-between items-center gap-3 px-4 h-18 left-0 right-0 shadow-[0_4px_32px_rgba(0,0,0,0.02)] md:left-65 md:right-0 md:max-w-none md:mx-0 md:px-8">
         <button
           onClick={() => showToast('核心系統診斷正常...')}
@@ -307,7 +304,7 @@ export default function App() {
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 w-full z-50 rounded-t-4xl border-t border-outline-variant/30 bg-background/95 backdrop-blur-3xl shadow-[0_-8px_40px_rgba(0,0,0,0.08)] left-0 right-0 pb-safe pb-4 md:hidden" aria-label="手機底部導覽">
-        <div className="grid h-[82px] w-full grid-cols-3 items-end gap-1 px-2 pt-3 mx-auto">
+        <div className="grid h-20.5 w-full grid-cols-3 items-end gap-1 px-2 pt-3 mx-auto">
           {TABS.map(tab => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
@@ -318,7 +315,7 @@ export default function App() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   aria-label={`切換到${tab.label}`}
-                  className={`mx-auto flex h-[62px] w-[62px] flex-col items-center justify-center rounded-[1.5rem] p-3 -mt-8 shadow-2xl active:scale-95 transition-all duration-300 ease-out
+                  className={`mx-auto flex h-15.5 w-15.5 flex-col items-center justify-center rounded-3xl p-3 -mt-8 shadow-2xl active:scale-95 transition-all duration-300 ease-out
                     ${isActive
                       ? 'bg-linear-to-br from-primary to-primary-container text-white ring-[6px] ring-background'
                       : 'bg-surface-container-highest text-on-surface hover:bg-primary/90 hover:text-white border-[6px] border-background'
@@ -374,22 +371,22 @@ export default function App() {
                className="hidden"
                onChange={(event) => void importDemoState(event.target.files?.[0])}
              />
-             <button onClick={() => { actions.setNotifications(!state.settings.notifications); showToast('系統推播設定已更新'); setShowSettings(false); }} className="w-full flex items-center justify-between text-left font-bold text-base bg-surface-container-lowest border border-outline-variant/20 hover:border-primary/30 hover:bg-surface-container-low p-5 rounded-[1.5rem] active:scale-[0.98] transition-all shadow-sm">
+             <button onClick={() => { actions.setNotifications(!state.settings.notifications); showToast('系統推播設定已更新'); setShowSettings(false); }} className="w-full flex items-center justify-between text-left font-bold text-base bg-surface-container-lowest border border-outline-variant/20 hover:border-primary/30 hover:bg-surface-container-low p-5 rounded-3xl active:scale-[0.98] transition-all shadow-sm">
                <span>允許系統緊急推播</span>
                <div className={`w-10 h-6 rounded-full relative shadow-inner ${state.settings.notifications ? 'bg-primary' : 'bg-outline-variant'}`}><div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow-sm transition-all ${state.settings.notifications ? 'right-1' : 'left-1'}`}></div></div>
              </button>
-             <button onClick={() => { actions.clearLocalCache(); showToast('已清除本地緩存標記'); setShowSettings(false); }} className="w-full flex items-center justify-between text-left font-bold text-base text-on-surface bg-surface-container-lowest border border-outline-variant/20 hover:border-outline-variant/50 hover:bg-surface-container-low p-5 rounded-[1.5rem] active:scale-[0.98] transition-all shadow-sm">
+             <button onClick={() => { actions.clearLocalCache(); showToast('已清除本地緩存標記'); setShowSettings(false); }} className="w-full flex items-center justify-between text-left font-bold text-base text-on-surface bg-surface-container-lowest border border-outline-variant/20 hover:border-outline-variant/50 hover:bg-surface-container-low p-5 rounded-3xl active:scale-[0.98] transition-all shadow-sm">
                <span>清除本地任務緩存</span>
              </button>
-             <button onClick={() => { exportDemoState(); setShowSettings(false); }} className="w-full flex items-center justify-between text-left font-bold text-base text-on-surface bg-surface-container-lowest border border-outline-variant/20 hover:border-primary/30 hover:bg-surface-container-low p-5 rounded-[1.5rem] active:scale-[0.98] transition-all shadow-sm">
+             <button onClick={() => { exportDemoState(); setShowSettings(false); }} className="w-full flex items-center justify-between text-left font-bold text-base text-on-surface bg-surface-container-lowest border border-outline-variant/20 hover:border-primary/30 hover:bg-surface-container-low p-5 rounded-3xl active:scale-[0.98] transition-all shadow-sm">
                <span>匯出展示資料</span>
                <Download size={20} className="text-primary" />
              </button>
-             <button onClick={() => importInputRef.current?.click()} className="w-full flex items-center justify-between text-left font-bold text-base text-on-surface bg-surface-container-lowest border border-outline-variant/20 hover:border-primary/30 hover:bg-surface-container-low p-5 rounded-[1.5rem] active:scale-[0.98] transition-all shadow-sm">
+             <button onClick={() => importInputRef.current?.click()} className="w-full flex items-center justify-between text-left font-bold text-base text-on-surface bg-surface-container-lowest border border-outline-variant/20 hover:border-primary/30 hover:bg-surface-container-low p-5 rounded-3xl active:scale-[0.98] transition-all shadow-sm">
                <span>匯入展示資料</span>
                <Upload size={20} className="text-primary" />
              </button>
-             <button onClick={() => { actions.resetDemo(); showToast('展示資料已重置'); setShowSettings(false); }} className="w-full flex items-center justify-between text-left font-bold text-base text-primary bg-primary/5 border border-primary/20 hover:bg-primary/10 p-5 rounded-[1.5rem] active:scale-[0.98] transition-all shadow-sm">
+             <button onClick={() => { actions.resetDemo(); showToast('展示資料已重置'); setShowSettings(false); }} className="w-full flex items-center justify-between text-left font-bold text-base text-primary bg-primary/5 border border-primary/20 hover:bg-primary/10 p-5 rounded-3xl active:scale-[0.98] transition-all shadow-sm">
                <span>重置展示資料</span>
              </button>
              <RestartTourButton onClose={() => setShowSettings(false)} />
@@ -397,7 +394,7 @@ export default function App() {
 
           <button
             onClick={() => { showToast('帳號已安全登出'); setShowSettings(false); }}
-            className="w-full py-5 mt-10 bg-error/10 hover:bg-error/20 border border-error/20 text-error font-bold rounded-[1.5rem] active:scale-95 transition-all text-sm uppercase tracking-widest"
+            className="w-full py-5 mt-10 bg-error/10 hover:bg-error/20 border border-error/20 text-error font-bold rounded-3xl active:scale-95 transition-all text-sm uppercase tracking-widest"
           >
             登出系統
           </button>

@@ -71,7 +71,7 @@ export function RemoteControlFab({onOpen}: {onOpen: () => void}) {
       type="button"
       onClick={onOpen}
       aria-label="開啟手動遙控"
-      className="md:hidden fixed bottom-30 right-4 z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 active:scale-95"
+      className="fixed bottom-30 right-4 z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 active:scale-95 md:bottom-6 md:right-6"
     >
       <Gamepad2 className="h-5 w-5" />
       <span className="text-sm font-black tracking-wide">手動遙控</span>
