@@ -8,7 +8,7 @@ import {networkInterfaces} from 'node:os';
 import express from 'express';
 import {WebSocketServer, WebSocket} from 'ws';
 import {getActivePath, getTelemetry, isConnected, onConnectionChange, sendCommand, tryAutoOpen} from './serialPort';
-import {analyzeDeliveryTask, isGeminiConfigured} from './aiService';
+import {analyzeDeliveryTask, classifyVisionScene, isGeminiConfigured} from './aiService';
 import {appendDeliveryLog, appendTaskLog, getRecentDeliveryLogs, getRecentTaskLogs, resetDemoData} from './storage';
 import {getEV3Status, sendEV3Command, startEV3Manager} from './ev3Manager';
 import {getSpikeStatus, sendSpikeCommand, startSpikeManager} from './spikeManager';
@@ -65,6 +65,8 @@ wss.on('connection', (ws, req) => {
     displayClients.add(ws);
     ws.send(JSON.stringify({type: 'display_ready'}));
     ws.on('close', () => displayClients.delete(ws));
+  } else {
+    ws.send(JSON.stringify({type: 'arduino_status', connected: isConnected(), port: getActivePath() ?? '', simulated: false}));
   }
 });
 httpServer.on('close', () => clearInterval(wsKeepalive));
@@ -112,7 +114,7 @@ app.use('/api/robot', (req, res, next) => {
 });
 
 app.options('*', (_req, res) => res.sendStatus(204));
-app.use(express.json({limit: '256kb'}));
+app.use(express.json({limit: '4mb'})); // vision-classify sends base64 JPEG; 320px @ q0.6 ≈ 40-120 kb but allow headroom
 
 app.get('/api/health', (_req, res) => {
   res.json({
@@ -132,6 +134,7 @@ app.post('/api/robot/command', async (req, res) => {
   }
   const normalized = command.trim().toUpperCase();
   const result = await sendCommand(normalized);
+  if (res.headersSent) return;
   res.status(result.ok ? 200 : 503).json({
     ok: result.ok,
     response: result.ok ? `Sent ${normalized}` : undefined,
@@ -190,6 +193,20 @@ app.post('/api/ai/campus', async (req, res) => {
       userMessage: typeof userMessage === 'string' ? userMessage : undefined,
     });
     res.json({ok: true, reply: result.reply, source: result.source});
+  } catch (error) {
+    res.status(500).json({ok: false, error: error instanceof Error ? error.message : String(error)});
+  }
+});
+
+app.post('/api/ai/vision-classify', async (req, res) => {
+  const {imageBase64} = req.body ?? {};
+  if (typeof imageBase64 !== 'string' || imageBase64.length < 100) {
+    res.status(400).json({ok: false, error: 'imageBase64 required'});
+    return;
+  }
+  try {
+    const result = await classifyVisionScene(imageBase64);
+    res.json({ok: true, ...result});
   } catch (error) {
     res.status(500).json({ok: false, error: error instanceof Error ? error.message : String(error)});
   }

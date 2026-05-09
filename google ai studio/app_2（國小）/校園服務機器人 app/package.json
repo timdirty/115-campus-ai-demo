@@ -7,7 +7,7 @@
     "start": "NODE_ENV=production tsx server/serialBridge.ts",
     "dev": "concurrently -n web,bridge -c blue,cyan \"npm:dev:web\" \"npm:dev:bridge\"",
     "dev:web": "vite --port=3000 --host=0.0.0.0",
-    "dev:bridge": "tsx server/serialBridge.ts",
+    "dev:bridge": "sh -c 'set -a; . ./.env 2>/dev/null; exec tsx server/serialBridge.ts'",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",

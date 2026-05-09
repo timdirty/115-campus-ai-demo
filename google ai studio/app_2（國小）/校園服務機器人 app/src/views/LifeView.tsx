@@ -8,7 +8,9 @@ import {
 } from 'lucide-react';
 import { useAppActions, useAppState } from '../state/AppStateProvider';
 import { sendHardwareCommand } from '../services/hardwareBridge';
-import { analyzeCampusPixels, type CampusVisionResult, type VisionScene } from '../services/localVision';
+import { analyzeCampusImageWithGemini, type CampusVisionResult, type VisionScene } from '../services/localVision';
+
+let _eventId = 100;
 
 const SCENE_IMAGES: Record<VisionScene, string> = {
   crowd:    '/scenes/crowd.png',
@@ -45,11 +47,11 @@ const SCENE_ACTION_LABELS: Record<VisionScene, string> = {
 const HERO_SCENES: VisionScene[] = ['crowd', 'safety', 'cleaning', 'delivery', 'patrol'];
 
 const SCENE_DEMO_RESULTS: Record<VisionScene, CampusVisionResult> = {
-  crowd:    { scene: 'crowd',    label: '人流疏導辨識', confidence: 91, zone: 'B-4 走廊',   summary: '畫面符合下課人流情境，適合啟動廣播疏導。',       suggestedAction: '派遣疏導廣播並提示慢行',     dispatchTaskType: 'broadcast', command: 'VISION_CROWD_BROADCAST', tags: ['人流','廣播','疏導'], evidence: ['示範場景','人流偏高'] },
-  safety:   { scene: 'safety',   label: '安全巡查辨識', confidence: 88, zone: 'A-2 入口',   summary: '走廊存在阻塞物，建議保守派巡邏。',               suggestedAction: '建立安全巡查並保留影像回報', dispatchTaskType: 'patrol',    command: 'VISION_SAFETY_PATROL',   tags: ['安全','阻塞','巡查'], evidence: ['示範場景','物品阻塞'] },
-  cleaning: { scene: 'cleaning', label: '清掃需求辨識', confidence: 85, zone: 'B 棟走廊',   summary: '地面有明顯清潔需求，建議加入清潔巡邏。',         suggestedAction: '派清掃路線並回傳完成狀態',   dispatchTaskType: 'patrol',    command: 'VISION_CLEAN_SWEEP',     tags: ['清掃','走廊','地面'], evidence: ['示範場景','地面髒污'] },
-  delivery: { scene: 'delivery', label: '物品配送辨識', confidence: 93, zone: '五年級教室', summary: '畫面為取餐配送情境，適合派服務機器人協助。',     suggestedAction: '建立配送提示讓機器人前往',   dispatchTaskType: 'patrol',    command: 'VISION_DELIVERY_ROUTE', tags: ['取物','教室','服務'], evidence: ['示範場景','取餐情境'] },
-  patrol:   { scene: 'patrol',   label: '一般巡邏辨識', confidence: 79, zone: '操場入口',   summary: '畫面未見急迫事件，適合列入日常巡邏與環境紀錄。', suggestedAction: '排入巡邏熱區並持續觀察',     dispatchTaskType: 'patrol',    command: 'VISION_PATROL',         tags: ['巡邏','紀錄','觀察'], evidence: ['示範場景','正常狀態'] },
+  crowd:    { scene: 'crowd',    label: '人流疏導辨識', confidence: 91, zone: 'B-4 走廊',   isReliable: true, summary: '畫面符合下課人流情境，適合啟動廣播疏導。',       suggestedAction: '派遣疏導廣播並提示慢行',     dispatchTaskType: 'broadcast', command: 'VISION_CROWD_BROADCAST', tags: ['人流','廣播','疏導'], evidence: ['示範場景','人流偏高'] },
+  safety:   { scene: 'safety',   label: '安全巡查辨識', confidence: 88, zone: 'A-2 入口',   isReliable: true, summary: '走廊存在阻塞物，建議保守派巡邏。',               suggestedAction: '建立安全巡查並保留影像回報', dispatchTaskType: 'patrol',    command: 'VISION_SAFETY_PATROL',   tags: ['安全','阻塞','巡查'], evidence: ['示範場景','物品阻塞'] },
+  cleaning: { scene: 'cleaning', label: '清掃需求辨識', confidence: 85, zone: 'B 棟走廊',   isReliable: true, summary: '地面有明顯清潔需求，建議加入清潔巡邏。',         suggestedAction: '派清掃路線並回傳完成狀態',   dispatchTaskType: 'patrol',    command: 'VISION_CLEAN_SWEEP',     tags: ['清掃','走廊','地面'], evidence: ['示範場景','地面髒污'] },
+  delivery: { scene: 'delivery', label: '物品配送辨識', confidence: 93, zone: '五年級教室', isReliable: true, summary: '畫面為取餐配送情境，適合派服務機器人協助。',     suggestedAction: '建立配送提示讓機器人前往',   dispatchTaskType: 'patrol',    command: 'VISION_DELIVERY_ROUTE', tags: ['取物','教室','服務'], evidence: ['示範場景','取餐情境'] },
+  patrol:   { scene: 'patrol',   label: '一般巡邏辨識', confidence: 79, zone: '操場入口',   isReliable: true, summary: '畫面未見急迫事件，適合列入日常巡邏與環境紀錄。', suggestedAction: '排入巡邏熱區並持續觀察',     dispatchTaskType: 'patrol',    command: 'VISION_PATROL',         tags: ['巡邏','紀錄','觀察'], evidence: ['示範場景','正常狀態'] },
 };
 
 function truncateVisionLine(text: string, max = 20) {
@@ -160,9 +162,12 @@ export function LifeView({
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const analyzeCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const prevVisionSceneRef = useRef<VisionScene | null>(null);
+  // Stability: track last 2 reliable scene results — only commit if consecutive match
+  const stableFramesRef = useRef<{ scene: VisionScene; count: number } | null>(null);
   const [cameraError,   setCameraError]   = useState<string | null>(null);
   const [visionResult,  setVisionResult]  = useState<CampusVisionResult | null>(null);
   const [cameraReady,   setCameraReady]   = useState(false);
+  const [isAnalyzing,   setIsAnalyzing]   = useState(false);
 
   const sensors    = state.sensors;
   const isEmergency = state.campusStatus.isEmergency;
@@ -198,7 +203,7 @@ export function LifeView({
       const msgs = ZONE_MSGS[zone.level];
       const msg = msgs[Math.floor(Math.random() * msgs.length)];
       setAiEvents(prev => [
-        { id: Date.now(), zone: zone.label, msg, level: zone.level, time: timeStr },
+        { id: ++_eventId, zone: zone.label, msg, level: zone.level, time: timeStr },
         ...prev.slice(0, 4),
       ]);
     }, 3000);
@@ -256,7 +261,8 @@ export function LifeView({
     };
   }, [modal]);
 
-  // Frame analysis: run analyzeCampusPixels every 3s when camera is live
+  // Frame analysis: capture frame → Gemini Vision classify (fallback: pixel)
+  // Runs every 4s; skips if a previous call is still in-flight.
   useEffect(() => {
     if (modal !== 'mapcam' || !cameraReady) return;
     if (!analyzeCanvasRef.current) analyzeCanvasRef.current = document.createElement('canvas');
@@ -264,29 +270,54 @@ export function LifeView({
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
-    const analyze = () => {
+    let busy = false;
+    const cancelController = new AbortController();
+
+    const analyze = async () => {
+      if (busy || cancelController.signal.aborted) return;
       const video = videoRef.current;
       if (!video || video.readyState < 2 || !video.videoWidth) return;
-      const scale = Math.min(1, 160 / Math.max(video.videoWidth, video.videoHeight));
+
+      // Capture frame as JPEG data URL (quality 0.6 to keep base64 small)
+      const scale = Math.min(1, 320 / Math.max(video.videoWidth, video.videoHeight));
       canvas.width  = Math.max(1, Math.round(video.videoWidth  * scale));
       canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const frame  = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const result = analyzeCampusPixels(frame.width, frame.height, frame.data);
-      setVisionResult(result);
-      const now = new Date();
-      const t = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-      const lvl: 'ok' | 'warn' | 'error' =
-        result.scene === 'safety' ? 'error' : result.scene === 'crowd' ? 'warn' : 'ok';
-      setAiEvents(prev => [
-        { id: Date.now(), zone: result.zone, msg: result.label, level: lvl, time: t },
-        ...prev.slice(0, 4),
-      ]);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+
+      busy = true;
+      setIsAnalyzing(true);
+      try {
+        const result = await analyzeCampusImageWithGemini(dataUrl, cancelController.signal);
+        if (cancelController.signal.aborted) return;
+
+        stableFramesRef.current = { scene: result.scene, count: 1 };
+        setVisionResult(result);
+        setIsAnalyzing(false);
+        const now = new Date();
+        const t = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+        const lvl: 'ok' | 'warn' | 'error' =
+          result.scene === 'safety' ? 'error' : result.scene === 'crowd' ? 'warn' : 'ok';
+        setAiEvents(prev2 => [
+          { id: ++_eventId, zone: result.zone, msg: result.label, level: lvl, time: t },
+          ...prev2.slice(0, 4),
+        ]);
+      } catch {
+        // ignore transient errors
+      } finally {
+        busy = false;
+        setIsAnalyzing(false);
+      }
     };
 
-    analyze(); // immediate first analysis
-    const intv = setInterval(analyze, 3000);
-    return () => clearInterval(intv);
+    void analyze();
+    const intv = setInterval(() => { void analyze(); }, 3000);
+    return () => {
+      cancelController.abort();
+      clearInterval(intv);
+      stableFramesRef.current = null;
+      setIsAnalyzing(false);
+    };
   }, [modal, cameraReady]);
 
   // Auto-dispatch scene-specific hardware command when the detected scene changes.
@@ -743,7 +774,7 @@ export function LifeView({
                 )}
               </div>
               <p className="text-white/30 text-[10px] font-mono mt-1 ml-4 tracking-widest">
-                {cameraReady ? '真實鏡頭 · 像素場景辨識' : '即時場域偵測 · 多區域掃描'}
+                {cameraReady ? (isAnalyzing ? 'Gemini 辨識中…' : ((visionResult as CampusVisionResult & {aiSource?: string})?.aiSource === 'gemini' ? 'Gemini Vision AI · 即時辨識' : '本機像素辨識 · 即時掃描')) : '即時場域偵測 · 多區域掃描'}
               </p>
             </div>
             <button
@@ -790,7 +821,7 @@ export function LifeView({
               <div className="absolute -bottom-0.5 -left-0.5 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-xl" />
               <div className="absolute -bottom-0.5 -right-0.5 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-xl" />
               <div className="absolute -top-9 left-0 bg-primary text-white text-[10px] font-mono font-bold px-3 py-1 rounded-full border border-white/20 shadow-lg whitespace-nowrap">
-                {visionResult ? `${visionResult.label} · 信心 ${visionResult.confidence}%` : `${SCAN_ZONES[scanZoneIdx].label} · 匹配度 ${MATCH_PCT[scanZoneIdx]}`}
+                {isAnalyzing ? '⬤ Gemini 辨識中…' : visionResult ? `${visionResult.label} · ${visionResult.confidence}%` : `${SCAN_ZONES[scanZoneIdx].label} · ${MATCH_PCT[scanZoneIdx]}`}
               </div>
               <motion.div
                 animate={{ y: ['-100%', '100%'] }}
@@ -801,102 +832,135 @@ export function LifeView({
             </motion.div>
           </AnimatePresence>
 
-          {/* AI scene image card — bottom-left, always shown; real camera result takes priority over demo */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeVision.scene}
-              initial={{ opacity: 0, x: -24, scale: 0.92 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: -16, scale: 0.95 }}
-              transition={{ duration: 0.45, ease: 'easeOut' }}
-              className="absolute bottom-52 left-6 z-30 w-44 rounded-2xl overflow-hidden border shadow-2xl"
-              style={{ borderColor: visionAccent }}
-            >
-              {VisionSceneIcon && (
-                <div
-                  className="absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full"
-                  style={{ backgroundColor: `${visionAccent}33` }}
-                >
-                  <VisionSceneIcon size={13} style={{ color: visionAccent, opacity: 0.6 }} />
-                </div>
-              )}
-              <img
-                src={SCENE_IMAGES[activeVision.scene]}
-                alt={activeVision.label}
-                className="w-full h-28 object-cover"
-                onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-              />
-              <div className="bg-[#0c121d]/95 px-3 py-2.5">
-                <p className="text-[9px] text-primary font-mono font-black tracking-[0.2em] uppercase mb-0.5">
-                  {visionResult ? 'AI 場景解讀' : 'AI 示範模式'}
-                </p>
-                <p className="text-xs font-bold leading-tight" style={{ color: visionAccent }}>{activeVision.label}</p>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
+          {/* AI scene image card — camera live: only shows on reliable detection; camera off: demo */}
+          {(() => {
+            const cardResult = cameraReady ? (visionResult ?? null) : activeVision;
+            const cardAccent = cardResult ? SCENE_ACCENTS[cardResult.scene] : undefined;
+            const CardIcon = cardResult ? SCENE_ICONS[cardResult.scene] : null;
+            return (
+              <AnimatePresence mode="wait">
+                {cardResult ? (
+                  <motion.div
+                    key={cardResult.scene}
+                    initial={{ opacity: 0, x: -20, scale: 0.93 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: -14, scale: 0.96 }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                    className="absolute bottom-44 left-5 z-30 w-36 rounded-xl overflow-hidden border shadow-2xl"
+                    style={{ borderColor: cardAccent }}
+                  >
+                    {CardIcon && (
+                      <div className="absolute right-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full" style={{ backgroundColor: `${cardAccent}33` }}>
+                        <CardIcon size={11} style={{ color: cardAccent, opacity: 0.7 }} />
+                      </div>
+                    )}
+                    <img src={SCENE_IMAGES[cardResult.scene]} alt={cardResult.label} className="w-full h-22 object-cover" style={{ height: '88px' }} onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                    <div className="bg-[#0c121d]/95 px-2.5 py-2">
+                      <p className="text-[8px] text-primary font-mono font-black tracking-[0.15em] uppercase mb-0.5">{cameraReady ? ((cardResult as CampusVisionResult & {aiSource?: string})?.aiSource === 'gemini' ? '✦ Gemini Vision' : '本地分析') : 'AI 示範模式'}</p>
+                      <p className="text-[11px] font-bold leading-tight" style={{ color: cardAccent }}>{cardResult.label}</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <div className="flex-1 h-0.5 bg-white/10 rounded-full overflow-hidden">
+                          <motion.div className="h-full rounded-full" style={{ backgroundColor: cardAccent }} initial={{ width: 0 }} animate={{ width: `${cardResult.confidence}%` }} transition={{ duration: 0.5 }} />
+                        </div>
+                        <span className="text-[8px] font-mono text-white/50 shrink-0">{cardResult.confidence}%</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : cameraReady ? (
+                  /* Scanning placeholder — camera is live but no confident detection yet */
+                  <motion.div
+                    key="scanning"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute bottom-44 left-5 z-30 w-36 rounded-xl border border-white/10 bg-[#0c121d]/80 px-3 py-4 flex flex-col items-center gap-2"
+                  >
                     <motion.div
-                      className="h-full rounded-full"
-                      style={{ backgroundColor: visionAccent }}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${activeVision.confidence}%` }}
-                      transition={{ duration: 0.6, ease: 'easeOut' }}
-                    />
-                  </div>
-                  <span className="text-[9px] font-mono text-white/50 shrink-0">{activeVision.confidence}%</span>
-                </div>
-                <p className="mt-1.5 truncate text-[10px] text-white/50 font-mono">
-                  {truncateVisionLine(activeVision.suggestedAction)}
-                </p>
-              </div>
-            </motion.div>
-          </AnimatePresence>
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1.6, repeat: Infinity }}
+                      className="w-8 h-8 rounded-full border-2 border-primary/50 flex items-center justify-center"
+                    >
+                      <div className="w-2 h-2 rounded-full bg-primary/70" />
+                    </motion.div>
+                    <p className="text-[9px] text-white/40 font-mono font-bold text-center">Gemini 辨識中</p>
+                    <p className="text-[8px] text-white/25 font-mono text-center">對準場景照片</p>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+            );
+          })()}
 
           {/* Vignette */}
           <div className="absolute inset-0 pointer-events-none z-10" style={{ boxShadow: 'inset 0 0 120px rgba(0,0,0,0.85)' }} />
 
-          {/* Bottom action panel */}
-          <div className="absolute bottom-0 inset-x-0 z-30 p-6">
-            <div className="bg-[#0c121d]/92 backdrop-blur-3xl rounded-[2.5rem] border border-white/10 p-6 shadow-[0_-20px_60px_rgba(0,0,0,0.8)]">
-              <div className="flex items-start justify-between mb-4 gap-4">
-                <div>
-                  <p className="text-[10px] text-primary font-extrabold tracking-[0.3em] font-mono mb-1">
-                    {visionResult ? 'AI 辨識結果' : 'AI 示範模式'}
-                  </p>
-                  <p className="text-white text-2xl font-bold tracking-tight leading-none">
-                    {activeVision.zone}
-                  </p>
-                  <p className={`text-sm font-bold mt-1.5 ${activeVision.scene === 'safety' ? 'text-error' : activeVision.scene === 'crowd' ? 'text-amber-400' : 'text-[#87d46c]'}`}>
-                    {activeVision.summary.slice(0, 28)}…
-                  </p>
-                  <p className="text-[10px] text-white/40 font-mono mt-1">
-                    建議：{activeVision.suggestedAction.slice(0, 22)}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-1.5 items-end">
-                  {aiEvents.slice(0, 4).map(ev => (
-                    <div key={ev.id} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl border text-[10px] font-mono font-bold ${levelBg(ev.level)} ${levelColor(ev.level)}`}>
+          {/* Bottom action panel — compact */}
+          <div className="absolute bottom-0 inset-x-0 z-30 px-4 pb-6">
+            <div className="bg-[#0c121d]/95 backdrop-blur-3xl rounded-3xl border border-white/10 px-4 py-3 shadow-[0_-12px_40px_rgba(0,0,0,0.7)]">
+
+              {/* Status row */}
+              <div className="flex items-center justify-between mb-2.5 gap-3">
+                <AnimatePresence mode="wait">
+                  {visionResult ? (
+                    <motion.div key={visionResult.scene} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} className="min-w-0 flex-1">
+                      <p className="text-[9px] text-primary font-mono font-black tracking-[0.25em] uppercase leading-none mb-0.5">
+                        {(visionResult as CampusVisionResult & {aiSource?: string}).aiSource === 'gemini' ? '✦ Gemini Vision' : '本地分析'}
+                      </p>
+                      <p className="text-white text-base font-bold leading-none truncate">{visionResult.zone}</p>
+                      <p className={`text-[11px] font-bold mt-0.5 truncate ${visionResult.scene === 'safety' ? 'text-error' : visionResult.scene === 'crowd' ? 'text-amber-400' : 'text-[#87d46c]'}`}>
+                        {visionResult.label}
+                      </p>
+                      {visionResult.summary && (
+                        <p className="text-[9px] text-white/40 mt-1 leading-tight line-clamp-2">{visionResult.summary}</p>
+                      )}
+                    </motion.div>
+                  ) : cameraReady ? (
+                    <motion.div key="scanning" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-w-0">
+                      <p className="text-[9px] text-primary font-mono font-black tracking-[0.25em] uppercase leading-none mb-0.5">Gemini Vision AI</p>
+                      <motion.p animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.4, repeat: Infinity }} className="text-white/60 text-sm font-bold leading-none">
+                        辨識中…
+                      </motion.p>
+                    </motion.div>
+                  ) : (
+                    <motion.div key="demo" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-w-0">
+                      <p className="text-[9px] text-primary/60 font-mono font-black tracking-[0.25em] uppercase leading-none mb-0.5">AI 示範模式</p>
+                      <p className="text-white text-base font-bold leading-none truncate">{activeVision.zone}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* 2 compact events */}
+                <div className="flex flex-col gap-1 items-end shrink-0">
+                  {aiEvents.slice(0, 2).map(ev => (
+                    <div key={ev.id} className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg border text-[8px] font-mono font-bold ${levelBg(ev.level)} ${levelColor(ev.level)}`}>
                       <span className="opacity-50">{ev.time}</span>
-                      <span>{ev.zone}</span>
-                      <span className="opacity-70 hidden sm:inline">· {ev.msg}</span>
+                      <span className="max-w-[60px] truncate">{ev.zone}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              {/* Buttons */}
+              <div className="flex gap-2">
                 <button
                   onClick={() => setModal(null)}
-                  className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl border border-white/10 transition-all text-sm tracking-widest uppercase active:scale-95"
+                  className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white/60 font-bold rounded-2xl border border-white/10 transition-all text-xs tracking-widest uppercase active:scale-95 shrink-0"
                 >
                   關閉
                 </button>
                 <button
                   onClick={() => { setModal(null); navigateTo('dispatch-map'); }}
-                  className="flex-2 py-4 bg-primary text-white font-bold rounded-2xl active:scale-95 transition-all text-base flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(var(--color-primary),0.4)]"
+                  disabled={false}
+                  className="flex-1 py-2.5 bg-primary text-white font-bold rounded-2xl active:scale-95 transition-all text-sm flex items-center justify-center gap-2 shadow-[0_6px_20px_rgba(var(--color-primary),0.35)] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <Zap size={20} />
-                  {visionActionLabel}
+                  <Zap size={15} />
+                  <AnimatePresence mode="wait">
+                    <motion.span key={visionActionLabel} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2 }}>
+                      {visionActionLabel}
+                    </motion.span>
+                  </AnimatePresence>
                 </button>
               </div>
+
             </div>
           </div>
         </div>
