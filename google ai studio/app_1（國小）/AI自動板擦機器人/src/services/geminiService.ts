@@ -1,4 +1,5 @@
 import {apiRequest} from './apiClient';
+import {matchTemplate} from './localChatTemplates';
 
 export type QuizQuestion = {
   q: string;
@@ -102,32 +103,7 @@ export async function chatWithAI(message: string, history: ChatHistoryItem[], no
     });
     return result.reply || '目前沒有取得 AI 回覆。';
   } catch {
-    const lines: string[] = ['AI 橋接暫時無法連線，以下是本機輔助建議：', ''];
-
-    if (/孩子|聽得懂|簡單/.test(message)) {
-      lines.push('### 改成孩子版說法');
-      lines.push('1. 把抽象名詞換成生活中看得到、摸得到的例子。');
-      lines.push('2. 用「就像⋯⋯一樣」的比喻開頭。');
-      lines.push('3. 先問孩子「你有沒有看過⋯⋯」，再引導到概念。');
-    } else if (/測驗|題目|練習題|小考/.test(message)) {
-      lines.push('### 小測驗設計方向');
-      lines.push('1. 先從是非題開始，讓學生建立信心。');
-      lines.push('2. 再出一題填空或看圖說明。');
-      lines.push('3. 最後一題「用自己的話說明」，確認深度理解。');
-    } else if (/分組|活動|討論|設計/.test(message)) {
-      lines.push('### 分組活動設計');
-      lines.push('1. 每組 3–4 人，分工：說明員、記錄員、報告員。');
-      lines.push('2. 給每組 5 分鐘討論，再輪流用 1 分鐘報告。');
-      lines.push('3. 讓其他組提一個問題或補充，互評學習。');
-    } else {
-      lines.push(`你的問題：「${message}」`);
-      lines.push('');
-      lines.push('- 先把重點整理成 2–3 個關鍵字。');
-      lines.push('- 搭配板書圖片讓孩子邊看邊理解。');
-      lines.push('- 有 Gemini API Key 時，系統會改用 AI 詳細分析。');
-    }
-
-    return lines.join('\n');
+    return matchTemplate(message);
   }
 }
 

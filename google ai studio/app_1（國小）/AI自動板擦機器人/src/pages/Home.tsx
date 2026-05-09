@@ -11,6 +11,30 @@ import {addNoteAsync} from '../services/notesStore';
 import {defaultRobotPose} from '../services/robotPose';
 import {BoardCalibration, BoardCalibrationMode, CalibrationCornerId, defaultBoardCalibration, detectBoardCalibrationFromImage, normalizeBoardCalibration} from '../services/whiteboardCalibration';
 
+const SS_PREFIX = 'app1:home:';
+
+function ssGet<T>(key: string, fallback: T): T {
+  try {
+    const raw = sessionStorage.getItem(SS_PREFIX + key);
+    if (raw === null) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function ssSet(key: string, value: unknown): void {
+  try {
+    if (value === null || value === undefined || value === '') {
+      sessionStorage.removeItem(SS_PREFIX + key);
+    } else {
+      sessionStorage.setItem(SS_PREFIX + key, JSON.stringify(value));
+    }
+  } catch {
+    // quota exceeded — silently ignore
+  }
+}
+
 const containerVariants: any = {
   hidden: {opacity: 0},
   show: {opacity: 1, transition: {staggerChildren: 0.06, ease: 'easeOut'}},
@@ -34,16 +58,55 @@ export default function Home(_props: {onNavigate: (tab: string) => void}) {
   } = useBridgeStatus();
   const media = useMediaCapture();
   const [subjectHint, setSubjectHint] = useState('國小數學');
-  const [transcript, setTranscript] = useState('');
-  const [previewImage, setPreviewImage] = useState('');
-  const [analysis, setAnalysis] = useState<BoardAnalysisResponse | null>(null);
+  const [transcript, setTranscript] = useState<string>(() => ssGet('transcript', ''));
+  const [previewImage, setPreviewImage] = useState<string>(() => ssGet('previewImage', ''));
+  const [analysis, setAnalysis] = useState<BoardAnalysisResponse | null>(() => ssGet<BoardAnalysisResponse | null>('analysis', null));
   const [boardCalibration, setBoardCalibration] = useState<BoardCalibration>(defaultBoardCalibration());
   const [calibrationMode, setCalibrationMode] = useState<BoardCalibrationMode>('default');
   const [detectionConfidence, setDetectionConfidence] = useState(0);
   const [calibrationDirty, setCalibrationDirty] = useState(false);
   const [busy, setBusy] = useState('');
-  const [ocrResult, setOcrResult] = useState<OcrLocalResult | null>(null);
+  const [ocrResult, setOcrResult] = useState<OcrLocalResult | null>(() => ssGet<OcrLocalResult | null>('ocrResult', null));
   const [ocrBusy, setOcrBusy] = useState(false);
+  const [practiceChecks, setPracticeChecks] = useState<boolean[]>(() => {
+    try {
+      const raw = sessionStorage.getItem('app1:practiceChecks');
+      return raw ? (JSON.parse(raw) as boolean[]) : [false, false, false, false, false];
+    } catch {
+      return [false, false, false, false, false];
+    }
+  });
+  const [practiceCardOpen, setPracticeCardOpen] = useState(() => {
+    try {
+      return localStorage.getItem('app1:practiceCardCollapsed') !== 'true';
+    } catch {
+      return true;
+    }
+  });
+
+  const PRACTICE_STEPS = [
+    '拍下白板或使用示範內容，產生 AI 分析',
+    '到教師看板確認保留 / 可擦區塊',
+    '按「套用決策」保存老師判斷',
+    '按「送到機器人」展示硬體任務',
+    '到紀錄本找到剛才的課堂筆記',
+  ];
+
+  const togglePracticeCheck = (i: number) => {
+    setPracticeChecks((prev) => {
+      const next = [...prev];
+      next[i] = !next[i];
+      try { sessionStorage.setItem('app1:practiceChecks', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
+  const allPracticeDone = practiceChecks.every(Boolean);
+
+  useEffect(() => { ssSet('transcript', transcript); }, [transcript]);
+  useEffect(() => { ssSet('previewImage', previewImage); }, [previewImage]);
+  useEffect(() => { ssSet('analysis', analysis); }, [analysis]);
+  useEffect(() => { ssSet('ocrResult', ocrResult); }, [ocrResult]);
 
   const handleToggleCamera = async () => {
     if (media.cameraReady) {
@@ -388,6 +451,41 @@ export default function Home(_props: {onNavigate: (tab: string) => void}) {
           </motion.section>
         )}
       </div>
+      {/* 學生練習卡 */}
+      <motion.div variants={itemVariants} className="mt-4 rounded-2xl border border-primary/20 bg-primary-container/20 overflow-hidden">
+        <button
+          onClick={() => {
+            const next = !practiceCardOpen;
+            setPracticeCardOpen(next);
+            try { localStorage.setItem('app1:practiceCardCollapsed', next ? 'false' : 'true'); } catch { /* ignore */ }
+          }}
+          className="w-full flex items-center justify-between px-4 py-3 text-left"
+        >
+          <span className="text-sm font-extrabold text-primary">📋 學生練習卡</span>
+          <span className="text-xs text-on-surface-variant">{practiceCardOpen ? '▲' : '▼'}</span>
+        </button>
+        {practiceCardOpen && (
+          <div className="px-4 pb-4 space-y-2">
+            {PRACTICE_STEPS.map((step, i) => (
+              <button
+                key={i}
+                onClick={() => togglePracticeCheck(i)}
+                className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${practiceChecks[i] ? 'bg-primary/10 text-primary' : 'bg-surface hover:bg-surface-container-high text-on-surface'}`}
+              >
+                <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-bold transition-colors ${practiceChecks[i] ? 'border-primary bg-primary text-on-primary' : 'border-outline-variant'}`}>
+                  {practiceChecks[i] ? '✓' : i + 1}
+                </span>
+                <span className="text-sm font-medium leading-snug">{step}</span>
+              </button>
+            ))}
+            {allPracticeDone && (
+              <div className="mt-3 rounded-xl bg-primary px-4 py-3 text-center text-sm font-extrabold text-on-primary">
+                🎉 你已完成完整流程！準備好上台了。
+              </div>
+            )}
+          </div>
+        )}
+      </motion.div>
     </motion.div>
   );
 }

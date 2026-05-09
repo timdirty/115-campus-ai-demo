@@ -95,6 +95,7 @@ function FullscreenCard({
   title,
   body,
   demoTip,
+  reviewerQ,
   isFirst,
   isLast,
   onNext,
@@ -104,6 +105,7 @@ function FullscreenCard({
   title: string;
   body: string;
   demoTip: string;
+  reviewerQ?: string;
   isFirst: boolean;
   isLast: boolean;
   onNext: () => void;
@@ -127,6 +129,20 @@ function FullscreenCard({
           <h2 style={cardTitle}>{title}</h2>
           <p style={cardBody}>{body}</p>
           <div style={demoTipBox}>🎙 {demoTip}</div>
+          {reviewerQ && (
+            <div style={{
+              backgroundColor: '#fffbeb',
+              border: '1px solid #f59e0b',
+              borderRadius: 8,
+              padding: '10px 12px',
+              fontSize: 13,
+              color: '#92400e',
+              marginTop: 8,
+              lineHeight: 1.5,
+            }}>
+              <strong>評審問答：</strong> {reviewerQ}
+            </div>
+          )}
           <div style={cardFooter}>
             {isFirst && !isLast && (
               <button style={primaryBtn} onClick={onNext}>
@@ -151,6 +167,7 @@ function SpotlightOverlay({
   title,
   body,
   demoTip,
+  reviewerQ,
   tooltipSide,
   isFirstSpotlight,
   totalSpotlightSteps,
@@ -164,6 +181,7 @@ function SpotlightOverlay({
   title: string;
   body: string;
   demoTip: string;
+  reviewerQ?: string;
   tooltipSide: 'top' | 'bottom' | 'left' | 'right';
   isFirstSpotlight: boolean;
   totalSpotlightSteps: number;
@@ -238,6 +256,20 @@ function SpotlightOverlay({
         <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: 15, color: '#1f2937' }}>{title}</p>
         <p style={{ margin: '0', fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{body}</p>
         <div style={demoTipBox}>🎙 {demoTip}</div>
+        {reviewerQ && (
+          <div style={{
+            backgroundColor: '#fffbeb',
+            border: '1px solid #f59e0b',
+            borderRadius: 8,
+            padding: '10px 12px',
+            fontSize: 13,
+            color: '#92400e',
+            marginTop: 8,
+            lineHeight: 1.5,
+          }}>
+            <strong>評審問答：</strong> {reviewerQ}
+          </div>
+        )}
         <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <span style={{ fontSize: 12, color: '#9ca3af' }}>步驟 {spotlightIndex} / {totalSpotlightSteps}</span>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -304,6 +336,7 @@ export function TourOverlay() {
         title={step.title}
         body={step.body}
         demoTip={step.demoTip}
+        reviewerQ={step.reviewerQ}
         isFirst={isFirst}
         isLast={isLast}
         onNext={nextStep}
@@ -343,6 +376,7 @@ export function TourOverlay() {
       title={step.title}
       body={step.body}
       demoTip={step.demoTip}
+      reviewerQ={step.reviewerQ}
       tooltipSide={step.tooltipSide ?? 'bottom'}
       isFirstSpotlight={isFirstSpotlight}
       totalSpotlightSteps={totalSpotlightSteps}

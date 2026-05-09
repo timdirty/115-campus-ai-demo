@@ -1,6 +1,7 @@
 import {useEffect, useRef, useState} from 'react';
-import {AlertTriangle, CheckCircle2, Database, Download, HardDrive, KeyRound, Loader2, RefreshCw, Server, Upload, X} from 'lucide-react';
+import {AlertTriangle, CheckCircle2, Database, Download, HardDrive, KeyRound, Loader2, RefreshCw, RotateCcw, Server, Upload, Wifi, X} from 'lucide-react';
 import {backupAppData, exportAppData, importAppData, loadReadyStatus, ReadyStatus} from '../services/classroomApi';
+import {getStoredBridgeHost, setBridgeHost} from '../services/apiClient';
 
 type SystemSettingsPanelProps = {
   onClose: () => void;
@@ -27,6 +28,8 @@ export default function SystemSettingsPanel({onClose}: SystemSettingsPanelProps)
   const [loadingReady, setLoadingReady] = useState(true);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<ActionMessage | null>(null);
+  const [bridgeHostInput, setBridgeHostInput] = useState(() => getStoredBridgeHost());
+  const [resetConfirm, setResetConfirm] = useState(false);
 
   const refreshReady = async () => {
     setLoadingReady(true);
@@ -96,6 +99,29 @@ export default function SystemSettingsPanel({onClose}: SystemSettingsPanelProps)
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+
+  const saveBridgeHost = () => {
+    setBridgeHost(bridgeHostInput);
+    setMessage({tone: 'success', text: bridgeHostInput.trim() ? `橋接主機已設定為 ${bridgeHostInput.trim()}，重新整理後生效。` : '已清除自訂橋接主機，改用本機預設（localhost）。'});
+  };
+
+  const runDemoReset = async () => {
+    if (!resetConfirm) {
+      setResetConfirm(true);
+      return;
+    }
+    setActionBusy('reset');
+    try {
+      sessionStorage.clear();
+      const keysToRemove = ['whiteboard-notes', 'whiteboard-chat:elementary:v1', 'app1:practiceCardCollapsed', 'tour-app1:v1'];
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+      try {
+        await fetch('/api/ops/reset', {method: 'POST'});
+      } catch { /* bridge may be offline, that's ok */ }
+    } finally {
+      window.location.reload();
     }
   };
 
@@ -215,6 +241,53 @@ export default function SystemSettingsPanel({onClose}: SystemSettingsPanelProps)
           }
         }}
       />
+
+      <div className="mt-6 rounded-xl border border-outline-variant/25 bg-surface-container-low p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Wifi className="w-4 h-4 text-primary" />
+          <p className="font-extrabold text-on-surface text-sm">橋接主機（跨裝置連線）</p>
+        </div>
+        <p className="text-xs text-on-surface-variant mb-3">平板連老師電腦時填入老師電腦 IP，例如 <code className="bg-surface-container-highest px-1 rounded">192.168.1.5:3201</code>。留空使用本機預設。</p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={bridgeHostInput}
+            onChange={(e) => setBridgeHostInput(e.target.value)}
+            placeholder="留空 = 本機 localhost"
+            className="flex-1 rounded-lg border border-outline-variant/40 bg-surface px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary"
+          />
+          <button
+            type="button"
+            onClick={saveBridgeHost}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-on-primary hover:opacity-90 transition-opacity"
+          >
+            儲存
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-xl border border-tertiary/30 bg-tertiary-container/20 p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <RotateCcw className="w-4 h-4 text-tertiary" />
+          <p className="font-extrabold text-on-surface text-sm">重置練習資料</p>
+        </div>
+        <p className="text-xs text-on-surface-variant mb-3">清除首頁分析結果、練習打勾、聊天紀錄、tour 進度，讓學生從零開始練習。不影響課堂紀錄本。</p>
+        <button
+          type="button"
+          disabled={actionBusy === 'reset'}
+          onClick={() => void runDemoReset()}
+          className={`w-full rounded-lg border px-4 py-2.5 text-sm font-bold transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+            resetConfirm
+              ? 'border-tertiary bg-tertiary text-on-tertiary'
+              : 'border-tertiary/40 text-tertiary hover:bg-tertiary/10'
+          }`}
+        >
+          {actionBusy === 'reset' ? '重置中…' : resetConfirm ? '確認重置（再按一次）' : '重置練習資料'}
+        </button>
+        {resetConfirm && (
+          <p className="text-xs text-tertiary mt-2 text-center">再按一次確認，頁面會重新整理。</p>
+        )}
+      </div>
     </div>
   );
 }

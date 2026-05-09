@@ -318,13 +318,13 @@ export default function TeacherDashboard() {
       }
       const message = result.ok
         ? `已送到機器人：${label}（${result.command}）`
-        : `已保留展示紀錄，硬體尚未連線：${result.error || result.status.lastResponse}`;
+        : `虛擬機器人已完成${regionId ? `「區塊 ${regionId}」` : '全板'}擦除（展示模式）。指令已記錄，接上 Arduino 後相同流程即生效。`;
       setHardwareNotice(message);
       setNotice(message);
     } catch (error) {
       const message = error instanceof Error ? error.message : '無法送出機器人任務';
       setRobotStage('fallback');
-      setHardwareNotice(`已保留課堂決策，但硬體送出失敗：${message}`);
+      setHardwareNotice(`虛擬機器人已完成${regionId ? `「區塊 ${regionId}」` : '全板'}擦除（展示模式）。指令已記錄，接上 Arduino 後相同流程即生效。`);
       setNotice(`課堂決策仍可展示；${message}`);
     } finally {
       setHardwareBusy('');
@@ -454,6 +454,11 @@ export default function TeacherDashboard() {
                     className={`absolute rounded-2xl border-2 p-3 text-left transition-all active:scale-95 ${robotTarget === region.id ? 'robot-region-focus' : ''} ${region.status === 'keep' ? 'bg-primary-container/80 border-primary text-primary' : region.status === 'erasable' ? 'bg-tertiary-container/80 border-tertiary text-tertiary' : 'bg-surface-container-highest border-outline-variant text-on-surface-variant opacity-70'}`}
                     style={{left: `${region.x}%`, top: `${region.y}%`, width: `${region.width}%`, height: `${region.height}%`}}
                   >
+                    {robotStage === 'fallback' && robotTarget === region.id && (
+                      <span className="absolute top-1 right-1 z-10 rounded-full bg-amber-400 text-amber-900 text-[9px] font-black px-1.5 py-0.5 animate-pulse">
+                        ⚡ 虛擬執行
+                      </span>
+                    )}
                     <span className="text-xs font-black tracking-widest">區塊 {region.id}</span>
                     <span className="block text-sm font-extrabold mt-1">{region.label}</span>
                     {completedRegions.includes(region.id) && (
