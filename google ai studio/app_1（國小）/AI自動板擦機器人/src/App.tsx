@@ -1,14 +1,14 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Suspense, lazy, useState, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Settings, Search, Home as HomeIcon, ScrollText, MessageSquare, Sparkles, X, FileQuestion, LayoutDashboard, Bot, RefreshCw } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-import Home from './pages/Home';
-import Library from './pages/Library';
-import Chat from './pages/Chat';
-import Review from './pages/Review';
-import TeacherDashboard from './pages/TeacherDashboard';
-import RobotControl from './pages/RobotControl';
+const Home = lazy(() => import('./pages/Home'));
+const Library = lazy(() => import('./pages/Library'));
+const Chat = lazy(() => import('./pages/Chat'));
+const Review = lazy(() => import('./pages/Review'));
+const TeacherDashboard = lazy(() => import('./pages/TeacherDashboard'));
+const RobotControl = lazy(() => import('./pages/RobotControl'));
 import SystemSettingsPanel from './components/SystemSettingsPanel';
 import {loadNotesAsync, WhiteboardNote} from './services/notesStore';
 import { TourProvider } from './components/tour/TourProvider';
@@ -166,9 +166,11 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col w-full relative pb-44 md:pb-10">
-        <AnimatePresence mode="wait" initial={false}>
-          {getPage()}
-        </AnimatePresence>
+        <Suspense fallback={<div className="flex-1 flex items-center justify-center p-10 text-on-surface-variant text-sm font-bold">載入中…</div>}>
+          <AnimatePresence mode="wait" initial={false}>
+            {getPage()}
+          </AnimatePresence>
+        </Suspense>
       </main>
 
       {/* Mobile NavBar - Floating Pill */}
