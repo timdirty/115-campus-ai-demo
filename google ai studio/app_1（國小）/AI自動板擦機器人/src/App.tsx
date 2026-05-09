@@ -20,9 +20,9 @@ import {HardwareStatusBanner} from './components/HardwareStatusBanner';
 import {CommandFeedbackToast} from './components/CommandFeedbackToast';
 import {DemoTimer} from './components/DemoTimer';
 
-type AppTab = 'home' | 'teacher' | 'robot' | 'library' | 'chat' | 'review';
+type AppTab = 'whiteboard' | 'teacher' | 'robot' | 'library' | 'chat' | 'review';
 
-const appTabs: AppTab[] = ['home', 'teacher', 'robot', 'library', 'chat', 'review'];
+const appTabs: AppTab[] = ['whiteboard', 'teacher', 'robot', 'library', 'chat', 'review'];
 
 function isAppTab(tab: string): tab is AppTab {
   return appTabs.includes(tab as AppTab);
@@ -42,7 +42,7 @@ function RestartTourButton({ onClose }: { onClose: () => void }) {
 }
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState<AppTab>('home');
+  const [currentTab, setCurrentTab] = useState<AppTab>('whiteboard');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -102,7 +102,7 @@ export default function App() {
 
   const getPage = () => {
     switch (currentTab) {
-      case 'home': return <Home key="home" onNavigate={navigateTo} />;
+      case 'whiteboard': return <Home key="whiteboard" onNavigate={navigateTo} />;
       case 'teacher': return <TeacherDashboard key="teacher" />;
       case 'robot': return <RobotControl key="robot" />;
       case 'library': return <Library key="library" onNavigate={navigateTo} />;
@@ -123,7 +123,7 @@ export default function App() {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           className="flex items-center gap-2 sm:gap-3 cursor-pointer"
-          onClick={() => setCurrentTab('home')}
+          onClick={() => setCurrentTab('whiteboard')}
         >
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
             <Sparkles className="text-on-primary w-4 h-4" />
@@ -176,7 +176,7 @@ export default function App() {
       {/* Mobile NavBar - Floating Pill */}
       <div className="md:hidden fixed bottom-3 left-3 right-3 z-100 flex justify-center pointer-events-none">
         <nav className="w-full max-w-[27rem] grid grid-cols-3 gap-1.5 p-2 glass-pill rounded-[1.75rem] pointer-events-auto shrink-0">
-          <NavButton icon={HomeIcon} label="首頁" isActive={currentTab === 'home'} onClick={() => setCurrentTab('home')} />
+          <NavButton icon={HomeIcon} label="白板" isActive={currentTab === 'whiteboard'} onClick={() => setCurrentTab('whiteboard')} />
           <NavButton icon={LayoutDashboard} label="教師" isActive={currentTab === 'teacher'} onClick={() => setCurrentTab('teacher')} />
           <NavButton icon={Bot} label="機器人" isActive={currentTab === 'robot'} onClick={() => setCurrentTab('robot')} />
           <NavButton icon={ScrollText} label="紀錄本" isActive={currentTab === 'library'} onClick={() => setCurrentTab('library')} />
@@ -188,7 +188,7 @@ export default function App() {
       {/* Web Sidebar Nav */}
       <div className="hidden md:flex fixed left-0 top-1/2 -translate-y-1/2 flex-col ml-3 z-30">
         <div className="bg-surface-container-high/80 backdrop-blur-xl p-2 rounded-3xl flex flex-col gap-0.5 editorial-shadow border border-white/40 w-[7.5rem]">
-          <WebNavButton icon={HomeIcon} label="首頁" isActive={currentTab === 'home'} onClick={() => setCurrentTab('home')} />
+          <WebNavButton icon={HomeIcon} label="白板" isActive={currentTab === 'whiteboard'} onClick={() => setCurrentTab('whiteboard')} />
           <WebNavButton icon={LayoutDashboard} label="教師" isActive={currentTab === 'teacher'} onClick={() => setCurrentTab('teacher')} />
           <WebNavButton icon={Bot} label="機器人" isActive={currentTab === 'robot'} onClick={() => setCurrentTab('robot')} />
           <WebNavButton icon={ScrollText} label="紀錄本" isActive={currentTab === 'library'} onClick={() => setCurrentTab('library')} />
