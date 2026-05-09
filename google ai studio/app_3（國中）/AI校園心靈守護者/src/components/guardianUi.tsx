@@ -1,17 +1,18 @@
+import {memo} from 'react';
 import type {Dispatch} from 'react';
 import {AlertCircle, CheckCircle2, MapPin, Sparkles} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
 import {GuardianAlert, GuardianNode, ViewType} from '../types';
 import {recommendationForAlert} from '../services/localGuardianAi';
 
-export function MetricCard({label, value, tone}: {label: string; value: string; tone: string}) {
+export const MetricCard = memo(function MetricCard({label, value, tone}: {label: string; value: string; tone: string}) {
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
       <p className="text-xs font-black text-slate-500">{label}</p>
       <p className={`mt-2 text-3xl font-black ${tone}`}>{value}</p>
     </div>
   );
-}
+});
 
 export function AlertRow({alert, onOpen}: {key?: unknown; alert: GuardianAlert; onOpen: () => void}) {
   return (
@@ -107,7 +108,7 @@ function NodeMetric({label, value}: {label: string; value: string}) {
   );
 }
 
-export function RiskPill({level}: {level: GuardianAlert['riskLevel']}) {
+export const RiskPill = memo(function RiskPill({level}: {level: GuardianAlert['riskLevel']}) {
   const config = {
     high:   {label: '高風險', tone: 'bg-red-100 text-red-700 ring-1 ring-red-200'},
     medium: {label: '中風險', tone: 'bg-orange-100 text-orange-700 ring-1 ring-orange-200'},
@@ -115,9 +116,9 @@ export function RiskPill({level}: {level: GuardianAlert['riskLevel']}) {
   } as const;
   const {label, tone} = config[level] ?? config.low;
   return <span className={`rounded-full px-2 py-1 text-[10px] font-black ${tone}`}>{label}</span>;
-}
+});
 
-export function SeverityBadge({severity}: {severity: 'high' | 'medium' | 'low'}) {
+export const SeverityBadge = memo(function SeverityBadge({severity}: {severity: 'high' | 'medium' | 'low'}) {
   const config = {
     high:   {label: '高', bg: '#fef2f2', color: '#dc2626', border: '#fecaca'},
     medium: {label: '中', bg: '#fff7ed', color: '#ea580c', border: '#fed7aa'},
@@ -129,16 +130,16 @@ export function SeverityBadge({severity}: {severity: 'high' | 'medium' | 'low'})
       {c.label}
     </span>
   );
-}
+});
 
-export function TabButton({active, icon: Icon, label, onClick, compact}: {key?: unknown; active: boolean; icon: LucideIcon; label: string; onClick: () => void; compact?: boolean}) {
+export const TabButton = memo(function TabButton({active, icon: Icon, label, onClick, compact}: {key?: unknown; active: boolean; icon: LucideIcon; label: string; onClick: () => void; compact?: boolean}) {
   return (
     <button onClick={onClick} className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl px-3 text-xs font-black transition active:scale-95 ${active ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'} ${compact ? 'min-w-24' : 'flex-col'}`}>
       <Icon className="h-5 w-5" />
       {label}
     </button>
   );
-}
+});
 
 export function GuardianDemoPanel({
   activeTab,

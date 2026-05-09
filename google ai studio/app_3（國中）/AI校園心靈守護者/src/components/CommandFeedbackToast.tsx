@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {memo, useEffect, useState} from 'react';
 import type React from 'react';
 import type {HardwareSocketStatus} from '../hooks/useHardwareSocket';
 
@@ -23,7 +23,7 @@ interface Props {
   lastCommandAck: HardwareSocketStatus['lastCommandAck'];
 }
 
-export function CommandFeedbackToast({lastCommandAck}: Props) {
+export const CommandFeedbackToast = memo(function CommandFeedbackToast({lastCommandAck}: Props) {
   const [visible, setVisible] = useState(false);
   const [info, setInfo] = useState<{command: string; ok: boolean} | null>(null);
 
@@ -45,4 +45,4 @@ export function CommandFeedbackToast({lastCommandAck}: Props) {
       {info.ok ? '✓' : '✗'} {info.command}
     </div>
   );
-}
+});

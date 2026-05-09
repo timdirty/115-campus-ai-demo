@@ -1,3 +1,4 @@
+import {memo} from 'react';
 import type React from 'react';
 import type {HardwareSocketStatus} from '../hooks/useHardwareSocket';
 
@@ -37,7 +38,7 @@ const TEXT_STYLE: React.CSSProperties = {
   textShadow: '0 1px 2px rgba(0,0,0,0.25)',
 };
 
-export function HardwareStatusBanner({status}: Props) {
+export const HardwareStatusBanner = memo(function HardwareStatusBanner({status}: Props) {
   const {connected, simulated, mode, reconnecting} = status;
 
   if (connected && !simulated) {
@@ -65,4 +66,4 @@ export function HardwareStatusBanner({status}: Props) {
       <span style={TEXT_STYLE}>{text}</span>
     </div>
   );
-}
+});
