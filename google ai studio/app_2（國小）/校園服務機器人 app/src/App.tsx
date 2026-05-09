@@ -114,6 +114,7 @@ export default function App() {
 
   useEffect(() => {
     setToastMessage(null);
+    setSubView(null);
   }, [activeTab]);
 
   return (
