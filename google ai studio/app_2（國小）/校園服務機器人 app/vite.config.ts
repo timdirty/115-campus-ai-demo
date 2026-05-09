@@ -10,6 +10,13 @@ export default defineConfig(() => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
+        // robot_app2.jsx lives outside this app dir; pin React to this app's node_modules
+        // so Rollup can resolve react/jsx-runtime during production build.
+        'react': path.resolve(__dirname, 'node_modules/react'),
+        'react/jsx-runtime': path.resolve(__dirname, 'node_modules/react/jsx-runtime'),
+        'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+        'react-dom/client': path.resolve(__dirname, 'node_modules/react-dom/client'),
+        'tone': path.resolve(__dirname, 'node_modules/tone'),
       },
     },
     server: {
