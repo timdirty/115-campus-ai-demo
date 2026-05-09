@@ -15,7 +15,7 @@ const DISPATCH_PROGRESS: Record<string, number> = {
   '待命': 0, '確認區域': 28, '機器人出勤': 68, '任務回報': 100,
 };
 
-export function DispatchMapView({ goBack, showToast }: any) {
+export function DispatchMapView({ goBack, showToast }: {goBack: () => void; showToast: (msg: string) => void}) {
   const actions = useAppActions();
   const [selectedZone, setSelectedZone] = useState('none');
   const [taskType, setTaskType] = useState<DispatchTaskType>('patrol');

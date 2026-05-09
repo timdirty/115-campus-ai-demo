@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {motion} from 'motion/react';
 import {AlertTriangle, Bot, Brain, CheckCircle2, ClipboardCheck, Eraser, Loader2, Pause, Radio, RefreshCw, Settings2, ShieldCheck, Sparkles, Users, Video} from 'lucide-react';
+import type {LucideIcon} from 'lucide-react';
 import {BoardRegion, ClassroomSession, EraseSequenceEvent, HardwareCalibrationProfile, eraseRegionSequence, loadClassroomSession, saveClassroomSession, sendRobotCommand, sendRobotTask} from '../services/classroomApi';
 import {estimateRobotPose} from '../services/robotPose';
 
@@ -799,7 +800,7 @@ function ClassMetric({label, value, total, tone}: {label: string; value: number;
   );
 }
 
-function SmallStat({icon: Icon, label, value}: any) {
+function SmallStat({icon: Icon, label, value}: {icon: LucideIcon; label: string; value: string | number}) {
   return (
     <div className="bg-surface rounded-2xl p-4 border border-outline-variant/10">
       <Icon className="w-5 h-5 text-primary mb-3" />
@@ -809,7 +810,7 @@ function SmallStat({icon: Icon, label, value}: any) {
   );
 }
 
-function TaskButton({icon: Icon, label, action, regionId, busyCommand, onRun, doneText}: any) {
+function TaskButton({icon: Icon, label, action, regionId, busyCommand, onRun, doneText}: {icon: LucideIcon; label: string; action: string; regionId?: string; busyCommand: string | null; onRun: (action: string, regionId: string | undefined, doneText: string) => void; doneText: string}) {
   const busyKey = `${action}-${regionId ?? 'all'}`;
   const isBusy = busyCommand === busyKey;
   return (

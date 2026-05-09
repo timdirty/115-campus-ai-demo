@@ -30,6 +30,14 @@ const itemVariants: any = {
   show: {opacity: 1, y: 0, transition: {type: 'spring', bounce: 0.25, duration: 0.65}},
 };
 
+const QUICK_TASKS = [
+  {label: '擦除 A 區', action: 'erase', regionId: 'A'},
+  {label: '擦除 B 區', action: 'erase', regionId: 'B'},
+  {label: '擦除 C 區', action: 'erase', regionId: 'C'},
+  {label: '保留重點 A', action: 'keep', regionId: 'A'},
+  {label: '暫停等待抄寫', action: 'pause', regionId: undefined},
+] as const;
+
 const QUICK_COMMANDS: RobotCommandInfo[] = [
   {label: '開始清潔', command: 'CLEAN_START', group: 'task'},
   {label: '清潔完成', command: 'CLEAN_STOP', group: 'task'},
@@ -319,13 +327,7 @@ export default function RobotControl() {
                 教師指定任務
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-                {[
-                  {label: '擦除 A 區', action: 'erase', regionId: 'A'},
-                  {label: '擦除 B 區', action: 'erase', regionId: 'B'},
-                  {label: '擦除 C 區', action: 'erase', regionId: 'C'},
-                  {label: '保留重點 A', action: 'keep', regionId: 'A'},
-                  {label: '暫停等待抄寫', action: 'pause'},
-                ].map((task) => (
+                {QUICK_TASKS.map((task) => (
                   <button
                     key={`${task.action}-${task.regionId ?? 'all'}`}
                     onClick={() => sendTask(task.action, task.regionId)}

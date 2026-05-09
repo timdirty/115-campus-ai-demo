@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Settings, Search, Home as HomeIcon, ScrollText, MessageSquare, Sparkles, X, FileQuestion, LayoutDashboard, Bot, RefreshCw } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 import Home from './pages/Home';
 import Library from './pages/Library';
@@ -278,7 +279,7 @@ export default function App() {
   );
 }
 
-function NavButton({ icon: Icon, label, isActive, onClick }: any) {
+function NavButton({ icon: Icon, label, isActive, onClick }: {icon: LucideIcon; label: string; isActive: boolean; onClick: () => void}) {
   return (
     <button
       onClick={onClick}

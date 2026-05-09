@@ -112,6 +112,8 @@ function getRobotStageProgress(stage: RobotDispatchStage | undefined) {
 }
 
 const CRISIS_KEYWORDS_UI = ['不想活', '想死', '自殺', '消失', '傷害自己', '活不下去', '尋死', '割腕', '跳樓', '喝農藥', '結束生命', '不想存在'];
+const MISSION_STEPS = ['送出', '抵達', '回報'] as const;
+const POST_TYPES = ['support', 'gratitude', 'thought'] as const;
 
 function isCrisisMessage(text: string): boolean {
   return CRISIS_KEYWORDS_UI.some((k) => text.includes(k));
@@ -1043,7 +1045,7 @@ function MissionProgress({status, live}: {status: 'dispatching' | 'arrived' | 'c
   const current = status === 'completed' ? 2 : status === 'arrived' ? 1 : 0;
   return (
     <div className="mt-3 grid grid-cols-3 gap-1">
-      {['送出', '抵達', '回報'].map((step, index) => {
+      {MISSION_STEPS.map((step, index) => {
         const active = index <= current || (live && index === Math.min(current + 1, 2));
         return (
           <span key={step} className={`rounded-full px-2 py-1 text-center text-[10px] font-black ${active ? 'bg-teal-100 text-teal-700' : 'bg-white text-slate-400'}`}>
@@ -1578,7 +1580,7 @@ function CarePanel({
       <GlassPanel>
         <h3 className="text-xl font-black text-slate-950">心靈森林</h3>
         <div className="mt-3 flex gap-2">
-          {(['support', 'gratitude', 'thought'] as const).map((type) => (
+          {POST_TYPES.map((type) => (
             <button key={type} onClick={() => setPostType(type)} className={`rounded-xl px-3 py-2 text-xs font-black ${postType === type ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
               {type === 'support' ? '互助' : type === 'gratitude' ? '感謝' : '想法'}
             </button>

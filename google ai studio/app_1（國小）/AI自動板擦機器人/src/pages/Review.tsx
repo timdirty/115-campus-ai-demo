@@ -295,7 +295,7 @@ export default function Review({ onNavigate }: { onNavigate: (tab: string) => vo
   );
 }
 
-function RecordItem({ title, meta, active, onClick }: any) {
+function RecordItem({ title, meta, active, onClick }: {title: string; meta: string; active: boolean; onClick: () => void}) {
   return (
     <div onClick={onClick} className={`p-5 rounded-[1.5rem] flex justify-between items-center cursor-pointer transition-all ${active ? 'bg-surface-container-lowest border-2 border-primary shadow-md transform scale-[1.02]' : 'bg-surface border border-outline-variant/10 hover:border-outline-variant/30 hover:bg-surface-container-highest'}`}>
       <div className="flex items-center gap-4">

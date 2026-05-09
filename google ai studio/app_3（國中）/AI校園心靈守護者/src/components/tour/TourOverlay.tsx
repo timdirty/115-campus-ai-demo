@@ -59,6 +59,29 @@ const skipBtnStyle: React.CSSProperties = {
   padding: '4px 8px',
 };
 
+const fullscreenOverlay: React.CSSProperties = {
+  position: 'fixed',
+  inset: 0,
+  backgroundColor: FULLSCREEN_BACKDROP_COLOR,
+  zIndex: OVERLAY_Z,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
+
+const modalCard: React.CSSProperties = {
+  background: 'white',
+  borderRadius: 16,
+  padding: 28,
+  maxWidth: 400,
+  width: '90%',
+  boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
+};
+
+const cardTitle: React.CSSProperties = {margin: '0 0 12px', fontSize: 22, fontWeight: 700, color: '#0f172a'};
+const cardBody: React.CSSProperties = {margin: '0 0 4px', fontSize: 15, color: '#334155', lineHeight: 1.6};
+const cardFooter: React.CSSProperties = {marginTop: 20, display: 'flex', justifyContent: 'flex-end'};
+
 type Rect = { top: number; left: number; bottom: number; right: number; width: number; height: number };
 
 function emptyRect(): Rect {
@@ -85,17 +108,7 @@ function FullscreenCard({
   onSkip: () => void;
 }) {
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: FULLSCREEN_BACKDROP_COLOR,
-        zIndex: OVERLAY_Z,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
+    <div style={fullscreenOverlay}>
       <button style={skipBtnStyle} onClick={onSkip}>
         跳過導覽
       </button>
@@ -107,23 +120,12 @@ function FullscreenCard({
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 40, opacity: 0 }}
           transition={{ duration: 0.2 }}
-          style={{
-            background: 'white',
-            borderRadius: 16,
-            padding: 28,
-            maxWidth: 400,
-            width: '90%',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
-          }}
+          style={modalCard}
         >
-          <h2 style={{ margin: '0 0 12px', fontSize: 22, fontWeight: 700, color: '#0f172a' }}>
-            {title}
-          </h2>
-          <p style={{ margin: '0 0 4px', fontSize: 15, color: '#334155', lineHeight: 1.6 }}>
-            {body}
-          </p>
+          <h2 style={cardTitle}>{title}</h2>
+          <p style={cardBody}>{body}</p>
           <div style={demoTipBox}>🎙 {demoTip}</div>
-          <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={cardFooter}>
             {isFirst && !isLast && (
               <button style={primaryBtn} onClick={onNext}>
                 開始導覽 →

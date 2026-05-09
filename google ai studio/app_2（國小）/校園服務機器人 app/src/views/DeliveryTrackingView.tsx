@@ -4,7 +4,7 @@ import { ArrowLeft, Package, MapPin, Truck, Clock, CheckCircle2 } from 'lucide-r
 import { useAppActions, useAppState } from '../state/AppStateProvider';
 import {sendHardwareCommand} from '../services/hardwareBridge';
 
-export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
+export function DeliveryTrackingView({ goBack, showToast, orderStatus }: {goBack: () => void; showToast: (msg: string) => void; orderStatus?: string}) {
   const state = useAppState();
   const actions = useAppActions();
   const activeOrder = useMemo(

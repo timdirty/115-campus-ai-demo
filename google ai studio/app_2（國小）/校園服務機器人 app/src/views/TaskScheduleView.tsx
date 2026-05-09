@@ -5,7 +5,7 @@ import { useAppActions, useAppState } from '../state/AppStateProvider';
 
 const DAY_LABELS = ['日', '一', '二', '三', '四', '五', '六'] as const;
 
-export function TaskScheduleView({ goBack, showToast }: any) {
+export function TaskScheduleView({ goBack, showToast }: {goBack: () => void; showToast: (msg: string) => void}) {
   const state = useAppState();
   const actions = useAppActions();
   const schedule = state.schedules[0];

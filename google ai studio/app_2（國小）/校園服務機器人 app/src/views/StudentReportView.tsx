@@ -5,7 +5,7 @@ import { useAppState } from '../state/AppStateProvider';
 import { openPrintableReport } from '../services/reports';
 import type { StudentReport } from '../state/appState';
 
-export function StudentReportView({ goBack, showToast, name = "學習訊號 A", studentId }: any) {
+export function StudentReportView({ goBack, showToast, name = "學習訊號 A", studentId }: {goBack: () => void; showToast: (msg: string) => void; name?: string; studentId?: string}) {
   const state = useAppState();
   const [reportLoading, setReportLoading] = React.useState(false);
   const report = useMemo(
