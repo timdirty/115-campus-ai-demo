@@ -1,6 +1,6 @@
 export type TourStep = {
   id: string;
-  tab?: 'home' | 'teacher' | 'robot' | 'library' | 'chat' | 'review';
+  tab?: 'whiteboard' | 'teacher' | 'robot' | 'library' | 'chat' | 'review';
   targetDataTour?: string;
   title: string;
   body: string;
@@ -19,7 +19,7 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     id: 'capture-panel',
-    tab: 'home',
+    tab: 'whiteboard',
     targetDataTour: 'capture-panel',
     title: '拍照與語音分析',
     body: '用攝影機拍下白板，或錄音後轉成逐字稿，AI 幫你整理課堂重點並找出哪些內容可以擦掉。',
@@ -27,17 +27,8 @@ export const TOUR_STEPS: TourStep[] = [
     tooltipSide: 'right',
   },
   {
-    id: 'status-tiles',
-    tab: 'home',
-    targetDataTour: 'status-tiles',
-    title: '系統狀態',
-    body: '這裡顯示硬體連線、Gemini AI、攝影機和課堂紀錄的即時狀態，就算沒有接機器人也能展示。',
-    demoTip: '「就算沒有接機器人，AI 分析和課堂紀錄功能都能獨立運作，比賽不怕臨時硬體故障。」',
-    tooltipSide: 'bottom',
-  },
-  {
     id: 'region-panel',
-    tab: 'home',
+    tab: 'whiteboard',
     targetDataTour: 'region-panel',
     title: '白板區塊決策',
     body: 'AI 分析後會把白板分成幾個區塊，一眼看出哪些要保留、哪些可以派機器人去擦除。',
