@@ -1,6 +1,5 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {Loader2, Wifi, WifiOff, Zap} from 'lucide-react';
-import {sendRobotCommand} from '../services/classroomApi';
 
 type Ev3Status = {
   connected: boolean;
@@ -27,27 +26,31 @@ export default function EV3ControlPanel() {
   const [busy, setBusy] = useState(false);
   const [activeCmd, setActiveCmd] = useState<string | null>(null);
 
-  const refreshStatus = useCallback(async () => {
-    try {
-      const res = await fetch('/api/ev3/status');
-      if (res.ok) setStatus(await res.json());
-    } catch { /* ignore */ }
-  }, []);
-
   useEffect(() => {
-    void refreshStatus();
-    const timer = setInterval(refreshStatus, 2000);
-    return () => clearInterval(timer);
-  }, [refreshStatus]);
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const res = await fetch('/api/ev3/status', {signal: AbortSignal.timeout(2000)});
+        if (res.ok && !cancelled) setStatus(await res.json());
+      } catch { /* ignore */ }
+    };
+    void poll();
+    const timer = setInterval(poll, 3000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, []);
 
   const sendCmd = async (command: string) => {
     if (busy) return;
     setBusy(true);
     setActiveCmd(command);
     try {
-      await sendRobotCommand(command, 'ev3-panel');
-      await refreshStatus();
-    } catch { /* ignore */ } finally {
+      await fetch('/api/ev3/command', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({command}),
+        signal: AbortSignal.timeout(8000),
+      });
+    } catch { /* ignore — status banner shows bridge state */ } finally {
       setBusy(false);
       setActiveCmd(null);
     }

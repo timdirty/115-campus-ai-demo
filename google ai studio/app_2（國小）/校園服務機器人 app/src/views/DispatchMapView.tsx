@@ -1,9 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Bot, CheckCircle2, Navigation, ShieldAlert, Zap, Target, Users, MapPin } from 'lucide-react';
 import { useAppActions } from '../state/AppStateProvider';
 import { generateDispatchRecommendation } from '../services/localAi';
 import type { DispatchTaskType } from '../state/appState';
+
+const ZONE_META = {
+  A: {name: '行政走廊', signal: '訪客引導', risk: '一般', robotX: -118, robotY: -138, metric: '訪客 6', action: '引導路線'},
+  B: {name: '中庭熱區', signal: '人流偏高', risk: '高', robotX: 112, robotY: 56, metric: '人流 82', action: '柔性疏導'},
+  C: {name: '圖書角', signal: '安靜巡查', risk: '低', robotX: -74, robotY: 148, metric: '安靜', action: '保持巡查'},
+} as const;
+
+const DISPATCH_PROGRESS: Record<string, number> = {
+  '待命': 0, '確認區域': 28, '機器人出勤': 68, '任務回報': 100,
+};
 
 export function DispatchMapView({ goBack, showToast }: any) {
   const actions = useAppActions();
@@ -17,13 +27,16 @@ export function DispatchMapView({ goBack, showToast }: any) {
   const [missionId, setMissionId] = useState('');
   const [missionLog, setMissionLog] = useState<string[]>(['S-01 待命，選擇區域後開始服務。']);
 
-  const zoneMeta = {
-    A: {name: '行政走廊', signal: '訪客引導', risk: '一般', robotX: -118, robotY: -138, metric: '訪客 6', action: '引導路線'},
-    B: {name: '中庭熱區', signal: '人流偏高', risk: '高', robotX: 112, robotY: 56, metric: '人流 82', action: '柔性疏導'},
-    C: {name: '圖書角', signal: '安靜巡查', risk: '低', robotX: -74, robotY: 148, metric: '安靜', action: '保持巡查'},
-  } as const;
-  const activeZone = selectedZone === 'A' || selectedZone === 'B' || selectedZone === 'C' ? zoneMeta[selectedZone] : null;
-  const dispatchProgress = dispatchStage === '待命' ? 0 : dispatchStage === '確認區域' ? 28 : dispatchStage === '機器人出勤' ? 68 : 100;
+  const pendingTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    return () => {
+      for (const t of pendingTimers.current) clearTimeout(t);
+    };
+  }, []);
+
+  const activeZone = selectedZone === 'A' || selectedZone === 'B' || selectedZone === 'C' ? ZONE_META[selectedZone] : null;
+  const dispatchProgress = DISPATCH_PROGRESS[dispatchStage] ?? 0;
 
   const handleDispatch = async () => {
     if (selectedZone === 'none' || dispatchingZone) return;
@@ -34,14 +47,15 @@ export function DispatchMapView({ goBack, showToast }: any) {
     setMissionId(nextMissionId);
     setDispatchStage('確認區域');
     setMissionLog([`${nextMissionId} 已建立`, `鎖定${activeZone?.name ?? `區域 ${selectedZone}`}`]);
-    setTimeout(() => {
+    const t1 = setTimeout(() => {
       setDispatchStage('機器人出勤');
       setMissionLog((items) => [`S-01 正在前往${activeZone?.name ?? `區域 ${selectedZone}`}`, ...items]);
     }, 650);
-    setTimeout(() => {
+    const t2 = setTimeout(() => {
       setDispatchStage('任務回報');
       setMissionLog((items) => ['現場狀態已回傳，任務可追蹤。', ...items]);
     }, 1350);
+    pendingTimers.current.push(t1, t2);
     try {
       const message = await generateDispatchRecommendation(selectedZone, dispatchType);
       setRecommendation(message);
@@ -52,11 +66,12 @@ export function DispatchMapView({ goBack, showToast }: any) {
     }
     actions.addDispatchTask({ zone: selectedZone, taskType: dispatchType });
     showToast(`機器人已出發前往區域 ${selectedZone} 執行任務`);
-    setTimeout(() => {
+    const t3 = setTimeout(() => {
       actions.completeDispatchTask({ zone: selectedZone, taskType: dispatchType });
       setDispatchComplete(true);
       setMissionLog((items) => ['任務完成，已同步到任務中控。', ...items]);
     }, 1500);
+    pendingTimers.current.push(t3);
   };
 
   const resetDispatch = () => {
@@ -93,14 +108,14 @@ export function DispatchMapView({ goBack, showToast }: any) {
 
       <main className="p-6 space-y-8 max-w-lg mx-auto">
 
-        <div className="w-full aspect-[4/5] bg-white rounded-[2rem] border border-slate-200 relative overflow-hidden shadow-xl shadow-slate-200/70 group">
+        <div className="w-full aspect-[4/5] bg-white rounded-4xl border border-slate-200 relative overflow-hidden shadow-xl shadow-slate-200/70 group">
            <div className="absolute inset-0 opacity-70" style={{ backgroundImage: 'linear-gradient(rgba(14,165,163,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(14,165,163,0.08) 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
            <div className="absolute left-[13%] top-[28%] h-3 w-[74%] -rotate-6 rounded-full bg-cyan-100" />
            <div className="absolute left-[16%] top-[65%] h-3 w-[62%] rotate-3 rounded-full bg-cyan-100" />
            <div className="absolute left-[51%] top-[17%] h-[62%] w-3 rounded-full bg-cyan-100" />
 
            <motion.div animate={{ rotate: 360 }} transition={{ duration: 7, repeat: Infinity, ease: 'linear' }} className="absolute inset-0 z-0 origin-center scale-[1.5] opacity-35">
-             <div className="w-1/2 h-1/2 bg-gradient-to-br from-primary/30 to-transparent absolute top-0 left-1/2 origin-bottom-left" style={{ clipPath: 'polygon(0% 100%, 100% 0%, 100% 100%)' }}></div>
+             <div className="w-1/2 h-1/2 bg-linear-to-br from-primary/30 to-transparent absolute top-0 left-1/2 origin-bottom-left" style={{ clipPath: 'polygon(0% 100%, 100% 0%, 100% 100%)' }}></div>
            </motion.div>
 
            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-30">
@@ -111,8 +126,8 @@ export function DispatchMapView({ goBack, showToast }: any) {
 
            <motion.div
              animate={{
-               x: dispatchingZone === 'A' ? zoneMeta.A.robotX : dispatchingZone === 'B' ? zoneMeta.B.robotX : dispatchingZone === 'C' ? zoneMeta.C.robotX : 0,
-               y: dispatchingZone === 'A' ? zoneMeta.A.robotY : dispatchingZone === 'B' ? zoneMeta.B.robotY : dispatchingZone === 'C' ? zoneMeta.C.robotY : 0,
+               x: dispatchingZone === 'A' ? ZONE_META.A.robotX : dispatchingZone === 'B' ? ZONE_META.B.robotX : dispatchingZone === 'C' ? ZONE_META.C.robotX : 0,
+               y: dispatchingZone === 'A' ? ZONE_META.A.robotY : dispatchingZone === 'B' ? ZONE_META.B.robotY : dispatchingZone === 'C' ? ZONE_META.C.robotY : 0,
                scale: dispatchingZone === 'none' || !dispatchingZone ? 1 : 1.12,
              }}
              transition={{ type: 'spring', damping: 18, stiffness: 120 }}
@@ -132,7 +147,7 @@ export function DispatchMapView({ goBack, showToast }: any) {
            <motion.button
              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1 }}
              onClick={() => !dispatchingZone && setSelectedZone('A')}
-             className={`absolute top-[15%] left-[12%] w-[140px] h-[120px] rounded-[2rem] flex flex-col items-center justify-center border-2 transition-all z-10 backdrop-blur-md
+             className={`absolute top-[15%] left-[12%] w-[140px] h-[120px] rounded-4xl flex flex-col items-center justify-center border-2 transition-all z-10 backdrop-blur-md
               ${dispatchingZone === 'A' ? 'bg-cyan-50 border-primary shadow-xl shadow-primary/20 scale-110 ring-2 ring-primary ring-offset-2' : selectedZone === 'A' ? 'bg-cyan-50 border-primary shadow-lg shadow-primary/10 scale-110 ring-2 ring-primary ring-offset-2 active:scale-100' : 'bg-white border-slate-200 hover:bg-cyan-50 active:scale-95'}`}
            >
               <span className="text-[10px] font-extrabold text-primary mb-1 opacity-80">一般引導</span>
@@ -146,7 +161,7 @@ export function DispatchMapView({ goBack, showToast }: any) {
            <motion.button
              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2 }}
              onClick={() => !dispatchingZone && setSelectedZone('B')}
-             className={`absolute top-[45%] right-[8%] w-[130px] h-[140px] rounded-[2rem] flex flex-col items-center justify-center border-2 transition-all z-10 backdrop-blur-md
+             className={`absolute top-[45%] right-[8%] w-[130px] h-[140px] rounded-4xl flex flex-col items-center justify-center border-2 transition-all z-10 backdrop-blur-md
               ${dispatchingZone === 'B' ? 'bg-amber-50 border-amber-400 shadow-xl shadow-amber-200 scale-110 ring-2 ring-amber-400 ring-offset-2' : selectedZone === 'B' ? 'bg-amber-50 border-amber-400 shadow-lg shadow-amber-100 scale-110 ring-2 ring-amber-400 ring-offset-2 active:scale-100' : 'bg-white border-slate-200 hover:bg-amber-50 active:scale-95'}`}
            >
               <span className="text-[10px] font-extrabold text-amber-600 mb-1 opacity-80">人流偏高</span>
@@ -161,7 +176,7 @@ export function DispatchMapView({ goBack, showToast }: any) {
            <motion.button
              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3 }}
              onClick={() => !dispatchingZone && setSelectedZone('C')}
-             className={`absolute bottom-[10%] left-[18%] w-[170px] h-[100px] rounded-[2rem] flex flex-col items-center justify-center border-2 transition-all z-10 backdrop-blur-md
+             className={`absolute bottom-[10%] left-[18%] w-[170px] h-[100px] rounded-4xl flex flex-col items-center justify-center border-2 transition-all z-10 backdrop-blur-md
               ${dispatchingZone === 'C' ? 'bg-emerald-50 border-emerald-400 shadow-xl shadow-emerald-100 scale-110 ring-2 ring-emerald-400 ring-offset-2' : selectedZone === 'C' ? 'bg-emerald-50 border-emerald-400 shadow-lg shadow-emerald-100 scale-110 ring-2 ring-emerald-400 ring-offset-2 active:scale-100' : 'bg-white border-slate-200 hover:bg-emerald-50 active:scale-95'}`}
            >
               <span className="text-[10px] font-extrabold text-emerald-600 mb-1 opacity-80">安靜巡查</span>
@@ -175,7 +190,7 @@ export function DispatchMapView({ goBack, showToast }: any) {
         <div className="min-h-[220px]">
           <AnimatePresence mode="wait">
             {selectedZone === 'none' ? (
-               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full flex flex-col items-center justify-center py-10 bg-white rounded-[2rem] border border-dashed border-slate-200 shadow-sm">
+               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full flex flex-col items-center justify-center py-10 bg-white rounded-4xl border border-dashed border-slate-200 shadow-sm">
                   <div className="w-16 h-16 bg-cyan-50 rounded-full flex items-center justify-center mb-4 text-primary"><Navigation size={32} /></div>
                   <p className="text-sm font-bold text-slate-500">點地圖選區域</p>
                </motion.div>
@@ -183,7 +198,7 @@ export function DispatchMapView({ goBack, showToast }: any) {
               <motion.div
                 key={selectedZone}
                 initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -30, opacity: 0 }}
-                className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/80 relative overflow-hidden"
+                className="bg-white p-6 rounded-4xl border border-slate-200 shadow-xl shadow-slate-200/80 relative overflow-hidden"
               >
                  <div className="flex justify-between items-start mb-8 relative z-10">
                     <div>

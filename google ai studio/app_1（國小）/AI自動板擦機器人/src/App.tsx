@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Settings, Search, Home as HomeIcon, ScrollText, MessageSquare, Sparkles, X, FileQuestion, LayoutDashboard, Bot } from 'lucide-react';
+import { Settings, Search, Home as HomeIcon, ScrollText, MessageSquare, Sparkles, X, FileQuestion, LayoutDashboard, Bot, RefreshCw } from 'lucide-react';
 
 import Home from './pages/Home';
 import Library from './pages/Library';
@@ -17,6 +17,7 @@ import { IssueReporter } from './components/IssueReporter';
 import {useHardwareSocket} from './hooks/useHardwareSocket';
 import {HardwareStatusBanner} from './components/HardwareStatusBanner';
 import {CommandFeedbackToast} from './components/CommandFeedbackToast';
+import {DemoTimer} from './components/DemoTimer';
 
 type AppTab = 'home' | 'teacher' | 'robot' | 'library' | 'chat' | 'review';
 
@@ -61,8 +62,10 @@ export default function App() {
     }
   }, [isSearchOpen]);
 
-  const searchResults = searchQuery.trim()
-    ? searchNotes.filter((note) => [
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return searchNotes.slice(0, 5);
+    return searchNotes.filter((note) => [
       note.title,
       note.subject,
       note.desc,
@@ -70,22 +73,31 @@ export default function App() {
       note.ocrText,
       note.transcript,
       ...(note.keywords ?? []),
-    ].filter(Boolean).join(' ').toLowerCase().includes(searchQuery.toLowerCase()))
-    : searchNotes.slice(0, 5);
+    ].filter(Boolean).join(' ').toLowerCase().includes(q));
+  }, [searchNotes, searchQuery]);
 
   const hwStatus = useHardwareSocket('http://localhost:3201');
 
-  const navigateTo = (tab: string) => {
+  const navigateTo = useCallback((tab: string) => {
     if (isAppTab(tab)) {
       setCurrentTab(tab);
     }
-  };
+  }, []);
 
-  const openNoteFromSearch = (noteId: number) => {
+  const [resetting, setResetting] = useState(false);
+  const resetDemo = useCallback(async () => {
+    setResetting(true);
+    try {
+      await fetch('http://localhost:3201/api/ops/reset', {method: 'POST'});
+    } catch { /* offline OK — UI-only reset still useful */ }
+    setResetting(false);
+  }, []);
+
+  const openNoteFromSearch = useCallback((noteId: number) => {
     localStorage.setItem('whiteboard-notes:selected-id', String(noteId));
     setIsSearchOpen(false);
     setCurrentTab('library');
-  };
+  }, []);
 
   const getPage = () => {
     switch (currentTab) {
@@ -132,6 +144,16 @@ export default function App() {
           </button>
 
           <button
+            onClick={() => void resetDemo()}
+            aria-label="重置展示資料"
+            disabled={resetting}
+            title="重置 Demo 資料"
+            className="w-10 h-10 flex items-center justify-center hover:bg-[#eae8dd] rounded-full transition-colors active:scale-95 group disabled:opacity-50"
+          >
+            <RefreshCw className={`text-on-surface/70 group-hover:text-primary w-5 h-5 ${resetting ? 'animate-spin' : ''}`} />
+          </button>
+
+          <button
             onClick={() => setIsSettingsOpen(true)}
             aria-label="開啟系統設定"
             className="w-10 h-10 flex items-center justify-center hover:bg-[#eae8dd] rounded-full transition-colors active:scale-95 group"
@@ -149,7 +171,7 @@ export default function App() {
       </main>
 
       {/* Mobile NavBar - Floating Pill */}
-      <div className="md:hidden fixed bottom-3 left-3 right-3 z-[100] flex justify-center pointer-events-none">
+      <div className="md:hidden fixed bottom-3 left-3 right-3 z-100 flex justify-center pointer-events-none">
         <nav className="w-full max-w-[27rem] grid grid-cols-3 gap-1.5 p-2 glass-pill rounded-[1.75rem] pointer-events-auto shrink-0">
           <NavButton icon={HomeIcon} label="首頁" isActive={currentTab === 'home'} onClick={() => setCurrentTab('home')} />
           <NavButton icon={LayoutDashboard} label="教師" isActive={currentTab === 'teacher'} onClick={() => setCurrentTab('teacher')} />
@@ -250,6 +272,7 @@ export default function App() {
       </AnimatePresence>
       <TourOverlay />
       <IssueReporter storageKey="issues-app1:v1" accentColor="#6366f1" />
+      <DemoTimer />
     </div>
     </TourProvider>
   );

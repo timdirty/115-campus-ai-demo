@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BottomSheet } from '../components/ui';
 import { BatteryCharging, MapPin, Activity, Navigation, Wind, Building2, Route, Terminal, CheckCircle2, CircleDashed, FileText, Bot, ArrowRight, Package, CalendarClock, Camera, ScanSearch, Sparkles } from 'lucide-react';
@@ -44,17 +44,25 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
     return () => { cancelled = true; clearInterval(timer); };
   }, []);
 
-  const activeRobot = state.robots.find((robot) => robot.id === activeRobotId) ?? state.robots[0] ?? null;
-  const demoSteps = getDemoSteps(state);
-  const demoHealth = getDemoHealth(state);
+  const activeRobot = useMemo(
+    () => state.robots.find((robot) => robot.id === activeRobotId) ?? state.robots[0] ?? null,
+    [state.robots, activeRobotId],
+  );
+  const demoSteps = useMemo(() => getDemoSteps(state), [state.orders, state.attendance, state.studentReports, state.tasks, state.logs, state.robotCommandLogs]);
+  const demoHealth = useMemo(() => getDemoHealth(state), [state.tasks, state.logs, state.robotCommandLogs, state.robots, state.hardwareMode]);
 
   // Derive progress from task state: completed tasks / total tasks for active robot
-  const robotTasks = state.tasks.filter((t) => t.robotId === activeRobot?.id);
-  const completedTasks = robotTasks.filter((t) => t.status === 'completed').length;
-  const totalTasks = robotTasks.length;
-  const derivedProgress = totalTasks > 0
-    ? Math.round((completedTasks / totalTasks) * 100)
-    : activeRobot?.isRunning ? 64 : 0;
+  const {completedTasks, totalTasks, derivedProgress} = useMemo(() => {
+    const robotTasks = state.tasks.filter((t) => t.robotId === activeRobot?.id);
+    let completed = 0;
+    for (const t of robotTasks) { if (t.status === 'completed') completed++; }
+    const total = robotTasks.length;
+    return {
+      completedTasks: completed,
+      totalTasks: total,
+      derivedProgress: total > 0 ? Math.round((completed / total) * 100) : activeRobot?.isRunning ? 64 : 0,
+    };
+  }, [state.tasks, activeRobot?.id, activeRobot?.isRunning]);
 
   useEffect(() => {
     if (activeRobot) setSpeed(activeRobot.speed);
@@ -83,20 +91,25 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
     if (!file) return;
     setVisionBusy(true);
     setVisionError('');
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result ?? ''));
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
     try {
-      setVisionResult(await analyzeCampusImage(dataUrl));
-      setVisionSourceName(file.name);
-      showToast('照片已完成像素辨識');
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result ?? ''));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      try {
+        setVisionResult(await analyzeCampusImage(dataUrl));
+        setVisionSourceName(file.name);
+        showToast('照片已完成像素辨識');
+      } catch {
+        setVisionResult(analyzeCampusFrame(`${file.name}:${file.type}:${dataUrl.slice(0, 4000)}`));
+        setVisionError('影像解碼失敗，已切換備援判讀');
+        showToast('影像解碼失敗，已使用備援判讀');
+      }
     } catch {
-      setVisionResult(analyzeCampusFrame(`${file.name}:${file.type}:${dataUrl.slice(0, 4000)}`));
-      setVisionError('影像解碼失敗，已切換備援判讀');
-      showToast('影像解碼失敗，已使用備援判讀');
+      setVisionError('無法讀取檔案，請改用 JPG 或 PNG 圖片。');
+      showToast('檔案讀取失敗');
     } finally {
       setVisionBusy(false);
     }
@@ -147,6 +160,9 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
       setVisionResult(await analyzeCampusImage(canvas.toDataURL('image/jpeg', 0.82)));
       setVisionSourceName('即時鏡頭');
       showToast('即時畫面已完成像素辨識');
+    } catch {
+      setVisionResult(analyzeCampusFrame(`live:${canvas.width}x${canvas.height}`));
+      showToast('即時畫面解析失敗，已使用備援判讀');
     } finally {
       setVisionBusy(false);
     }
@@ -166,7 +182,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
             <h2 className="mt-2 font-headline text-3xl font-bold tracking-tight">派單到回報</h2>
             <p className="mt-2 max-w-2xl text-sm font-bold leading-6 text-on-surface-variant">從派遣到回報，一屏完成。</p>
           </div>
-          <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4 lg:w-[28rem]">
+          <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4 lg:w-md">
             {demoHealth.map((item) => (
               <div key={item.label} className={`rounded-2xl border p-3 transition-colors ${item.ok ? 'border-primary/15 bg-primary/8' : 'border-outline-variant/10 bg-surface-container-low'}`}>
                 <p className="text-[10px] font-extrabold text-on-surface-variant/60">{item.label}</p>
@@ -178,7 +194,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
             ))}
           </div>
         </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-5">
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
           {demoSteps.map((step) => (
             <button
               key={step.id}
@@ -281,7 +297,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
                   <BatteryCharging className="text-primary" size={26} />
                 </div>
                 <div>
-                  <p className="text-[10px] text-on-surface-variant font-bold mb-1 text-primary/80">電量</p>
+                  <p className="text-[10px] font-bold mb-1 text-primary/80">電量</p>
                   <p className="text-2xl font-headline font-bold">{activeRobot.battery}<span className="text-sm ml-0.5 opacity-60">%</span></p>
                 </div>
               </div>
@@ -290,7 +306,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
                   <MapPin className="text-primary" size={26} />
                 </div>
                 <div>
-                  <p className="text-[10px] text-on-surface-variant font-bold mb-1 text-primary/80">位置</p>
+                  <p className="text-[10px] font-bold mb-1 text-primary/80">位置</p>
                   <p className="text-xl font-headline font-bold tracking-tight line-clamp-2">{activeRobot.position}</p>
                 </div>
               </div>
@@ -304,7 +320,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
         {/* Mini Cards */}
         <motion.div whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.95 }} className="bg-surface-container-lowest border border-outline-variant/30 rounded-[2.5rem] p-6 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.02)] cursor-pointer hover:shadow-md relative overflow-hidden" onClick={() => setModal('radar')}>
           <div className="absolute -right-6 -top-6 w-32 h-32 rounded-full border border-primary/10 flex flex-col items-center justify-center opacity-40">
-             <motion.div animate={{ rotate: 360 }} transition={{ duration: 5, repeat: Infinity, ease: 'linear' }} className="w-1/2 h-full origin-bottom rounded-tr-full bg-gradient-to-t from-primary/30 to-transparent"></motion.div>
+             <motion.div animate={{ rotate: 360 }} transition={{ duration: 5, repeat: Infinity, ease: 'linear' }} className="w-1/2 h-full origin-bottom rounded-tr-full bg-linear-to-t from-primary/30 to-transparent"></motion.div>
           </div>
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4 relative z-10 border border-primary/10">
             <Activity className="text-primary" size={20} />
@@ -330,8 +346,8 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
       <section data-tour="task-stats" className="mt-4">
         <motion.div whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.99 }} className="bg-surface-container-lowest rounded-[3rem] p-8 border border-outline-variant/30 shadow-[0_4px_25px_rgba(0,0,0,0.02)] cursor-pointer hover:bg-surface-container transition-all" onClick={() => setModal('task')}>
           <div className="flex items-center gap-8 mb-8 relative">
-            <div className="w-[84px] h-[84px] shrink-0 rounded-3xl bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center shadow-[0_8px_25px_rgba(var(--color-primary),0.3)] relative">
-               <motion.div animate={{ rotate: -360 }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }} className="absolute -inset-1.5 rounded-[2rem] border-[1.5px] border-dashed border-primary/30"></motion.div>
+            <div className="w-21 h-21 shrink-0 rounded-3xl bg-linear-to-br from-primary to-primary-container text-white flex items-center justify-center shadow-[0_8px_25px_rgba(var(--color-primary),0.3)] relative">
+               <motion.div animate={{ rotate: -360 }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }} className="absolute -inset-1.5 rounded-4xl border-[1.5px] border-dashed border-primary/30"></motion.div>
                <Wind size={36} />
             </div>
              <div className="flex-1 min-w-0 py-1">
@@ -359,20 +375,20 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
                 >
                   {activeRobot.isRunning ? '暫停執行' : '繼續執行'}
                 </button>
-                <div className="h-8 w-[1px] bg-outline-variant/30 hidden sm:block mx-2"></div>
+                <div className="h-8 w-px bg-outline-variant/30 hidden sm:block mx-2"></div>
                 <span className="text-[10px] font-bold text-on-surface-variant/60 border border-outline-variant/30 bg-surface-container-high px-3 py-2 rounded-xl">{activeRobot.phase}</span>
               </div>
             </div>
             <div className="h-4 w-full bg-surface-container-high rounded-full overflow-hidden shadow-inner p-1">
               <motion.div
-                className={`h-full bg-gradient-to-r ${activeRobot.status === '充電' ? 'from-[#f6d365] to-[#d4a017]' : 'from-primary to-primary-container shadow-[0_0_15px_rgba(var(--color-primary),0.4)]'} rounded-full relative`}
+                className={`h-full bg-linear-to-r ${activeRobot.status === '充電' ? 'from-[#f6d365] to-[#d4a017]' : 'from-primary to-primary-container shadow-[0_0_15px_rgba(var(--color-primary),0.4)]'} rounded-full relative`}
                 animate={{ width: activeRobot.status === '充電' || activeRobot.status === '待命' ? '0%' : `${derivedProgress}%` }}
                 transition={{ type: "spring", bounce: 0, duration: 1 }}
               >
                 <motion.div
                   animate={{ x: ['-100%', '200%'] }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                  className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent"
                 ></motion.div>
               </motion.div>
             </div>
@@ -424,11 +440,11 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
               <canvas ref={visionCanvasRef} className="hidden" />
             </div>
             {visionError && <p className="px-4 py-2 text-xs font-bold text-error">{visionError}</p>}
-            <div className="grid grid-cols-2 gap-2 p-3">
-              <button onClick={toggleVisionCamera} disabled={visionBusy} className="min-h-11 rounded-xl bg-primary px-3 text-xs font-black text-white disabled:opacity-50">
+            <div className="flex gap-2 p-3">
+              <button onClick={toggleVisionCamera} disabled={visionBusy} className="min-h-11 min-w-20 flex-1 rounded-xl bg-primary px-3 text-xs font-black text-white disabled:opacity-50">
                 {visionCameraReady ? '關閉鏡頭' : '開啟鏡頭'}
               </button>
-              <button onClick={() => void analyzeLiveVisionFrame()} disabled={!visionCameraReady || visionBusy} className="min-h-11 rounded-xl border border-outline-variant/30 bg-white px-3 text-xs font-black text-on-surface-variant disabled:opacity-50">
+              <button onClick={() => void analyzeLiveVisionFrame()} disabled={!visionCameraReady || visionBusy} className="min-h-11 min-w-20 flex-1 rounded-xl border border-outline-variant/30 bg-white px-3 text-xs font-black text-on-surface-variant disabled:opacity-50">
                 擷取判讀
               </button>
             </div>
@@ -654,7 +670,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
       {/* Modals */}
       <BottomSheet isOpen={modal === 'speed'} onClose={() => setModal(null)} title="巡航速度校準">
         <div className="p-6 space-y-10 pb-10">
-          <div className="text-center bg-surface-container rounded-[2rem] py-12 border border-outline-variant/10 shadow-inner">
+          <div className="text-center bg-surface-container rounded-4xl py-12 border border-outline-variant/10 shadow-inner">
             <p className="text-7xl font-headline font-bold text-primary tracking-tight">
               {speed.toFixed(1)} <span className="text-2xl text-on-surface-variant/60 font-sans tracking-tight font-medium">m/s</span>
             </p>
@@ -709,7 +725,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
                 y: [0, 0, 100, 100, 200, 200]
                }}
                transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-               className="absolute top-[50px] left-[50px] -translate-x-1/2 -translate-y-1/2 z-10"
+               className="absolute top-12.5 left-12.5 -translate-x-1/2 -translate-y-1/2 z-10"
              >
                 <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-2xl border-[3px] border-primary rotate-45">
                    <div className="w-2 h-2 bg-primary rounded-full animate-ping absolute"></div>
@@ -722,7 +738,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
              <div className="absolute bottom-8 right-8 text-[10px] font-bold text-blue-400/60">自動導航</div>
            </div>
 
-           <div className="mt-10 w-full bg-surface-container-lowest p-7 rounded-[2rem] border border-outline-variant/30 shadow-sm">
+           <div className="mt-10 w-full bg-surface-container-lowest p-7 rounded-4xl border border-outline-variant/30 shadow-sm">
              <div className="flex justify-between items-center mb-4">
                 <h4 className="text-2xl font-bold font-headline tracking-tight">507 教室 (B棟西側)</h4>
                 <span className="text-[10px] bg-primary/10 text-primary px-3 py-1 rounded-full font-bold border border-primary/20">執行中</span>

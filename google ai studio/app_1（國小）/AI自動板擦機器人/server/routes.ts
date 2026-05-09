@@ -7,6 +7,7 @@ import {commandCatalog, createNote, defaultClassroomSession, defaultNotes, defau
 import {ApiError, getErrorMessage, sendError} from './http';
 import {buildAppExport, getReadyStatus, importAppData, writeBackupFile} from './opsService';
 import {getEV3Status, sendEV3Command} from './ev3Manager';
+import {getSpikeStatus, sendSpikeCommand, startSpikeManager} from './spikeManager';
 import {getActivePath, isArduinoLikePort, listPorts, recordUnsupportedTask, resolveTaskCommand, sendSerialCommand, sendSerialCommandDrive} from './robotService';
 import {assignPortToZone, getAllDetectedPorts, getLiveZoneReadings, unassignPort} from './sensorManager';
 import {appendTaskLog, readCalibration, readJsonFile, saveCalibration, updateRobotStatus, writeJsonFile} from './storage';
@@ -129,6 +130,7 @@ function normalizeSessionShape(session: ClassroomSession): ClassroomSession {
 }
 
 export function registerRoutes(app: Express) {
+  startSpikeManager();
   app.get('/api/arduino/ports', async (_req, res) => {
     try {
       res.json({
@@ -493,6 +495,24 @@ export function registerRoutes(app: Express) {
     res.json(getEV3Status());
   });
 
+  app.post('/api/ev3/command', async (req, res) => {
+    const command = String(req.body?.command ?? '').trim().toUpperCase();
+    if (!command) { res.status(400).json({ok: false, error: 'command required'}); return; }
+    const result = await sendEV3Command(command);
+    res.json(result);
+  });
+
+  app.get('/api/spike/status', (_req, res) => {
+    res.json(getSpikeStatus());
+  });
+
+  app.post('/api/spike/command', async (req, res) => {
+    const command = String(req.body?.command ?? '').trim().toUpperCase();
+    if (!command) { res.status(400).json({ok: false, error: 'command required'}); return; }
+    const result = await sendSpikeCommand(command);
+    res.json(result);
+  });
+
   app.post('/api/robot/task', async (req, res) => {
     const action = String(req.body?.action ?? '').trim();
     const regionId = req.body?.regionId ? String(req.body.regionId) : undefined;
@@ -764,6 +784,21 @@ export function registerRoutes(app: Express) {
 
       res.json({ok: true, command, port: result.port, response: result.response});
       broadcast({type: 'command_ack', command, ok: true});
+    } catch (error) {
+      sendError(res, error);
+    }
+  });
+
+  app.post('/api/ops/reset', async (_req, res) => {
+    try {
+      await Promise.all([
+        writeJsonFile(robotFile, {...defaultRobotStatus, lastUpdatedAt: new Date().toISOString()}),
+        writeJsonFile(taskLogFile, []),
+        writeJsonFile(classroomFile, {...defaultClassroomSession, updatedAt: new Date().toISOString()}),
+        writeJsonFile(chatFile, []),
+      ]);
+      broadcast({type: 'command_ack', command: 'OPS_RESET', ok: true});
+      res.json({ok: true, message: 'Demo data reset to defaults'});
     } catch (error) {
       sendError(res, error);
     }

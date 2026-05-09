@@ -1,8 +1,9 @@
-import {useEffect, useMemo, useReducer, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useReducer, useRef, useState} from 'react';
 import {TourProvider} from './components/tour/TourProvider';
 import {TourOverlay} from './components/tour/TourOverlay';
 import {useTour} from './components/tour/useTour';
 import {IssueReporter} from './components/IssueReporter';
+import {DemoTimer} from './components/DemoTimer';
 import {useProxyHealth} from './hooks/useProxyHealth';
 import {useHardwareSocket} from './hooks/useHardwareSocket';
 import {HardwareStatusBanner} from './components/HardwareStatusBanner';
@@ -49,7 +50,7 @@ import {analyzeEmotionTypography} from './services/emotionTypography';
 import {analyzePrivacyFrame, VisualPrivacyResult} from './services/visualPrivacyGuardian';
 import {evaluateProactiveGuardianState, ProactiveInsight} from './services/proactiveGuardian';
 import {buildSchoolZoneStatuses, SchoolZoneStatus} from './services/schoolSpaces';
-import {assignSensorPort, fetchBridgeHealth, fetchSensorPorts, fetchZoneSensors, sendGuardianHardwareCommand} from './services/hardwareBridge';
+import {assignSensorPort, fetchBridgeHealth, fetchSensorPorts, fetchZoneSensors, resetBridgeDemoData, sendGuardianHardwareCommand} from './services/hardwareBridge';
 import {AlertDetail, AlertRow, MetricCard, NodeRow, RiskPill} from './components/guardianUi';
 import {EmotionHeatmap} from './components/EmotionHeatmap';
 import {CampusMapSvg} from './components/CampusMapSvg';
@@ -122,6 +123,7 @@ export default function App() {
       <AppContent />
       <TourOverlay />
       <IssueReporter storageKey="issues-app3:v1" accentColor="#0d9488" />
+      <DemoTimer />
     </TourProvider>
   );
 }
@@ -171,13 +173,17 @@ function AppContent() {
   useEffect(() => {
     let cancelled = false;
     const poll = async () => {
-      const [online, readings] = await Promise.all([
-        fetchBridgeHealth(),
-        fetchZoneSensors(),
-      ]);
-      if (!cancelled) {
-        setZoneSensors(readings);
-        setBridgeOnline(online);
+      try {
+        const [online, readings] = await Promise.all([
+          fetchBridgeHealth(),
+          fetchZoneSensors(),
+        ]);
+        if (!cancelled) {
+          setZoneSensors(readings);
+          setBridgeOnline(online);
+        }
+      } catch {
+        // bridge offline — keep last known state
       }
     };
     poll();
@@ -221,9 +227,9 @@ function AppContent() {
   useEffect(() => () => stopAcousticMonitor(), []);
   useEffect(() => () => { robotTimersRef.current.forEach(clearTimeout); robotTimersRef.current = []; }, []);
 
-  const showToast = (text: string) => setToastMessage(text);
+  const showToast = useCallback((text: string) => setToastMessage(text), []);
 
-  const sendHardwareCue = (command: string, source: string) => {
+  const sendHardwareCue = useCallback((command: string, source: string) => {
     void sendGuardianHardwareCommand(command, source).then((result) => {
       dispatch({
         type: 'RECORD_HARDWARE_EVENT',
@@ -233,9 +239,9 @@ function AppContent() {
     }).catch(() => {
       showToast('硬體指令發送失敗，使用備援模式');
     });
-  };
+  }, [showToast]);
 
-  const dispatchRobotToZone = (zone: SchoolZoneStatus) => {
+  const dispatchRobotToZone = useCallback((zone: SchoolZoneStatus) => {
     setSelectedZoneId(zone.id);
     if (robotFeedback?.zoneId === zone.id) {
       showToast(`${zone.name} 任務已在進行中`);
@@ -255,21 +261,21 @@ function AppContent() {
     dispatch({type: 'DISPATCH_ROBOT', payload: {zoneName: zone.name, riskScore: zone.riskScore, command: 'ROBOT_DISPATCH'}});
     sendHardwareCue('CARE_DEPLOYED', `app3:robot:${zone.id}`);
     showToast(`已指派機器人前往${zone.name}`);
-  };
+  }, [robotFeedback, showToast, sendHardwareCue]);
 
-  const createProactiveAlert = () => {
+  const createProactiveAlert = useCallback(() => {
     dispatch({type: 'CREATE_PROACTIVE_ALERT', payload: viewModel.proactiveInsight});
     sendHardwareCue('ALERT_SIGNAL', 'app3:proactive');
     setActivePanel('alerts');
     showToast('AI 主動巡查已建立提醒');
-  };
+  }, [viewModel.proactiveInsight, sendHardwareCue, showToast]);
 
-  const recordAcousticSignal = (signal: Omit<AcousticSignal, 'id' | 'createdAt'>) => {
+  const recordAcousticSignal = useCallback((signal: Omit<AcousticSignal, 'id' | 'createdAt'>) => {
     dispatch({type: 'RECORD_ACOUSTIC_SIGNAL', payload: signal});
     showToast('已記錄本機環境聲量訊號');
-  };
+  }, [showToast]);
 
-  const createAcousticAlert = () => {
+  const createAcousticAlert = useCallback(() => {
     if (!acousticLocation.trim()) { showToast('請先輸入感測位置再建立提醒'); return; }
     dispatch({
       type: 'CREATE_ACOUSTIC_ALERT',
@@ -284,13 +290,13 @@ function AppContent() {
     sendHardwareCue('ALERT_SIGNAL', 'app3:acoustic');
     setActivePanel('alerts');
     showToast('已由環境聲量建立提醒');
-  };
+  }, [acousticLocation, currentAcoustic, sendHardwareCue, showToast]);
 
-  const handleMood = (mood: MoodType, noteOverride?: string) => {
+  const handleMood = useCallback((mood: MoodType, noteOverride?: string) => {
     const option = moodOptions.find((item) => item.mood === mood) ?? moodOptions[1];
     setSelectedMood(mood);
     dispatch({type: 'ADD_MOOD', payload: {mood, label: option.label, note: noteOverride ?? option.note}});
-  };
+  }, []);
 
   const addPost = async () => {
     const content = postContent.trim();
@@ -438,7 +444,7 @@ function AppContent() {
       <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/95 shadow-[0_1px_12px_rgba(15,23,42,0.06)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <button className="flex min-w-0 items-center gap-3 text-left" onClick={() => setActivePanel(null)}>
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-teal-700 text-white shadow-md shadow-teal-200/60">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-teal-500 to-teal-700 text-white shadow-md shadow-teal-200/60">
               <HeartHandshake className="h-5 w-5" />
             </div>
             <div className="min-w-0">
@@ -475,18 +481,19 @@ function AppContent() {
             <button onClick={restartTour} className="hidden min-h-10 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 shadow-sm transition hover:border-teal-200 hover:text-teal-700 md:block">
               導覽
             </button>
+            <IconButton
+              onClick={() => {
+                dispatch({type: 'RESET_DEMO'});
+                void resetBridgeDemoData();
+                showToast('展示資料已重置');
+              }}
+              label="重設展示資料"
+              icon={RefreshCw}
+              emphasis
+            />
             <div className="hidden items-center gap-2 sm:flex">
               <IconButton onClick={exportDemoData} label="匯出展示資料" icon={Download} />
               <IconButton onClick={() => importInputRef.current?.click()} label="匯入展示資料" icon={Upload} />
-              <IconButton
-                onClick={() => {
-                  dispatch({type: 'RESET_DEMO'});
-                  showToast('展示資料已重置');
-                }}
-                label="重設展示資料"
-                icon={RefreshCw}
-                emphasis
-              />
             </div>
           </div>
         </div>
@@ -628,7 +635,7 @@ function CommandCenterScreen({
   return (
     <section className="grid gap-4 lg:min-h-[calc(100vh-6.5rem)] lg:grid-rows-[auto_minmax(0,1fr)_auto]">
       <div data-tour="signal-overview">
-        <div className="overflow-hidden rounded-2xl border border-slate-200/60 bg-gradient-to-br from-white to-teal-50/40 shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-slate-200/60 bg-linear-to-br from-white to-teal-50/40 shadow-sm">
           <div className="p-4 sm:p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
@@ -644,7 +651,7 @@ function CommandCenterScreen({
             </div>
           </div>
           {/* risk level accent bar */}
-          <div className={`h-1 w-full ${viewModel.highestZone.riskLevel === 'high' ? 'bg-gradient-to-r from-rose-400 to-rose-600' : viewModel.highestZone.riskLevel === 'medium' ? 'bg-gradient-to-r from-amber-300 to-amber-500' : 'bg-gradient-to-r from-teal-300 to-teal-500'}`} />
+          <div className={`h-1 w-full ${viewModel.highestZone.riskLevel === 'high' ? 'bg-linear-to-r from-rose-400 to-rose-600' : viewModel.highestZone.riskLevel === 'medium' ? 'bg-linear-to-r from-amber-300 to-amber-500' : 'bg-linear-to-r from-teal-300 to-teal-500'}`} />
         </div>
       </div>
 
@@ -696,6 +703,19 @@ function CommandCenterScreen({
   );
 }
 
+const ZONE_EMOJI: Record<string, string> = {
+  'zone-library': '📚',
+  'zone-hall': '🚶',
+  'zone-field': '⚽',
+};
+
+const ZONE_IDENTITY: Record<string, {bg: string; border: string; dot: string}> = {
+  'zone-library': {bg: 'bg-blue-50/95',    border: 'border-blue-300',    dot: 'bg-blue-500'},
+  'zone-hall':    {bg: 'bg-emerald-50/95', border: 'border-emerald-300', dot: 'bg-emerald-500'},
+  'zone-field':   {bg: 'bg-orange-50/95',  border: 'border-orange-300',  dot: 'bg-orange-500'},
+};
+const ZONE_IDENTITY_FALLBACK = {bg: 'bg-white/95', border: 'border-slate-200', dot: 'bg-slate-400'};
+
 function CampusMap2D({
   zones,
   selectedZone,
@@ -715,12 +735,6 @@ function CampusMap2D({
   const activeDispatch = robotFeedback?.zoneId === selectedZone.id;
   const dispatchProgress = getRobotStageProgress(activeDispatch ? robotFeedback?.stage : undefined);
   const [expandedZoneId, setExpandedZoneId] = useState<string | null>(null);
-
-  const ZONE_EMOJI: Record<string, string> = {
-    'zone-library': '📚',
-    'zone-hall': '🚶',
-    'zone-field': '⚽',
-  };
 
   return (
     <Surface className="relative overflow-hidden p-3 sm:p-4">
@@ -745,7 +759,7 @@ function CampusMap2D({
           }}
         />
         <div
-          className={`robot-route-line absolute z-[8] h-1.5 origin-left rounded-full ${activeDispatch ? 'opacity-100' : 'opacity-0'}`}
+          className={`robot-route-line absolute z-8 h-1.5 origin-left rounded-full ${activeDispatch ? 'opacity-100' : 'opacity-0'}`}
           style={{
             left: '48%',
             top: '48%',
@@ -767,12 +781,7 @@ function CampusMap2D({
           const selected = zone.id === selectedZone.id;
           const dispatching = robotFeedback?.zoneId === zone.id;
           const left = Math.min(zone.x, 76);
-          const identity = ({
-            'zone-library': {bg: 'bg-blue-50/95',    border: 'border-blue-300',    dot: 'bg-blue-500'},
-            'zone-hall':    {bg: 'bg-emerald-50/95', border: 'border-emerald-300', dot: 'bg-emerald-500'},
-            'zone-field':   {bg: 'bg-orange-50/95',  border: 'border-orange-300',  dot: 'bg-orange-500'},
-          } as Record<string, {bg: string; border: string; dot: string}>)[zone.id]
-            ?? {bg: 'bg-white/95', border: 'border-slate-200', dot: 'bg-slate-400'};
+          const identity = ZONE_IDENTITY[zone.id] ?? ZONE_IDENTITY_FALLBACK;
           const cardBorder = zone.riskLevel === 'high' ? 'border-rose-400' : zone.riskLevel === 'medium' ? 'border-amber-400' : identity.border;
           const cardShadow = zone.riskLevel === 'high' ? 'shadow-rose-200/50' : zone.riskLevel === 'medium' ? 'shadow-amber-200/50' : 'shadow-slate-200/30';
           const scoreColor = zone.riskLevel === 'high' ? 'text-rose-600' : zone.riskLevel === 'medium' ? 'text-amber-600' : 'text-emerald-600';
@@ -785,7 +794,7 @@ function CampusMap2D({
                 onSelectZone(zone);
                 setExpandedZoneId(isExpanded ? null : zone.id);
               }}
-              className={`campus-zone-card absolute w-32 rounded-2xl border-2 p-2.5 text-left shadow-xl backdrop-blur-sm transition hover:shadow-2xl sm:w-44 sm:p-3 ${identity.bg} ${cardBorder} ${cardShadow} ${selected ? 'ring-2 ring-teal-500 ring-offset-1' : ''} ${dispatching ? 'zone-dispatch-pulse' : ''} ${isExpanded ? 'z-[35]' : 'z-20'}`}
+              className={`campus-zone-card absolute w-32 rounded-2xl border-2 p-2.5 text-left shadow-xl backdrop-blur-sm transition hover:shadow-2xl sm:w-44 sm:p-3 ${identity.bg} ${cardBorder} ${cardShadow} ${selected ? 'ring-2 ring-teal-500 ring-offset-1' : ''} ${dispatching ? 'zone-dispatch-pulse' : ''} ${isExpanded ? 'z-35' : 'z-20'}`}
               style={{left: `${left}%`, top: `${zone.y}%`}}
             >
               <div className="flex items-start justify-between gap-1">
@@ -878,10 +887,10 @@ function CampusMap2D({
 
 function OperationsBrief({viewModel, onOpenPanel}: {viewModel: CommandCenterViewModel; onOpenPanel: (panel: ActivePanel) => void}) {
   const accentBar = viewModel.highestZone.riskLevel === 'high'
-    ? 'bg-gradient-to-r from-rose-400 to-rose-600'
+    ? 'bg-linear-to-r from-rose-400 to-rose-600'
     : viewModel.highestZone.riskLevel === 'medium'
-      ? 'bg-gradient-to-r from-amber-300 to-amber-500'
-      : 'bg-gradient-to-r from-teal-300 to-teal-500';
+      ? 'bg-linear-to-r from-amber-300 to-amber-500'
+      : 'bg-linear-to-r from-teal-300 to-teal-500';
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
       <div className={`h-1 ${accentBar}`} />
@@ -1189,9 +1198,14 @@ function DetailDrawer(props: {
 }
 
 function AlertsPanel({state, selectedAlert, setSelectedAlert, dispatch, onHardwareCommand}: Parameters<typeof DetailDrawer>[0]) {
-  const openCount = state.alerts.filter((alert) => alert.status !== 'resolved').length;
-  const processingCount = state.alerts.filter((alert) => alert.status === 'processing').length;
-  const highCount = state.alerts.filter((alert) => alert.riskLevel === 'high' && alert.status !== 'resolved').length;
+  const {openCount, processingCount, highCount} = useMemo(() => {
+    let open = 0, processing = 0, high = 0;
+    for (const a of state.alerts) {
+      if (a.status !== 'resolved') { open++; if (a.riskLevel === 'high') high++; }
+      if (a.status === 'processing') processing++;
+    }
+    return {openCount: open, processingCount: processing, highCount: high};
+  }, [state.alerts]);
   return (
     <div className="grid gap-4">
       <div className="grid grid-cols-3 gap-2">
@@ -1804,13 +1818,15 @@ function GlassPanel({children, className = ''}: {children: ReactNode; className?
   return <Surface className={`p-4 ${className}`}>{children}</Surface>;
 }
 
+const SIGNAL_TILE_STYLES: Record<string, {bg: string; val: string; lbl: string}> = {
+  teal:    {bg: 'bg-teal-50/80 border-teal-200/80',       val: 'text-teal-700',    lbl: 'text-teal-500'},
+  rose:    {bg: 'bg-rose-50/80 border-rose-200/80',       val: 'text-rose-700',    lbl: 'text-rose-500'},
+  amber:   {bg: 'bg-amber-50/80 border-amber-200/80',     val: 'text-amber-700',   lbl: 'text-amber-600'},
+  emerald: {bg: 'bg-emerald-50/80 border-emerald-200/80', val: 'text-emerald-700', lbl: 'text-emerald-600'},
+};
+
 function SignalTile({label, value, tone}: {label: string; value: string; tone: 'teal' | 'rose' | 'amber' | 'emerald'}) {
-  const s = {
-    teal:    {bg: 'bg-teal-50/80 border-teal-200/80',    val: 'text-teal-700',    lbl: 'text-teal-500'},
-    rose:    {bg: 'bg-rose-50/80 border-rose-200/80',    val: 'text-rose-700',    lbl: 'text-rose-500'},
-    amber:   {bg: 'bg-amber-50/80 border-amber-200/80',  val: 'text-amber-700',   lbl: 'text-amber-600'},
-    emerald: {bg: 'bg-emerald-50/80 border-emerald-200/80', val: 'text-emerald-700', lbl: 'text-emerald-600'},
-  }[tone];
+  const s = SIGNAL_TILE_STYLES[tone];
   return (
     <div className={`min-w-20 rounded-xl border p-3 ${s.bg}`}>
       <p className={`text-[10px] font-black ${s.lbl}`}>{label}</p>
@@ -1915,7 +1931,7 @@ function InsightStrip({
   onOpenPanel: (panel: ActivePanel) => void;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-teal-200/50 bg-gradient-to-r from-teal-50/60 to-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-teal-200/50 bg-linear-to-r from-teal-50/60 to-white shadow-sm">
       <div className="grid gap-4 p-4 md:grid-cols-[1fr_auto] md:items-center">
         <div className="flex min-w-0 gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-100/80 text-teal-700 shadow-sm shadow-teal-100">

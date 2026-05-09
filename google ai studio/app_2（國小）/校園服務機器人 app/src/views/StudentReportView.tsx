@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, User, BarChart3, Clock, AlertTriangle, Lightbulb, CheckCircle2 } from 'lucide-react';
 import { useAppState } from '../state/AppStateProvider';
@@ -8,10 +8,13 @@ import type { StudentReport } from '../state/appState';
 export function StudentReportView({ goBack, showToast, name = "學習訊號 A", studentId }: any) {
   const state = useAppState();
   const [reportLoading, setReportLoading] = React.useState(false);
-  const report =
-    (studentId ? state.studentReports[studentId] : undefined) ??
-    (Object.values(state.studentReports) as StudentReport[]).find((item) => item.name === name) ??
-    state.studentReports['05'];
+  const report = useMemo(
+    () =>
+      (studentId ? state.studentReports[studentId] : undefined) ??
+      (Object.values(state.studentReports) as StudentReport[]).find((item) => item.name === name) ??
+      state.studentReports['05'],
+    [state.studentReports, studentId, name],
+  );
   const displayName = report?.name ?? name;
 
   const handleSendReport = async () => {
@@ -44,7 +47,7 @@ export function StudentReportView({ goBack, showToast, name = "學習訊號 A", 
       </header>
 
       <main className="p-6 space-y-6">
-        <div className="flex items-center gap-5 bg-surface-container-low p-6 rounded-[2rem] border border-outline-variant/20 shadow-sm relative overflow-hidden">
+        <div className="flex items-center gap-5 bg-surface-container-low p-6 rounded-4xl border border-outline-variant/20 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
           <div className="w-16 h-16 rounded-3xl bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0 shadow-inner">
              <User size={32} />
@@ -77,7 +80,7 @@ export function StudentReportView({ goBack, showToast, name = "學習訊號 A", 
 
         <section>
           <h3 className="font-bold text-on-surface-variant text-sm px-2 mb-4 tracking-widest font-mono">AI 學習狀態分析</h3>
-          <div className="bg-surface-container-low p-7 rounded-[2rem] border border-outline-variant/30 shadow-sm space-y-7 relative overflow-hidden">
+          <div className="bg-surface-container-low p-7 rounded-4xl border border-outline-variant/30 shadow-sm space-y-7 relative overflow-hidden">
 
              <div className="flex gap-5 relative z-10">
                 <div className="w-12 h-12 rounded-[1.25rem] bg-primary/10 flex items-center justify-center shrink-0">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Package, MapPin, Truck, Clock, CheckCircle2 } from 'lucide-react';
 import { useAppActions, useAppState } from '../state/AppStateProvider';
@@ -7,10 +7,16 @@ import {sendHardwareCommand} from '../services/hardwareBridge';
 export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
   const state = useAppState();
   const actions = useAppActions();
-  const activeOrder = state.orders.find((order) => order.status === 'in_transit') ?? state.orders[0] ?? null;
-  const displayStatus = activeOrder
-    ? `送達 ${activeOrder.destination}: ${activeOrder.productName} x${activeOrder.quantity}`
-    : orderStatus;
+  const activeOrder = useMemo(
+    () => state.orders.find((order) => order.status === 'in_transit') ?? state.orders[0] ?? null,
+    [state.orders],
+  );
+  const displayStatus = useMemo(
+    () => activeOrder
+      ? `送達 ${activeOrder.destination}: ${activeOrder.productName} x${activeOrder.quantity}`
+      : orderStatus,
+    [activeOrder, orderStatus],
+  );
   const [eta, setEta] = useState(3);
   const [phase, setPhase] = useState<'departed' | 'arriving' | 'delivered'>('departed');
   const [ev3RetractStatus, setEv3RetractStatus] = useState<'idle' | 'retracting' | 'done' | 'failed'>('idle');
@@ -66,7 +72,7 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
 
           <div className="relative z-10">
             {phase === 'delivered' ? (
-              <motion.div initial={{ scale: 0.8, rotate: -20, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} className="mx-auto w-24 h-24 bg-[#87d46c] text-white rounded-[2rem] flex items-center justify-center mb-8 shadow-xl shadow-[#87d46c]/40 border-4 border-white">
+              <motion.div initial={{ scale: 0.8, rotate: -20, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} className="mx-auto w-24 h-24 bg-[#87d46c] text-white rounded-4xl flex items-center justify-center mb-8 shadow-xl shadow-[#87d46c]/40 border-4 border-white">
                 <CheckCircle2 size={48} strokeWidth={3} />
               </motion.div>
             ) : (
@@ -91,7 +97,7 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
               {displayStatus && phase !== 'delivered' && (
                  <motion.div
                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                   className="mt-8 flex items-center justify-between gap-4 bg-surface-container-highest/50 py-5 px-8 rounded-[2rem] shadow-inner border border-outline-variant/20"
+                   className="mt-8 flex items-center justify-between gap-4 bg-surface-container-highest/50 py-5 px-8 rounded-4xl shadow-inner border border-outline-variant/20"
                  >
                    <div className="flex items-center gap-3">
                       <Clock size={20} className="text-primary" />
@@ -114,7 +120,7 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
              <div className="relative border-l-2 border-outline-variant/30 ml-3.5 space-y-12">
                 {/* Step 1 */}
                 <div className="relative pl-9 group">
-                   <div className="absolute -left-[14px] top-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-[0_0_0_8px_var(--color-surface-container-lowest)]">
+                   <div className="absolute -left-3.5 top-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-[0_0_0_8px_var(--color-surface-container-lowest)]">
                      <div className="w-2.5 h-2.5 bg-white rounded-full"></div>
                    </div>
                    <div>
@@ -125,7 +131,7 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
 
                 {/* Step 2 */}
                 <div className={`relative pl-9 transition-all duration-500 group ${phase === 'arriving' || phase === 'delivered' ? 'opacity-100' : 'opacity-30 scale-95 origin-left'}`}>
-                   <div className={`absolute -left-[14px] top-1 w-6 h-6 rounded-full flex items-center justify-center shadow-[0_0_0_8px_var(--color-surface-container-lowest)] transition-all ${phase === 'arriving' || phase === 'delivered' ? 'bg-primary scale-110' : 'bg-surface-container-highest shadow-none'}`}>
+                   <div className={`absolute -left-3.5 top-1 w-6 h-6 rounded-full flex items-center justify-center shadow-[0_0_0_8px_var(--color-surface-container-lowest)] transition-all ${phase === 'arriving' || phase === 'delivered' ? 'bg-primary scale-110' : 'bg-surface-container-highest shadow-none'}`}>
                      {(phase === 'arriving' || phase === 'delivered') && <div className="w-2.5 h-2.5 bg-white rounded-full"></div>}
                    </div>
                    <div>
@@ -136,7 +142,7 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
 
                 {/* Step 3 */}
                 <div className={`relative pl-9 transition-all duration-500 group ${phase === 'delivered' ? 'opacity-100' : 'opacity-30 scale-95 origin-left'}`}>
-                   <div className={`absolute -left-[14px] top-1 w-6 h-6 rounded-full flex items-center justify-center shadow-[0_0_0_8px_var(--color-surface-container-lowest)] transition-all ${phase === 'delivered' ? 'bg-[#87d46c] scale-125 shadow-xl shadow-[#87d46c]/30' : 'bg-surface-container-highest shadow-none'}`}>
+                   <div className={`absolute -left-3.5 top-1 w-6 h-6 rounded-full flex items-center justify-center shadow-[0_0_0_8px_var(--color-surface-container-lowest)] transition-all ${phase === 'delivered' ? 'bg-[#87d46c] scale-125 shadow-xl shadow-[#87d46c]/30' : 'bg-surface-container-highest shadow-none'}`}>
                      {phase === 'delivered' && <CheckCircle2 size={14} className="text-white" strokeWidth={4} />}
                    </div>
                    <div>
@@ -149,7 +155,7 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
 
                 {phase === 'delivered' && (
                   <div className="relative pl-9 mt-8">
-                    <div className={`absolute -left-[14px] top-1 w-6 h-6 rounded-full flex items-center justify-center shadow-[0_0_0_8px_var(--color-surface-container-lowest)] ${ev3RetractStatus === 'done' ? 'bg-[#87d46c]' : ev3RetractStatus === 'failed' ? 'bg-amber-400' : 'bg-surface-container-highest'}`}>
+                    <div className={`absolute -left-3.5 top-1 w-6 h-6 rounded-full flex items-center justify-center shadow-[0_0_0_8px_var(--color-surface-container-lowest)] ${ev3RetractStatus === 'done' ? 'bg-[#87d46c]' : ev3RetractStatus === 'failed' ? 'bg-amber-400' : 'bg-surface-container-highest'}`}>
                       {ev3RetractStatus === 'done' && <CheckCircle2 size={14} className="text-white" strokeWidth={4} />}
                     </div>
                     <div>
@@ -194,8 +200,8 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: any) {
 
       <AnimatePresence>
         {phase === 'delivered' && (
-          <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-0 inset-x-0 p-8 bg-background/90 backdrop-blur-2xl border-t border-outline-variant/30 max-w-md mx-auto z-[60] shadow-[0_-20px_50px_rgba(0,0,0,0.05)]">
-            <button onClick={goBack} className="w-full py-5 bg-primary hover:bg-primary/95 text-white font-bold text-lg rounded-[2rem] active:scale-95 transition-all shadow-2xl shadow-primary/40 flex items-center justify-center gap-3">
+          <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-0 inset-x-0 p-8 bg-background/90 backdrop-blur-2xl border-t border-outline-variant/30 max-w-md mx-auto z-60 shadow-[0_-20px_50px_rgba(0,0,0,0.05)]">
+            <button onClick={goBack} className="w-full py-5 bg-primary hover:bg-primary/95 text-white font-bold text-lg rounded-4xl active:scale-95 transition-all shadow-2xl shadow-primary/40 flex items-center justify-center gap-3">
                <Package size={24} />
                確認收件並結束任務
             </button>

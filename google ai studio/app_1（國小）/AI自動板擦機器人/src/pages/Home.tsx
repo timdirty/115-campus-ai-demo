@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {motion} from 'motion/react';
 import {ArrowRight, Bot, Database, Loader2, Radio, RefreshCw, ShieldCheck, Video} from 'lucide-react';
 import {CapturePanel} from '../components/home/CapturePanel';
@@ -9,8 +9,10 @@ import {SavedNotePanel} from '../components/home/SavedNotePanel';
 import {StatusTile} from '../components/home/StatusTile';
 import {useBridgeStatus} from '../hooks/useBridgeStatus';
 import {useMediaCapture} from '../hooks/useMediaCapture';
-import {analyzeBoardCapture, BoardAnalysisResponse, BoardRegion, saveClassroomSession, transcribeAudio} from '../services/classroomApi';
-import {addNoteAsync} from '../services/notesStore';
+import {analyzeBoardCapture, BoardAnalysisResponse, BoardRegion, ocrBoardLocal, OcrLocalResult, saveClassroomSession, transcribeAudio} from '../services/classroomApi';
+import {resetWhiteboardDemoState, addNoteAsync} from '../services/notesStore';
+import {defaultRobotPose} from '../services/robotPose';
+import {BoardCalibration, BoardCalibrationMode, CalibrationCornerId, defaultBoardCalibration, detectBoardCalibrationFromImage, normalizeBoardCalibration} from '../services/whiteboardCalibration';
 
 const containerVariants: any = {
   hidden: {opacity: 0},
@@ -22,6 +24,12 @@ const itemVariants: any = {
   hidden: {opacity: 0, y: 18},
   show: {opacity: 1, y: 0, transition: {type: 'spring', bounce: 0.18, duration: 0.45}},
 };
+
+const DEMO_STEPS = [
+  {num: '1', label: '拍白板', detail: '開啟攝影機或上傳黑板照'},
+  {num: '2', label: '選區塊', detail: '老師確認 A/B/C 保留或擦除'},
+  {num: '3', label: '派機器人', detail: '區塊式送出板擦任務'},
+];
 
 export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) {
   const {
@@ -41,7 +49,13 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
   const [transcript, setTranscript] = useState('');
   const [previewImage, setPreviewImage] = useState('');
   const [analysis, setAnalysis] = useState<BoardAnalysisResponse | null>(null);
+  const [boardCalibration, setBoardCalibration] = useState<BoardCalibration>(defaultBoardCalibration());
+  const [calibrationMode, setCalibrationMode] = useState<BoardCalibrationMode>('default');
+  const [detectionConfidence, setDetectionConfidence] = useState(0);
+  const [calibrationDirty, setCalibrationDirty] = useState(false);
   const [busy, setBusy] = useState('');
+  const [ocrResult, setOcrResult] = useState<OcrLocalResult | null>(null);
+  const [ocrBusy, setOcrBusy] = useState(false);
 
   const handleToggleCamera = async () => {
     if (media.cameraReady) {
@@ -84,14 +98,37 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
     }
   };
 
+  const runOcr = async (imageBase64: string) => {
+    setOcrBusy(true);
+    const r = await ocrBoardLocal(imageBase64);
+    setOcrResult(r);
+    setOcrBusy(false);
+    return r;
+  };
+
   const captureAndAnalyze = async () => {
     setBusy('analyze');
     try {
       const imageBase64 = media.captureFrame();
       setPreviewImage(imageBase64);
-      const result = await analyzeBoardCapture({imageBase64, transcript, subjectHint});
+      setOcrResult(null);
+      // OCR runs in parallel; result enriches ocrText in the note
+      const [result] = await Promise.all([
+        analyzeBoardCapture({imageBase64, transcript, subjectHint, boardCalibration}),
+        runOcr(imageBase64),
+      ]);
       setAnalysis(result);
-      setClassroom(result.session);
+      const mergedSession = {
+        ...result.session,
+        hardwareProfile: {
+          ...result.session.hardwareProfile,
+          boardCalibration,
+          boardCalibrationMode: calibrationMode,
+          boardDetectionConfidence: detectionConfidence,
+          cameraMounted: media.cameraReady || result.session.hardwareProfile.cameraMounted,
+        },
+      };
+      setClassroom(mergedSession);
       setNotice(result.aiMode === 'gemini' ? '白板分析完成，已整理成國小課堂建議' : '白板分析完成，目前使用本機示範分析');
     } catch (error) {
       setPreviewImage('');
@@ -115,9 +152,22 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
         reader.readAsDataURL(file);
       });
       setPreviewImage(imageBase64);
-      const result = await analyzeBoardCapture({imageBase64, transcript, subjectHint});
+      setOcrResult(null);
+      const [result] = await Promise.all([
+        analyzeBoardCapture({imageBase64, transcript, subjectHint, boardCalibration}),
+        runOcr(imageBase64),
+      ]);
       setAnalysis(result);
-      setClassroom(result.session);
+      const mergedSession = {
+        ...result.session,
+        hardwareProfile: {
+          ...result.session.hardwareProfile,
+          boardCalibration,
+          boardCalibrationMode: calibrationMode,
+          boardDetectionConfidence: detectionConfidence,
+        },
+      };
+      setClassroom(mergedSession);
       setNotice(result.aiMode === 'gemini' ? '白板分析完成，已整理成國小課堂建議' : '白板分析完成，目前使用本機示範分析');
     } catch (error) {
       setPreviewImage('');
@@ -213,12 +263,100 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
     }
   };
 
+  const resetDemoState = () => {
+    const notes = resetWhiteboardDemoState();
+    setAnalysis(null);
+    setPreviewImage('');
+    setTranscript('');
+    setQuickNote('');
+    setOcrResult(null);
+    setBoardCalibration(defaultBoardCalibration());
+    setCalibrationMode('default');
+    setDetectionConfidence(0);
+    setCalibrationDirty(false);
+    setLatestNote(notes[0] ?? null);
+    setNotice('展示資料已重置：白板紀錄、課堂狀態、聊天、導覽與問題回報已回到初始 demo 狀態');
+  };
+
+  const handleCalibrationChange = (cornerId: CalibrationCornerId, point: {x: number; y: number}) => {
+    setBoardCalibration((current) => normalizeBoardCalibration({...current, [cornerId]: point}));
+    setCalibrationMode('manual');
+    setCalibrationDirty(true);
+  };
+
+  const handleAutoDetectCalibration = async () => {
+    try {
+      setBusy('calibration');
+      const imageBase64 = previewImage || media.captureFrame();
+      if (!previewImage) {
+        setPreviewImage(imageBase64);
+      }
+      const detected = await detectBoardCalibrationFromImage(imageBase64);
+      setBoardCalibration(detected.calibration);
+      setCalibrationMode('auto');
+      setDetectionConfidence(detected.confidence);
+      setCalibrationDirty(true);
+      setNotice(detected.confidence > 0
+        ? `已自動抓到白板範圍，信心 ${detected.confidence}%`
+        : '自動偵測沒有抓穩，已回到預設四角，建議手動微調。');
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : '無法自動偵測白板四角');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const handleCalibrationReset = () => {
+    setBoardCalibration(defaultBoardCalibration());
+    setCalibrationMode('default');
+    setDetectionConfidence(0);
+    setCalibrationDirty(true);
+    setNotice('白板四角已重設，請依 webcam 畫面重新微調。');
+  };
+
+  const handleCalibrationSave = async () => {
+    try {
+      const nextSession = await saveClassroomSession({
+        hardwareProfile: {
+          ...(classroom?.hardwareProfile ?? analysis?.session.hardwareProfile),
+          boardCalibration,
+          boardCalibrationMode: calibrationMode,
+          boardDetectionConfidence: detectionConfidence,
+          cameraMounted: media.cameraReady || classroom?.hardwareProfile.cameraMounted || false,
+          visionReady: true,
+        },
+      });
+      setClassroom(nextSession);
+      setAnalysis((current) => current ? {...current, session: nextSession} : current);
+      setCalibrationDirty(false);
+      setNotice('目前 webcam 的白板四角校正已保存，後續辨識會優先使用這個範圍。');
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : '無法保存白板四角校正');
+    }
+  };
+
   const boardRegions = analysis?.boardRegions ?? classroom?.boardRegions ?? [];
-  const demoSteps = [
-    {num: '1', label: '拍白板', detail: '開啟攝影機或上傳黑板照'},
-    {num: '2', label: '選區塊', detail: 'AI 分割，點選保留或擦除'},
-    {num: '3', label: '派機器人', detail: '一鍵送出板擦任務'},
-  ];
+  const {keepCount, erasableCount} = useMemo(() => {
+    let keep = 0, erasable = 0;
+    for (const r of boardRegions) {
+      if (r.status === 'keep') keep++;
+      else if (r.status === 'erasable' || r.status === 'erased') erasable++;
+    }
+    return {keepCount: keep, erasableCount: erasable};
+  }, [boardRegions]);
+  const hasCaptureEvidence = Boolean(previewImage || latestNote?.imageUrl || classroom?.lastCaptureAt);
+  const operatingMode = health?.ok ? '半自動展示版' : '半自動備援版';
+
+  useEffect(() => {
+    const calibration = classroom?.hardwareProfile?.boardCalibration ?? analysis?.session.hardwareProfile.boardCalibration;
+    if (calibration) {
+      setBoardCalibration(normalizeBoardCalibration(calibration));
+    }
+    setCalibrationMode(classroom?.hardwareProfile?.boardCalibrationMode ?? analysis?.session.hardwareProfile.boardCalibrationMode ?? 'default');
+    setDetectionConfidence(classroom?.hardwareProfile?.boardDetectionConfidence ?? analysis?.session.hardwareProfile.boardDetectionConfidence ?? 0);
+  }, [analysis?.session.hardwareProfile.boardCalibration, classroom?.hardwareProfile?.boardCalibration]);
+
+  const robotPose = classroom?.hardwareProfile?.robotPose ?? analysis?.session.hardwareProfile.robotPose ?? defaultRobotPose();
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="show" exit="exit" className="absolute inset-0 w-full h-full overflow-y-auto hide-scrollbar">
@@ -254,7 +392,7 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
               </button>
             </div>
             <div className="mt-5 grid gap-3 md:grid-cols-3">
-              {demoSteps.map((step) => (
+              {DEMO_STEPS.map((step) => (
                 <div key={step.label} className="rounded-2xl bg-surface/80 p-4 border border-white/60">
                   <div className="w-7 h-7 rounded-full bg-primary text-on-primary flex items-center justify-center text-xs font-black">
                     {step.num}
@@ -277,6 +415,7 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
             </div>
             <div className="mt-4 space-y-2">
               {[
+                {label: '運作模式', value: `${operatingMode}，老師最後確認`, ok: true},
                 {label: 'AI 分析', value: health?.geminiConfigured ? '雲端分析可用' : '本機示範可用', ok: Boolean(health?.geminiConfigured)},
                 {label: '機器人', value: health?.ok ? '已連線可派遣' : '未連線仍可展示', ok: Boolean(health?.ok)},
                 {label: '課堂紀錄', value: '決策與派遣自動保存', ok: true},
@@ -288,14 +427,30 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
                 </div>
               ))}
             </div>
+            <div className="mt-4 rounded-2xl border border-outline-variant/10 bg-surface p-4">
+              <p className="text-xs font-black text-primary">展示邏輯</p>
+              <div className="mt-3 space-y-2 text-xs font-bold leading-5 text-on-surface-variant">
+                <p>1. 先讀白板內容，再產生可保留與可清空區塊。</p>
+                <p>2. 老師一定要確認，不讓機器人直接自動亂擦。</p>
+                <p>3. 目前先用 A/B/C 區塊展示，下一階段再補固定攝影機定位。</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={resetDemoState}
+              className="mt-4 min-h-11 w-full rounded-2xl bg-surface-container-lowest px-4 text-sm font-extrabold text-primary shadow-sm transition hover:bg-primary/10 active:scale-95"
+            >
+              重置展示資料
+            </button>
           </div>
         </motion.section>
 
         <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5" data-tour="status-tiles">
-          <StatusTile icon={Radio} label="本機硬體" value={health?.ok ? '可展示' : '未連線'} ok={Boolean(health?.ok)} />
-          <StatusTile icon={Bot} label="Gemini" value={health?.geminiConfigured ? '伺服器端已設定' : '本機展示模式'} ok={health?.geminiConfigured ?? false} />
-          <StatusTile icon={Video} label="攝影機" value={media.cameraReady ? '已開啟' : '待授權'} ok={media.cameraReady} />
-          <StatusTile icon={Database} label="紀錄本" value={latestNote ? `${latestNote.subject} 已同步` : '等待課堂紀錄'} ok={Boolean(latestNote)} />
+          <StatusTile icon={ShieldCheck} label="運作模式" value={operatingMode} ok={true} />
+          <StatusTile icon={Radio} label="本機硬體" value={health?.hardwareSimulation ? '硬體模擬模式' : health?.ok ? '可展示' : '未連線'} ok={Boolean(health?.ok)} />
+          <StatusTile icon={Bot} label="AI 模式" value={health?.geminiConfigured ? '伺服器端已設定' : '本機展示模式'} ok={health?.geminiConfigured ?? false} />
+          <StatusTile icon={Video} label="白板證據" value={hasCaptureEvidence ? '已有白板畫面或快照' : media.cameraReady ? '可立即拍照' : '待取得畫面'} ok={hasCaptureEvidence || media.cameraReady} />
+          <StatusTile icon={Database} label="教師決策" value={boardRegions.length > 0 ? `保留 ${keepCount} 區，可清空 ${erasableCount} 區` : '等待白板分析'} ok={boardRegions.length > 0} />
         </motion.section>
 
         <motion.div variants={itemVariants}>
@@ -313,12 +468,21 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
             previewImage={previewImage}
             subjectHint={subjectHint}
             transcript={transcript}
+            boardCalibration={boardCalibration}
+            calibrationMode={calibrationMode}
+            detectionConfidence={detectionConfidence}
+            calibrationDirty={calibrationDirty}
+            robotPose={robotPose}
             onSubjectHintChange={setSubjectHint}
             onTranscriptChange={setTranscript}
             onToggleCamera={handleToggleCamera}
             onCaptureAndAnalyze={captureAndAnalyze}
             onToggleRecording={handleToggleRecording}
             onUploadImage={handleImageUpload}
+            onCalibrationChange={handleCalibrationChange}
+            onAutoDetectCalibration={handleAutoDetectCalibration}
+            onCalibrationReset={handleCalibrationReset}
+            onCalibrationSave={handleCalibrationSave}
           />
           <RegionTaskPanel
             analysis={analysis}
@@ -330,6 +494,33 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
             onKeepAll={keepAllRegions}
           />
         </motion.div>
+
+        {/* OCR result panel */}
+        {(ocrBusy || (ocrResult && ocrResult.ok)) && (
+          <motion.section
+            variants={itemVariants}
+            className="mt-5 rounded-3xl border border-primary/10 bg-surface-container-low p-5"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-on-primary text-sm font-black">文</div>
+              <div>
+                <p className="text-sm font-extrabold">白板文字辨識</p>
+                <p className="text-xs font-semibold text-on-surface-variant">
+                  {ocrBusy ? 'EasyOCR 辨識中…' : `本機 EasyOCR 辨識完成・${ocrResult?.blocks.length ?? 0} 個文字區塊`}
+                </p>
+              </div>
+            </div>
+            {ocrBusy ? (
+              <div className="flex items-center gap-2 text-xs text-on-surface-variant">
+                <Loader2 className="w-3 h-3 animate-spin" />辨識中，請稍候…
+              </div>
+            ) : (
+              <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-on-surface-variant bg-surface rounded-xl p-4 max-h-48 overflow-y-auto">
+                {ocrResult?.text || '（未辨識到文字）'}
+              </pre>
+            )}
+          </motion.section>
+        )}
 
         <motion.section variants={itemVariants} className="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-5">
           <SavedNotePanel latestNote={latestNote} onNavigate={onNavigate} />

@@ -9,6 +9,8 @@ import {WebSocketServer, WebSocket} from 'ws';
 import {getActivePath, getTelemetry, isConnected, onConnectionChange, sendCommand, tryAutoOpen} from './serialPort';
 import {analyzeDeliveryTask, isGeminiConfigured} from './aiService';
 import {appendDeliveryLog, appendTaskLog, getRecentDeliveryLogs, getRecentTaskLogs, resetDemoData} from './storage';
+import {getEV3Status, sendEV3Command, startEV3Manager} from './ev3Manager';
+import {getSpikeStatus, sendSpikeCommand, startSpikeManager} from './spikeManager';
 
 function freeBridgePort(port: number) {
   try {
@@ -21,7 +23,7 @@ function freeBridgePort(port: number) {
   }
 }
 
-const bridgePort = Number(process.env.BRIDGE_PORT ?? 3202);
+const bridgePort = Number(process.env.BRIDGE_PORT ?? 3202) || 3202;
 
 const app = express();
 app.disable('x-powered-by');
@@ -32,6 +34,21 @@ type WsEvent =
 
 const httpServer = createServer(app);
 const wss = new WebSocketServer({server: httpServer});
+
+// Server-side keepalive: terminate ghost connections within 2 ping cycles (~50s)
+const wsAlive = new WeakMap<WebSocket, boolean>();
+const wsKeepalive = setInterval(() => {
+  for (const ws of wss.clients) {
+    if (wsAlive.get(ws) === false) { ws.terminate(); continue; }
+    wsAlive.set(ws, false);
+    ws.ping();
+  }
+}, 25000);
+wss.on('connection', (ws) => {
+  wsAlive.set(ws, true);
+  ws.on('pong', () => wsAlive.set(ws, true));
+});
+httpServer.on('close', () => clearInterval(wsKeepalive));
 
 function broadcast(event: WsEvent): void {
   const data = JSON.stringify(event);
@@ -46,9 +63,14 @@ onConnectionChange((connected, path) => {
   broadcast({type: 'arduino_status', connected, port: path ?? '', simulated: false});
 });
 
+const ALLOWED_ORIGINS_ENV = process.env.ALLOWED_ORIGINS ?? '';
+const extraOrigins = ALLOWED_ORIGINS_ENV ? ALLOWED_ORIGINS_ENV.split(',').map((s) => s.trim()) : [];
+
 app.use((req, res, next) => {
   const origin = req.get('origin') ?? '';
-  if (/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
+  const isLocal = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+  const isAllowed = extraOrigins.includes(origin);
+  if (isLocal || isAllowed) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -57,6 +79,16 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
     res.setHeader('Cache-Control', 'no-store');
   }
+  next();
+});
+
+// Timeout middleware: command/task endpoints must respond within 6s
+app.use('/api/robot', (req, res, next) => {
+  if (req.method !== 'POST') { next(); return; }
+  const t = setTimeout(() => {
+    if (!res.headersSent) res.status(503).json({ok: false, error: 'request timeout — bridge busy'});
+  }, 6000);
+  res.on('finish', () => clearTimeout(t));
   next();
 });
 
@@ -110,9 +142,11 @@ app.post('/api/robot/task', async (req, res) => {
       description: typeof description === 'string' ? description : taskType,
       status: 'pending',
     });
+    let commandOk: boolean | null = null;
     if (typeof command === 'string' && command.trim()) {
       const normalized = command.trim().toUpperCase();
       const result = await sendCommand(normalized);
+      commandOk = result.ok;
       broadcast({type: 'command_ack', command: normalized, ok: result.ok});
       await appendDeliveryLog({
         command: normalized,
@@ -121,7 +155,7 @@ app.post('/api/robot/task', async (req, res) => {
         message: result.message,
       });
     }
-    res.json({ok: true, logs});
+    res.json({ok: true, logs, commandOk});
   } catch (error) {
     res.status(500).json({ok: false, error: error instanceof Error ? error.message : String(error)});
   }
@@ -160,6 +194,24 @@ app.post('/api/ops/reset', async (_req, res) => {
   }
 });
 
+// EV3 endpoints
+app.get('/api/ev3/status', (_req, res) => res.json(getEV3Status()));
+app.post('/api/ev3/command', async (req, res) => {
+  const command = String(req.body?.command ?? '').trim().toUpperCase();
+  if (!command) { res.status(400).json({ok: false, error: 'command required'}); return; }
+  const result = await sendEV3Command(command);
+  res.json(result);
+});
+
+// SPIKE Prime endpoints
+app.get('/api/spike/status', (_req, res) => res.json(getSpikeStatus()));
+app.post('/api/spike/command', async (req, res) => {
+  const command = String(req.body?.command ?? '').trim().toUpperCase();
+  if (!command) { res.status(400).json({ok: false, error: 'command required'}); return; }
+  const result = await sendSpikeCommand(command);
+  res.json(result);
+});
+
 app.use('/api', (_req, res) => {
   res.status(404).json({error: 'API route not found'});
 });
@@ -170,6 +222,8 @@ httpServer.listen(bridgePort, () => {
   console.log(`[bridge] App 2 service-robot serial bridge listening on http://localhost:${bridgePort}`);
   console.log(`[bridge] Baud rate: 115200`);
   void tryAutoOpen();
+  startEV3Manager();
+  startSpikeManager();
 });
 
 httpServer.on('error', (error: NodeJS.ErrnoException) => {

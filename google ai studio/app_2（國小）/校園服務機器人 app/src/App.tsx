@@ -1,4 +1,4 @@
-import React, { Suspense, useRef, useState, useEffect } from 'react';
+import React, { Suspense, useCallback, useRef, useState, useEffect } from 'react';
 import { useProxyHealth } from './hooks/useProxyHealth';
 import { TourProvider } from './components/tour/TourProvider';
 import { TourOverlay } from './components/tour/TourOverlay';
@@ -7,6 +7,7 @@ import { IssueReporter } from './components/IssueReporter';
 import {useHardwareSocket} from './hooks/useHardwareSocket';
 import {HardwareStatusBanner} from './components/HardwareStatusBanner';
 import {CommandFeedbackToast} from './components/CommandFeedbackToast';
+import {DemoTimer} from './components/DemoTimer';
 
 const AVATAR_SVG = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#1d4ed8"/><circle cx="50" cy="36" r="16" fill="#BFDBFE"/><ellipse cx="50" cy="80" rx="28" ry="22" fill="#BFDBFE"/></svg>')}`;
 import { motion, AnimatePresence } from 'motion/react';
@@ -33,7 +34,7 @@ const TABS = [
 
 function ScreenFallback({label = '載入中'}: {label?: string}) {
   return (
-    <div className="grid min-h-[22rem] place-items-center rounded-[2rem] border border-outline-variant/20 bg-surface-container-low">
+    <div className="grid min-h-[22rem] place-items-center rounded-4xl border border-outline-variant/20 bg-surface-container-low">
       <div className="text-center">
         <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
         <p className="mt-4 text-sm font-black text-on-surface-variant">{label}</p>
@@ -67,13 +68,13 @@ export default function App() {
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const hwStatus = useHardwareSocket('http://localhost:3202');
 
-  const showToast = (message: string) => {
+  const showToast = useCallback((message: string) => {
     setToastMessage({ id: Date.now(), message });
-  };
+  }, []);
 
-  const navigateTo = (id: string, props?: any) => {
+  const navigateTo = useCallback((id: string, props?: any) => {
     setSubView({ id, props });
-  };
+  }, []);
 
   const exportDemoState = () => {
     const blob = new Blob([
@@ -143,7 +144,7 @@ export default function App() {
             exit={{ opacity: 0, y: -20, x: '-50%' }}
             role="status"
             aria-live="polite"
-            className="fixed top-20 left-1/2 bg-surface-container-lowest text-on-surface shadow-xl border border-primary/20 rounded-full px-5 py-3 flex items-center gap-3 z-[200] whitespace-nowrap"
+            className="fixed top-20 left-1/2 bg-surface-container-lowest text-on-surface shadow-xl border border-primary/20 rounded-full px-5 py-3 flex items-center gap-3 z-200 whitespace-nowrap"
           >
             <CheckCircle2 size={18} className="text-primary shrink-0" />
             <span className="text-sm font-bold tracking-wide">{toastMessage.message}</span>
@@ -152,7 +153,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Header */}
-      <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-[260px] flex-col border-r border-outline-variant/20 bg-background/95 backdrop-blur-2xl px-5 py-6 shadow-[6px_0_32px_rgba(20,31,50,0.04)]">
+      <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-65 flex-col border-r border-outline-variant/20 bg-background/95 backdrop-blur-2xl px-5 py-6 shadow-[6px_0_32px_rgba(20,31,50,0.04)]">
         <button
           onClick={() => showToast('核心系統診斷正常，展示資料已同步')}
           className="flex items-center gap-3 text-left text-primary transition-opacity hover:opacity-80"
@@ -213,7 +214,7 @@ export default function App() {
       </aside>
 
       <div className="min-h-screen w-full pb-32 md:ml-[260px] md:pb-0">
-      <header className="fixed top-0 w-full z-50 bg-background/85 backdrop-blur-2xl border-b border-outline-variant/10 flex justify-between items-center gap-3 px-4 h-[72px] left-0 right-0 shadow-[0_4px_32px_rgba(0,0,0,0.02)] md:left-[260px] md:right-0 md:max-w-none md:mx-0 md:px-8">
+      <header className="fixed top-0 w-full z-50 bg-background/85 backdrop-blur-2xl border-b border-outline-variant/10 flex justify-between items-center gap-3 px-4 h-18 left-0 right-0 shadow-[0_4px_32px_rgba(0,0,0,0.02)] md:left-65 md:right-0 md:max-w-none md:mx-0 md:px-8">
         <button
           onClick={() => showToast('核心系統診斷正常...')}
           className="flex min-h-10 min-w-0 items-center gap-2.5 text-primary hover:opacity-80 transition-opacity"
@@ -267,7 +268,7 @@ export default function App() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: '100%', filter: 'blur(4px)' }}
             transition={{ type: 'spring', damping: 26, stiffness: 220 }}
-            className="fixed inset-0 z-[100] bg-background overflow-y-auto scrollbar-hide shadow-2xl md:left-[260px]"
+            className="fixed inset-0 z-100 bg-background overflow-y-auto scrollbar-hide shadow-2xl md:left-65"
           >
             <Suspense fallback={<div className="p-5"><ScreenFallback label="正在開啟功能" /></div>}>
               {subView.id === 'task-schedule' && <TaskScheduleView goBack={goBack} showToast={showToast} {...subView.props} />}
@@ -280,7 +281,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 w-full z-50 rounded-t-[2rem] border-t border-outline-variant/30 bg-background/95 backdrop-blur-3xl shadow-[0_-8px_40px_rgba(0,0,0,0.08)] left-0 right-0 pb-safe pb-4 md:hidden" aria-label="手機底部導覽">
+      <nav className="fixed bottom-0 w-full z-50 rounded-t-4xl border-t border-outline-variant/30 bg-background/95 backdrop-blur-3xl shadow-[0_-8px_40px_rgba(0,0,0,0.08)] left-0 right-0 pb-safe pb-4 md:hidden" aria-label="手機底部導覽">
         <div className="grid h-[82px] w-full grid-cols-4 items-end gap-1 px-2 pt-3 mx-auto">
           {TABS.map(tab => {
             const isActive = activeTab === tab.id;
@@ -294,7 +295,7 @@ export default function App() {
                   aria-label={`切換到${tab.label}`}
                   className={`mx-auto flex h-[62px] w-[62px] flex-col items-center justify-center rounded-[1.5rem] p-3 -mt-8 shadow-2xl active:scale-95 transition-all duration-300 ease-out
                     ${isActive
-                      ? 'bg-gradient-to-br from-primary to-primary-container text-white ring-[6px] ring-background'
+                      ? 'bg-linear-to-br from-primary to-primary-container text-white ring-[6px] ring-background'
                       : 'bg-surface-container-highest text-on-surface hover:bg-primary/90 hover:text-white border-[6px] border-background'
                     }`}
                 >
@@ -328,7 +329,7 @@ export default function App() {
       {/* Global Settings Modal */}
       <BottomSheet isOpen={showSettings} onClose={() => setShowSettings(false)} title="教職員帳號設定">
         <div className="p-5 space-y-8 pb-8">
-          <div className="flex items-center gap-6 bg-surface-container-low p-6 rounded-[2rem] border border-outline-variant/20 shadow-sm relative overflow-hidden">
+          <div className="flex items-center gap-6 bg-surface-container-low p-6 rounded-4xl border border-outline-variant/20 shadow-sm relative overflow-hidden">
              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none"></div>
              <img
                src={AVATAR_SVG}
@@ -383,6 +384,7 @@ export default function App() {
     <RemoteControlLauncher />
     <TourOverlay />
     <IssueReporter storageKey="issues-app2:v1" accentColor="#6366f1" />
+    <DemoTimer />
     </TourProvider>
   );
 }
