@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {memo, useCallback, useEffect, useRef, useState} from 'react';
 import {motion, AnimatePresence} from 'motion/react';
 import {
   ArrowDown, ArrowLeft, ArrowRight, ArrowUp,
@@ -138,16 +138,29 @@ export default function RobotControl() {
     }).catch(() => {});
   };
 
-  const handleDriveStart = (dir: string) => {
-    setDriveActive(dir);
-    sendDriveCommand(dir);
-  };
+  const activePortRef = useRef(activePort);
+  activePortRef.current = activePort;
 
-  const handleDriveStop = () => {
-    if (!driveActive) return;
-    setDriveActive(null);
-    sendDriveCommand('STOP');
-  };
+  const handleDriveStart = useCallback((dir: string) => {
+    setDriveActive(dir);
+    fetch('/api/robot/drive', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({command: dir, port: activePortRef.current || undefined}),
+    }).catch(() => {});
+  }, []);
+
+  const handleDriveStop = useCallback(() => {
+    setDriveActive((prev) => {
+      if (!prev) return null;
+      fetch('/api/robot/drive', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({command: 'STOP', port: activePortRef.current || undefined}),
+      }).catch(() => {});
+      return null;
+    });
+  }, []);
 
   const handleSpeedChange = (value: number) => {
     setDriveSpeed(value);
@@ -481,7 +494,7 @@ export default function RobotControl() {
   );
 }
 
-function DriveBtn({dir, icon: Icon, active, onStart, onStop}: {
+const DriveBtn = memo(function DriveBtn({dir, icon: Icon, active, onStart, onStop}: {
   dir: string;
   icon: React.ElementType;
   active: boolean;
@@ -504,4 +517,4 @@ function DriveBtn({dir, icon: Icon, active, onStart, onStop}: {
       <Icon className="w-5 h-5" />
     </button>
   );
-}
+});

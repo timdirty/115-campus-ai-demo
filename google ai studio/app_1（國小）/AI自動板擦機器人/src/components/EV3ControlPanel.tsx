@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {memo, useEffect, useState} from 'react';
 import {Loader2, Wifi, WifiOff, Zap} from 'lucide-react';
 
 type Ev3Status = {
@@ -21,7 +21,7 @@ const EV3_BUTTONS: {label: string; command: string; className?: string}[] = [
   {label: 'EV3 停止', command: 'EV3_STOP', className: 'rounded-lg bg-red-500 px-2 py-2 text-xs font-medium text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-40'},
 ];
 
-export default function EV3ControlPanel() {
+const EV3ControlPanel = memo(function EV3ControlPanel() {
   const [status, setStatus] = useState<Ev3Status>({connected: false, lastCommand: '', lastResponse: ''});
   const [busy, setBusy] = useState(false);
   const [activeCmd, setActiveCmd] = useState<string | null>(null);
@@ -92,4 +92,6 @@ export default function EV3ControlPanel() {
       )}
     </div>
   );
-}
+});
+
+export default EV3ControlPanel;
