@@ -11,7 +11,6 @@ import {CommandFeedbackToast} from './components/CommandFeedbackToast';
 import type {Dispatch, ReactNode} from 'react';
 import {AnimatePresence, motion} from 'motion/react';
 import {
-  Activity,
   Bell,
   Bot,
   Camera,
@@ -25,7 +24,6 @@ import {
   MessageSquare,
   Mic,
   MicOff,
-  Radio,
   Radar,
   RefreshCw,
   Send,
@@ -58,7 +56,7 @@ import {ZoneSensorPanel} from './components/ZoneSensorPanel';
 import {SensorSetupModal} from './components/SensorSetupModal';
 import {BridgeStatusPill, GuardianControlPanel, GuardianDriveDock, QuickAlertButton} from './components/GuardianControlPanel';
 
-type ActivePanel = 'alerts' | 'sensing' | 'care' | 'nodes' | 'logs' | null;
+type ActivePanel = 'alerts' | 'care' | 'robot' | null;
 type RobotDispatchFeedback = {zoneId: string; zoneName: string; stage: '指令送出' | '前往現場' | '老師確認'; createdAt: number; missionId: string} | null;
 type RobotDispatchStage = NonNullable<RobotDispatchFeedback>['stage'];
 
@@ -84,10 +82,8 @@ const moodOptions: Array<{mood: MoodType; label: string; note: string; tone: str
 
 const panelNav: Array<{id: Exclude<ActivePanel, null>; label: string; icon: LucideIcon}> = [
   {id: 'alerts', label: '預警', icon: Bell},
-  {id: 'sensing', label: '感知', icon: Mic},
   {id: 'care', label: '照護', icon: Leaf},
-  {id: 'nodes', label: '節點', icon: Radio},
-  {id: 'logs', label: '紀錄', icon: Activity},
+  {id: 'robot', label: '機器人', icon: Bot},
 ];
 
 const defaultAcoustic = describeAcousticSignal(0, 0);
@@ -912,7 +908,7 @@ function OperationsBrief({viewModel, onOpenPanel}: {viewModel: CommandCenterView
             <p className="text-[10px] font-black text-slate-400">預警</p>
             <p className="mt-1 text-2xl font-black text-slate-950">{viewModel.highPriorityCount}</p>
           </button>
-          <button onClick={() => onOpenPanel('sensing')} className="rounded-xl border border-slate-200/70 bg-slate-50/80 p-3 text-left transition hover:border-teal-200 hover:bg-teal-50">
+          <button onClick={() => onOpenPanel('care')} className="rounded-xl border border-slate-200/70 bg-slate-50/80 p-3 text-left transition hover:border-teal-200 hover:bg-teal-50">
             <p className="text-[10px] font-black text-slate-400">聲量</p>
             <p className="mt-1 text-2xl font-black text-slate-950">{viewModel.latestSoundLabel}</p>
           </button>
@@ -1094,7 +1090,7 @@ function PanelDock({activePanel, onOpenPanel, onShowDemo}: {activePanel: ActiveP
           導覽
         </button>
       </div>
-      <div className="grid grid-cols-5 gap-1">
+      <div className="grid grid-cols-3 gap-1">
         {panelNav.map((item) => (
           <button
             key={item.id}
@@ -1182,9 +1178,8 @@ function DetailDrawer(props: {
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto py-4">
               {panel === 'alerts' && <AlertsPanel {...props} />}
-              {panel === 'sensing' && <SensingPanel {...props} />}
               {panel === 'care' && <CarePanel {...props} />}
-              {panel === 'nodes' && (
+              {panel === 'robot' && (
                 <GuardianControlPanel
                   bridgeOnline={props.bridgeOnline}
                   zones={props.zones}
@@ -1193,7 +1188,6 @@ function DetailDrawer(props: {
                   onDispatchRobot={props.onDispatchRobot}
                 />
               )}
-              {panel === 'logs' && <LogsPanel {...props} />}
             </div>
           </motion.aside>
         </>
@@ -1962,8 +1956,6 @@ function InsightStrip({
 
 function panelTitle(panel: Exclude<ActivePanel, null>) {
   if (panel === 'alerts') return '預警與處置';
-  if (panel === 'sensing') return '聲量感知';
   if (panel === 'care') return '學生照護';
-  if (panel === 'nodes') return '節點與空間';
-  return '紀錄與證據';
+  return '機器人派遣';
 }
