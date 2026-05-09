@@ -56,7 +56,9 @@ const skipBtnStyle: React.CSSProperties = {
   fontSize: 13,
   background: 'none',
   border: 'none',
-  padding: '4px 8px',
+  padding: '10px 16px',
+  minHeight: 44,
+  minWidth: 44,
 };
 
 const fullscreenOverlay: React.CSSProperties = {

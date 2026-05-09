@@ -168,7 +168,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
       <section className="space-y-3 px-1">
         <div className="flex justify-between items-center px-1">
           <h2 className="text-sm font-headline font-bold tracking-tight">分類</h2>
-          <button onClick={() => { setActiveCategory('all'); setSearchQuery(''); }} className="text-[10px] text-primary font-bold hover:bg-primary/5 px-3 py-1.5 rounded-xl transition-all border border-primary/10 active:scale-95">顯示全部</button>
+          <button onClick={() => { setActiveCategory('all'); setSearchQuery(''); }} className="text-[10px] text-primary font-bold hover:bg-primary/5 px-3 py-2.5 min-h-11 rounded-xl transition-all border border-primary/10 active:scale-95">顯示全部</button>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {CATEGORIES.map(cat => {
