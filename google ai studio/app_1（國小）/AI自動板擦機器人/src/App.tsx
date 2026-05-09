@@ -19,6 +19,7 @@ import {useHardwareSocket} from './hooks/useHardwareSocket';
 import {HardwareStatusBanner} from './components/HardwareStatusBanner';
 import {CommandFeedbackToast} from './components/CommandFeedbackToast';
 import {DemoTimer} from './components/DemoTimer';
+import {getBridgeBase} from './services/apiClient';
 
 type AppTab = 'whiteboard' | 'teacher' | 'robot' | 'library' | 'chat' | 'review';
 
@@ -77,7 +78,7 @@ export default function App() {
     ].filter(Boolean).join(' ').toLowerCase().includes(q));
   }, [searchNotes, searchQuery]);
 
-  const hwStatus = useHardwareSocket('http://localhost:3201');
+  const hwStatus = useHardwareSocket(getBridgeBase());
 
   const navigateTo = useCallback((tab: string) => {
     if (isAppTab(tab)) {
@@ -89,7 +90,7 @@ export default function App() {
   const resetDemo = useCallback(async () => {
     setResetting(true);
     try {
-      await fetch('http://localhost:3201/api/ops/reset', {method: 'POST'});
+      await fetch(`${getBridgeBase()}/api/ops/reset`, {method: 'POST'});
     } catch { /* offline OK — UI-only reset still useful */ }
     setResetting(false);
   }, []);

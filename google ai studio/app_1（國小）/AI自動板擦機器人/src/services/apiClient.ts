@@ -1,3 +1,33 @@
+const BRIDGE_HOST_KEY = 'app1:bridgeHost';
+
+export function getBridgeBase(): string {
+  try {
+    const stored = localStorage.getItem(BRIDGE_HOST_KEY)?.trim();
+    if (stored) return `http://${stored}`;
+  } catch {
+    // localStorage not available (SSR/test env)
+  }
+  return `http://${window.location.hostname}:3201`;
+}
+
+export function setBridgeHost(host: string): void {
+  try {
+    if (host.trim()) {
+      localStorage.setItem(BRIDGE_HOST_KEY, host.trim());
+    } else {
+      localStorage.removeItem(BRIDGE_HOST_KEY);
+    }
+  } catch { /* ignore */ }
+}
+
+export function getStoredBridgeHost(): string {
+  try {
+    return localStorage.getItem(BRIDGE_HOST_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
 export class ApiClientError extends Error {
   status: number;
   details?: unknown;
