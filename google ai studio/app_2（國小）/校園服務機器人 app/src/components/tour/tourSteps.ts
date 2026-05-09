@@ -1,6 +1,6 @@
 export type TourStep = {
   id: string;
-  tab?: 'dashboard' | 'teach' | 'delivery' | 'life';
+  tab?: 'teach' | 'delivery' | 'life';
   targetDataTour?: string;
   title: string;
   body: string;
@@ -19,7 +19,7 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     id: 'robot-status',
-    tab: 'dashboard',
+    tab: 'delivery',
     targetDataTour: 'robot-status',
     title: '機器人狀態',
     body: '這裡顯示目前有幾台機器人上線、電量和所在區域。點進去可以看詳細診斷。',
@@ -28,7 +28,7 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     id: 'task-stats',
-    tab: 'dashboard',
+    tab: 'delivery',
     targetDataTour: 'task-stats',
     title: '今日任務統計',
     body: '一眼看出今天完成幾件、還有幾件待處理。',
@@ -37,7 +37,7 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     id: 'dispatch-btn',
-    tab: 'dashboard',
+    tab: 'delivery',
     targetDataTour: 'dispatch-btn',
     title: '校園派遣',
     body: '點這裡開啟地圖，把機器人指派到特定教室或走廊執行任務。',

@@ -11,7 +11,7 @@ import {DemoTimer} from './components/DemoTimer';
 
 const AVATAR_SVG = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#1d4ed8"/><circle cx="50" cy="36" r="16" fill="#BFDBFE"/><ellipse cx="50" cy="80" rx="28" ry="22" fill="#BFDBFE"/></svg>')}`;
 import { motion, AnimatePresence } from 'motion/react';
-import { Bot, LayoutDashboard, GraduationCap, Truck, Building2, CheckCircle2, Download, Upload } from 'lucide-react';
+import { Bot, GraduationCap, Truck, Building2, CheckCircle2, Download, Upload } from 'lucide-react';
 import { BottomSheet } from './components/ui';
 import { RemoteControlLauncher } from './components/RemoteControlPanel';
 import { useAppActions, useAppState } from './state/AppStateProvider';
@@ -26,7 +26,6 @@ const DeliveryTrackingView = React.lazy(() => import('./views/DeliveryTrackingVi
 const DispatchMapView = React.lazy(() => import('./views/DispatchMapView').then((module) => ({default: module.DispatchMapView})));
 
 const TABS = [
-  { id: 'dashboard', icon: LayoutDashboard, label: '首頁' },
   { id: 'teach', icon: GraduationCap, label: '教學' },
   { id: 'delivery', icon: Truck, label: '配送', isPrimary: true },
   { id: 'life', icon: Building2, label: '生活' },
@@ -59,7 +58,7 @@ function RestartTourButton({ onClose }: { onClose: () => void }) {
 export default function App() {
   const state = useAppState();
   const actions = useAppActions();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('delivery');
   const [toastMessage, setToastMessage] = useState<{ id: number; message: string } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [subView, setSubView] = useState<{ id: string; props?: any } | null>(null);
@@ -226,6 +225,28 @@ export default function App() {
             校園服務機器人
           </span>
         </button>
+        {/* AI status indicators */}
+        <div className="hidden items-center gap-1.5 sm:flex">
+          <div
+            title={proxyOnline === null ? 'AI 連線中…' : proxyOnline ? 'AI 已連線' : 'AI 本機模式'}
+            className="flex items-center gap-1.5 rounded-full border border-outline-variant/20 bg-surface-container-low px-2.5 py-1 text-[10px] font-black"
+          >
+            <span className={`h-2 w-2 rounded-full ${
+              proxyOnline === null ? 'bg-slate-300 animate-pulse' :
+              proxyOnline ? 'bg-emerald-500' : 'bg-amber-400'
+            }`} />
+            <span className="text-on-surface-variant">
+              {proxyOnline === null ? '連線中' : proxyOnline ? 'AI 就緒' : '本機'}
+            </span>
+          </div>
+          <div
+            title={hwStatus.connected ? '機器人已連線' : '機器人離線'}
+            className="flex items-center gap-1.5 rounded-full border border-outline-variant/20 bg-surface-container-low px-2.5 py-1 text-[10px] font-black"
+          >
+            <span className={`h-2 w-2 rounded-full ${hwStatus.connected ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+            <span className="text-on-surface-variant">{hwStatus.connected ? '機器人' : '離線'}</span>
+          </div>
+        </div>
         <button
           onClick={() => setShowSettings(true)}
           aria-label="開啟教職員帳號設定"
@@ -250,7 +271,6 @@ export default function App() {
             transition={{ duration: 0.25, ease: "easeOut" }}
           >
             <Suspense fallback={<ScreenFallback label="正在載入頁面" />}>
-              {activeTab === 'dashboard' && <DashboardView showToast={showToast} navigateTo={navigateTo} />}
               {activeTab === 'teach' && <TeachView showToast={showToast} navigateTo={navigateTo} />}
               {activeTab === 'delivery' && <DeliveryView showToast={showToast} navigateTo={navigateTo} />}
               {activeTab === 'life' && <LifeView showToast={showToast} navigateTo={navigateTo} />}
@@ -282,7 +302,7 @@ export default function App() {
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 w-full z-50 rounded-t-4xl border-t border-outline-variant/30 bg-background/95 backdrop-blur-3xl shadow-[0_-8px_40px_rgba(0,0,0,0.08)] left-0 right-0 pb-safe pb-4 md:hidden" aria-label="手機底部導覽">
-        <div className="grid h-[82px] w-full grid-cols-4 items-end gap-1 px-2 pt-3 mx-auto">
+        <div className="grid h-[82px] w-full grid-cols-3 items-end gap-1 px-2 pt-3 mx-auto">
           {TABS.map(tab => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
