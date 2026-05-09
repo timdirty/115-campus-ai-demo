@@ -1,3 +1,4 @@
+import {memo} from 'react';
 import {CheckCircle2, Eraser, Loader2, Save, ShieldCheck} from 'lucide-react';
 import type {BoardAnalysisResponse, BoardRegion, ClassroomSession} from '../../services/classroomApi';
 
@@ -27,7 +28,7 @@ function getRegionStyle(status: BoardRegion['status']) {
   return 'bg-primary-container/90 border-primary text-primary';
 }
 
-export function RegionTaskPanel({analysis, classroom, boardRegions, busy, onSaveAnalysis, onRunRegionTask, onKeepAll}: RegionTaskPanelProps) {
+export const RegionTaskPanel = memo(function RegionTaskPanel({analysis, classroom, boardRegions, busy, onSaveAnalysis, onRunRegionTask, onKeepAll}: RegionTaskPanelProps) {
   const visionEvidence = (analysis?.noteDraft.keywords ?? []).filter((keyword) =>
     /畫面品質|光線偏暗|畫面過曝|畫面資訊太少|可能失焦|筆跡密度|邊緣密度|留白比例|對比|像素辨識/.test(keyword),
   );
@@ -149,4 +150,4 @@ export function RegionTaskPanel({analysis, classroom, boardRegions, busy, onSave
       )}
     </section>
   );
-}
+});

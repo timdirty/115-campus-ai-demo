@@ -1,3 +1,4 @@
+import {memo} from 'react';
 import type {ChangeEvent, RefObject} from 'react';
 import {Bot, Camera, CircleStop, Loader2, LocateFixed, Mic, RefreshCw, Sparkles, Upload} from 'lucide-react';
 import {RobotPoseEstimate} from '../../services/robotPose';
@@ -30,7 +31,7 @@ type CapturePanelProps = {
   onCalibrationSave: () => void;
 };
 
-export function CapturePanel({
+export const CapturePanel = memo(function CapturePanel({
   videoRef,
   canvasRef,
   cameraReady,
@@ -309,4 +310,4 @@ export function CapturePanel({
       </div>
     </section>
   );
-}
+});
