@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {memo, useEffect, useRef, useState} from 'react';
 import {AnimatePresence, motion} from 'motion/react';
 import {
   AlertTriangle,
@@ -488,7 +488,7 @@ export function GuardianControlPanel({bridgeOnline, zones, sensors, state, onDis
 }
 
 // ── Refresh button helper (exported for header use) ────────────────────────────
-export function BridgeRefreshButton({onClick}: {onClick: () => void}) {
+export const BridgeRefreshButton = memo(function BridgeRefreshButton({onClick}: {onClick: () => void}) {
   return (
     <button
       onClick={onClick}
@@ -498,10 +498,10 @@ export function BridgeRefreshButton({onClick}: {onClick: () => void}) {
       <RefreshCw className="h-4 w-4" />
     </button>
   );
-}
+});
 
 // ── Connection pill (exported for header use) ──────────────────────────────────
-export function BridgeStatusPill({online, sensorCount}: {online: boolean; sensorCount: number}) {
+export const BridgeStatusPill = memo(function BridgeStatusPill({online, sensorCount}: {online: boolean; sensorCount: number}) {
   return (
     <div className={`hidden items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black md:flex transition-colors ${
       online
@@ -518,7 +518,7 @@ export function BridgeStatusPill({online, sensorCount}: {online: boolean; sensor
         : '橋接離線'}
     </div>
   );
-}
+});
 
 // ── Zap button for quick ALERT from anywhere ──────────────────────────────────
 export function QuickAlertButton({disabled}: {disabled?: boolean}) {

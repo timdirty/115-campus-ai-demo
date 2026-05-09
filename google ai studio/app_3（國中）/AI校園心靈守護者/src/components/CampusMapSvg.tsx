@@ -1,3 +1,4 @@
+import {memo, useCallback} from 'react';
 import type React from 'react';
 import type {ZoneSensorReading} from '../types';
 
@@ -174,14 +175,14 @@ function CompassRose() {
   );
 }
 
-export function CampusMapSvg({zones = [], selectedZoneId, onZoneClick}: CampusMapSvgProps) {
-  const handleClick = (zoneId: string) => () => onZoneClick?.(zoneId);
-  const handleKeyDown = (zoneId: string) => (event: React.KeyboardEvent<SVGGElement>) => {
+export const CampusMapSvg = memo(function CampusMapSvg({zones = [], selectedZoneId, onZoneClick}: CampusMapSvgProps) {
+  const handleClick = useCallback((zoneId: string) => () => onZoneClick?.(zoneId), [onZoneClick]);
+  const handleKeyDown = useCallback((zoneId: string) => (event: React.KeyboardEvent<SVGGElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       onZoneClick?.(zoneId);
     }
-  };
+  }, [onZoneClick]);
 
   return (
     <svg viewBox="0 0 480 360" className="absolute inset-0 h-full w-full" role="application" aria-label="校園安全監控地圖">
@@ -269,4 +270,4 @@ export function CampusMapSvg({zones = [], selectedZoneId, onZoneClick}: CampusMa
       </text>
     </svg>
   );
-}
+});
