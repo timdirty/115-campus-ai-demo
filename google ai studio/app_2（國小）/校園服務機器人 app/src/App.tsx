@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Bot, GraduationCap, Truck, Building2, CheckCircle2, Download, Upload } from 'lucide-react';
 import { BottomSheet } from './components/ui';
 import { RemoteControlLauncher, RemoteControlSidebarButton } from './components/RemoteControlPanel';
+import { RobotDisplaySync } from './components/RobotDisplaySync';
 import { useAppActions, useAppState } from './state/AppStateProvider';
 
 const DashboardView = React.lazy(() => import('./views/DashboardView').then((module) => ({default: module.DashboardView})));
@@ -212,10 +213,15 @@ export default function App() {
             重置展示資料
           </button>
         </div>
+
+        {/* 機器人顯示面板同步 */}
+        <div className="mt-4">
+          <RobotDisplaySync />
+        </div>
       </aside>
 
       <div className="min-h-screen w-full md:w-auto pb-32 md:ml-65 md:pb-0">
-      <header className="fixed top-0 w-full z-50 bg-background/85 backdrop-blur-2xl border-b border-outline-variant/10 flex justify-between items-center gap-3 px-4 h-18 left-0 right-0 shadow-[0_4px_32px_rgba(0,0,0,0.02)] md:left-65 md:right-0 md:max-w-none md:mx-0 md:px-8">
+      <header className="fixed top-0 w-full md:w-auto z-50 bg-background/85 backdrop-blur-2xl border-b border-outline-variant/10 flex justify-between items-center gap-3 px-4 h-18 left-0 right-0 shadow-[0_4px_32px_rgba(0,0,0,0.02)] md:left-65 md:right-0 md:max-w-none md:mx-0 md:px-8">
         <button
           onClick={() => showToast('核心系統診斷正常...')}
           className="flex min-h-10 min-w-0 items-center gap-2.5 text-primary hover:opacity-80 transition-opacity"
