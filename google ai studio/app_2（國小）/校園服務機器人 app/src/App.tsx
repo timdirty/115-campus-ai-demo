@@ -214,7 +214,7 @@ export default function App() {
         </div>
       </aside>
 
-      <div className="min-h-screen w-full pb-32 md:ml-[260px] md:pb-0">
+      <div className="min-h-screen w-full md:w-auto pb-32 md:ml-[260px] md:pb-0">
       <header className="fixed top-0 w-full z-50 bg-background/85 backdrop-blur-2xl border-b border-outline-variant/10 flex justify-between items-center gap-3 px-4 h-18 left-0 right-0 shadow-[0_4px_32px_rgba(0,0,0,0.02)] md:left-65 md:right-0 md:max-w-none md:mx-0 md:px-8">
         <button
           onClick={() => showToast('核心系統診斷正常...')}

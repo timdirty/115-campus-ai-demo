@@ -89,29 +89,29 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
   const commandCount = state.robotCommandLogs.length;
 
   return (
-    <div className="space-y-8 pb-6">
+    <div className="space-y-5 pb-6">
       {/* Summary bar */}
-      <section className="grid grid-cols-3 gap-3 px-1">
+      <section className="grid grid-cols-3 gap-2.5 px-1">
         {[
           { label: '進行中', value: inProgressCount },
           { label: '已完成', value: completedCount },
           { label: '配送次數', value: commandCount },
         ].map(({ label, value }) => (
-          <div key={label} className="rounded-2xl border border-outline-variant/20 bg-surface-container-low px-4 py-3 text-center shadow-inner">
-            <p className="text-[10px] font-extrabold text-on-surface-variant tracking-widest uppercase">{label}</p>
-            <p className="mt-1 text-2xl font-extrabold text-primary">{value}</p>
+          <div key={label} className="rounded-xl border border-outline-variant/20 bg-surface-container-low px-3 py-2.5 text-center shadow-inner">
+            <p className="text-[9px] font-extrabold text-on-surface-variant tracking-widest uppercase">{label}</p>
+            <p className="mt-0.5 text-xl font-extrabold text-primary">{value}</p>
           </div>
         ))}
       </section>
 
       {/* Search */}
       <section className="relative px-1">
-        <div className="group relative flex items-center bg-surface-container-low rounded-4xl px-6 py-5 transition-all focus-within:bg-surface-container-lowest focus-within:ring-4 focus-within:ring-primary/5 shadow-inner border border-outline-variant/10">
-          <Search className="text-on-surface-variant mr-4 shrink-0 transition-colors group-focus-within:text-primary" size={22} />
+        <div className="group relative flex items-center bg-surface-container-low rounded-2xl px-4 py-3 transition-all focus-within:bg-surface-container-lowest focus-within:ring-2 focus-within:ring-primary/10 shadow-inner border border-outline-variant/10">
+          <Search className="text-on-surface-variant mr-3 shrink-0 transition-colors group-focus-within:text-primary" size={18} />
           <input
             type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value.slice(0, 50))}
             maxLength={50}
-            className="bg-transparent border-none focus:outline-none focus:ring-0 w-full text-base font-bold placeholder:text-on-surface-variant/40"
+            className="bg-transparent border-none focus:outline-none focus:ring-0 w-full text-sm font-bold placeholder:text-on-surface-variant/40"
             placeholder="搜尋課程餐盒、文具或實驗室耗材..."
           />
           {searchQuery && (
@@ -123,38 +123,38 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
       </section>
 
       {/* Delivery Tracking Herocard */}
-      <section data-tour="order-list" className="space-y-4">
-        <h2 className="text-xl font-headline font-bold tracking-tight px-2 flex items-center gap-2">
+      <section data-tour="order-list" className="space-y-3">
+        <h2 className="text-base font-headline font-bold tracking-tight px-2 flex items-center gap-2">
            即時配送狀態
            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
         </h2>
-        <button onClick={() => navigateTo('delivery-tracking')} className="w-full text-left bg-surface-container-low border border-outline-variant/30 rounded-[2.5rem] p-1.5 cursor-pointer group active:scale-[0.985] transition-all shadow-[0_4px_25px_rgba(0,0,0,0.02)] flex flex-col">
-          <div className="bg-surface-container-lowest rounded-[2.2rem] p-7 space-y-7 group-hover:shadow-md transition-shadow relative overflow-hidden">
+        <button onClick={() => navigateTo('delivery-tracking')} className="w-full text-left bg-surface-container-low border border-outline-variant/30 rounded-2xl p-1 cursor-pointer group active:scale-[0.985] transition-all shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col">
+          <div className="bg-surface-container-lowest rounded-xl p-4 space-y-4 group-hover:shadow-md transition-shadow relative overflow-hidden">
             <div className="flex justify-between items-start relative z-10">
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-extrabold text-primary flex items-center gap-2">
+              <div className="space-y-1">
+                <span className="text-[9px] font-extrabold text-primary flex items-center gap-2">
                   {orderStatus ? '運送中' : '待命模式'}
                 </span>
-                <h3 className="text-3xl font-headline font-bold tracking-tight">機器人 Delta-04</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <p className="text-[11px] text-on-surface-variant font-bold bg-surface-container-low px-3 py-1.5 rounded-xl border border-outline-variant/10 shadow-inner flex items-center gap-2">
-                    <MapPin size={12} className="text-primary" /> {activeOrder ? `前往 ${activeOrder.destination}` : '等待任務指派...'}
+                <h3 className="text-lg font-headline font-bold tracking-tight">機器人 Delta-04</h3>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] text-on-surface-variant font-bold bg-surface-container-low px-2.5 py-1 rounded-xl border border-outline-variant/10 shadow-inner flex items-center gap-1.5">
+                    <MapPin size={10} className="text-primary" /> {activeOrder ? `前往 ${activeOrder.destination}` : '等待任務指派...'}
                   </p>
                 </div>
               </div>
-              <div className="w-18 h-18 bg-primary text-white rounded-[1.75rem] flex items-center justify-center shadow-[0_8px_25px_rgba(var(--color-primary),0.3)] shrink-0 group-hover:-translate-y-1 transition-transform rotate-3">
-                <Package size={34} />
+              <div className="w-14 h-14 bg-primary text-white rounded-2xl flex items-center justify-center shadow-[0_6px_18px_rgba(var(--color-primary),0.25)] shrink-0 group-hover:-translate-y-1 transition-transform rotate-3">
+                <Package size={26} />
               </div>
             </div>
 
             {/* Minimal Timeline preview inside Hero */}
-            <div className="relative pl-6 space-y-8 mt-2 z-10">
-              <div className="absolute left-[9px] top-2 bottom-2 w-0.5 bg-outline-variant/30"></div>
-              <div className="relative flex items-center gap-5">
-                <div className={`z-10 w-5 h-5 rounded-full border-4 border-surface-container-lowest ${orderStatus ? 'bg-primary shadow-[0_0_15px_rgba(var(--color-primary),0.4)]' : 'bg-surface-container-highest animate-pulse'}`}></div>
-                <div className={`flex-1 px-5 py-3 rounded-2xl transition-all border ${orderStatus ? 'bg-surface-container-low border-outline-variant/30 text-on-surface shadow-sm' : 'opacity-40 border-transparent'}`}>
-                  <p className="text-base font-bold truncate leading-none mb-1">{orderStatus ? '已離開配送中心' : '配送系統就緒'}</p>
-                  {orderStatus && <p className="text-xs text-primary font-extrabold mt-1">預計 4 分鐘抵達</p>}
+            <div className="relative pl-5 z-10">
+              <div className="absolute left-2 top-2 bottom-2 w-0.5 bg-outline-variant/30"></div>
+              <div className="relative flex items-center gap-4">
+                <div className={`z-10 w-4 h-4 rounded-full border-4 border-surface-container-lowest ${orderStatus ? 'bg-primary shadow-[0_0_12px_rgba(var(--color-primary),0.4)]' : 'bg-surface-container-highest animate-pulse'}`}></div>
+                <div className={`flex-1 px-4 py-2.5 rounded-xl transition-all border ${orderStatus ? 'bg-surface-container-low border-outline-variant/30 text-on-surface shadow-sm' : 'opacity-40 border-transparent'}`}>
+                  <p className="text-sm font-bold truncate leading-none mb-0.5">{orderStatus ? '已離開配送中心' : '配送系統就緒'}</p>
+                  {orderStatus && <p className="text-[10px] text-primary font-extrabold">預計 4 分鐘抵達</p>}
                 </div>
               </div>
             </div>
@@ -165,25 +165,25 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
       </section>
 
       {/* Categories */}
-      <section className="space-y-5 px-1">
-        <div className="flex justify-between items-end px-1">
-          <h2 className="text-xl font-headline font-bold tracking-tight">分類</h2>
-          <button onClick={() => { setActiveCategory('all'); setSearchQuery(''); }} className="text-xs text-primary font-bold hover:bg-primary/5 px-4 py-2 rounded-xl transition-all border border-primary/10 active:scale-95">顯示全部</button>
+      <section className="space-y-3 px-1">
+        <div className="flex justify-between items-center px-1">
+          <h2 className="text-sm font-headline font-bold tracking-tight">分類</h2>
+          <button onClick={() => { setActiveCategory('all'); setSearchQuery(''); }} className="text-[10px] text-primary font-bold hover:bg-primary/5 px-3 py-1.5 rounded-xl transition-all border border-primary/10 active:scale-95">顯示全部</button>
         </div>
-        <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {CATEGORIES.map(cat => {
             const isActive = activeCategory === cat.id;
             const Icon = cat.icon;
             return (
               <motion.button
-                whileHover={{ y: -2 }}
+                whileHover={{ y: -1 }}
                 whileTap={{ scale: 0.95 }}
                 key={cat.id}
                 onClick={() => setActiveCategory(isActive ? 'all' : cat.id)}
-                className={`flex-shrink-0 font-bold px-6 py-4 rounded-[1.25rem] flex items-center gap-3 transition-all border shadow-sm ${isActive ? 'bg-primary text-white border-primary shadow-xl shadow-primary/20' : 'bg-surface-container-lowest border-outline-variant/30 text-on-surface-variant hover:bg-surface-container-low'}`}
+                className={`flex-shrink-0 font-bold px-4 py-2.5 rounded-2xl flex items-center gap-2 transition-all border shadow-sm ${isActive ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-surface-container-lowest border-outline-variant/30 text-on-surface-variant hover:bg-surface-container-low'}`}
               >
-                <Icon size={20} className={isActive ? 'text-white' : 'text-primary'} />
-                <span className="text-sm tracking-tight">{cat.label}</span>
+                <Icon size={16} className={isActive ? 'text-white' : 'text-primary'} />
+                <span className="text-xs tracking-tight">{cat.label}</span>
               </motion.button>
             );
           })}
@@ -191,23 +191,23 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
       </section>
 
       {/* Products List */}
-      <section data-tour="new-order-btn" className="space-y-6 min-h-[300px] px-1">
-        <div className="flex items-center gap-3 px-1 mb-2">
-           <div className="w-1.5 h-6 bg-primary rounded-full"></div>
-           <h2 className="text-2xl font-headline font-bold tracking-tight">
+      <section data-tour="new-order-btn" className="space-y-3 min-h-50 px-1">
+        <div className="flex items-center gap-2.5 px-1 mb-1">
+           <div className="w-1 h-5 bg-primary rounded-full"></div>
+           <h2 className="text-base font-headline font-bold tracking-tight">
              {searchQuery ? '搜尋結果' : (activeCategory !== 'all' ? CATEGORIES.find(c => c.id === activeCategory)?.label : '熱門推薦商品')}
            </h2>
         </div>
 
         {filteredProducts.length === 0 ? (
-          <div className="py-20 text-center text-on-surface-variant bg-surface-container-lowest rounded-[2.5rem] border-2 border-dashed border-outline-variant/30 px-10">
-            <div className="w-20 h-20 bg-surface-container rounded-full flex items-center justify-center mx-auto mb-6">
-               <Package size={40} className="opacity-20" />
+          <div className="py-12 text-center text-on-surface-variant bg-surface-container-lowest rounded-2xl border-2 border-dashed border-outline-variant/30 px-6">
+            <div className="w-14 h-14 bg-surface-container rounded-full flex items-center justify-center mx-auto mb-4">
+               <Package size={28} className="opacity-20" />
             </div>
-            <p className="font-bold text-xl tracking-tight text-on-surface">
+            <p className="font-bold text-base tracking-tight text-on-surface">
               {searchQuery ? '無相符搜尋結果' : activeCategory !== 'all' ? '此分類目前無商品' : '找不到商品'}
             </p>
-            <p className="text-sm mt-2 opacity-60">
+            <p className="text-xs mt-1.5 opacity-60">
               {searchQuery ? `找不到「${searchQuery}」，請嘗試其他關鍵字` : '請切換分類或清除篩選'}
             </p>
           </div>
@@ -217,44 +217,40 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
             initial="hidden"
             animate="show"
             key={activeCategory + searchQuery}
-            className="grid grid-cols-1 gap-6"
+            className="grid grid-cols-1 gap-3"
           >
             {filteredProducts.map(product => (
               <motion.div
                 variants={itemVariants}
                 key={product.id}
                 onClick={() => openProduct(product)}
-                className={`flex gap-6 items-center group cursor-pointer bg-surface-container-lowest p-5 rounded-[2.5rem] border transition-all active:scale-[0.985] ${product.stock === 0 ? 'opacity-60 grayscale-[50%] pointer-events-none border-outline-variant/10' : 'border-outline-variant/30 shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-xl hover:border-primary/20'}`}
+                className={`flex gap-4 items-center group cursor-pointer bg-surface-container-lowest p-4 rounded-2xl border transition-all active:scale-[0.985] ${product.stock === 0 ? 'opacity-60 grayscale-50 pointer-events-none border-outline-variant/10' : 'border-outline-variant/30 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-lg hover:border-primary/20'}`}
               >
-                <div className="w-[124px] h-[124px] rounded-4xl overflow-hidden bg-surface-container-low shrink-0 relative shadow-inner">
+                <div className="w-20 h-20 rounded-2xl overflow-hidden bg-surface-container-low shrink-0 relative shadow-inner">
                   <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent z-10 transition-colors"></div>
-                  <img src={product.img} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 ease-out" />
+                  <img src={product.img} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
                   {product.stock === 0 && (
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] z-20 flex items-center justify-center">
-                      <span className="text-white text-xs font-bold px-3 py-1.5 bg-black/50 rounded-lg border border-white/20">已售罄</span>
+                      <span className="text-white text-[10px] font-bold px-2 py-1 bg-black/50 rounded-lg">已售罄</span>
                     </div>
                   )}
-                  <div className="absolute top-2 left-2 z-20">
-                     <div className="bg-white/90 backdrop-blur shadow-sm px-2 py-0.5 rounded-lg text-[10px] font-bold text-primary">推薦</div>
+                  <div className="absolute top-1.5 left-1.5 z-20">
+                     <div className="bg-white/90 backdrop-blur shadow-sm px-1.5 py-0.5 rounded-md text-[9px] font-bold text-primary">推薦</div>
                   </div>
                 </div>
-                <div className="flex-1 space-y-3 py-1 pr-1 min-w-0">
-                  <div className="flex justify-between items-start gap-4">
-                    <h3 className="font-bold text-xl leading-tight text-on-surface tracking-tight truncate">{product.name}</h3>
-                  </div>
-                  <p className="text-xs text-on-surface-variant font-medium leading-relaxed line-clamp-2 opacity-70">{product.desc}</p>
+                <div className="flex-1 space-y-1.5 min-w-0">
+                  <h3 className="font-bold text-sm leading-tight text-on-surface tracking-tight truncate">{product.name}</h3>
+                  <p className="text-[10px] text-on-surface-variant font-medium leading-relaxed line-clamp-2 opacity-70">{product.desc}</p>
 
-                  <div className="flex items-center justify-between pt-1">
-                    <div className="flex items-center gap-3">
-                       <span className="font-bold text-2xl text-primary tracking-tight">NT${product.price}</span>
-                       <div className="h-4 w-px bg-outline-variant/30"></div>
-                       <span className={`text-xs font-bold ${product.stock > 10 ? 'text-[#87d46c]' : 'text-error'}`}>
-                         庫存: {product.stock}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                       <span className="font-bold text-base text-primary tracking-tight">NT${product.price}</span>
+                       <span className={`text-[10px] font-bold ${product.stock > 10 ? 'text-[#87d46c]' : 'text-error'}`}>
+                         庫存 {product.stock}
                        </span>
                     </div>
-                    <button className="bg-surface-container-high group-hover:bg-primary group-hover:text-white text-on-surface w-11 h-11 rounded-2xl transition-all flex items-center justify-center shadow-sm active:scale-90 overflow-hidden relative">
-                      <span className="text-xl font-bold relative z-10">+</span>
-                      <motion.div initial={{ x: '-100%' }} whileHover={{ x: '100%' }} transition={{ duration: 0.5 }} className="absolute inset-0 bg-white/20 skew-x-12"></motion.div>
+                    <button className="bg-surface-container-high group-hover:bg-primary group-hover:text-white text-on-surface w-9 h-9 rounded-xl transition-all flex items-center justify-center shadow-sm active:scale-90 overflow-hidden relative">
+                      <span className="text-base font-bold relative z-10">+</span>
                     </button>
                   </div>
                 </div>

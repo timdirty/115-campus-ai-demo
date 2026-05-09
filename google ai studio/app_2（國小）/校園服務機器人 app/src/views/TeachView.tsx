@@ -86,9 +86,9 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
   };
 
   return (
-    <div className="space-y-8 pb-6">
+    <div className="space-y-5 pb-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-headline font-bold">101 教室 <span className="text-on-surface-variant text-[1.1rem]">/ 歷史課</span></h2>
+        <h2 className="text-xl font-headline font-bold">101 教室 <span className="text-on-surface-variant text-base">/ 歷史課</span></h2>
         <div className="bg-primary/10 px-3 py-1.5 rounded-full flex items-center gap-2 border border-primary/20 shadow-sm">
           <span className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--color-primary),0.5)]"></span>
           <span className="text-[10px] font-bold text-primary tracking-widest uppercase">即時分析</span>
@@ -96,54 +96,54 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       </div>
 
       {/* Attendance & Roll Call */}
-      <section data-tour="attendance-card" className="bg-surface-container-lowest rounded-[2.5rem] p-7 border border-outline-variant/30 shadow-md flex items-center justify-between gap-5 relative overflow-hidden group">
-         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
+      <section data-tour="attendance-card" className="bg-surface-container-lowest rounded-2xl p-5 border border-outline-variant/30 shadow-md flex items-center justify-between gap-4 relative overflow-hidden group">
+         <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
         <div className="flex-1 min-w-0 relative z-10">
-           <p className="text-[11px] font-bold text-on-surface-variant tracking-[0.2em] mb-2">出缺席場域評估</p>
+           <p className="text-[10px] font-bold text-on-surface-variant tracking-[0.2em] mb-1.5">出缺席場域評估</p>
            {state.attendance.scanned ? (
-             <div className="flex flex-col items-start gap-1.5">
+             <div className="flex flex-col items-start gap-1">
                <div className="flex items-baseline gap-2">
-                 <p className="font-headline font-bold text-4xl tracking-tighter text-on-surface leading-none">{state.attendance.present}</p>
-                 <span className="text-sm font-bold tracking-widest text-on-surface-variant">/ {state.attendance.total} 人出席</span>
+                 <p className="font-headline font-bold text-2xl tracking-tighter text-on-surface leading-none">{state.attendance.present}</p>
+                 <span className="text-xs font-bold tracking-widest text-on-surface-variant">/ {state.attendance.total} 人出席</span>
                </div>
-               <span className="text-xs font-bold bg-error text-white px-3 py-1.5 rounded-full whitespace-nowrap mt-2 shadow-[0_0_15px_rgba(var(--color-error),0.3)] tracking-widest">{state.attendance.absent} 人請假/缺席</span>
+               <span className="text-[10px] font-bold bg-error text-white px-2.5 py-1 rounded-full whitespace-nowrap mt-1 shadow-[0_0_10px_rgba(var(--color-error),0.3)] tracking-widest">{state.attendance.absent} 人請假/缺席</span>
              </div>
            ) : (
-             <div className="mt-2">
-                <p className="font-headline font-bold text-xl text-on-surface-variant">掃描待命狀態</p>
-                <div className="mt-2 text-[10px] text-primary/70 animate-pulse flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span> 場域掃描待命</div>
+             <div className="mt-1">
+                <p className="font-headline font-bold text-base text-on-surface-variant">掃描待命狀態</p>
+                <div className="mt-1 text-[10px] text-primary/70 animate-pulse flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span> 場域掃描待命</div>
              </div>
            )}
         </div>
         <button
           onClick={handleRollCall}
-          className="relative z-10 shrink-0 bg-primary hover:bg-primary/95 text-white active:scale-95 transition-all w-24 h-24 rounded-4xl shadow-[0_0_30px_rgba(var(--color-primary),0.4)] border-2 border-primary/20 flex flex-col items-center justify-center gap-2 group-hover:shadow-[0_0_40px_rgba(var(--color-primary),0.6)]"
+          className="relative z-10 shrink-0 bg-primary hover:bg-primary/95 text-white active:scale-95 transition-all w-16 h-16 rounded-2xl shadow-[0_0_20px_rgba(var(--color-primary),0.3)] border-2 border-primary/20 flex flex-col items-center justify-center gap-1"
         >
-          <Camera size={28} className="drop-shadow-md" />
-          <span className="text-[11px] font-bold tracking-widest text-center shadow-black drop-shadow-md">環場<br/>確認</span>
+          <Camera size={20} className="drop-shadow-md" />
+          <span className="text-[10px] font-bold tracking-widest text-center drop-shadow-md">環場確認</span>
         </button>
       </section>
 
-      <div role="button" tabIndex={0} aria-label="開啟班級專注度分析報表" onKeyDown={(e) => e.key === 'Enter' && setModal('chart')} className="bg-surface-container-lowest rounded-[2.5rem] p-8 relative overflow-hidden shadow-md border border-outline-variant/30 cursor-pointer hover:bg-surface-container transition-all group active:scale-[0.98]" onClick={() => setModal('chart')}>
-          <div className="flex justify-between items-start mb-8 relative z-10">
+      <div role="button" tabIndex={0} aria-label="開啟班級專注度分析報表" onKeyDown={(e) => e.key === 'Enter' && setModal('chart')} className="bg-surface-container-lowest rounded-2xl p-5 relative overflow-hidden shadow-md border border-outline-variant/30 cursor-pointer hover:bg-surface-container transition-all group active:scale-[0.98]" onClick={() => setModal('chart')}>
+          <div className="flex justify-between items-start mb-4 relative z-10">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-on-surface-variant font-mono">班級專注度評分</p>
-              <div className="flex items-baseline gap-1.5 mt-2">
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-on-surface-variant font-mono">班級專注度評分</p>
+              <div className="flex items-baseline gap-1.5 mt-1">
                 <motion.h2
                   key={focusScore}
                   initial={{ opacity: 0.5, y: -5 }} animate={{ opacity: 1, y: 0 }}
-                  className="font-headline font-bold text-6xl text-primary tracking-tighter"
+                  className="font-headline font-bold text-4xl text-primary tracking-tighter"
                 >
                   {focusScore}
                 </motion.h2>
-                <span className="text-3xl text-on-surface-variant font-headline font-bold">%</span>
+                <span className="text-xl text-on-surface-variant font-headline font-bold">%</span>
               </div>
             </div>
-            <div className="w-14 h-14 rounded-2xl bg-secondary-container text-primary flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-12 transition-all shadow-inner">
-              <Activity size={28} />
+            <div className="w-10 h-10 rounded-xl bg-secondary-container text-primary flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-12 transition-all shadow-inner">
+              <Activity size={20} />
             </div>
           </div>
-          <div className="h-20 flex items-end gap-2 px-1 relative z-10">
+          <div className="h-14 flex items-end gap-1.5 px-1 relative z-10">
             {waveData.map((h, i) => (
               <motion.div
                 key={i}
@@ -159,38 +159,38 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
         </div>
 
       {/* AI Signals */}
-      <section data-tour="alert-list" className="space-y-5">
+      <section data-tour="alert-list" className="space-y-3">
         <div className="flex items-center justify-between">
-            <h3 className="font-headline font-bold text-2xl tracking-wide flex items-center gap-2">即時告警與訊號 <span className="text-xs bg-error/10 text-error px-2 py-0.5 rounded-full font-bold ml-1">{state.teachingSignals.length}</span></h3>
+            <h3 className="font-headline font-bold text-base tracking-wide flex items-center gap-2">即時告警與訊號 <span className="text-[10px] bg-error/10 text-error px-2 py-0.5 rounded-full font-bold ml-1">{state.teachingSignals.length}</span></h3>
             {state.teachingSignals.length > 3 && (
-              <span className="text-primary/60 text-sm font-medium">共 {state.teachingSignals.length} 則</span>
+              <span className="text-primary/60 text-xs font-medium">共 {state.teachingSignals.length} 則</span>
             )}
         </div>
         {state.teachingSignals.length === 0 ? (
-           <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-4xl p-10 text-center text-on-surface-variant font-medium text-[15px] shadow-sm">
+           <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 text-center text-on-surface-variant font-medium text-sm shadow-sm">
              目前無異常或提問訊號
            </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-2.5">
             {state.teachingSignals.map((sig) => (
               <motion.div
                 key={sig.id}
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => openStudent(sig)}
-                className={`bg-surface-container-lowest border ${sig.type === 'alert' ? 'border-l-[8px] border-l-tertiary border-y-outline-variant/20 border-r-outline-variant/20 shadow-[0_4px_15px_rgba(var(--color-tertiary),0.1)]' : 'border-outline-variant/20 shadow-sm'} rounded-[1.75rem] p-6 flex items-center gap-6 cursor-pointer hover:bg-surface-container transition-colors`}
+                className={`bg-surface-container-lowest border ${sig.type === 'alert' ? 'border-l-4 border-l-tertiary border-y-outline-variant/20 border-r-outline-variant/20 shadow-[0_2px_10px_rgba(var(--color-tertiary),0.08)]' : 'border-outline-variant/20 shadow-sm'} rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-surface-container transition-colors`}
               >
-                <div className={`w-16 h-16 rounded-[1.25rem] overflow-hidden flex items-center justify-center shrink-0 shadow-inner ${sig.type === 'alert' ? 'bg-tertiary text-white' : 'bg-primary/10 text-primary'}`}>
-                  {sig.type === 'alert' ? <AlertCircle size={32} /> : <MessageCircle size={32} />}
+                <div className={`w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 shadow-inner ${sig.type === 'alert' ? 'bg-tertiary text-white' : 'bg-primary/10 text-primary'}`}>
+                  {sig.type === 'alert' ? <AlertCircle size={20} /> : <MessageCircle size={20} />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center mb-2 gap-2">
-                    <h4 className="font-bold text-lg tracking-wide truncate">{sig.name}</h4>
-                    <span className={`shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-lg border uppercase tracking-widest ${sig.type === 'alert' ? 'text-tertiary bg-tertiary/10 border-tertiary/20' : 'text-primary bg-primary/10 border-primary/20'}`}>
+                  <div className="flex justify-between items-center mb-0.5 gap-2">
+                    <h4 className="font-bold text-sm tracking-wide truncate">{sig.name}</h4>
+                    <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-lg border uppercase tracking-widest ${sig.type === 'alert' ? 'text-tertiary bg-tertiary/10 border-tertiary/20' : 'text-primary bg-primary/10 border-primary/20'}`}>
                       {sig.type === 'alert' ? '分心中' : '提問中'}
                     </span>
                   </div>
-                  <p className="text-[15px] font-medium text-on-surface-variant/90 leading-relaxed truncate">{sig.message}</p>
+                  <p className="text-xs font-medium text-on-surface-variant/90 leading-relaxed truncate">{sig.message}</p>
                 </div>
               </motion.div>
             ))}
@@ -199,25 +199,25 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       </section>
 
       {/* Video Feed */}
-      <section role="button" tabIndex={0} aria-label="開啟攝影機即時影像" onKeyDown={(e) => e.key === 'Enter' && setModal('video')} onClick={() => setModal('video')} className="bg-inverse-surface rounded-[2.5rem] h-80 relative overflow-hidden shadow-2xl cursor-pointer group mt-10">
+      <section role="button" tabIndex={0} aria-label="開啟攝影機即時影像" onKeyDown={(e) => e.key === 'Enter' && setModal('video')} onClick={() => setModal('video')} className="bg-inverse-surface rounded-2xl h-52 relative overflow-hidden shadow-2xl cursor-pointer group mt-4">
         <div className="w-full h-full group-hover:scale-105 transition-transform duration-1000" style={{background: 'linear-gradient(135deg, #0d2137 0%, #1e3a5f 50%, #0a1a2e 100%)'}} />
         <div className="absolute inset-0 bg-linear-to-t from-black via-black/20 to-transparent"></div>
         {/* Simulating Bounding Boxes */}
-        <div className="absolute top-[20%] left-[30%] w-20 h-20 border-[3px] border-primary/50  rounded-xl pointer-events-none group-hover:border-primary transition-colors shadow-[0_0_15px_rgba(var(--color-primary),0.3)]">
-          <div className="absolute -top-6 left-0 bg-primary/90 backdrop-blur-md text-white text-[10px] px-2.5 py-0.5 rounded-md font-bold tracking-widest shadow-sm">區域 A 專注</div>
+        <div className="absolute top-[20%] left-[30%] w-14 h-14 border-2 border-primary/50 rounded-xl pointer-events-none group-hover:border-primary transition-colors shadow-[0_0_12px_rgba(var(--color-primary),0.3)]">
+          <div className="absolute -top-5 left-0 bg-primary/90 backdrop-blur-md text-white text-[9px] px-2 py-0.5 rounded-md font-bold tracking-widest shadow-sm">區域 A 專注</div>
         </div>
-        <div className="absolute top-[35%] right-[25%] w-24 h-24 border-[3px] border-tertiary/50 rounded-xl pointer-events-none group-hover:border-tertiary transition-colors animate-pulse shadow-[0_0_15px_rgba(var(--color-tertiary),0.3)]">
-          <div className="absolute -top-6 left-0 bg-tertiary/90 backdrop-blur-md text-white text-[10px] px-2.5 py-0.5 rounded-md font-bold tracking-widest shadow-sm">區域 B 需確認</div>
+        <div className="absolute top-[35%] right-[25%] w-16 h-16 border-2 border-tertiary/50 rounded-xl pointer-events-none group-hover:border-tertiary transition-colors animate-pulse shadow-[0_0_12px_rgba(var(--color-tertiary),0.3)]">
+          <div className="absolute -top-5 left-0 bg-tertiary/90 backdrop-blur-md text-white text-[9px] px-2 py-0.5 rounded-md font-bold tracking-widest shadow-sm">區域 B 需確認</div>
         </div>
 
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
-          <div className="w-24 h-24 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center border-2 border-white/20 text-white shadow-[0_0_30px_rgba(255,255,255,0.2)]"><Video size={40} className="opacity-90 ml-2" /></div>
+          <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center border-2 border-white/20 text-white shadow-[0_0_24px_rgba(255,255,255,0.2)]"><Video size={28} className="opacity-90 ml-1" /></div>
         </div>
-        <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end">
-           <div className="bg-black/60 backdrop-blur-xl px-5 py-4 rounded-[1.5rem] border border-white/10 shadow-lg">
-             <p className="text-[11px] text-white/50 font-bold uppercase tracking-[0.3em] mb-2 font-mono">氛圍即時估測</p>
-             <p className="text-xl text-white font-bold tracking-wide flex items-center gap-3">
-               <span className="w-3 h-3 rounded-full bg-[#87d46c] animate-pulse shadow-[0_0_15px_#87d46c]"></span> 和諧積極
+        <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
+           <div className="bg-black/60 backdrop-blur-xl px-4 py-3 rounded-2xl border border-white/10 shadow-lg">
+             <p className="text-[9px] text-white/50 font-bold uppercase tracking-[0.3em] mb-1 font-mono">氛圍即時估測</p>
+             <p className="text-sm text-white font-bold tracking-wide flex items-center gap-2">
+               <span className="w-2 h-2 rounded-full bg-[#87d46c] animate-pulse shadow-[0_0_10px_#87d46c]"></span> 和諧積極
              </p>
            </div>
         </div>
