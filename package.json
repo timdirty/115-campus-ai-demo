@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "setup": "node scripts/setup-all.mjs",
     "dev": "node scripts/dev-all.mjs",
     "app": "node scripts/run-app.mjs",
     "dev:app1": "node scripts/run-app.mjs app1 dev",
