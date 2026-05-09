@@ -33,8 +33,9 @@ async function doPost(command: string, source: string, timeoutMs: number): Promi
 
 export async function sendHardwareCommand(command: string, source: string): Promise<HardwareBridgeResult> {
   const first = await doPost(command, source, 5000);
-  // Auto-retry once on transient 503/timeout (bridge momentarily busy)
-  if (!first.ok && (first.statusCode === 503 || first.statusCode === 0)) {
+  // Retry ONLY on 503 (bridge busy — command was NOT sent to Arduino).
+  // Do NOT retry on timeout (statusCode 0) — Arduino may have already received the command.
+  if (!first.ok && first.statusCode === 503) {
     await new Promise((r) => setTimeout(r, 400));
     return doPost(command, source, 5000);
   }
