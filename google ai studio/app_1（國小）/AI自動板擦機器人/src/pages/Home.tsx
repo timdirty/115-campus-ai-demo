@@ -328,6 +328,18 @@ export default function Home(_props: {onNavigate: (tab: string) => void}) {
     setNotice('白板四角已重設，請依 webcam 畫面重新微調。');
   };
 
+  const resetWhiteboardDemoState = () => {
+    ['app1:home:transcript', 'app1:home:previewImage', 'app1:home:analysis', 'app1:home:ocrResult'].forEach((k) => {
+      try { sessionStorage.removeItem(k); } catch { /* ignore */ }
+    });
+    setTranscript('');
+    setPreviewImage('');
+    setAnalysis(null);
+    setOcrResult(null);
+    setPracticeChecks([false, false, false, false, false]);
+    setNotice('展示資料已重置，可重新開始練習');
+  };
+
   const handleCalibrationSave = async () => {
     try {
       const nextSession = await saveClassroomSession({
@@ -371,15 +383,24 @@ export default function Home(_props: {onNavigate: (tab: string) => void}) {
             <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight">國小 AI 白板助教</h1>
             <p className="text-on-surface-variant mt-3 max-w-2xl leading-relaxed">拍白板、選區塊、派機器人。</p>
           </div>
-          <button
-            type="button"
-            onClick={refreshStatus}
-            disabled={statusBusy}
-            className="min-h-11 px-4 rounded-md bg-surface-container-high hover:bg-primary hover:text-on-primary transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 font-bold"
-          >
-            {statusBusy ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="w-4 h-4" aria-hidden="true" />}
-            重新同步
-          </button>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={resetWhiteboardDemoState}
+              className="min-h-11 px-4 rounded-md bg-surface-container-high hover:bg-error hover:text-on-error transition-all active:scale-95 flex items-center justify-center gap-2 font-bold text-sm"
+            >
+              重置展示資料
+            </button>
+            <button
+              type="button"
+              onClick={refreshStatus}
+              disabled={statusBusy}
+              className="min-h-11 px-4 rounded-md bg-surface-container-high hover:bg-primary hover:text-on-primary transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 font-bold"
+            >
+              {statusBusy ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="w-4 h-4" aria-hidden="true" />}
+              重新同步
+            </button>
+          </div>
         </motion.section>
 
         <motion.div variants={itemVariants}>

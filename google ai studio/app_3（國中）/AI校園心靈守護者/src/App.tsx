@@ -560,13 +560,13 @@ function AppContent() {
               <button
                 key={alert.id}
                 onClick={() => setActivePanel('alerts')}
-                className="w-full text-left mb-1.5 last:mb-0 flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition hover:bg-rose-50"
+                className="w-full text-left mb-1.5 last:mb-0 flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition hover:bg-rose-50"
               >
                 <span className={`h-2 w-2 shrink-0 rounded-full ${alert.riskLevel === 'high' ? 'bg-rose-500' : alert.riskLevel === 'medium' ? 'bg-amber-400' : 'bg-teal-400'}`} />
                 <span className="truncate text-slate-700">{alert.location} — {alert.description}</span>
               </button>
             ))}
-            <button onClick={() => setActivePanel('alerts')} className="mt-2 w-full rounded-xl bg-slate-50 py-1.5 text-[10px] font-black text-slate-500 transition hover:bg-rose-50 hover:text-rose-600">
+            <button onClick={() => setActivePanel('alerts')} className="mt-2 w-full rounded-xl bg-slate-50 min-h-11 py-1.5 text-[10px] font-black text-slate-500 transition hover:bg-rose-50 hover:text-rose-600">
               查看全部 →
             </button>
           </div>

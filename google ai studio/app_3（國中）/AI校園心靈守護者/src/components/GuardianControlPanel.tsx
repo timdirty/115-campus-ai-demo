@@ -210,6 +210,8 @@ export function GuardianControlPanel({bridgeOnline, zones, sensors, state, onDis
     void sendDrive(`SPEED:${driveSpeed}`);
     return () => {
       if (speedTimer.current) clearTimeout(speedTimer.current);
+      flashTimers.current.forEach(clearTimeout);
+      flashTimers.current = [];
       void sendGuardianDriveCommand('STOP').catch(() => {});
     };
   }, []);
@@ -237,9 +239,9 @@ export function GuardianControlPanel({bridgeOnline, zones, sensors, state, onDis
     }
   };
 
-  const dispatchToZone = async (zone: SchoolZoneStatus) => {
+  const dispatchToZone = (zone: SchoolZoneStatus) => {
     onDispatchRobot(zone);
-    await send('CARE_DEPLOYED', `zone:${zone.id}`);
+    // CARE_DEPLOYED hardware cue is sent by App.tsx dispatchRobotToZone to avoid duplicate sends
   };
 
   return (
@@ -713,7 +715,7 @@ export function GuardianDriveDock({bridgeOnline}: {bridgeOnline: boolean}) {
           <button
             type="button"
             onPointerDown={emergencyStop}
-            className="flex h-8 items-center gap-1 rounded-xl bg-rose-500 px-2.5 text-[11px] font-black text-white shadow-sm transition hover:bg-rose-600 active:scale-95"
+            className="flex min-h-11 items-center gap-1 rounded-xl bg-rose-500 px-2.5 text-[11px] font-black text-white shadow-sm transition hover:bg-rose-600 active:scale-95"
             title="立即停止"
             style={{touchAction: 'none'}}
           >

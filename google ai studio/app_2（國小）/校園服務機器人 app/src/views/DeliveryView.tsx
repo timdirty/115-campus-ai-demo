@@ -180,7 +180,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
                 whileTap={{ scale: 0.95 }}
                 key={cat.id}
                 onClick={() => setActiveCategory(isActive ? 'all' : cat.id)}
-                className={`flex-shrink-0 font-bold px-4 py-2.5 rounded-2xl flex items-center gap-2 transition-all border shadow-sm ${isActive ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-surface-container-lowest border-outline-variant/30 text-on-surface-variant hover:bg-surface-container-low'}`}
+                className={`flex-shrink-0 font-bold px-4 py-2.5 min-h-11 rounded-2xl flex items-center gap-2 transition-all border shadow-sm ${isActive ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-surface-container-lowest border-outline-variant/30 text-on-surface-variant hover:bg-surface-container-low'}`}
               >
                 <Icon size={16} className={isActive ? 'text-white' : 'text-primary'} />
                 <span className="text-xs tracking-tight">{cat.label}</span>
@@ -249,7 +249,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
                          庫存 {product.stock}
                        </span>
                     </div>
-                    <button className="bg-surface-container-high group-hover:bg-primary group-hover:text-white text-on-surface w-9 h-9 rounded-xl transition-all flex items-center justify-center shadow-sm active:scale-90 overflow-hidden relative">
+                    <button className="bg-surface-container-high group-hover:bg-primary group-hover:text-white text-on-surface w-11 h-11 shrink-0 rounded-xl transition-all flex items-center justify-center shadow-sm active:scale-90 overflow-hidden relative">
                       <span className="text-base font-bold relative z-10">+</span>
                     </button>
                   </div>
