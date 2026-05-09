@@ -14,7 +14,7 @@ export const MetricCard = memo(function MetricCard({label, value, tone}: {label:
   );
 });
 
-export function AlertRow({alert, onOpen}: {key?: unknown; alert: GuardianAlert; onOpen: () => void}) {
+export const AlertRow = memo(function AlertRow({alert, onOpen}: {key?: unknown; alert: GuardianAlert; onOpen: () => void}) {
   return (
     <button onClick={onOpen} className="flex w-full items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-teal-200 hover:bg-teal-50/40">
       <div className="min-w-0">
@@ -28,7 +28,7 @@ export function AlertRow({alert, onOpen}: {key?: unknown; alert: GuardianAlert; 
       <span className="shrink-0 rounded-full bg-white px-2 py-1 text-[10px] font-black text-teal-700 ring-1 ring-slate-200">{alert.location}</span>
     </button>
   );
-}
+});
 
 export function AlertDetail({alert, dispatch, onHardwareCommand}: {alert: GuardianAlert; dispatch: Dispatch<any>; onHardwareCommand?: (command: string, source: string) => void}) {
   return (
@@ -74,7 +74,7 @@ export function AlertDetail({alert, dispatch, onHardwareCommand}: {alert: Guardi
   );
 }
 
-export function NodeRow({node, onRestart}: {key?: unknown; node: GuardianNode; onRestart: () => void}) {
+export const NodeRow = memo(function NodeRow({node, onRestart}: {key?: unknown; node: GuardianNode; onRestart: () => void}) {
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
       <div className="flex items-start justify-between gap-3">
@@ -97,7 +97,7 @@ export function NodeRow({node, onRestart}: {key?: unknown; node: GuardianNode; o
       )}
     </div>
   );
-}
+});
 
 function NodeMetric({label, value}: {label: string; value: string}) {
   return (

@@ -1,3 +1,4 @@
+import {memo} from 'react';
 import {Loader2, Plus} from 'lucide-react';
 
 type QuickNotePanelProps = {
@@ -7,7 +8,7 @@ type QuickNotePanelProps = {
   onSave: () => void;
 };
 
-export function QuickNotePanel({value, busy, onChange, onSave}: QuickNotePanelProps) {
+export const QuickNotePanel = memo(function QuickNotePanel({value, busy, onChange, onSave}: QuickNotePanelProps) {
   return (
     <section className="bg-surface-container-low rounded-lg p-5 border border-outline-variant/20">
       <h2 className="text-xl font-extrabold mb-4">快速課堂紀錄</h2>
@@ -29,4 +30,4 @@ export function QuickNotePanel({value, busy, onChange, onSave}: QuickNotePanelPr
       </button>
     </section>
   );
-}
+});
