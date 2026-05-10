@@ -293,7 +293,7 @@ async function writeGuidePage(app) {
 
     /* Steps */
     .steps { display: grid; gap: 20px; }
-    .step { display: flex; gap: 16px; align-items: flex-start; scroll-margin-top: 12px; }
+    .step { display: flex; gap: 16px; align-items: flex-start; scroll-margin-top: 60px; }
     .step-num { width: 48px; height: 48px; border-radius: 12px; background: var(--accent); color: white; font-size: 1.05rem; font-weight: 950; display: flex; align-items: center; justify-content: center; flex-shrink: 0; letter-spacing: -.02em; }
     .step-body { flex: 1; min-width: 0; }
     .step-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
@@ -359,6 +359,11 @@ async function writeGuidePage(app) {
     /* Mobile base font floor — 16px minimum for competition-room readability */
     .role-desc { color: #334155; font-weight: 700; font-size: 1rem; line-height: 1.6; }
     .check-item span { color: #465366; font-weight: 700; line-height: 1.65; font-size: 1rem; }
+
+    /* Floating open-app button */
+    .fab-open { position: fixed; bottom: 20px; right: 18px; z-index: 200; display: inline-flex; align-items: center; gap: 8px; padding: 0 18px; height: 52px; border-radius: 999px; background: var(--accent); color: white; font-size: .92rem; font-weight: 950; text-decoration: none; box-shadow: 0 6px 24px color-mix(in srgb, var(--accent), transparent 50%); border: none; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+    .fab-open:hover { transform: translateY(-2px); box-shadow: 0 10px 32px color-mix(in srgb, var(--accent), transparent 40%); }
+    @media print { .fab-open { display: none !important; } }
 
     /* Sticky step progress bar */
     .prog-bar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 6px 16px; background: rgb(255 255 255 / .96); backdrop-filter: blur(10px); border-bottom: 1px solid #e2e8f0; overflow: hidden; max-height: 0; transition: max-height .25s ease, padding .25s ease; pointer-events: none; }
@@ -489,6 +494,7 @@ async function writeGuidePage(app) {
       <div class="script-content">${guideHtml}</div>
     </details>
   </main>
+  <a class="fab-open" href="./${app.id}/" title="開啟 ${escapeHtml(app.shortName)} App">🚀 開啟 App</a>
   <script>
   // ── Sticky step progress bar ─────────────────────────────────────────
   (function () {
@@ -746,9 +752,16 @@ writeAllGuidesPage();
 const cards = apps.map((app) => {
   const opsUrl = opsGuideUrl(app);
   const extraLink = opsUrl ? `<a class="secondary" href="./${opsUrl}">操作手冊</a>` : '';
+  const stepCount = (app.simpleSteps || app.checklistItems).length;
+  const approxSec = Math.round(stepCount * 25);
+  const approxMin = Math.floor(approxSec / 60);
+  const timeLabel = `約 ${approxMin} 分 ${approxSec % 60} 秒`;
   return `
   <article class="card" style="--accent:${app.accent}">
-    <span class="tag">${app.id.toUpperCase()}</span>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="tag">${app.id.toUpperCase()}</span>
+      <span style="border-radius:999px;background:#f1f5f9;color:#475569;padding:5px 10px;font-size:11px;font-weight:950">${stepCount} 步 · ${timeLabel}</span>
+    </div>
     <span class="shine"></span>
     <h2>${app.name}</h2>
     <p>${app.desc}</p>
