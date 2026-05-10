@@ -195,8 +195,8 @@ async function writeGuidePage(app) {
       <div class="must-text">${renderInline(item)}</div>
     </label>`).join('\n');
 
-  // Q&A from structured catalog data
-  const qaHtml = app.judgeQaExtra.map((qa) => `<details class="qa-card">
+  // Q&A from structured catalog data — first item open by default
+  const qaHtml = app.judgeQaExtra.map((qa, qi) => `<details class="qa-card"${qi === 0 ? ' open' : ''}>
       <summary class="qa-q">${escapeHtml(qa.q)}</summary>
       <div class="qa-a">${renderInline(qa.a)}</div>
     </details>`).join('\n');
