@@ -429,6 +429,8 @@ async function writeGuidePage(app) {
         <button class="timer-btn" id="timer-btn-${app.id}" onclick="startTimer('${app.id}')">🕐 練習計時 3 分鐘</button>
         <span class="timer-display" id="timer-display-${app.id}">3:00</span>
         <span id="timer-done-${app.id}" style="display:none;font-weight:900;color:#16a34a">✅ 時間到！講完了嗎？</span>
+        <button class="timer-btn" onclick="shareGuide()" title="分享這個教學頁面">📤 分享</button>
+        <button class="timer-btn" onclick="window.print()" title="列印教學備用">🖨️ 列印</button>
         <div class="qr-block">
           ${qrSvg}
           <span class="qr-label">掃我開始展示</span>
@@ -502,6 +504,22 @@ async function writeGuidePage(app) {
   </main>
   <a class="fab-open" href="./${app.id}/" title="開啟 ${escapeHtml(app.shortName)} App">🚀 開啟 App</a>
   <script>
+  // ── Share & Print helpers ─────────────────────────────────────────────
+  function shareGuide() {
+    const url = location.href;
+    const title = document.title;
+    if (navigator.share) {
+      navigator.share({title, url}).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url).then(() => {
+        const btn = event.currentTarget;
+        const orig = btn.textContent;
+        btn.textContent = '✅ 連結已複製！';
+        setTimeout(() => { btn.textContent = orig; }, 2000);
+      }).catch(() => { prompt('複製此連結：', url); });
+    }
+  }
+
   // ── Sticky step progress bar ─────────────────────────────────────────
   (function () {
     const bar = document.getElementById('prog-${app.id}');
