@@ -190,6 +190,7 @@ async function writeGuidePage(app) {
     </div>${i < app.flow.length - 1 ? '<div class="flow-arrow">→</div>' : ''}`).join('\n');
 
   // Must-show self-check list — use Chinese studentMustShow if available, fall back to scorecardMustShow
+  // NOT persisted (intentionally fresh each session — forces conscious re-confirmation)
   const mustShowItems = app.studentMustShow || app.scorecardMustShow;
   const mustShowHtml = mustShowItems.map((item) => `<label class="must-item">
       <input type="checkbox">
@@ -667,12 +668,16 @@ async function writeGuidePage(app) {
     }
   })();
 
-  // ── Clear all checkboxes ─────────────────────────────────────────────
+  // ── Clear all checkboxes (persisted checklist + non-persisted must-show) ─
   function clearAllChecks() {
     document.querySelectorAll('input[type=checkbox][data-key]').forEach((cb) => {
       cb.checked = false;
       localStorage.setItem(cb.dataset.key, '0');
     });
+    // Must-show has no data-key (intentionally not persisted), clear separately
+    document.querySelectorAll('.must-item input[type=checkbox]').forEach((cb) => { cb.checked = false; });
+    // Clear step-done green badges
+    document.querySelectorAll('.step.done').forEach((s) => s.classList.remove('done'));
     updateMustCount();
   }
 
