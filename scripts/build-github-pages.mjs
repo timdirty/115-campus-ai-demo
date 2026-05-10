@@ -388,6 +388,18 @@ async function writeGuidePage(app) {
     .fab-open { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); right: 18px; z-index: 200; display: inline-flex; align-items: center; gap: 8px; padding: 0 18px; height: 52px; border-radius: 999px; background: var(--accent); color: white; font-size: .92rem; font-weight: 950; text-decoration: none; box-shadow: 0 6px 24px color-mix(in srgb, var(--accent), transparent 50%); border: none; cursor: pointer; transition: transform .15s, box-shadow .15s; }
     .fab-open:hover { transform: translateY(-2px); box-shadow: 0 10px 32px color-mix(in srgb, var(--accent), transparent 40%); }
     @media print { .fab-open { display: none !important; } }
+
+    /* Offline banner */
+    .offline-banner { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 9000; background: #f59e0b; color: #1c1917; font-weight: 950; font-size: .88rem; padding: 8px 16px; text-align: center; letter-spacing: .02em; }
+    .offline-banner.show { display: block; }
+
+    /* Font size toggle */
+    .font-toggle { display: inline-flex; align-items: center; gap: 4px; border: 1px solid #e2e8f0; border-radius: 8px; background: white; padding: 6px 10px; font-size: .9rem; font-weight: 900; cursor: pointer; color: #334155; }
+    .font-toggle:hover { background: #f1f5f9; }
+    body.font-large { font-size: 1.12rem; }
+    body.font-large .step-title { font-size: 1.18rem; }
+    body.font-large .qa-q, body.font-large .qa-a { font-size: 1.1rem; }
+    body.font-large .must-text { font-size: 1.1rem; }
     /* Inline lightbox for screenshots */
     .lightbox-ov { position: fixed; inset: 0; z-index: 9999; background: rgb(0 0 0 / .88); display: flex; align-items: center; justify-content: center; padding: 16px; cursor: zoom-out; }
     .lightbox-ov img { max-width: 100%; max-height: 100%; border-radius: 10px; object-fit: contain; cursor: default; }
@@ -428,6 +440,7 @@ async function writeGuidePage(app) {
   </style>
 </head>
 <body>
+  <div class="offline-banner" id="offline-banner" role="status">📵 目前離線 — 已快取的頁面可以正常瀏覽，App 功能仍可展示</div>
   <main>
     <nav class="topnav" aria-label="導覽">
       <a href="./">← 返回總入口</a>
@@ -455,6 +468,7 @@ async function writeGuidePage(app) {
         <span id="timer-done-${app.id}" style="display:none;font-weight:900;color:#16a34a">✅ 時間到！講完了嗎？</span>
         <button class="timer-btn" onclick="shareGuide()" title="分享這個教學頁面">📤 分享</button>
         <button class="timer-btn" onclick="window.print()" title="列印教學備用">🖨️ 列印</button>
+        <button class="font-toggle" id="font-toggle-${app.id}" onclick="toggleFont('${app.id}')" title="放大/縮小字體">🔡 字</button>
         <div class="qr-block">
           ${qrSvg}
           <span class="qr-label">掃我開始展示</span>
@@ -668,6 +682,32 @@ async function writeGuidePage(app) {
     }, 1000);
   }
 
+  // ── Offline / online status banner ───────────────────────────────────
+  (function () {
+    const banner = document.getElementById('offline-banner');
+    function update() { if (banner) banner.classList.toggle('show', !navigator.onLine); }
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
+    update();
+  })();
+
+  // ── Font size toggle ─────────────────────────────────────────────────
+  function toggleFont(appId) {
+    const large = document.body.classList.toggle('font-large');
+    const btn = document.getElementById('font-toggle-' + appId);
+    if (btn) btn.textContent = large ? '🔠 字' : '🔡 字';
+    try { localStorage.setItem('guide-font-large', large ? '1' : '0'); } catch(_) {}
+  }
+  (function () {
+    try {
+      if (localStorage.getItem('guide-font-large') === '1') {
+        document.body.classList.add('font-large');
+        const btn = document.getElementById('font-toggle-${app.id}');
+        if (btn) btn.textContent = '🔠 字';
+      }
+    } catch(_) {}
+  })();
+
   // ── Checkbox state → localStorage + step-done green badge ───────────
   (function () {
     function markStepDone(cb) {
@@ -682,7 +722,20 @@ async function writeGuidePage(app) {
     document.querySelectorAll('input[type=checkbox][data-key]').forEach((cb) => {
       const k = cb.dataset.key;
       if (localStorage.getItem(k) === '1') { cb.checked = true; markStepDone(cb); }
-      cb.addEventListener('change', () => { localStorage.setItem(k, cb.checked ? '1' : '0'); markStepDone(cb); });
+      cb.addEventListener('change', () => {
+        localStorage.setItem(k, cb.checked ? '1' : '0');
+        markStepDone(cb);
+        // Auto-scroll to next unchecked step checkbox when one is checked
+        if (cb.checked && k.includes('-step-')) {
+          const allStepCbs = [...document.querySelectorAll('input[type=checkbox][data-key*="-step-"]')];
+          const idx = allStepCbs.indexOf(cb);
+          const nextUnchecked = allStepCbs.slice(idx + 1).find((c) => !c.checked);
+          if (nextUnchecked) {
+            const label = nextUnchecked.closest('label');
+            if (label) { setTimeout(() => label.scrollIntoView({behavior: 'smooth', block: 'center'}), 250); }
+          }
+        }
+      });
     });
   })();
   </script>
