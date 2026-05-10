@@ -360,6 +360,15 @@ async function writeGuidePage(app) {
     .role-desc { color: #334155; font-weight: 700; font-size: 1rem; line-height: 1.6; }
     .check-item span { color: #465366; font-weight: 700; line-height: 1.65; font-size: 1rem; }
 
+    /* Sticky step progress bar */
+    .prog-bar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 6px 16px; background: rgb(255 255 255 / .96); backdrop-filter: blur(10px); border-bottom: 1px solid #e2e8f0; overflow: hidden; max-height: 0; transition: max-height .25s ease, padding .25s ease; pointer-events: none; }
+    .prog-bar.active { max-height: 50px; pointer-events: auto; }
+    .prog-pill { background: var(--accent); color: white; border-radius: 999px; padding: 4px 14px; font-size: .82rem; font-weight: 950; white-space: nowrap; }
+    .prog-dots { display: flex; gap: 5px; align-items: center; }
+    .prog-dot { width: 9px; height: 9px; border-radius: 50%; background: #e2e8f0; transition: background .2s; }
+    .prog-dot.done { background: var(--accent); }
+    /* Must-show completion celebration */
+    .must-card-done { border-color: #16a34a !important; box-shadow: 0 0 0 2px #bbf7d0, 0 4px 20px rgb(27 35 52 / .05) !important; }
     @media (max-width: 600px) {
       .hero { padding: 20px; }
       .step { flex-direction: column; gap: 8px; }
@@ -391,12 +400,14 @@ async function writeGuidePage(app) {
       ${otherGuideLinks.replace(/<a /g, '<a class="other-guide" ')}
       <a class="other-guide" href="./${allGuidesUrl()}">📋 三隊講稿</a>
     </nav>
+    <div class="prog-bar" id="prog-${app.id}" role="status" aria-label="步驟進度"></div>
 
     <div class="hero">
       <div class="hero-tag">${app.id.toUpperCase()} — ${escapeHtml(app.team)}</div>
       <h1>${escapeHtml(app.name)}<span class="hero-sub">手把手操作教學</span></h1>
       <div class="hero-row">
         <a class="hero-btn" href="./${app.id}/">開啟 App 開始展示 →</a>
+        <a class="hero-btn" href="#${app.id}-step1" style="background:white;color:var(--accent);border:2px solid var(--accent)">👉 從步驟一開始做</a>
         <div class="hero-badges">
           <span class="badge">手機可操作</span>
           <span class="badge">無硬體也可展示</span>
@@ -431,21 +442,30 @@ async function writeGuidePage(app) {
     </div>
 
     <div class="card">
-      <div class="section-title">📋 上台前要確認</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div class="section-title" style="margin:0">📋 上台前要確認</div>
+        <button onclick="clearAllChecks()" style="border:1px solid #e2e8f0;border-radius:8px;background:white;padding:6px 12px;font-size:.82rem;font-weight:900;cursor:pointer;color:#64748b;line-height:1.3">🗑️ 清除打勾</button>
+      </div>
       <form onsubmit="return false">
         ${checklistHtml}
       </form>
     </div>
 
     <div class="card">
-      <div class="section-title">🎬 按這個順序做（共 ${demoSteps.length} 步，每步約 ${secPerStep} 秒）</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+        <div class="section-title" style="margin:0">🎬 按這個順序做（共 ${demoSteps.length} 步，每步約 ${secPerStep} 秒）</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${demoSteps.map((_, i) => `<a href="#${app.id}-step${i + 1}" style="width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid color-mix(in srgb,var(--accent),white 60%);background:color-mix(in srgb,var(--accent),white 90%);color:var(--accent);font-size:.85rem;font-weight:950;text-decoration:none">${i + 1}</a>`).join('')}</div>
+      </div>
       <div class="steps">
         ${stepsHtml}
       </div>
     </div>
 
-    <div class="card">
-      <div class="section-title">✅ 做完了嗎？打勾確認</div>
+    <div class="card" id="must-card-${app.id}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="section-title" style="margin:0">✅ 做完了嗎？打勾確認</div>
+        <span id="must-count-${app.id}" style="font-size:.95rem;font-weight:950;color:#64748b;transition:color .3s">0 / ${app.scorecardMustShow.length}</span>
+      </div>
       <p style="margin:0 0 12px;font-size:.85rem;color:#64748b;font-weight:700">每做完一個步驟就打一個勾，讓評審老師看到全部重點</p>
       <form class="must-list" onsubmit="return false">
         ${mustShowHtml}
@@ -470,6 +490,63 @@ async function writeGuidePage(app) {
     </details>
   </main>
   <script>
+  // ── Sticky step progress bar ─────────────────────────────────────────
+  (function () {
+    const bar = document.getElementById('prog-${app.id}');
+    const steps = document.querySelectorAll('.step');
+    if (!bar || !steps.length) return;
+    const total = steps.length;
+    // Build pill + dot indicators
+    const dots = Array.from({length: total}, (_, i) =>
+      '<div class="prog-dot" id="pdot-${app.id}-' + i + '"></div>'
+    ).join('');
+    bar.innerHTML = '<span class="prog-pill" id="plabel-${app.id}">步驟 1 / ' + total + '</span><div class="prog-dots">' + dots + '</div>';
+    const label = document.getElementById('plabel-${app.id}');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const idx = [...steps].indexOf(entry.target);
+        if (label) label.textContent = '步驟 ' + (idx + 1) + ' / ' + total;
+        bar.classList.add('active');
+        document.querySelectorAll('.prog-dot').forEach((d, i) => d.classList.toggle('done', i <= idx));
+      });
+    }, {threshold: 0.3, rootMargin: '-5% 0px -55% 0px'});
+    steps.forEach((s) => observer.observe(s));
+    // Hide bar when scrolled back above all steps
+    const stepsEl = document.querySelector('.steps');
+    if (stepsEl) {
+      new IntersectionObserver((e) => { if (!e[0].isIntersecting) bar.classList.remove('active'); }, {threshold: 0}).observe(stepsEl);
+    }
+  })();
+
+  // ── Clear all checkboxes ─────────────────────────────────────────────
+  function clearAllChecks() {
+    document.querySelectorAll('input[type=checkbox][data-key]').forEach((cb) => {
+      cb.checked = false;
+      localStorage.setItem(cb.dataset.key, '0');
+    });
+    updateMustCount();
+  }
+
+  // ── Must-show counter ────────────────────────────────────────────────
+  function updateMustCount() {
+    const items = [...document.querySelectorAll('.must-item input[type=checkbox]')];
+    const done = items.filter((i) => i.checked).length;
+    const counter = document.getElementById('must-count-${app.id}');
+    const card = document.getElementById('must-card-${app.id}');
+    if (counter) {
+      counter.textContent = done + ' / ' + items.length;
+      counter.style.color = done === items.length && items.length > 0 ? '#16a34a' : '#64748b';
+    }
+    if (card) {
+      card.classList.toggle('must-card-done', done === items.length && items.length > 0);
+    }
+  }
+  document.querySelectorAll('.must-item input[type=checkbox]').forEach((cb) => {
+    cb.addEventListener('change', updateMustCount);
+  });
+  updateMustCount();
+
   // ── 3-minute countdown timer ─────────────────────────────────────────
   function startTimer(appId) {
     let secs = 180;
