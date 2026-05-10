@@ -215,6 +215,8 @@ async function writeGuidePage(app) {
       '① 不要亂猜，說：「謝謝老師，這是很好的問題」→ ② 說：「讓我在 App 上直接示範給您看」→ ③ 打開 App 按一個功能，用畫面來回答'],
     ['時間快到了（3 分鐘快結束）',
       '① 計時的同學在 2 分 30 秒時舉手 → ② 說話的同學說：「最後幫評審看一個最重要的功能」→ ③ 快速點最厲害的那一步，然後說謝謝'],
+    ['同學忘記接下來要做什麼，或是卡住了',
+      '① 操作 App 的同學先不要動，暫停一下 → ② 說話的同學說：「我們換一個順序」再跳到下一個熟的步驟 → ③ 之後如果時間夠，再補回剛剛跳過的步驟'],
   ];
   const emergencyHtml = emergencyItems.map(([scenario, solution]) => {
     const steps = solution.split('→').map((s, i) => {
@@ -292,7 +294,7 @@ async function writeGuidePage(app) {
     .hero h1 { margin: 0 0 4px; font-size: clamp(1.75rem, 6vw, 3rem); line-height: 1.08; color: #111827; }
     .hero-sub { display: block; font-size: clamp(.95rem, 3vw, 1.35rem); font-weight: 700; color: color-mix(in srgb, var(--accent), #334155 40%); margin-top: 4px; }
     .hero-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; align-items: center; }
-    .hero-btn { min-height: 48px; display: inline-flex; align-items: center; padding: 0 22px; border-radius: 10px; background: var(--accent); color: white; text-decoration: none; font-weight: 950; font-size: 1rem; position: relative; z-index: 1; }
+    .hero-btn { min-height: 48px; display: inline-flex; align-items: center; padding: 0 22px; border-radius: 10px; background: var(--accent); color: white; text-decoration: none; font-weight: 950; font-size: 1rem; position: relative; z-index: 1; cursor: pointer; border: none; }
     .hero-badges { display: flex; flex-wrap: wrap; gap: 6px; }
     .badge { border: 1px solid color-mix(in srgb, var(--accent), white 50%); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 900; color: color-mix(in srgb, var(--accent), #334155 30%); background: white; }
 
