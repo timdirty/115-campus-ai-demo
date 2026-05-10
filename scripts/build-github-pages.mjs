@@ -253,6 +253,7 @@ async function writeGuidePage(app) {
   <meta property="og:description" content="${escapeHtml(app.desc)} 共 ${(app.simpleSteps || app.checklistItems).length} 步，有截圖、有計時、有緊急備案。" />
   <meta property="og:type" content="website" />
   <title>${escapeHtml(app.name)} — 手把手操作教學</title>
+  <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});</script>
   <style>
     :root { --accent: ${app.accent}; color-scheme: light; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif; }
     * { box-sizing: border-box; min-width: 0; }
@@ -867,6 +868,7 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
   <meta property="og:title" content="115 資通訊三隊 App 展示入口" />
   <meta property="og:description" content="三個 AI 機器人 App 展示。上台前點「手把手教學」看步驟、截圖、計時、緊急備案，全都有。" />
   <title>115 資通訊三隊 App 展示入口</title>
+  <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});</script>
   <style>
     :root { color-scheme: light; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif; }
     * { box-sizing: border-box; min-width: 0; }
@@ -938,6 +940,52 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
   </main>
 </body>
 </html>
+`, 'utf8');
+
+// ── Service Worker: cache guide pages + screenshots for offline use ──
+const screenshotUrls = apps.flatMap((a) =>
+  (a.simpleSteps || a.checklistItems).map((_, i) => `./screenshots/${a.id}-step${i + 1}.png`)
+);
+const guidePageUrls = apps.map((a) => `./${guideUrl(a)}`);
+const cacheManifest = [
+  './',
+  './index.html',
+  `./${allGuidesUrl()}`,
+  ...guidePageUrls,
+  ...screenshotUrls,
+].map((u) => JSON.stringify(u)).join(',\n  ');
+
+fs.writeFileSync(path.join(pagesDir, 'sw.js'), `// 115 guide offline cache – auto-generated
+const CACHE = '115-guide-v${Date.now()}';
+const URLS = [
+  ${cacheManifest}
+];
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open(CACHE).then((c) => c.addAll(URLS.filter((u) => !u.endsWith('.png') || true)))
+  );
+  self.skipWaiting();
+});
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
+self.addEventListener('fetch', (e) => {
+  if (e.request.method !== 'GET') return;
+  e.respondWith(
+    caches.match(e.request).then((cached) => cached || fetch(e.request).then((res) => {
+      if (res.ok) {
+        const clone = res.clone();
+        caches.open(CACHE).then((c) => c.put(e.request, clone));
+      }
+      return res;
+    }).catch(() => cached))
+  );
+});
 `, 'utf8');
 
 fs.writeFileSync(path.join(pagesDir, '.nojekyll'), '', 'utf8');
