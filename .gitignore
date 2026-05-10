@@ -49,7 +49,7 @@ robotcontrol_*.png
 # Claude Code internal files
 .claude/
 
-# Session screenshot artifacts
+# Session screenshot artifacts (excluded from repo root, but assets/screenshots/ is allowed)
 app1_*.png
 app2_*.png
 app3_*.png
@@ -57,5 +57,6 @@ app1-*.png
 app2-*.png
 app3-*.png
 map_*.png
+!assets/screenshots/*.png
 scripts/gitnexus-prewarm-fts.mjs
 scripts/reindex.sh

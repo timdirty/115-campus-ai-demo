@@ -98,9 +98,36 @@ function renderGuideMarkdown(markdown) {
   return html.join('\n');
 }
 
+function extractRoles(markdown) {
+  const lines = markdown.split(/\r?\n/);
+  let inSection = false;
+  const roles = [];
+  for (const line of lines) {
+    if (/^## 上台分工建議/.test(line)) { inSection = true; continue; }
+    if (inSection && /^## /.test(line)) break;
+    if (inSection && line.startsWith('- ')) roles.push(line.slice(2).trim());
+  }
+  return roles;
+}
+
 function writeGuidePage(app) {
   const markdown = fs.readFileSync(guidePath(app), 'utf8');
   const guideHtml = renderGuideMarkdown(markdown);
+
+  // Role assignment from markdown "上台分工建議" section
+  const roles = extractRoles(markdown);
+  const roleIcons = ['🎤', '💻', '🤖', '🛡️'];
+  const roleLabels = ['主講', '操作', '硬體/說明', '備援 QA'];
+  const rolesHtml = roles.length > 0
+    ? roles.map((role, i) => `<div class="role-row">
+        <div class="role-badge">${roleIcons[i] || '👤'} ${roleLabels[i] || `第 ${i + 1} 位`}</div>
+        <div class="role-desc">${escapeHtml(role)}</div>
+      </div>`).join('\n')
+    : `<p style="color:#64748b;font-size:.9rem">依人數自行分配：主講 / 操作 / 硬體說明 / 備援 QA</p>`;
+
+  // Time estimate per step
+  const totalDemoSec = 150; // ~2.5 min for demo (leaving 30s for intro)
+  const secPerStep = Math.round(totalDemoSec / app.checklistItems.length);
 
   // Pre-launch generic checklist items
   const preLaunchItems = [
@@ -115,14 +142,17 @@ function writeGuidePage(app) {
     ...app.checklistItems.map((item) => `<label class="check-item"><input type="checkbox"><span>${escapeHtml(item)}</span></label>`),
   ].join('\n');
 
-  // Numbered demo steps with screenshot frames
+  // Numbered demo steps with screenshot frames and time hints
   const stepsHtml = app.checklistItems.map((item, i) => {
     const num = String(i + 1).padStart(2, '0');
     const imgSrc = `./screenshots/${app.id}-step${i + 1}.png`;
     return `<div class="step">
       <div class="step-num">${num}</div>
       <div class="step-body">
-        <p class="step-title">${escapeHtml(item)}</p>
+        <div class="step-header">
+          <p class="step-title">${escapeHtml(item)}</p>
+          <span class="step-time">~${secPerStep}s</span>
+        </div>
         <div class="screenshot-frame">
           <img src="${imgSrc}" alt="步驟 ${num} 操作畫面" loading="lazy"
                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
@@ -153,12 +183,18 @@ function writeGuidePage(app) {
       <div class="qa-a">${renderInline(qa.a)}</div>
     </details>`).join('\n');
 
-  // Emergency backup scenarios
+  // Emergency backup scenarios — step-by-step recovery
   const emergencyItems = [
-    ['網路斷線 / 無 API key', '沒關係。系統有 Demo 模式，全流程可以在瀏覽器本機完成，告訴評審「這是我們刻意設計的 fallback」。'],
-    ['Arduino / 硬體沒反應', '指令會保存在 log 紀錄中，繼續展示軟體流程，最後說「接上 UNO R4 後這裡會變成實體動作」。'],
-    [`App 白畫面 / 閃退`, `直接重新開啟網址：timdirty.github.io/115-campus-ai-demo/${app.id}/`],
-    ['評審問到不知道怎麼回的問題', '說「這是很好的問題，我們有設計 fallback 確保即使 X 失敗也能繼續展示，讓我在 App 裡示範給您看」。'],
+    ['網路斷線 / 無 API key',
+      '① 不用停頓，繼續操作 App → ② 系統自動切換 Demo 模式，功能全部正常 → ③ 對評審說：「這是我們刻意設計的 fallback，沒有 API 也能完整展示」'],
+    ['Arduino / 硬體沒反應',
+      '① 繼續點按 App 送出任務 → ② 讓評審看到指令 log 有紀錄 → ③ 說：「軟體端完整打通，接上 UNO R4 後這裡變成實體動作」'],
+    ['App 白畫面 / 閃退',
+      `① 按瀏覽器重新整理（Ctrl+R / Cmd+R）→ ② 若還是壞，重新開啟：timdirty.github.io/115-campus-ai-demo/${app.id}/ → ③ 資料存在瀏覽器，不會消失`],
+    ['評審問到不知道怎麼回',
+      '① 不要猜，說「這個問題很好」→ ② 說：「我們有做 fallback，讓我示範給您看」→ ③ 打開 App 操作一個功能，用畫面代替解釋'],
+    ['超時 / 3 分鐘到了',
+      '① 計時者在 2:30 舉手示意 → ② 主講者說「最後幫評審看一個重點」→ ③ 快速點最重要的一步結束'],
   ];
   const emergencyHtml = emergencyItems.map(([scenario, solution]) => `<div class="emergency-item">
       <div class="emergency-scenario">🚨 ${escapeHtml(scenario)}</div>
@@ -220,12 +256,20 @@ function writeGuidePage(app) {
     .check-item input:checked + span { text-decoration: line-through; color: #94a3b8; }
     .check-divider { margin: 14px 0 6px; font-size: 11px; font-weight: 950; color: #94a3b8; letter-spacing: .1em; text-transform: uppercase; border-top: 1px solid #f1f5f9; padding-top: 14px; }
 
+    /* Role assignment */
+    .role-list { display: grid; gap: 8px; }
+    .role-row { display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; }
+    .role-badge { flex-shrink: 0; font-size: .82rem; font-weight: 950; color: white; background: var(--accent); padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+    .role-desc { color: #334155; font-weight: 700; font-size: .93rem; line-height: 1.6; }
+
     /* Steps */
     .steps { display: grid; gap: 20px; }
     .step { display: flex; gap: 16px; align-items: flex-start; }
     .step-num { width: 48px; height: 48px; border-radius: 12px; background: var(--accent); color: white; font-size: 1.05rem; font-weight: 950; display: flex; align-items: center; justify-content: center; flex-shrink: 0; letter-spacing: -.02em; }
     .step-body { flex: 1; min-width: 0; }
-    .step-title { margin: 0 0 12px; font-size: 1rem; font-weight: 850; color: #1e293b; line-height: 1.65; }
+    .step-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+    .step-title { margin: 0; font-size: 1rem; font-weight: 850; color: #1e293b; line-height: 1.65; flex: 1; }
+    .step-time { flex-shrink: 0; font-size: .8rem; font-weight: 950; color: white; background: #64748b; padding: 3px 8px; border-radius: 999px; margin-top: 2px; }
     .screenshot-frame { border-radius: 10px; overflow: hidden; border: 1.5px solid #e2e8f0; background: #f8fafc; }
     .screenshot-frame img { width: 100%; display: block; }
     .no-img-placeholder { display: none; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 28px 20px; color: #94a3b8; font-size: 13px; font-weight: 700; text-align: center; min-height: 120px; }
@@ -304,6 +348,14 @@ function writeGuidePage(app) {
     </div>
 
     <div class="card">
+      <div class="section-title">👥 上台分工（誰負責什麼）</div>
+      <div class="role-list">
+        ${rolesHtml}
+      </div>
+      <p style="margin:10px 0 0;font-size:.82rem;color:#94a3b8;font-weight:700">計時者：在 2:30 舉手示意，讓主講者知道要收尾</p>
+    </div>
+
+    <div class="card">
       <div class="section-title">📋 上台前確認清單</div>
       <form onsubmit="return false">
         ${checklistHtml}
@@ -311,14 +363,15 @@ function writeGuidePage(app) {
     </div>
 
     <div class="card">
-      <div class="section-title">🎬 照這個順序操作（共 ${app.checklistItems.length} 步）</div>
+      <div class="section-title">🎬 照這個順序操作（共 ${app.checklistItems.length} 步，每步約 ${secPerStep} 秒）</div>
       <div class="steps">
         ${stepsHtml}
       </div>
     </div>
 
     <div class="card">
-      <div class="section-title">✅ 展示自我確認清單（每點做完打勾）</div>
+      <div class="section-title">✅ 展示自我確認清單</div>
+      <p style="margin:0 0 12px;font-size:.85rem;color:#64748b;font-weight:700">每展示完一個功能點就打一個勾，確保評審看到全部重點</p>
       <form class="must-list" onsubmit="return false">
         ${mustShowHtml}
       </form>
