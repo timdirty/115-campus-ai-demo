@@ -203,8 +203,8 @@ async function writeGuidePage(app) {
       <div class="qa-a">${renderInline(qa.a)}</div>
     </details>`).join('\n');
 
-  // Emergency backup scenarios — simple 3-step SOP for elementary students
-  const emergencyItems = [
+  // Emergency backup scenarios — app-specific SOPs (from catalog) with generic fallback
+  const genericEmergencyItems = [
     ['網路斷掉了，或 AI 沒反應',
       '① 不要停，繼續操作 App → ② App 會自己切換展示模式，功能還是正常的 → ③ 告訴評審老師：「就算沒有網路，我們的 App 還是可以跑完整個流程」'],
     ['機器人或硬體沒反應',
@@ -218,6 +218,7 @@ async function writeGuidePage(app) {
     ['同學忘記接下來要做什麼，或是卡住了',
       '① 操作 App 的同學先不要動，暫停一下 → ② 說話的同學說：「我們換一個順序」再跳到下一個熟的步驟 → ③ 之後如果時間夠，再補回剛剛跳過的步驟'],
   ];
+  const emergencyItems = app.appEmergency || genericEmergencyItems;
   const emergencyHtml = emergencyItems.map(([scenario, solution]) => {
     const steps = solution.split('→').map((s, i) => {
       const text = escapeHtml(s.trim());
@@ -709,8 +710,12 @@ async function writeGuidePage(app) {
     }
     if (allDone) {
       setTimeout(() => {
-        document.getElementById('cel-overlay-${app.id}')?.classList.add('show');
-        launchConfetti();
+        // Re-check: user may have unchecked or clearAllChecks() may have run during the 400ms delay
+        const mustNow = [...document.querySelectorAll('.must-item input[type=checkbox]')];
+        if (mustNow.length > 0 && mustNow.every((i) => i.checked)) {
+          document.getElementById('cel-overlay-${app.id}')?.classList.add('show');
+          launchConfetti();
+        }
       }, 400);
     }
   }
@@ -762,23 +767,30 @@ async function writeGuidePage(app) {
 
   // ── Wake Lock: prevent screen from sleeping during presentation ───────
   let wakeLock = null;
+  let wakeLockPending = false;
   async function toggleWake(appId) {
+    if (wakeLockPending) return; // prevent concurrent requests on rapid clicks
+    wakeLockPending = true;
     const btn = document.getElementById('wake-btn-' + appId);
-    if (wakeLock) {
-      await wakeLock.release();
-      wakeLock = null;
-      if (btn) { btn.textContent = '💡 防熄屏'; btn.classList.remove('wake-active'); }
-    } else {
-      try {
-        wakeLock = await navigator.wakeLock.request('screen');
-        if (btn) { btn.textContent = '🟢 防熄屏中'; btn.classList.add('wake-active'); }
-        wakeLock.addEventListener('release', () => {
-          wakeLock = null;
-          if (btn) { btn.textContent = '💡 防熄屏'; btn.classList.remove('wake-active'); }
-        });
-      } catch (e) {
-        if (btn) { btn.textContent = '❌ 不支援'; setTimeout(() => { btn.textContent = '💡 防熄屏'; }, 2000); }
+    try {
+      if (wakeLock) {
+        await wakeLock.release();
+        wakeLock = null;
+        if (btn) { btn.textContent = '💡 防熄屏'; btn.classList.remove('wake-active'); }
+      } else {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+          if (btn) { btn.textContent = '🟢 防熄屏中'; btn.classList.add('wake-active'); }
+          wakeLock.addEventListener('release', () => {
+            wakeLock = null;
+            if (btn) { btn.textContent = '💡 防熄屏'; btn.classList.remove('wake-active'); }
+          });
+        } catch (e) {
+          if (btn) { btn.textContent = '❌ 不支援'; setTimeout(() => { btn.textContent = '💡 防熄屏'; }, 2000); }
+        }
       }
+    } finally {
+      wakeLockPending = false;
     }
   }
   // Re-acquire wake lock after tab becomes visible again
