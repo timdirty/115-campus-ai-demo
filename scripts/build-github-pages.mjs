@@ -301,6 +301,17 @@ async function writeGuidePage(app) {
     /* Hardware note */
     .hardware-note { margin-top: 12px; padding: 10px 14px; border-radius: 8px; background: color-mix(in srgb, var(--accent), white 90%); border: 1px solid color-mix(in srgb, var(--accent), white 62%); color: color-mix(in srgb, var(--accent), #1e293b 25%); font-weight: 800; font-size: .93rem; }
 
+    /* Quick review cheat sheet */
+    .quick-review { border-radius: 12px; border: 2px dashed color-mix(in srgb, var(--accent), white 50%); background: color-mix(in srgb, var(--accent), white 94%); padding: 14px 18px; }
+    .quick-review summary { cursor: pointer; font-size: .88rem; font-weight: 950; color: color-mix(in srgb, var(--accent), #1e293b 30%); letter-spacing: .04em; list-style: none; display: flex; align-items: center; justify-content: space-between; }
+    .quick-review summary::after { content: "展開 ▼"; font-size: 11px; font-weight: 700; }
+    .quick-review[open] summary::after { content: "收起 ▲"; }
+    .quick-review ol { margin: 10px 0 0; padding-left: 1.4rem; display: grid; gap: 4px; }
+    .quick-review li { font-size: .9rem; font-weight: 800; color: #334155; line-height: 1.55; }
+    .quick-review .must-ref { margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: #f0fdf4; border: 1px solid #bbf7d0; font-size: .82rem; font-weight: 800; color: #14532d; line-height: 1.55; }
+    .quick-review .kbd-hint { margin-top: 10px; font-size: .78rem; font-weight: 700; color: #94a3b8; }
+    .quick-review .kbd-hint kbd { display: inline-block; border: 1px solid #e2e8f0; border-radius: 4px; background: white; padding: 1px 5px; font-size: .78rem; font-family: monospace; color: #334155; }
+
     /* Checklist */
     .check-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
     .check-item:last-child { border-bottom: none; }
@@ -475,6 +486,15 @@ async function writeGuidePage(app) {
         </div>
       </div>
     </div>
+
+    <details class="quick-review">
+      <summary>⚡ 上台前快速複習（展開看全部步驟）</summary>
+      <ol>
+        ${demoSteps.map((s, i) => `<li><strong>${i + 1}.</strong> ${escapeHtml(s)}</li>`).join('\n        ')}
+      </ol>
+      <div class="must-ref">✅ 必做確認：${app.scorecardMustShow.slice(0, 3).map((s) => escapeHtml(s.replace(/^Student (performs|points|shows|demonstrates|explains|opens) /, '').replace(/ without assistance\.?$/, ''))).join(' → ')}</div>
+      <div class="kbd-hint">快捷鍵：<kbd>1</kbd>–<kbd>9</kbd> 跳到對應步驟 · <kbd>c</kbd> 清除所有打勾</div>
+    </details>
 
     <div class="card">
       <div class="section-title">展示順序</div>
@@ -681,6 +701,17 @@ async function writeGuidePage(app) {
       }
     }, 1000);
   }
+
+  // ── Keyboard shortcuts: 1-9 jumps to step, c clears checkboxes ───────
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= 9) {
+      const el = document.getElementById('${app.id}-step' + n);
+      if (el) { el.scrollIntoView({behavior: 'smooth', block: 'center'}); }
+    }
+    if (e.key === 'c' || e.key === 'C') { clearAllChecks(); }
+  });
 
   // ── Offline / online status banner ───────────────────────────────────
   (function () {
