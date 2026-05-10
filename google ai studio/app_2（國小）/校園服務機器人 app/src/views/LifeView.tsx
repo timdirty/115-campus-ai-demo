@@ -142,6 +142,8 @@ export function LifeView({
   const [broadcastZones,    setBroadcastZones]    = useState<Set<string>>(new Set(['全校']));
   const [broadcastPressing, setBroadcastPressing] = useState(false);
   const [broadcastSent,     setBroadcastSent]     = useState(false);
+  const broadcastPressingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const broadcastSentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [lastUpdated,       setLastUpdated]       = useState<Date>(new Date());
   const [editingSchedule,   setEditingSchedule]   = useState('');
   const [editTime,          setEditTime]          = useState('');
@@ -161,7 +163,6 @@ export function LifeView({
   const videoRef        = useRef<HTMLVideoElement>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const analyzeCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const prevVisionSceneRef = useRef<VisionScene | null>(null);
   // Stability: track last 2 reliable scene results — only commit if consecutive match
   const stableFramesRef = useRef<{ scene: VisionScene; count: number } | null>(null);
   const [cameraError,   setCameraError]   = useState<string | null>(null);
@@ -175,6 +176,14 @@ export function LifeView({
 
   const sensorsRef  = useRef(sensors);
   const logsEndRef  = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (broadcastPressingTimerRef.current) clearTimeout(broadcastPressingTimerRef.current);
+      if (broadcastSentTimerRef.current) clearTimeout(broadcastSentTimerRef.current);
+    };
+  }, []);
+
   useEffect(() => { sensorsRef.current = sensors; }, [sensors]);
 
   // Sensor fluctuation
@@ -230,6 +239,7 @@ export function LifeView({
     if (modal !== 'mapcam') {
       cameraStreamRef.current?.getTracks().forEach(t => t.stop());
       cameraStreamRef.current = null;
+      if (videoRef.current) videoRef.current.srcObject = null;
       setCameraReady(false);
       setCameraError(null);
       return;
@@ -257,6 +267,7 @@ export function LifeView({
     return () => {
       cameraStreamRef.current?.getTracks().forEach(t => t.stop());
       cameraStreamRef.current = null;
+      if (videoRef.current) videoRef.current.srcObject = null;
       setCameraReady(false);
     };
   }, [modal]);
@@ -316,16 +327,8 @@ export function LifeView({
       cancelController.abort();
       clearInterval(intv);
       stableFramesRef.current = null;
-      setIsAnalyzing(false);
     };
   }, [modal, cameraReady]);
-
-  // Auto-dispatch scene-specific hardware command when the detected scene changes.
-  useEffect(() => {
-    if (!visionResult || prevVisionSceneRef.current === visionResult.scene) return;
-    prevVisionSceneRef.current = visionResult.scene;
-    sendHardwareCommand(visionResult.command, 'life-vision').catch(() => {});
-  }, [visionResult]);
 
   // Scroll logs to bottom
   useEffect(() => {
@@ -353,7 +356,11 @@ export function LifeView({
   const handleEmergencyBroadcast = useCallback(() => {
     if (!broadcastPressing) {
       setBroadcastPressing(true);
-      setTimeout(() => setBroadcastPressing(false), 2500);
+      if (broadcastPressingTimerRef.current) clearTimeout(broadcastPressingTimerRef.current);
+      broadcastPressingTimerRef.current = setTimeout(() => {
+        broadcastPressingTimerRef.current = null;
+        setBroadcastPressing(false);
+      }, 2500);
       return;
     }
     const zones = Array.from(broadcastZones).join('、');
@@ -363,7 +370,11 @@ export function LifeView({
     sendHardwareCommand('BROADCAST_EMERGENCY', 'life').catch(() => {});
     setBroadcastSent(true);
     showToast('緊急廣播已發送至：' + zones);
-    setTimeout(() => setBroadcastSent(false), 3000);
+    if (broadcastSentTimerRef.current) clearTimeout(broadcastSentTimerRef.current);
+    broadcastSentTimerRef.current = setTimeout(() => {
+      broadcastSentTimerRef.current = null;
+      setBroadcastSent(false);
+    }, 3000);
     setBroadcastPressing(false);
   }, [broadcastPressing, broadcastZones, actions, showToast]);
 
