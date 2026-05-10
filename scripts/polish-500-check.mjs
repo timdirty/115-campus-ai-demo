@@ -55,7 +55,7 @@ const featureContracts = {
       ['src/services/localVision.ts', 'analyzeCampusPixels', 'analyzeCampusImage', 'quality', '畫面品質'],
       ['src/services/frameQuality.ts', 'analyzeFrameQuality', '畫面過曝', '畫面資訊太少'],
       ['src/__tests__/localVision.test.ts', '500', 'quality', '光線偏暗', '500-round pixel validation'],
-      ['src/views/DashboardView.tsx', 'analyzeCampusImage', 'navigator.mediaDevices.getUserMedia', '轉成機器人任務'],
+      ['src/views/DashboardView.tsx', 'analyzeCampusImage', 'useCamera', '轉成機器人任務'],
       ['src/views/DashboardView.tsx', '畫面品質 ·', 'visionResult.quality'],
     ],
   },
@@ -157,7 +157,7 @@ function run() {
     assert(fs.existsSync(fullPath), `demo doc missing: ${docPath}`);
     assertFileContains(fullPath, phrases, docPath);
   }
-  assert(routes.length === 8, `expected 8 published routes, got ${routes.length}`);
+  assert(routes.length === 9, `expected 9 published routes, got ${routes.length}`);
   assert(new Set(routes).size === routes.length, 'published routes must be unique');
 
   for (let round = 0; round < 500; round += 1) {

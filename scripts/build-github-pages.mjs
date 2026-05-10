@@ -45,6 +45,8 @@ function renderGuideMarkdown(markdown) {
   const html = [];
   let inList = false;
   let inOrderedList = false;
+  let inCodeBlock = false;
+  const codeLines = [];
 
   const closeLists = () => {
     if (inList) {
@@ -57,7 +59,28 @@ function renderGuideMarkdown(markdown) {
     }
   };
 
+  const flushCodeBlock = () => {
+    html.push(`<pre><code>${codeLines.map((l) => escapeHtml(l)).join('\n')}</code></pre>`);
+    codeLines.length = 0;
+    inCodeBlock = false;
+  };
+
   for (const line of lines) {
+    // Fenced code block support
+    if (line.startsWith('```')) {
+      if (inCodeBlock) {
+        flushCodeBlock();
+      } else {
+        closeLists();
+        inCodeBlock = true;
+      }
+      continue;
+    }
+    if (inCodeBlock) {
+      codeLines.push(line);
+      continue;
+    }
+
     if (line.startsWith('# ')) {
       closeLists();
       html.push(`<h1>${renderInline(line.slice(2))}</h1>`);
@@ -95,6 +118,7 @@ function renderGuideMarkdown(markdown) {
     }
   }
 
+  if (inCodeBlock) flushCodeBlock(); // unclosed fence → flush what we have
   closeLists();
   return html.join('\n');
 }
@@ -142,7 +166,7 @@ async function writeGuidePage(app) {
   // Pre-launch checklist — very simple language for elementary students
   const storageKey = `${app.id}-checklist`;
   const preLaunchItems = [
-    `打開 <a href="./${app.id}/" style="color:${app.accent};font-weight:900">這個 App 網址</a>，確認畫面有出來`,
+    `打開 <strong style="color:${app.accent}">這個 App</strong>（導覽列「白板」頁），確認畫面有出來`,
     '把螢幕調亮，讓評審老師看得清楚',
     '先把下面的步驟看一遍，知道等一下要按哪裡',
     '網路斷掉也沒關係，App 可以在瀏覽器裡面跑',
@@ -390,9 +414,9 @@ async function writeGuidePage(app) {
     .step-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
     .step-title { margin: 0; font-size: 1.05rem; font-weight: 850; color: #1e293b; line-height: 1.65; flex: 1; }
     .step-time { flex-shrink: 0; font-size: .8rem; font-weight: 950; color: white; background: #64748b; padding: 3px 8px; border-radius: 999px; margin-top: 2px; }
-    .step-nav-chip { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 10px; border: 1.5px solid color-mix(in srgb, var(--accent), white 45%); border-radius: 999px; padding: 6px 14px; min-height: 36px; font-size: .83rem; font-weight: 950; color: var(--accent); background: color-mix(in srgb, var(--accent), white 90%); text-decoration: none; transition: background .15s, box-shadow .15s; }
+    .step-nav-chip { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 10px; border: 1.5px solid color-mix(in srgb, var(--accent), white 45%); border-radius: 999px; padding: 6px 14px; min-height: 40px; font-size: .83rem; font-weight: 950; color: var(--accent); background: color-mix(in srgb, var(--accent), white 90%); text-decoration: none; transition: background .15s, box-shadow .15s; }
     .step-nav-chip:hover { background: color-mix(in srgb, var(--accent), white 78%); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent), transparent 65%); }
-    .screenshot-frame { display: block; border-radius: 10px; overflow: hidden; border: 1.5px solid #e2e8f0; background: #f8fafc; text-decoration: none; position: relative; }
+    .screenshot-frame { display: block; border-radius: 10px; overflow: hidden; border: 1.5px solid #e2e8f0; background: #f8fafc; text-decoration: none; position: relative; min-height: 80px; }
     .screenshot-frame:hover { border-color: var(--accent); }
     .screenshot-frame img { width: 100%; display: block; }
     .screenshot-hint { position: absolute; bottom: 0; right: 0; background: rgb(0 0 0 / .55); color: white; font-size: 11px; font-weight: 900; padding: 4px 8px; border-top-left-radius: 8px; pointer-events: none; }
@@ -461,7 +485,7 @@ async function writeGuidePage(app) {
     .offline-banner.show { display: block; }
 
     /* Font size toggle */
-    .font-toggle { display: inline-flex; align-items: center; gap: 4px; border: 1px solid #e2e8f0; border-radius: 8px; background: white; padding: 6px 10px; font-size: .9rem; font-weight: 900; cursor: pointer; color: #334155; }
+    .font-toggle { display: inline-flex; align-items: center; gap: 4px; border: 1px solid #e2e8f0; border-radius: 8px; background: white; padding: 6px 10px; min-height: 40px; font-size: .9rem; font-weight: 900; cursor: pointer; color: #334155; }
     .font-toggle:hover { background: #f1f5f9; }
     body.font-large { font-size: 1.12rem; }
     body.font-large .step-title { font-size: 1.18rem; }
@@ -572,7 +596,7 @@ async function writeGuidePage(app) {
         ${judgeHighlightsHtml ? `<button class="timer-btn judge-btn" onclick="toggleJudgeMode('${app.id}')" title="顯示評審亮點模式（大字全螢幕）">📊 評審模式</button>` : ''}
         <div class="qr-block">
           ${qrSvg}
-          <span class="qr-label">掃我開始展示</span>
+          <span class="qr-label">掃我分享指南</span>
         </div>
       </div>
     </div>
@@ -580,14 +604,14 @@ async function writeGuidePage(app) {
     <details class="quick-review">
       <summary>⚡ 上台前快速複習（展開看全部步驟）</summary>
       <ol>
-        ${demoSteps.map((s, i) => `<li><a href="#${app.id}-step${i + 1}" style="color:inherit;text-decoration:none;display:block;padding:2px 0">${escapeHtml(s)}</a></li>`).join('\n        ')}
+        ${demoSteps.map((s, i) => `<li><a href="#${app.id}-step${i + 1}" style="color:inherit;text-decoration:none;display:flex;align-items:center;min-height:44px;padding:4px 0">${escapeHtml(s)}</a></li>`).join('\n        ')}
       </ol>
       <div class="must-ref">✅ 必做確認：${mustShowItems.slice(0, 3).map((s) => escapeHtml(s.replace(/^Student (performs|points|shows|demonstrates|explains|opens) /, '').replace(/ without assistance\.?$/, ''))).join(' → ')}</div>
       <div class="kbd-hint">快捷鍵：<kbd>1</kbd>–<kbd>9</kbd> 跳到對應步驟 · <kbd>c</kbd> 清除所有打勾</div>
       ${qaQuickHtml ? `<div class="qa-quick">
         <div class="qa-quick-title">🎤 評審常問，說不出來快看這裡</div>
         ${qaQuickHtml}
-        <a href="#qa-section-${app.id}" style="font-size:.76rem;font-weight:950;color:color-mix(in srgb,var(--accent),#1e293b 20%)">看全部問答 →</a>
+        <a href="#qa-section-${app.id}" style="display:inline-flex;align-items:center;min-height:40px;padding:4px 8px;border-radius:6px;font-size:.76rem;font-weight:950;color:color-mix(in srgb,var(--accent),#1e293b 20%);text-decoration:none">看全部問答 →</a>
       </div>` : ''}
     </details>
 
@@ -610,7 +634,7 @@ async function writeGuidePage(app) {
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div class="section-title" style="margin:0">📋 上台前要確認</div>
-        <button onclick="clearAllChecks()" style="border:1px solid #e2e8f0;border-radius:8px;background:white;padding:6px 12px;font-size:.82rem;font-weight:900;cursor:pointer;color:#64748b;line-height:1.3">🗑️ 清除打勾</button>
+        <button onclick="clearAllChecks()" style="border:1px solid #e2e8f0;border-radius:8px;background:white;padding:6px 12px;min-height:40px;font-size:.82rem;font-weight:900;cursor:pointer;color:#64748b;line-height:1.3">🗑️ 清除打勾</button>
       </div>
       <form onsubmit="return false">
         ${checklistHtml}
@@ -657,7 +681,7 @@ async function writeGuidePage(app) {
 
     <p style="text-align:center;color:#94a3b8;font-size:.78rem;font-weight:700;margin:8px 0 0">
       教學頁建立時間：${new Date().toLocaleString('zh-TW', {timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}
-      · <a href="./">返回首頁</a>
+      · <a href="./" style="display:inline-flex;align-items:center;min-height:40px;padding:0 4px">返回首頁</a>
     </p>
   </main>
 
@@ -835,6 +859,7 @@ async function writeGuidePage(app) {
   // ── Wake Lock: prevent screen from sleeping during presentation ───────
   let wakeLock = null;
   let wakeLockPending = false;
+  let wakeLockEnabled = false; // tracks user intent; survives browser-initiated release
   async function toggleWake(appId) {
     if (wakeLockPending) return; // prevent concurrent requests on rapid clicks
     wakeLockPending = true;
@@ -843,16 +868,21 @@ async function writeGuidePage(app) {
       if (wakeLock) {
         await wakeLock.release();
         wakeLock = null;
+        wakeLockEnabled = false; // user explicitly turned off
         if (btn) { btn.textContent = '💡 防熄屏'; btn.classList.remove('wake-active'); }
       } else {
         try {
           wakeLock = await navigator.wakeLock.request('screen');
+          wakeLockEnabled = true; // user explicitly turned on
           if (btn) { btn.textContent = '🟢 防熄屏中'; btn.classList.add('wake-active'); }
+          // Browser may revoke the lock (e.g. tab goes background on iOS) — null the ref
+          // but keep wakeLockEnabled so visibility handler can re-acquire.
           wakeLock.addEventListener('release', () => {
             wakeLock = null;
             if (btn) { btn.textContent = '💡 防熄屏'; btn.classList.remove('wake-active'); }
           });
         } catch (e) {
+          wakeLockEnabled = false;
           if (btn) { btn.textContent = '❌ 不支援'; setTimeout(() => { btn.textContent = '💡 防熄屏'; }, 2000); }
         }
       }
@@ -860,10 +890,14 @@ async function writeGuidePage(app) {
       wakeLockPending = false;
     }
   }
-  // Re-acquire wake lock after tab becomes visible again
+  // Re-acquire wake lock after tab becomes visible again (browser revokes on bg)
   document.addEventListener('visibilitychange', async () => {
-    if (wakeLock !== null && document.visibilityState === 'visible') {
-      try { wakeLock = await navigator.wakeLock.request('screen'); } catch(_) {}
+    if (wakeLockEnabled && document.visibilityState === 'visible') {
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        const btn = document.getElementById('wake-btn-${app.id}');
+        if (btn) { btn.textContent = '🟢 防熄屏中'; btn.classList.add('wake-active'); }
+      } catch(_) {}
     }
   });
 
@@ -954,23 +988,6 @@ async function writeGuidePage(app) {
     }
   })();
 
-  // ── D: Resume from last checkpoint (scroll to first unchecked step) ───
-  (function () {
-    const allStepCbs = [...document.querySelectorAll('input[type=checkbox][data-key*="-step-"]')];
-    const anyChecked = allStepCbs.some((cb) => cb.checked);
-    if (!anyChecked) return; // fresh start — don't skip the hero
-    const firstUnchecked = allStepCbs.find((cb) => !cb.checked);
-    const target = firstUnchecked
-      ? (firstUnchecked.closest('.step') || firstUnchecked.closest('label'))
-      : document.getElementById('must-card-${app.id}'); // all steps done → jump to must-show card
-    if (target) setTimeout(() => {
-      target.scrollIntoView({behavior: 'smooth', block: 'center'});
-      // Gap 3: visually highlight the current step so student knows exactly where they are
-      target.classList.add('current-step');
-      setTimeout(() => target.classList.remove('current-step'), 3000);
-    }, 700);
-  })();
-
   // ── Offline / online status banner ───────────────────────────────────
   (function () {
     const banner = document.getElementById('offline-banner');
@@ -1031,6 +1048,23 @@ async function writeGuidePage(app) {
       });
     });
     updateStepChip(); // init chip visibility based on restored state
+
+    // ── D: Resume from last checkpoint (scroll to first unchecked step) ───
+    // Must run AFTER localStorage restore so checkboxes reflect saved state.
+    const allStepCbs = [...document.querySelectorAll('input[type=checkbox][data-key*="-step-"]')];
+    const anyChecked = allStepCbs.some((cb) => cb.checked);
+    if (anyChecked) {
+      const firstUnchecked = allStepCbs.find((cb) => !cb.checked);
+      const target = firstUnchecked
+        ? (firstUnchecked.closest('.step') || firstUnchecked.closest('label'))
+        : document.getElementById('must-card-${app.id}'); // all steps done → jump to must-show card
+      if (target) setTimeout(() => {
+        target.scrollIntoView({behavior: 'smooth', block: 'center'});
+        // Gap 3: visually highlight the current step so student knows exactly where they are
+        target.classList.add('current-step');
+        setTimeout(() => target.classList.remove('current-step'), 3000);
+      }, 700);
+    }
   })();
   </script>
 </body>
@@ -1066,8 +1100,11 @@ function writeOpsGuidePage(app) {
     h3 { margin: 22px 0 8px; font-size: 1.04rem; color: #334155; }
     p, li { color: #465366; font-weight: 650; line-height: 1.78; }
     ul, ol { padding-left: 1.35rem; }
-    code { border-radius: 6px; background: #eef3f8; padding: 2px 5px; font-size: .92em; }
-    table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: .9rem; }
+    code { border-radius: 6px; background: #eef3f8; padding: 2px 5px; font-size: .82em; word-break: break-all; overflow-wrap: anywhere; white-space: normal; }
+    pre { overflow-x: auto; max-width: 100%; background: #eef3f8; border-radius: 8px; padding: 12px 14px; margin: 10px 0; font-size: .82em; line-height: 1.55; }
+    pre code { background: none; padding: 0; font-size: 1em; white-space: pre; word-break: normal; }
+    p, li, h1, h2, h3 { overflow-wrap: anywhere; word-break: break-word; }
+    table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: .9rem; overflow-x: auto; display: block; }
     th, td { border: 1px solid #d1dae8; padding: 8px 12px; text-align: left; }
     th { background: #f1f5f9; font-weight: 900; }
     .fab { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); right: 18px; z-index: 50; display: flex; flex-direction: column; gap: 10px; }
@@ -1110,16 +1147,29 @@ function writeOpsGuidePage(app) {
     function updateOffline() { if (banner) banner.classList.toggle('show', !navigator.onLine); }
     window.addEventListener('online', updateOffline); window.addEventListener('offline', updateOffline); updateOffline();
     // Wake lock
-    let opsWakeLock = null, opsWakePending = false;
+    let opsWakeLock = null, opsWakePending = false, opsWakeEnabled = false;
     window.opsToggleWake = async function() {
       if (opsWakePending) return; opsWakePending = true;
       const b = document.getElementById('ops-wake-btn');
       try {
-        if (opsWakeLock) { await opsWakeLock.release(); opsWakeLock = null; if (b) { b.textContent = '💡'; b.classList.remove('wake-active'); } }
-        else { try { opsWakeLock = await navigator.wakeLock.request('screen'); if (b) { b.textContent = '🟢'; b.classList.add('wake-active'); } opsWakeLock.addEventListener('release', () => { opsWakeLock = null; if (b) { b.textContent = '💡'; b.classList.remove('wake-active'); } }); } catch(e) { if (b) { b.textContent = '❌'; setTimeout(() => b.textContent = '💡', 2000); } } }
+        if (opsWakeLock) {
+          await opsWakeLock.release(); opsWakeLock = null; opsWakeEnabled = false;
+          if (b) { b.textContent = '💡'; b.classList.remove('wake-active'); }
+        } else {
+          try {
+            opsWakeLock = await navigator.wakeLock.request('screen'); opsWakeEnabled = true;
+            if (b) { b.textContent = '🟢'; b.classList.add('wake-active'); }
+            opsWakeLock.addEventListener('release', () => { opsWakeLock = null; if (b) { b.textContent = '💡'; b.classList.remove('wake-active'); } });
+          } catch(e) { opsWakeEnabled = false; if (b) { b.textContent = '❌'; setTimeout(() => b.textContent = '💡', 2000); } }
+        }
       } finally { opsWakePending = false; }
     };
-    document.addEventListener('visibilitychange', async () => { if (opsWakeLock && document.visibilityState === 'visible') { try { opsWakeLock = await navigator.wakeLock.request('screen'); } catch(_){} } });
+    // Re-acquire when tab returns to foreground (browser revokes on bg)
+    document.addEventListener('visibilitychange', async () => {
+      if (opsWakeEnabled && document.visibilityState === 'visible') {
+        try { opsWakeLock = await navigator.wakeLock.request('screen'); const b = document.getElementById('ops-wake-btn'); if (b) { b.textContent = '🟢'; b.classList.add('wake-active'); } } catch(_){}
+      }
+    });
     // 5-minute timer
     let opsTimerInterval = null;
     window.opsStartTimer = function() {
@@ -1383,7 +1433,7 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
     .install-bar { display: none; align-items: center; gap: 10px; margin-top: 14px; padding: 12px 16px; border-radius: 12px; border: 1.5px solid #bfdbfe; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); }
     .install-bar.show { display: flex; }
     .install-bar p { margin: 0; font-size: 13px; font-weight: 850; color: #1e40af; flex: 1; }
-    .install-bar button { min-height: 38px; padding: 0 14px; border-radius: 8px; border: none; background: #1d4ed8; color: white; font-weight: 950; font-size: 13px; cursor: pointer; white-space: nowrap; }
+    .install-bar button { min-height: 40px; min-width: 40px; padding: 0 14px; border-radius: 8px; border: none; background: #1d4ed8; color: white; font-weight: 950; font-size: 13px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; }
     @media (max-width: 820px) {
       main { width: min(100% - 24px, 560px); padding: 18px 0 28px; }
       .topbar { align-items: flex-start; flex-direction: column; margin-bottom: 24px; }
@@ -1422,7 +1472,7 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
     <div id="install-bar" class="install-bar">
       <p>📲 加到主畫面，比賽當天離線也能開！</p>
       <button id="install-btn">安裝 App</button>
-      <button onclick="document.getElementById('install-bar').classList.remove('show')" style="background:transparent;border:none;color:#1e40af;font-size:20px;cursor:pointer;padding:0 4px">✕</button>
+      <button onclick="document.getElementById('install-bar').classList.remove('show')" aria-label="關閉安裝提示" style="background:transparent;border:none;color:#1e40af;font-size:18px;cursor:pointer;min-width:40px;min-height:40px;display:inline-flex;align-items:center;justify-content:center;padding:0;border-radius:8px;flex-shrink:0">✕</button>
     </div>
     <div class="guide-cta-bar">
       <span class="guide-cta-label">⚡ 上台前必看！</span>
