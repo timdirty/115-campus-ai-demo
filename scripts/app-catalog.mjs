@@ -55,6 +55,14 @@ export const apps = [
       'Bottom D-pad drive bar: test FORWARD/LEFT/RIGHT/BACKWARD/STOP; watchdog fires if released.',
       'Student explains fallback: no camera, no network, no EV3, no Arduino still works.',
     ],
+    studentMustShow: [
+      '完整走一遍：拍白板 → 看 AI 建議 → 送指令給機器人（全程自己操作，不需要幫忙）',
+      '指出像素分析結果，說明 AI 看出了什麼、哪個區塊要擦',
+      '示範「保存決策 → 送到機器人」，說明為什麼由老師按最後確認',
+      '機器人任務成功後：白板圖出現 ✓ 覆蓋層，頂端出現「區塊 X 板擦完成」橫幅',
+      '底部 D-pad 搖桿：測試前進、後退、左轉、右轉、緊急停止；放開後自動停車',
+      '說明備案：沒有攝影機、沒有網路、沒有 EV3、沒有 Arduino 都可以正常展示',
+    ],
     judgeQaExtra: [
       {q: '為什麼不做全自動擦白板？', a: '老師對哪些內容要保留到下節課有最終決定權。我們故意讓 AI 停在輔助判斷位置，先做老師可控的半自動系統；固定攝影機與即時定位是下一階段。'},
       {q: '沒有固定攝影機，功能會受限嗎？', a: '第一階段完成區塊式決策與任務流程，不依賴即時定位。第二階段才加入白板座標校正與機器人位置確認，本次比賽展示的是完整的第一階段。'},
@@ -123,6 +131,14 @@ export const apps = [
       'Student opens FAB joystick and demonstrates drive control + emergency stop.',
       'Student demonstrates out-of-stock order: only error log, no hardware dispatch.',
       'Student explains fallback: no Arduino keeps the full task flow via simulation.',
+    ],
+    studentMustShow: [
+      '完整走一遍：下任務 → 看追蹤 → 匯報表（全程自己操作，不需要幫忙）',
+      '下單後：庫存減少、訂單紀錄、任務 log、機器人狀態，四個地方同時更新',
+      '配送完成後：任務日誌第 4 步「EV3 手臂收回」出現，並有正確的完成時間戳',
+      '打開右下角 FAB 搖桿，示範前進、後退、左右轉和緊急停止',
+      '示範庫存不足的訂單：只有錯誤 log，機器人不派遣、不動作',
+      '說明備案：沒有 Arduino 時，任務佇列和配送流程照常跑（模擬模式）',
     ],
     judgeQaExtra: [
       {q: '虛擬搖桿可以控制真實機器人嗎？', a: '可以。右下角 FAB 按鈕召喚虛擬搖桿，送出 FORWARD／BACKWARD／LEFT／RIGHT／STOP 與 SPEED_SET 指令到本機 bridge，bridge 再走 Serial 送到 UNO R4 底盤韌體。韌體內建 3 秒看門狗，前端每秒送 HEARTBEAT 保持連線；放開搖桿後看門狗倒數自動停車，防止失控。'},
@@ -198,6 +214,15 @@ export const apps = [
       'Student explains: no diagnosis, no real names, anonymous demo data only.',
       'Student shows acoustic sensing: browser mic, local compute only, no audio saved.',
       'Student shows sound trend sparkline (demo button or live mic) and explains trend arrow.',
+    ],
+    studentMustShow: [
+      '完整走一遍：看總覽 → 處理提醒 → 自我照護（全程自己操作，不需要幫忙）',
+      '指出校園地圖上每個區域的風險分數、聲量指數與提醒數量',
+      '從高風險區派遣機器人，確認機器人任務 log 有新增紀錄',
+      '展開底部遙控列，測試 D-pad 前後左右，說明 3 秒看門狗放開後自動停車',
+      '說明系統不做心理診斷、不使用真實姓名、所有展示資料都是匿名的',
+      '示範聲量感知：啟用瀏覽器麥克風，說明只在本機運算、不保存錄音、不上傳',
+      '示範聲量趨勢圖（按示範按鈕或真實麥克風），指出趨勢箭頭的上升/穩定/下降',
     ],
     judgeQaExtra: [
       {q: '底部遙控列是什麼？', a: '巡邏底盤的手動控制入口，常駐可收折。D-pad 控制前後左右，速度可調；韌體看門狗 3 秒保護，放開按鍵自動停車。收折後只顯示連線狀態與緊急停止按鈕，不佔主畫面空間。'},

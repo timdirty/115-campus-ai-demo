@@ -189,8 +189,9 @@ async function writeGuidePage(app) {
       <div class="flow-label">${escapeHtml(label)}</div>
     </div>${i < app.flow.length - 1 ? '<div class="flow-arrow">→</div>' : ''}`).join('\n');
 
-  // Must-show self-check list
-  const mustShowHtml = app.scorecardMustShow.map((item) => `<label class="must-item">
+  // Must-show self-check list — use Chinese studentMustShow if available, fall back to scorecardMustShow
+  const mustShowItems = app.studentMustShow || app.scorecardMustShow;
+  const mustShowHtml = mustShowItems.map((item) => `<label class="must-item">
       <input type="checkbox">
       <div class="must-text">${renderInline(item)}</div>
     </label>`).join('\n');
@@ -492,7 +493,7 @@ async function writeGuidePage(app) {
       <ol>
         ${demoSteps.map((s, i) => `<li><strong>${i + 1}.</strong> ${escapeHtml(s)}</li>`).join('\n        ')}
       </ol>
-      <div class="must-ref">✅ 必做確認：${app.scorecardMustShow.slice(0, 3).map((s) => escapeHtml(s.replace(/^Student (performs|points|shows|demonstrates|explains|opens) /, '').replace(/ without assistance\.?$/, ''))).join(' → ')}</div>
+      <div class="must-ref">✅ 必做確認：${mustShowItems.slice(0, 3).map((s) => escapeHtml(s.replace(/^Student (performs|points|shows|demonstrates|explains|opens) /, '').replace(/ without assistance\.?$/, ''))).join(' → ')}</div>
       <div class="kbd-hint">快捷鍵：<kbd>1</kbd>–<kbd>9</kbd> 跳到對應步驟 · <kbd>c</kbd> 清除所有打勾</div>
     </details>
 
@@ -535,7 +536,7 @@ async function writeGuidePage(app) {
     <div class="card" id="must-card-${app.id}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div class="section-title" style="margin:0">✅ 做完了嗎？打勾確認</div>
-        <span id="must-count-${app.id}" style="font-size:.95rem;font-weight:950;color:#64748b;transition:color .3s">0 / ${app.scorecardMustShow.length}</span>
+        <span id="must-count-${app.id}" style="font-size:.95rem;font-weight:950;color:#64748b;transition:color .3s">0 / ${mustShowItems.length}</span>
       </div>
       <p style="margin:0 0 12px;font-size:.85rem;color:#64748b;font-weight:700">每做完一個步驟就打一個勾，讓評審老師看到全部重點</p>
       <form class="must-list" onsubmit="return false">
