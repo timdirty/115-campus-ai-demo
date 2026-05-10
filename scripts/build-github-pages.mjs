@@ -1209,6 +1209,7 @@ function writeAllGuidesPage() {
           <div class="actions">
             <a class="primary" href="./${app.id}/">開啟 ${app.shortName}</a>
             <a class="secondary" href="./${guideUrl(app)}">手把手教學</a>
+            ${app.robotDisplay ? `<a class="secondary" href="./${app.id}/robot-display.html" target="_blank">🤖 機器人顯示</a>` : ''}
           </div>
         </div>
         <article>${guideHtml}</article>
@@ -1354,6 +1355,7 @@ const indexQrSvg = indexQrRaw.replace(/<\?xml[^?]*\?>\s*/g, '');
 const cards = apps.map((app) => {
   const opsUrl = opsGuideUrl(app);
   const extraLink = opsUrl ? `<a class="secondary" href="./${opsUrl}">操作手冊</a>` : '';
+  const robotLink = app.robotDisplay ? `<a class="secondary" href="./${app.id}/robot-display.html" target="_blank">🤖 機器人顯示</a>` : '';
   const stepCount = (app.simpleSteps || app.checklistItems).length;
   const approxSec = Math.round(stepCount * 25);
   const approxMin = Math.floor(approxSec / 60);
@@ -1372,6 +1374,7 @@ const cards = apps.map((app) => {
       <a class="primary" href="./${app.id}/">開啟操作 <span>→</span></a>
       <a class="secondary" href="./${app.id}-guide.html">手把手教學</a>
       ${extraLink}
+      ${robotLink}
     </div>
   </article>
 `;
