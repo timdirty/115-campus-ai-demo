@@ -29,6 +29,12 @@ export const apps = [
       '確認硬體指令 log 與任務紀錄同步留下。',
       '送出擦除任務後確認白板圖對應區塊出現 ✓ 覆蓋，頂端橫幅顯示「區塊 X 板擦完成」。',
     ],
+    simpleSteps: [
+      '拍白板照片，讓 AI 分析上面的字',
+      '進老師看板，看 AI 建議擦哪裡',
+      '確認機器人任務有被記錄下來',
+      '送指令給板擦機器人，看白板出現 ✓',
+    ],
     scorecardMustShow: [
       'Student performs 拍白板 -> 看決策 -> 送指令 without assistance.',
       'Student points to pixel analysis result and explains what changed.',
@@ -71,6 +77,14 @@ export const apps = [
       '教學頁點名或處理提醒。',
       '右下角 FAB 召喚虛擬搖桿，測試前後左右與緊急停止（韌體看門狗 3 秒保護）。',
       '報表中心確認任務紀錄，最後重置展示資料。',
+    ],
+    simpleSteps: [
+      '打開首頁，看機器人現在在做什麼',
+      '幫同學訂一個福利社商品',
+      '到追蹤頁，確認東西送達了',
+      '到教學頁，幫老師做一次點名',
+      '按搖桿按鈕，控制機器人前後左右',
+      '到報表頁，讓評審看今天的紀錄',
     ],
     scorecardMustShow: [
       'Student performs 下任務 -> 看追蹤 -> 匯報表 without assistance.',
@@ -116,6 +130,15 @@ export const apps = [
       '感知抽屜：啟用麥克風，等 20 秒以上確認趨勢圖開始累積真實採樣。',
       '底部遙控列展開，測試 D-pad 前後左右與緊急停止。',
       '紀錄抽屜：確認硬體提示有 sent/fallback 狀態留下。',
+    ],
+    simpleSteps: [
+      '打開 App，找地圖上最需要注意的區域',
+      '點紅色區域，派機器人去關心同學',
+      '點預警頁，選一筆提醒並佈署關懷',
+      '點感知頁，按示範看聲量趨勢圖',
+      '打開麥克風，等 20 秒看圖有沒有動',
+      '展開底部遙控列，測試機器人移動',
+      '點機器人頁，確認動作有被記錄',
     ],
     scorecardMustShow: [
       'Student performs 看總覽 -> 處理提醒 -> 自我照護 without assistance.',
