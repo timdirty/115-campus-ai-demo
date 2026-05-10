@@ -257,6 +257,7 @@ async function writeGuidePage(app) {
   <meta property="og:title" content="${escapeHtml(app.name)} 手把手操作教學" />
   <meta property="og:description" content="${escapeHtml(app.desc)} 共 ${(app.simpleSteps || app.checklistItems).length} 步，有截圖、有計時、有緊急備案。" />
   <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://timdirty.github.io/115-campus-ai-demo/${guideUrl(app)}" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='${encodeURIComponent(app.accent)}'/%3E%3Ctext x='256' y='340' font-family='Arial,sans-serif' font-size='220' font-weight='bold' fill='white' text-anchor='middle'%3E115%3C/text%3E%3C/svg%3E" />
   <title>${escapeHtml(app.name)} — 手把手操作教學</title>
