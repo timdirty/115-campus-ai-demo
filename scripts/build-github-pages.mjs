@@ -480,6 +480,8 @@ async function writeGuidePage(app) {
     .confetti-piece { position: fixed; width: 10px; height: 16px; border-radius: 3px; pointer-events: none; z-index: 9999; animation: confetti-fall linear forwards; }
     /* Step done — number badge turns green when step checkbox is checked */
     .step.done .step-num { background: #16a34a !important; }
+    /* Current step "you are here" — shown after resume scroll, fades after 3s */
+    .step.current-step { outline: 3px solid color-mix(in srgb, var(--accent), transparent 30%); background: color-mix(in srgb, var(--accent), white 90%) !important; box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent), transparent 82%); transition: outline .3s, background .3s, box-shadow .3s; }
     /* Step highlight flash when navigating via keyboard/link */
     @keyframes step-flash { 0%,100% { box-shadow: none; } 30% { box-shadow: 0 0 0 3px var(--accent); } }
     .step.flash { animation: step-flash .7s ease; }
@@ -916,9 +918,14 @@ async function writeGuidePage(app) {
     if (!anyChecked) return; // fresh start — don't skip the hero
     const firstUnchecked = allStepCbs.find((cb) => !cb.checked);
     const target = firstUnchecked
-      ? (firstUnchecked.closest('label') || firstUnchecked.closest('.step'))
+      ? (firstUnchecked.closest('.step') || firstUnchecked.closest('label'))
       : document.getElementById('must-card-${app.id}'); // all steps done → jump to must-show card
-    if (target) setTimeout(() => target.scrollIntoView({behavior: 'smooth', block: 'center'}), 700);
+    if (target) setTimeout(() => {
+      target.scrollIntoView({behavior: 'smooth', block: 'center'});
+      // Gap 3: visually highlight the current step so student knows exactly where they are
+      target.classList.add('current-step');
+      setTimeout(() => target.classList.remove('current-step'), 3000);
+    }, 700);
   })();
 
   // ── Offline / online status banner ───────────────────────────────────
@@ -1082,6 +1089,7 @@ function writeAllGuidesPage() {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>115 資通訊三隊學生講稿總覽</title>
   <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%23111827'/%3E%3Ctext x='256' y='340' font-family='Arial,sans-serif' font-size='220' font-weight='bold' fill='white' text-anchor='middle'%3E115%3C/text%3E%3C/svg%3E" />
   <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});</script>
   <style>
     :root { color-scheme: light; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif; }
@@ -1128,9 +1136,12 @@ function writeAllGuidesPage() {
     .fab-top2.vis { opacity: 1; pointer-events: auto; }
     .fab-print2 { background: #1d4ed8; color: white; }
     @media print { .fab-all { display: none; } .topbar { display: none; } .tab-row { position: static; } }
+    .offline-banner { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 9000; background: #f59e0b; color: #1c1917; font-weight: 950; font-size: .88rem; padding: 8px 16px; text-align: center; }
+    .offline-banner.show { display: block; }
   </style>
 </head>
 <body>
+  <div class="offline-banner" id="offline-banner" role="status">📵 目前離線 — 已快取的頁面可以正常瀏覽，App 功能仍可展示</div>
   <main style="padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px))">
     <nav class="topbar" aria-label="快速切換">
       <div class="nav-links">
@@ -1174,6 +1185,10 @@ function writeAllGuidesPage() {
     // Back-to-top visibility
     const btn = document.getElementById('fab-top2');
     window.addEventListener('scroll', () => { btn.classList.toggle('vis', window.scrollY > 300); }, {passive: true});
+    // Offline banner
+    const banner = document.getElementById('offline-banner');
+    function updateBanner() { if (banner) banner.classList.toggle('show', !navigator.onLine); }
+    window.addEventListener('online', updateBanner); window.addEventListener('offline', updateBanner); updateBanner();
   })();
   </script>
 </body>
@@ -1295,9 +1310,19 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
       .card { min-height: 232px; padding: 20px; }
       .actions { grid-template-columns: 1fr; }
     }
+    .offline-banner { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 9000; background: #f59e0b; color: #1c1917; font-weight: 950; font-size: .88rem; padding: 8px 16px; text-align: center; }
+    .offline-banner.show { display: block; }
+    .fab-index { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); right: 18px; z-index: 50; display: flex; flex-direction: column; gap: 10px; }
+    .fab-index-top { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 999px; border: none; background: #111827; color: white; font-size: 20px; cursor: pointer; box-shadow: 0 4px 18px rgb(0 0 0/.18); transition: transform .15s, opacity .2s; opacity: 0; pointer-events: none; text-decoration: none; }
+    .fab-index-top.vis { opacity: 1; pointer-events: auto; }
+    @media print { .offline-banner, .fab-index { display: none; } }
   </style>
 </head>
 <body>
+  <div class="offline-banner" id="offline-banner-idx" role="status">📵 目前離線 — 已快取的頁面可以正常瀏覽，App 功能仍可展示</div>
+  <div class="fab-index">
+    <a class="fab-index-top" id="fab-idx-top" href="#" title="回到頂端" onclick="window.scrollTo({top:0,behavior:'smooth'});return false">↑</a>
+  </div>
   <main>
     <nav class="topbar" aria-label="快速開啟">
       <div class="brand"><span class="mark">115</span><span>三隊 App 操作台</span></div>
@@ -1349,6 +1374,13 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
     window.addEventListener('appinstalled', () => {
       document.getElementById('install-bar').classList.remove('show');
     });
+    // FAB back-to-top
+    const fabTop = document.getElementById('fab-idx-top');
+    window.addEventListener('scroll', () => { if (fabTop) fabTop.classList.toggle('vis', window.scrollY > 300); }, {passive: true});
+    // Offline banner
+    const offlineBanner = document.getElementById('offline-banner-idx');
+    function updateOffline() { if (offlineBanner) offlineBanner.classList.toggle('show', !navigator.onLine); }
+    window.addEventListener('online', updateOffline); window.addEventListener('offline', updateOffline); updateOffline();
   })();
   </script>
 </body>
