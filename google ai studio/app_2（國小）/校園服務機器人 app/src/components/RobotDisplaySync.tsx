@@ -57,13 +57,15 @@ export const RobotDisplaySync = memo(function RobotDisplaySync() {
   /* ── 輪詢橋接伺服器狀態 ── */
   useEffect(() => {
     const poll = async () => {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 2000);
       try {
-        const res = await fetch(`${BRIDGE_URL}/api/display/status`, {signal: AbortSignal.timeout(2000)});
+        const res = await fetch(`${BRIDGE_URL}/api/display/status`, {signal: ctrl.signal});
         if (res.ok) {
           const json = await res.json() as {clients: number};
           setConnected(json.clients > 0);
         } else setConnected(false);
-      } catch { setConnected(false); }
+      } catch { setConnected(false); } finally { clearTimeout(t); }
     };
     void poll();
     statusPollRef.current = setInterval(poll, 5000);
@@ -71,12 +73,14 @@ export const RobotDisplaySync = memo(function RobotDisplaySync() {
   }, []);
 
   const sendEmotion = useCallback(async (emotion: EmotionKey) => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 3000);
     try {
       const res = await fetch(`${BRIDGE_URL}/api/display/emotion`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({emotion}),
-        signal: AbortSignal.timeout(3000),
+        signal: ctrl.signal,
       });
       if (res.ok) {
         const json = await res.json() as {clients: number};
@@ -85,7 +89,7 @@ export const RobotDisplaySync = memo(function RobotDisplaySync() {
         const now = new Date();
         setLastSync(`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`);
       }
-    } catch { /* bridge offline */ }
+    } catch { /* bridge offline */ } finally { clearTimeout(t); }
   }, []);
 
   /* ── 自動同步 ── */
@@ -100,8 +104,10 @@ export const RobotDisplaySync = memo(function RobotDisplaySync() {
   /* ── QR code 產生 ── */
   const generateQr = useCallback(async () => {
     setQrLoading(true);
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 3000);
     try {
-      const infoRes = await fetch(`${BRIDGE_URL}/api/display/info`, {signal: AbortSignal.timeout(3000)});
+      const infoRes = await fetch(`${BRIDGE_URL}/api/display/info`, {signal: ctrl.signal});
       const info = await infoRes.json() as {robotDisplayUrl: string};
       setQrUrl(info.robotDisplayUrl);
       const {default: QRCode} = await import('qrcode');
@@ -110,7 +116,7 @@ export const RobotDisplaySync = memo(function RobotDisplaySync() {
         color: {dark: '#0f172a', light: '#ffffff'},
       });
       setQrSrc(dataUrl);
-    } catch { /* ignore */ } finally { setQrLoading(false); }
+    } catch { /* ignore */ } finally { clearTimeout(t); setQrLoading(false); }
   }, []);
 
   const copyUrl = useCallback(() => {

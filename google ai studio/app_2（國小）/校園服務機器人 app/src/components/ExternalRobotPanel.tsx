@@ -41,27 +41,35 @@ const SPIKE_COMMANDS = [
 ] as const;
 
 async function fetchStatus(hw: RobotHW): Promise<HWStatus | null> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 2000);
   try {
-    const res = await fetch(`${BRIDGE_URL}/api/${hw}/status`, {signal: AbortSignal.timeout(2000)});
+    const res = await fetch(`${BRIDGE_URL}/api/${hw}/status`, {signal: ctrl.signal});
     if (!res.ok) return null;
     return res.json() as Promise<HWStatus>;
   } catch {
     return null;
+  } finally {
+    clearTimeout(t);
   }
 }
 
 async function sendCmd(hw: RobotHW, command: string): Promise<boolean> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 3000);
   try {
     const res = await fetch(`${BRIDGE_URL}/api/${hw}/command`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({command}),
-      signal: AbortSignal.timeout(3000),
+      signal: ctrl.signal,
     });
     const data = await res.json() as {ok: boolean};
     return data.ok;
   } catch {
     return false;
+  } finally {
+    clearTimeout(t);
   }
 }
 
