@@ -271,6 +271,12 @@ async function writeGuidePage(app) {
     .cel-close { width: 100%; min-height: 48px; border: none; border-radius: 12px; background: var(--accent); color: white; font-size: 1rem; font-weight: 950; cursor: pointer; }
     a { color: var(--accent); }
 
+    /* Jump nav */
+    .jump-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .jump-nav a { min-height: 40px; display: inline-flex; align-items: center; border: 1px solid #e2e8f0; border-radius: 8px; background: white; padding: 0 12px; text-decoration: none; color: #334155; font-weight: 900; font-size: 13px; transition: border-color .15s, color .15s; }
+    .jump-nav a:hover { border-color: var(--accent); color: var(--accent); }
+    @media print { .jump-nav { display: none !important; } }
+
     /* Top nav */
     .topnav { display: flex; flex-wrap: wrap; gap: 8px; }
     .topnav a { min-height: 40px; display: inline-flex; align-items: center; border: 1px solid #d7e0ec; border-radius: 8px; background: white; padding: 0 14px; text-decoration: none; color: #334155; font-weight: 900; font-size: 14px; }
@@ -476,6 +482,13 @@ async function writeGuidePage(app) {
     </nav>
     <div class="prog-bar" id="prog-${app.id}" role="status" aria-label="步驟進度"></div>
 
+    <nav class="jump-nav" aria-label="快速跳到">
+      <a href="#${app.id}-step1">📋 步驟</a>
+      <a href="#must-card-${app.id}">✅ 確認清單</a>
+      <a href="#qa-section-${app.id}">❓ Q&amp;A</a>
+      <a href="#emergency-section-${app.id}">🚨 緊急備案</a>
+    </nav>
+
     <div class="hero">
       <div class="hero-tag">${app.id.toUpperCase()} — ${escapeHtml(app.team)}</div>
       <h1>${escapeHtml(app.name)}<span class="hero-sub">手把手操作教學</span></h1>
@@ -507,7 +520,7 @@ async function writeGuidePage(app) {
     <details class="quick-review">
       <summary>⚡ 上台前快速複習（展開看全部步驟）</summary>
       <ol>
-        ${demoSteps.map((s, i) => `<li><strong>${i + 1}.</strong> ${escapeHtml(s)}</li>`).join('\n        ')}
+        ${demoSteps.map((s, i) => `<li><a href="#${app.id}-step${i + 1}" style="color:inherit;text-decoration:none;display:block;padding:2px 0">${escapeHtml(s)}</a></li>`).join('\n        ')}
       </ol>
       <div class="must-ref">✅ 必做確認：${mustShowItems.slice(0, 3).map((s) => escapeHtml(s.replace(/^Student (performs|points|shows|demonstrates|explains|opens) /, '').replace(/ without assistance\.?$/, ''))).join(' → ')}</div>
       <div class="kbd-hint">快捷鍵：<kbd>1</kbd>–<kbd>9</kbd> 跳到對應步驟 · <kbd>c</kbd> 清除所有打勾</div>
@@ -560,12 +573,12 @@ async function writeGuidePage(app) {
       </form>
     </div>
 
-    <div class="card">
+    <div class="card" id="qa-section-${app.id}">
       <div class="section-title">❓ 評審問這個怎麼回答</div>
       ${qaHtml}
     </div>
 
-    <div class="card">
+    <div class="card" id="emergency-section-${app.id}">
       <div class="section-title">🚨 出錯了怎麼辦</div>
       <div class="emergency-list">
         ${emergencyHtml}
