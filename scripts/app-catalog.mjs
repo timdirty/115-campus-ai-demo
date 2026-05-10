@@ -98,6 +98,7 @@ export const apps = [
     shortName: 'App 3',
     path: 'google ai studio/app_3（國中）/AI校園心靈守護者',
     guide: 'google ai studio/app_3（國中）/AI校園心靈守護者/STUDENT_DEMO_GUIDE.md',
+    opsGuide: 'google ai studio/app_3（國中）/AI校園心靈守護者/DEMO_OPERATIONS_GUIDE.md',
     desc: '匿名關懷、預警處理、自我照護、聊天與節點監控。',
     accent: '#0f766e',
     flow: ['看總覽', '處理提醒', '自我照護'],
@@ -147,6 +148,14 @@ export function guidePath(app) {
   return path.join(rootDir, app.guide);
 }
 
+export function opsGuidePath(app) {
+  return app.opsGuide ? path.join(rootDir, app.opsGuide) : null;
+}
+
+export function opsGuideUrl(app) {
+  return app.opsGuide ? `${app.id}-ops-guide.html` : null;
+}
+
 export function appUrl(app) {
   return `${app.id}/`;
 }
@@ -165,5 +174,6 @@ export function allPublishedRoutes() {
     `/${allGuidesUrl()}`,
     ...apps.map((app) => `/${appUrl(app)}`),
     ...apps.map((app) => `/${guideUrl(app)}`),
+    ...apps.flatMap((app) => opsGuideUrl(app) ? [`/${opsGuideUrl(app)}`] : []),
   ];
 }

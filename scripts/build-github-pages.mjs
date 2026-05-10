@@ -3,7 +3,7 @@
 import {spawnSync} from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import {allGuidesUrl, appDir, apps, guidePath, guideUrl, pagesDir} from './app-catalog.mjs';
+import {allGuidesUrl, appDir, apps, guidePath, guideUrl, opsGuidePath, opsGuideUrl, pagesDir} from './app-catalog.mjs';
 
 function run(command, args, cwd) {
   const result = spawnSync(command, args, {cwd, stdio: 'inherit', shell: process.platform === 'win32'});
@@ -128,6 +128,52 @@ function writeGuidePage(app) {
 `, 'utf8');
 }
 
+function writeOpsGuidePage(app) {
+  const filePath = opsGuidePath(app);
+  const url = opsGuideUrl(app);
+  if (!filePath || !url || !fs.existsSync(filePath)) return;
+  const markdown = fs.readFileSync(filePath, 'utf8');
+  const guideHtml = renderGuideMarkdown(markdown);
+  fs.writeFileSync(path.join(pagesDir, url), `<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${app.name} 操作完全手冊</title>
+  <style>
+    :root { color-scheme: light; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif; }
+    * { box-sizing: border-box; min-width: 0; }
+    body { margin: 0; background: #f5f7fb; color: #172033; }
+    main { width: min(960px, calc(100% - 28px)); margin: 0 auto; padding: 22px 0 44px; }
+    nav { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+    a { color: ${app.accent}; font-weight: 900; }
+    nav a { min-height: 42px; display: inline-flex; align-items: center; border: 1px solid #d7e0ec; border-radius: 8px; background: white; padding: 0 12px; text-decoration: none; }
+    article { border: 1px solid #d9e2ee; border-radius: 8px; background: white; padding: clamp(18px, 4vw, 34px); box-shadow: 0 22px 70px rgb(27 35 52 / 0.08); }
+    h1 { margin: 0 0 18px; font-size: clamp(1.9rem, 8vw, 3.4rem); line-height: 1.02; letter-spacing: 0; color: #111827; }
+    h2 { margin: 30px 0 12px; padding-top: 20px; border-top: 1px solid #e3e9f2; font-size: 1.35rem; }
+    h3 { margin: 22px 0 8px; font-size: 1.04rem; color: #334155; }
+    p, li { color: #465366; font-weight: 650; line-height: 1.78; }
+    ul, ol { padding-left: 1.35rem; }
+    code { border-radius: 6px; background: #eef3f8; padding: 2px 5px; font-size: .92em; }
+    table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: .9rem; }
+    th, td { border: 1px solid #d1dae8; padding: 8px 12px; text-align: left; }
+    th { background: #f1f5f9; font-weight: 900; }
+  </style>
+</head>
+<body>
+  <main>
+    <nav aria-label="返回">
+      <a href="./">返回總入口</a>
+      <a href="./${app.id}/">開啟 ${app.name}</a>
+      <a href="./${guideUrl(app)}">學生講稿</a>
+    </nav>
+    <article>${guideHtml}</article>
+  </main>
+</body>
+</html>
+`, 'utf8');
+}
+
 function writeAllGuidesPage() {
   const tabs = apps.map((app, index) => `
       <a class="tab${index === 0 ? ' current' : ''}" href="#${app.id}">${app.shortName} 講稿</a>
@@ -234,11 +280,15 @@ for (const app of apps) {
   run('npm', ['run', 'build'], sourceDir);
   copyDir(path.join(sourceDir, 'dist'), path.join(pagesDir, app.id));
   writeGuidePage(app);
+  writeOpsGuidePage(app);
 }
 
 writeAllGuidesPage();
 
-const cards = apps.map((app) => `
+const cards = apps.map((app) => {
+  const opsUrl = opsGuideUrl(app);
+  const extraLink = opsUrl ? `<a class="secondary" href="./${opsUrl}">操作手冊</a>` : '';
+  return `
   <article class="card" style="--accent:${app.accent}">
     <span class="tag">${app.id.toUpperCase()}</span>
     <span class="shine"></span>
@@ -248,9 +298,11 @@ const cards = apps.map((app) => `
     <div class="actions">
       <a class="primary" href="./${app.id}/">開啟操作 <span>→</span></a>
       <a class="secondary" href="./${app.id}-guide.html">學生講稿</a>
+      ${extraLink}
     </div>
   </article>
-`).join('');
+`;
+}).join('');
 
 const quickLinks = apps.map((app) => `<a href="./${app.id}/">${app.name}</a>`).join('');
 
