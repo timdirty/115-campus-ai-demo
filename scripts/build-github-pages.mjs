@@ -170,7 +170,7 @@ async function writeGuidePage(app) {
           <span class="step-time">約 ${secPerStep} 秒</span>
         </div>
         ${navHintHtml}
-        <a class="screenshot-frame" href="${imgSrc}" target="_blank" title="點我放大看截圖">
+        <a class="screenshot-frame js-lightbox" href="${imgSrc}" title="點我放大看截圖">
           <img src="${imgSrc}" alt="步驟 ${num} 操作畫面截圖" loading="lazy"
                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
           <div class="no-img-placeholder">
@@ -252,13 +252,22 @@ async function writeGuidePage(app) {
   <meta property="og:title" content="${escapeHtml(app.name)} 手把手操作教學" />
   <meta property="og:description" content="${escapeHtml(app.desc)} 共 ${(app.simpleSteps || app.checklistItems).length} 步，有截圖、有計時、有緊急備案。" />
   <meta property="og:type" content="website" />
+  <link rel="manifest" href="./manifest.json" />
   <title>${escapeHtml(app.name)} — 手把手操作教學</title>
   <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});</script>
   <style>
     :root { --accent: ${app.accent}; color-scheme: light; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif; }
     * { box-sizing: border-box; min-width: 0; }
     body { margin: 0; background: #f3f6fb; color: #172033; }
-    main { width: min(900px, calc(100% - 24px)); margin: 0 auto; padding: 20px 0 56px; display: grid; gap: 16px; }
+    main { width: min(900px, calc(100% - 24px)); margin: 0 auto; padding: 20px 0 calc(96px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 16px; }
+    /* Celebration modal */
+    .cel-overlay { display: none; position: fixed; inset: 0; z-index: 500; background: rgb(0 0 0 / .55); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 20px; }
+    .cel-overlay.show { display: flex; }
+    .cel-box { background: white; border-radius: 20px; padding: 36px 28px 28px; max-width: 360px; width: 100%; text-align: center; box-shadow: 0 32px 80px rgb(0 0 0 / .22); }
+    .cel-emoji { font-size: 3.5rem; line-height: 1; margin-bottom: 12px; }
+    .cel-title { margin: 0 0 8px; font-size: 1.55rem; font-weight: 950; color: #111827; }
+    .cel-sub { margin: 0 0 24px; color: #64748b; font-weight: 700; font-size: 1rem; line-height: 1.6; }
+    .cel-close { width: 100%; min-height: 48px; border: none; border-radius: 12px; background: var(--accent); color: white; font-size: 1rem; font-weight: 950; cursor: pointer; }
     a { color: var(--accent); }
 
     /* Top nav */
@@ -375,10 +384,14 @@ async function writeGuidePage(app) {
     .role-desc { color: #334155; font-weight: 700; font-size: 1rem; line-height: 1.6; }
     .check-item span { color: #465366; font-weight: 700; line-height: 1.65; font-size: 1rem; }
 
-    /* Floating open-app button */
-    .fab-open { position: fixed; bottom: 20px; right: 18px; z-index: 200; display: inline-flex; align-items: center; gap: 8px; padding: 0 18px; height: 52px; border-radius: 999px; background: var(--accent); color: white; font-size: .92rem; font-weight: 950; text-decoration: none; box-shadow: 0 6px 24px color-mix(in srgb, var(--accent), transparent 50%); border: none; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+    /* Floating open-app button — respects iOS home bar safe area */
+    .fab-open { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); right: 18px; z-index: 200; display: inline-flex; align-items: center; gap: 8px; padding: 0 18px; height: 52px; border-radius: 999px; background: var(--accent); color: white; font-size: .92rem; font-weight: 950; text-decoration: none; box-shadow: 0 6px 24px color-mix(in srgb, var(--accent), transparent 50%); border: none; cursor: pointer; transition: transform .15s, box-shadow .15s; }
     .fab-open:hover { transform: translateY(-2px); box-shadow: 0 10px 32px color-mix(in srgb, var(--accent), transparent 40%); }
     @media print { .fab-open { display: none !important; } }
+    /* Inline lightbox for screenshots */
+    .lightbox-ov { position: fixed; inset: 0; z-index: 9999; background: rgb(0 0 0 / .88); display: flex; align-items: center; justify-content: center; padding: 16px; cursor: zoom-out; }
+    .lightbox-ov img { max-width: 100%; max-height: 100%; border-radius: 10px; object-fit: contain; cursor: default; }
+    .lightbox-hint { position: absolute; bottom: max(20px, env(safe-area-inset-bottom, 0px)); color: white; font-size: 1rem; font-weight: 900; text-align: center; width: 100%; pointer-events: none; }
 
     /* Sticky step progress bar */
     .prog-bar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 6px 16px; background: rgb(255 255 255 / .96); backdrop-filter: blur(10px); border-bottom: 1px solid #e2e8f0; overflow: hidden; max-height: 0; transition: max-height .25s ease, padding .25s ease; pointer-events: none; }
@@ -478,7 +491,7 @@ async function writeGuidePage(app) {
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
         <div class="section-title" style="margin:0">🎬 按這個順序做（共 ${demoSteps.length} 步，每步約 ${secPerStep} 秒）</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">${demoSteps.map((_, i) => `<a href="#${app.id}-step${i + 1}" style="width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid color-mix(in srgb,var(--accent),white 60%);background:color-mix(in srgb,var(--accent),white 90%);color:var(--accent);font-size:.85rem;font-weight:950;text-decoration:none">${i + 1}</a>`).join('')}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${demoSteps.map((_, i) => `<a href="#${app.id}-step${i + 1}" style="width:44px;height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid color-mix(in srgb,var(--accent),white 60%);background:color-mix(in srgb,var(--accent),white 90%);color:var(--accent);font-size:.9rem;font-weight:950;text-decoration:none">${i + 1}</a>`).join('')}</div>
       </div>
       <div class="steps">
         ${stepsHtml}
@@ -518,8 +531,32 @@ async function writeGuidePage(app) {
       · <a href="./">返回首頁</a>
     </p>
   </main>
+
+  <div class="cel-overlay" id="cel-overlay-${app.id}" role="dialog" aria-modal="true">
+    <div class="cel-box">
+      <div class="cel-emoji">🎉</div>
+      <h2 class="cel-title">準備完成！</h2>
+      <p class="cel-sub">所有重點都確認過了。<br>深呼吸一下，去上台展示吧！</p>
+      <button class="cel-close" onclick="document.getElementById('cel-overlay-${app.id}').classList.remove('show')">我準備好了，去上台！ 💪</button>
+    </div>
+  </div>
   <a class="fab-open" href="./${app.id}/" title="開啟 ${escapeHtml(app.shortName)} App">🚀 開啟 App</a>
   <script>
+  // ── Inline lightbox for screenshots (no new tab on mobile) ───────────
+  document.querySelectorAll('.js-lightbox').forEach((a) => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const img = a.querySelector('img');
+      if (!img || !img.src || img.style.display === 'none') return;
+      const ov = document.createElement('div');
+      ov.className = 'lightbox-ov';
+      ov.innerHTML = '<img src="' + img.src + '" alt="' + (img.alt || '截圖') + '"><div class="lightbox-hint">點任何地方關閉</div>';
+      ov.addEventListener('click', () => ov.remove());
+      ov.querySelector('img').addEventListener('click', (ev) => ev.stopPropagation());
+      document.body.appendChild(ov);
+    });
+  });
+
   // ── Share & Print helpers ─────────────────────────────────────────────
   function shareGuide() {
     const url = location.href;
@@ -580,12 +617,18 @@ async function writeGuidePage(app) {
     const done = items.filter((i) => i.checked).length;
     const counter = document.getElementById('must-count-${app.id}');
     const card = document.getElementById('must-card-${app.id}');
+    const allDone = done === items.length && items.length > 0;
     if (counter) {
       counter.textContent = done + ' / ' + items.length;
-      counter.style.color = done === items.length && items.length > 0 ? '#16a34a' : '#64748b';
+      counter.style.color = allDone ? '#16a34a' : '#64748b';
     }
     if (card) {
-      card.classList.toggle('must-card-done', done === items.length && items.length > 0);
+      card.classList.toggle('must-card-done', allDone);
+    }
+    if (allDone) {
+      setTimeout(() => {
+        document.getElementById('cel-overlay-${app.id}')?.classList.add('show');
+      }, 400);
     }
   }
   document.querySelectorAll('.must-item input[type=checkbox]').forEach((cb) => {
@@ -867,6 +910,7 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta property="og:title" content="115 資通訊三隊 App 展示入口" />
   <meta property="og:description" content="三個 AI 機器人 App 展示。上台前點「手把手教學」看步驟、截圖、計時、緊急備案，全都有。" />
+  <link rel="manifest" href="./manifest.json" />
   <title>115 資通訊三隊 App 展示入口</title>
   <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});</script>
   <style>
@@ -941,6 +985,27 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
 </body>
 </html>
 `, 'utf8');
+
+// ── PWA Manifest ────────────────────────────────────────────────────────
+const iconSvgEncoded = encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="80" fill="#111827"/><text x="256" y="340" font-family="Arial,sans-serif" font-size="220" font-weight="bold" fill="white" text-anchor="middle">115</text></svg>');
+const iconDataUri = `data:image/svg+xml,${iconSvgEncoded}`;
+fs.writeFileSync(path.join(pagesDir, 'manifest.json'), JSON.stringify({
+  name: '115三隊 AI 機器人展示',
+  short_name: '115展示',
+  description: '三隊 AI 機器人展示教學入口，手把手步驟、計時、截圖、離線可用',
+  lang: 'zh-TW',
+  start_url: './',
+  scope: '/115-campus-ai-demo/',
+  display: 'standalone',
+  orientation: 'any',
+  theme_color: '#111827',
+  background_color: '#f4f7fb',
+  categories: ['education', 'productivity'],
+  icons: [
+    {src: iconDataUri, sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable'},
+    {src: iconDataUri, sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable'},
+  ],
+}, null, 2), 'utf8');
 
 // ── Service Worker: cache guide pages + screenshots for offline use ──
 const screenshotUrls = apps.flatMap((a) =>
