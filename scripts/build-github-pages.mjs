@@ -703,6 +703,8 @@ function writeOpsGuidePage(app) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${app.name} 操作完全手冊</title>
+  <link rel="manifest" href="./manifest.json" />
+  <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});</script>
   <style>
     :root { color-scheme: light; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif; }
     * { box-sizing: border-box; min-width: 0; }
@@ -721,10 +723,16 @@ function writeOpsGuidePage(app) {
     table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: .9rem; }
     th, td { border: 1px solid #d1dae8; padding: 8px 12px; text-align: left; }
     th { background: #f1f5f9; font-weight: 900; }
+    .fab { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); right: 18px; z-index: 50; display: flex; flex-direction: column; gap: 10px; }
+    .fab button, .fab a { display: flex; align-items: center; justify-content: center; min-width: 48px; min-height: 48px; border-radius: 999px; border: none; cursor: pointer; font-size: 20px; box-shadow: 0 4px 18px rgb(0 0 0/.18); transition: transform .15s, opacity .2s; }
+    .fab-top { background: #111827; color: white; opacity: 0; pointer-events: none; text-decoration: none; }
+    .fab-top.vis { opacity: 1; pointer-events: auto; }
+    .fab-print { background: ${app.accent}; color: white; }
+    @media print { .fab { display: none; } nav { display: none; } }
   </style>
 </head>
 <body>
-  <main>
+  <main style="padding: 20px 0 calc(96px + env(safe-area-inset-bottom, 0px))">
     <nav aria-label="返回">
       <a href="./">返回總入口</a>
       <a href="./${app.id}/">開啟 ${app.name}</a>
@@ -732,6 +740,17 @@ function writeOpsGuidePage(app) {
     </nav>
     <article>${guideHtml}</article>
   </main>
+  <div class="fab">
+    <button class="fab-print" title="列印手冊" onclick="window.print()">🖨️</button>
+    <a class="fab-top" id="fab-top" href="#" title="回到頂端" onclick="window.scrollTo({top:0,behavior:'smooth'});return false">↑</a>
+  </div>
+  <script>
+  (function(){
+    const btn = document.getElementById('fab-top');
+    const onScroll = () => { btn.classList.toggle('vis', window.scrollY > 300); };
+    window.addEventListener('scroll', onScroll, {passive: true});
+  })();
+  </script>
 </body>
 </html>
 `, 'utf8');
@@ -768,6 +787,8 @@ function writeAllGuidesPage() {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>115 資通訊三隊學生講稿總覽</title>
+  <link rel="manifest" href="./manifest.json" />
+  <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});</script>
   <style>
     :root { color-scheme: light; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif; }
     * { box-sizing: border-box; min-width: 0; }
@@ -807,10 +828,16 @@ function writeAllGuidesPage() {
       .tab, .nav-links a { width: 100%; justify-content: flex-start; border-radius: 12px; }
       .actions a { width: 100%; }
     }
+    .fab-all { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); right: 18px; z-index: 50; display: flex; flex-direction: column; gap: 10px; }
+    .fab-all button, .fab-all a { display: flex; align-items: center; justify-content: center; min-width: 48px; min-height: 48px; border-radius: 999px; border: none; cursor: pointer; font-size: 20px; box-shadow: 0 4px 18px rgb(0 0 0/.18); transition: transform .15s, opacity .2s; text-decoration: none; }
+    .fab-top2 { background: #111827; color: white; opacity: 0; pointer-events: none; }
+    .fab-top2.vis { opacity: 1; pointer-events: auto; }
+    .fab-print2 { background: #1d4ed8; color: white; }
+    @media print { .fab-all { display: none; } .topbar { display: none; } .tab-row { position: static; } }
   </style>
 </head>
 <body>
-  <main>
+  <main style="padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px))">
     <nav class="topbar" aria-label="快速切換">
       <div class="nav-links">
         <a href="./">← 返回首頁</a>
@@ -827,8 +854,11 @@ function writeAllGuidesPage() {
     <section class="guide-list">${sections}
     </section>
   </main>
+  <div class="fab-all">
+    <button class="fab-print2" title="列印講稿" onclick="window.print()">🖨️</button>
+    <a class="fab-top2" id="fab-top2" href="#" title="回到頂端" onclick="window.scrollTo({top:0,behavior:'smooth'});return false">↑</a>
+  </div>
   <script>
-  // Sync active tab as user scrolls to each guide section
   (function () {
     const tabs = document.querySelectorAll('.tab');
     const sections = document.querySelectorAll('.guide-card');
@@ -847,6 +877,9 @@ function writeAllGuidesPage() {
       tabs.forEach((x) => x.classList.remove('current'));
       t.classList.add('current');
     }));
+    // Back-to-top visibility
+    const btn = document.getElementById('fab-top2');
+    window.addEventListener('scroll', () => { btn.classList.toggle('vis', window.scrollY > 300); }, {passive: true});
   })();
   </script>
 </body>
@@ -947,6 +980,10 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
     .guide-cta-label { font-size: 15px; font-weight: 950; color: #92400e; white-space: nowrap; }
     .guide-cta-link { min-height: 42px; display: inline-flex; align-items: center; padding: 0 16px; border: 2px solid; border-radius: 10px; background: white; font-size: 14px; font-weight: 950; text-decoration: none; box-shadow: 0 2px 8px rgb(0 0 0 / .06); }
     footer { margin-top: 22px; color: #6d7787; font-size: 13px; font-weight: 750; line-height: 1.6; }
+    .install-bar { display: none; align-items: center; gap: 10px; margin-top: 14px; padding: 12px 16px; border-radius: 12px; border: 1.5px solid #bfdbfe; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); }
+    .install-bar.show { display: flex; }
+    .install-bar p { margin: 0; font-size: 13px; font-weight: 850; color: #1e40af; flex: 1; }
+    .install-bar button { min-height: 38px; padding: 0 14px; border-radius: 8px; border: none; background: #1d4ed8; color: white; font-weight: 950; font-size: 13px; cursor: pointer; white-space: nowrap; }
     @media (max-width: 820px) {
       main { width: min(100% - 24px, 560px); padding: 18px 0 28px; }
       .topbar { align-items: flex-start; flex-direction: column; margin-bottom: 24px; }
@@ -972,6 +1009,11 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
       <div class="quick"><a href="./${allGuidesUrl()}">一次看三隊講稿</a></div>
       <div class="status"><span>📱 手機可操作</span><span>💾 資料存在瀏覽器</span><span>🤖 無硬體也可展示</span></div>
     </header>
+    <div id="install-bar" class="install-bar">
+      <p>📲 加到主畫面，比賽當天離線也能開！</p>
+      <button id="install-btn">安裝 App</button>
+      <button onclick="document.getElementById('install-bar').classList.remove('show')" style="background:transparent;border:none;color:#1e40af;font-size:20px;cursor:pointer;padding:0 4px">✕</button>
+    </div>
     <div class="guide-cta-bar">
       <span class="guide-cta-label">⚡ 上台前必看！</span>
       ${apps.map((a) => {
@@ -982,6 +1024,26 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
     <section class="grid">${cards}</section>
     <footer>資料存在各自瀏覽器 localStorage。這是比賽展示與學生體驗網址，不是正式雲端多人資料庫。</footer>
   </main>
+  <script>
+  (function(){
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('install-bar').classList.add('show');
+    });
+    document.getElementById('install-btn').addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      document.getElementById('install-bar').classList.remove('show');
+    });
+    window.addEventListener('appinstalled', () => {
+      document.getElementById('install-bar').classList.remove('show');
+    });
+  })();
+  </script>
 </body>
 </html>
 `, 'utf8');
@@ -1012,11 +1074,14 @@ const screenshotUrls = apps.flatMap((a) =>
   (a.simpleSteps || a.checklistItems).map((_, i) => `./screenshots/${a.id}-step${i + 1}.png`)
 );
 const guidePageUrls = apps.map((a) => `./${guideUrl(a)}`);
+const opsGuidePageUrls = apps.map((a) => opsGuideUrl(a)).filter(Boolean).map((u) => `./${u}`);
 const cacheManifest = [
   './',
   './index.html',
+  './manifest.json',
   `./${allGuidesUrl()}`,
   ...guidePageUrls,
+  ...opsGuidePageUrls,
   ...screenshotUrls,
 ].map((u) => JSON.stringify(u)).join(',\n  ');
 
