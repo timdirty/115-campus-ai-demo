@@ -117,33 +117,36 @@ function writeGuidePage(app) {
   // Role assignment from markdown "上台分工建議" section
   const roles = extractRoles(markdown);
   const roleIcons = ['🎤', '💻', '🤖', '🛡️'];
-  const roleLabels = ['主講', '操作', '硬體/說明', '備援 QA'];
+  const roleLabels = ['說話的人', '操作 App 的人', '說明硬體的人', '回答問題的人'];
   const rolesHtml = roles.length > 0
     ? roles.map((role, i) => `<div class="role-row">
         <div class="role-badge">${roleIcons[i] || '👤'} ${roleLabels[i] || `第 ${i + 1} 位`}</div>
         <div class="role-desc">${escapeHtml(role)}</div>
       </div>`).join('\n')
-    : `<p style="color:#64748b;font-size:.9rem">依人數自行分配：主講 / 操作 / 硬體說明 / 備援 QA</p>`;
+    : `<p style="color:#64748b;font-size:.9rem">四個人分工：說話的 / 操作 App 的 / 說明硬體的 / 回答問題的</p>`;
+
+  // Use simpleSteps (kid-friendly) if available, fall back to checklistItems
+  const demoSteps = app.simpleSteps || app.checklistItems;
 
   // Time estimate per step
-  const totalDemoSec = 150; // ~2.5 min for demo (leaving 30s for intro)
-  const secPerStep = Math.round(totalDemoSec / app.checklistItems.length);
+  const totalDemoSec = 150; // ~2.5 min for demo
+  const secPerStep = Math.round(totalDemoSec / demoSteps.length);
 
-  // Pre-launch generic checklist items
+  // Pre-launch checklist — very simple language for elementary students
   const preLaunchItems = [
-    `開啟 <a href="./${app.id}/" style="color:${app.accent};font-weight:900">App 網址</a>，確認畫面正常載入`,
-    '確認螢幕夠亮、評審可以清楚看到畫面',
-    '把下方展示步驟看一遍，知道每步要點哪裡',
-    '網路斷線也沒關係：資料存在瀏覽器本機，可以離線展示',
+    `打開 <a href="./${app.id}/" style="color:${app.accent};font-weight:900">這個 App 網址</a>，確認畫面有出來`,
+    '把螢幕調亮，讓評審老師看得清楚',
+    '先把下面的步驟看一遍，知道等一下要按哪裡',
+    '網路斷掉也沒關係，App 可以在瀏覽器裡面跑',
   ];
   const checklistHtml = [
     ...preLaunchItems.map((item) => `<label class="check-item"><input type="checkbox"><span>${item}</span></label>`),
-    `<div class="check-divider">展示步驟確認</div>`,
-    ...app.checklistItems.map((item) => `<label class="check-item"><input type="checkbox"><span>${escapeHtml(item)}</span></label>`),
+    `<div class="check-divider">展示步驟確認（一個一個打勾）</div>`,
+    ...demoSteps.map((item) => `<label class="check-item"><input type="checkbox"><span>${escapeHtml(item)}</span></label>`),
   ].join('\n');
 
   // Numbered demo steps with screenshot frames and time hints
-  const stepsHtml = app.checklistItems.map((item, i) => {
+  const stepsHtml = demoSteps.map((item, i) => {
     const num = String(i + 1).padStart(2, '0');
     const imgSrc = `./screenshots/${app.id}-step${i + 1}.png`;
     return `<div class="step">
@@ -151,14 +154,14 @@ function writeGuidePage(app) {
       <div class="step-body">
         <div class="step-header">
           <p class="step-title">${escapeHtml(item)}</p>
-          <span class="step-time">~${secPerStep}s</span>
+          <span class="step-time">約 ${secPerStep} 秒</span>
         </div>
         <div class="screenshot-frame">
-          <img src="${imgSrc}" alt="步驟 ${num} 操作畫面" loading="lazy"
+          <img src="${imgSrc}" alt="步驟 ${num} 操作畫面截圖" loading="lazy"
                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
           <div class="no-img-placeholder">
             <span class="no-img-icon">📷</span>
-            <span>步驟 ${num} 截圖</span>
+            <span>步驟 ${num} 的畫面長這樣</span>
           </div>
         </div>
       </div>
@@ -183,18 +186,18 @@ function writeGuidePage(app) {
       <div class="qa-a">${renderInline(qa.a)}</div>
     </details>`).join('\n');
 
-  // Emergency backup scenarios — step-by-step recovery
+  // Emergency backup scenarios — simple 3-step SOP for elementary students
   const emergencyItems = [
-    ['網路斷線 / 無 API key',
-      '① 不用停頓，繼續操作 App → ② 系統自動切換 Demo 模式，功能全部正常 → ③ 對評審說：「這是我們刻意設計的 fallback，沒有 API 也能完整展示」'],
-    ['Arduino / 硬體沒反應',
-      '① 繼續點按 App 送出任務 → ② 讓評審看到指令 log 有紀錄 → ③ 說：「軟體端完整打通，接上 UNO R4 後這裡變成實體動作」'],
-    ['App 白畫面 / 閃退',
-      `① 按瀏覽器重新整理（Ctrl+R / Cmd+R）→ ② 若還是壞，重新開啟：timdirty.github.io/115-campus-ai-demo/${app.id}/ → ③ 資料存在瀏覽器，不會消失`],
-    ['評審問到不知道怎麼回',
-      '① 不要猜，說「這個問題很好」→ ② 說：「我們有做 fallback，讓我示範給您看」→ ③ 打開 App 操作一個功能，用畫面代替解釋'],
-    ['超時 / 3 分鐘到了',
-      '① 計時者在 2:30 舉手示意 → ② 主講者說「最後幫評審看一個重點」→ ③ 快速點最重要的一步結束'],
+    ['網路斷掉了，或 AI 沒反應',
+      '① 不要停，繼續操作 App → ② App 會自己切換展示模式，功能還是正常的 → ③ 告訴評審老師：「就算沒有網路，我們的 App 還是可以跑完整個流程」'],
+    ['機器人或硬體沒反應',
+      '① 繼續按 App，送出任務 → ② 讓評審看畫面上的任務紀錄有出來 → ③ 說：「接上機器人之後，這裡就會變成真實的動作」'],
+    ['畫面變白了或 App 當掉',
+      `① 按重新整理（手機往下拉、電腦按 F5）→ ② 還是壞的話，重新開啟這個網址：timdirty.github.io/115-campus-ai-demo/${app.id}/ → ③ 資料存在瀏覽器裡，重開後還會在`],
+    ['評審問了你不知道怎麼回答的問題',
+      '① 不要亂猜，說：「謝謝老師，這是很好的問題」→ ② 說：「讓我在 App 上直接示範給您看」→ ③ 打開 App 按一個功能，用畫面來回答'],
+    ['時間快到了（3 分鐘快結束）',
+      '① 計時的同學在 2 分 30 秒時舉手 → ② 說話的同學說：「最後幫評審看一個最重要的功能」→ ③ 快速點最厲害的那一步，然後說謝謝'],
   ];
   const emergencyHtml = emergencyItems.map(([scenario, solution]) => `<div class="emergency-item">
       <div class="emergency-scenario">🚨 ${escapeHtml(scenario)}</div>
@@ -340,7 +343,7 @@ function writeGuidePage(app) {
     </div>
 
     <div class="card">
-      <div class="section-title">展示流程</div>
+      <div class="section-title">展示順序</div>
       <div class="flow-bar">
         ${flowHtml}
       </div>
@@ -348,7 +351,7 @@ function writeGuidePage(app) {
     </div>
 
     <div class="card">
-      <div class="section-title">👥 上台分工（誰負責什麼）</div>
+      <div class="section-title">👥 誰負責什麼</div>
       <div class="role-list">
         ${rolesHtml}
       </div>
@@ -356,41 +359,41 @@ function writeGuidePage(app) {
     </div>
 
     <div class="card">
-      <div class="section-title">📋 上台前確認清單</div>
+      <div class="section-title">📋 上台前要確認</div>
       <form onsubmit="return false">
         ${checklistHtml}
       </form>
     </div>
 
     <div class="card">
-      <div class="section-title">🎬 照這個順序操作（共 ${app.checklistItems.length} 步，每步約 ${secPerStep} 秒）</div>
+      <div class="section-title">🎬 按這個順序做（共 ${demoSteps.length} 步，每步約 ${secPerStep} 秒）</div>
       <div class="steps">
         ${stepsHtml}
       </div>
     </div>
 
     <div class="card">
-      <div class="section-title">✅ 展示自我確認清單</div>
-      <p style="margin:0 0 12px;font-size:.85rem;color:#64748b;font-weight:700">每展示完一個功能點就打一個勾，確保評審看到全部重點</p>
+      <div class="section-title">✅ 做完了嗎？打勾確認</div>
+      <p style="margin:0 0 12px;font-size:.85rem;color:#64748b;font-weight:700">每做完一個步驟就打一個勾，讓評審老師看到全部重點</p>
       <form class="must-list" onsubmit="return false">
         ${mustShowHtml}
       </form>
     </div>
 
     <div class="card">
-      <div class="section-title">❓ 評審可能會問（點開看回答）</div>
+      <div class="section-title">❓ 評審問這個怎麼回答</div>
       ${qaHtml}
     </div>
 
     <div class="card">
-      <div class="section-title">🚨 緊急備案</div>
+      <div class="section-title">🚨 出錯了怎麼辦</div>
       <div class="emergency-list">
         ${emergencyHtml}
       </div>
     </div>
 
     <details class="script-details">
-      <summary class="script-summary">完整 3 分鐘講解稿（上台前展開備用）</summary>
+      <summary class="script-summary">上台說話稿（展開備用）</summary>
       <div class="script-content">${guideHtml}</div>
     </details>
   </main>
