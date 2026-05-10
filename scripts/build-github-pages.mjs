@@ -114,6 +114,12 @@ function writeGuidePage(app) {
   const markdown = fs.readFileSync(guidePath(app), 'utf8');
   const guideHtml = renderGuideMarkdown(markdown);
 
+  // Cross-guide navigation links (to the other 2 guides)
+  const otherGuideLinks = apps
+    .filter((a) => a.id !== app.id)
+    .map((a) => `<a href="./${a.id}-guide.html">${escapeHtml(a.shortName)} 教學</a>`)
+    .join('\n');
+
   // Role assignment from markdown "上台分工建議" section
   const roles = extractRoles(markdown);
   const roleIcons = ['🎤', '💻', '🤖', '🛡️'];
@@ -133,6 +139,7 @@ function writeGuidePage(app) {
   const secPerStep = Math.round(totalDemoSec / demoSteps.length);
 
   // Pre-launch checklist — very simple language for elementary students
+  const storageKey = `${app.id}-checklist`;
   const preLaunchItems = [
     `打開 <a href="./${app.id}/" style="color:${app.accent};font-weight:900">這個 App 網址</a>，確認畫面有出來`,
     '把螢幕調亮，讓評審老師看得清楚',
@@ -140,22 +147,27 @@ function writeGuidePage(app) {
     '網路斷掉也沒關係，App 可以在瀏覽器裡面跑',
   ];
   const checklistHtml = [
-    ...preLaunchItems.map((item) => `<label class="check-item"><input type="checkbox"><span>${item}</span></label>`),
+    ...preLaunchItems.map((item, i) => `<label class="check-item"><input type="checkbox" data-key="${storageKey}-pre-${i}"><span>${item}</span></label>`),
     `<div class="check-divider">展示步驟確認（一個一個打勾）</div>`,
-    ...demoSteps.map((item) => `<label class="check-item"><input type="checkbox"><span>${escapeHtml(item)}</span></label>`),
+    ...demoSteps.map((item, i) => `<label class="check-item"><input type="checkbox" data-key="${storageKey}-step-${i}"><span>${escapeHtml(item)}</span></label>`),
   ].join('\n');
 
-  // Numbered demo steps with screenshot frames and time hints
+  // Numbered demo steps with screenshot frames, nav hints, and time hints
   const stepsHtml = demoSteps.map((item, i) => {
     const num = String(i + 1).padStart(2, '0');
     const imgSrc = `./screenshots/${app.id}-step${i + 1}.png`;
-    return `<div class="step">
+    const navHintText = (app.stepNavHints || [])[i] || '';
+    const navHintHtml = navHintText
+      ? `<a class="step-nav-chip" href="./${app.id}/">→ ${escapeHtml(navHintText)}</a>`
+      : '';
+    return `<div class="step" id="${app.id}-step${i + 1}">
       <div class="step-num">${num}</div>
       <div class="step-body">
         <div class="step-header">
           <p class="step-title">${escapeHtml(item)}</p>
           <span class="step-time">約 ${secPerStep} 秒</span>
         </div>
+        ${navHintHtml}
         <div class="screenshot-frame">
           <img src="${imgSrc}" alt="步驟 ${num} 操作畫面截圖" loading="lazy"
                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
@@ -225,6 +237,7 @@ function writeGuidePage(app) {
     .topnav { display: flex; flex-wrap: wrap; gap: 8px; }
     .topnav a { min-height: 40px; display: inline-flex; align-items: center; border: 1px solid #d7e0ec; border-radius: 8px; background: white; padding: 0 14px; text-decoration: none; color: #334155; font-weight: 900; font-size: 14px; }
     .topnav .open-btn { background: var(--accent); color: white; border-color: var(--accent); }
+    .topnav .other-guide { border-style: dashed; font-size: 13px; }
 
     /* Hero */
     .hero { border-radius: 16px; padding: 28px 28px 24px; background: color-mix(in srgb, var(--accent), white 88%); border: 1px solid color-mix(in srgb, var(--accent), white 62%); position: relative; overflow: hidden; }
@@ -267,33 +280,42 @@ function writeGuidePage(app) {
 
     /* Steps */
     .steps { display: grid; gap: 20px; }
-    .step { display: flex; gap: 16px; align-items: flex-start; }
+    .step { display: flex; gap: 16px; align-items: flex-start; scroll-margin-top: 12px; }
     .step-num { width: 48px; height: 48px; border-radius: 12px; background: var(--accent); color: white; font-size: 1.05rem; font-weight: 950; display: flex; align-items: center; justify-content: center; flex-shrink: 0; letter-spacing: -.02em; }
     .step-body { flex: 1; min-width: 0; }
-    .step-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
-    .step-title { margin: 0; font-size: 1rem; font-weight: 850; color: #1e293b; line-height: 1.65; flex: 1; }
+    .step-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+    .step-title { margin: 0; font-size: 1.05rem; font-weight: 850; color: #1e293b; line-height: 1.65; flex: 1; }
     .step-time { flex-shrink: 0; font-size: .8rem; font-weight: 950; color: white; background: #64748b; padding: 3px 8px; border-radius: 999px; margin-top: 2px; }
+    .step-nav-chip { display: inline-flex; align-items: center; margin-bottom: 10px; border: 1px solid color-mix(in srgb, var(--accent), white 55%); border-radius: 999px; padding: 4px 11px; font-size: .8rem; font-weight: 900; color: var(--accent); background: color-mix(in srgb, var(--accent), white 92%); text-decoration: none; }
+    .step-nav-chip:hover { background: color-mix(in srgb, var(--accent), white 80%); }
     .screenshot-frame { border-radius: 10px; overflow: hidden; border: 1.5px solid #e2e8f0; background: #f8fafc; }
     .screenshot-frame img { width: 100%; display: block; }
-    .no-img-placeholder { display: none; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 28px 20px; color: #94a3b8; font-size: 13px; font-weight: 700; text-align: center; min-height: 120px; }
-    .no-img-icon { font-size: 2rem; line-height: 1; }
+    .no-img-placeholder { display: none; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 20px; color: #cbd5e1; font-size: 13px; font-weight: 700; text-align: center; min-height: 72px; background: #f8fafc; }
+    .no-img-icon { font-size: 1.5rem; line-height: 1; }
 
     /* Must-show self-check */
     .must-list { display: grid; gap: 7px; }
     .must-item { display: flex; gap: 10px; align-items: flex-start; padding: 11px 14px; border-radius: 8px; background: #f0fdf4; border: 1px solid #bbf7d0; cursor: pointer; }
     .must-item input[type=checkbox] { width: 17px; height: 17px; margin-top: 3px; accent-color: #16a34a; flex-shrink: 0; cursor: pointer; }
     .must-item input:checked + .must-text { text-decoration: line-through; color: #86efac; }
-    .must-text { color: #14532d; font-weight: 700; line-height: 1.65; font-size: .92rem; }
+    .must-text { color: #14532d; font-weight: 700; line-height: 1.65; font-size: 1rem; }
     .must-text code { background: #dcfce7; border-radius: 4px; padding: 1px 4px; font-size: .88em; font-family: monospace; }
 
     /* Q&A */
     .qa-card { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
     .qa-card + .qa-card { margin-top: 8px; }
-    .qa-q { padding: 13px 16px; font-weight: 900; color: #1e293b; cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: #f8fafc; font-size: .95rem; }
+    .qa-q { padding: 13px 16px; font-weight: 900; color: #1e293b; cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: #f8fafc; font-size: 1rem; }
     .qa-q::after { content: "▼"; font-size: 11px; color: #94a3b8; flex-shrink: 0; }
     .qa-card[open] .qa-q::after { content: "▲"; }
-    .qa-a { padding: 13px 16px; color: #465366; font-weight: 700; line-height: 1.75; border-top: 1px solid #e2e8f0; font-size: .93rem; }
+    .qa-a { padding: 13px 16px; color: #465366; font-weight: 700; line-height: 1.75; border-top: 1px solid #e2e8f0; font-size: 1rem; }
     .qa-a code { background: #eef3f8; border-radius: 4px; padding: 1px 4px; font-size: .9em; font-family: monospace; }
+
+    /* 3-minute timer */
+    .timer-row { display: flex; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+    .timer-btn { border: 1.5px solid #e2e8f0; border-radius: 10px; background: white; padding: 10px 16px; font-size: 1rem; font-weight: 900; cursor: pointer; color: #334155; display: flex; align-items: center; gap: 6px; }
+    .timer-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+    .timer-display { font-size: 2rem; font-weight: 950; color: #111827; font-variant-numeric: tabular-nums; letter-spacing: -.04em; display: none; }
+    .timer-display.warn { color: #dc2626; }
 
     /* Emergency */
     .emergency-list { display: grid; gap: 10px; }
@@ -314,11 +336,18 @@ function writeGuidePage(app) {
     .script-content ul, .script-content ol { padding-left: 1.35rem; }
     .script-content code { border-radius: 6px; background: #eef3f8; padding: 2px 5px; font-size: .92em; font-family: monospace; }
 
+    /* Mobile base font floor — 16px minimum for competition-room readability */
+    .role-desc { color: #334155; font-weight: 700; font-size: 1rem; line-height: 1.6; }
+    .check-item span { color: #465366; font-weight: 700; line-height: 1.65; font-size: 1rem; }
+
     @media (max-width: 600px) {
       .hero { padding: 20px; }
       .step { flex-direction: column; gap: 8px; }
       .step-num { width: 40px; height: 40px; font-size: .95rem; border-radius: 10px; }
+      .step-title { font-size: 1.05rem; }
+      .qa-q, .qa-a { font-size: 1rem; }
       .flow-bar { gap: 6px; }
+      .topnav a { font-size: 13px; }
     }
   </style>
 </head>
@@ -326,7 +355,8 @@ function writeGuidePage(app) {
   <main>
     <nav class="topnav" aria-label="導覽">
       <a href="./">← 返回總入口</a>
-      <a class="open-btn" href="./${app.id}/">開啟 ${escapeHtml(app.name)} →</a>
+      <a class="open-btn" href="./${app.id}/">開啟 App →</a>
+      ${otherGuideLinks.replace(/<a /g, '<a class="other-guide" ')}
     </nav>
 
     <div class="hero">
@@ -339,6 +369,11 @@ function writeGuidePage(app) {
           <span class="badge">無硬體也可展示</span>
           <span class="badge">資料存在瀏覽器</span>
         </div>
+      </div>
+      <div class="timer-row">
+        <button class="timer-btn" id="timer-btn-${app.id}" onclick="startTimer('${app.id}')">🕐 練習計時 3 分鐘</button>
+        <span class="timer-display" id="timer-display-${app.id}">3:00</span>
+        <span id="timer-done-${app.id}" style="display:none;font-weight:900;color:#16a34a">✅ 時間到！講完了嗎？</span>
       </div>
     </div>
 
@@ -397,6 +432,41 @@ function writeGuidePage(app) {
       <div class="script-content">${guideHtml}</div>
     </details>
   </main>
+  <script>
+  // ── 3-minute countdown timer ─────────────────────────────────────────
+  function startTimer(appId) {
+    let secs = 180;
+    const btn = document.getElementById('timer-btn-' + appId);
+    const display = document.getElementById('timer-display-' + appId);
+    const done = document.getElementById('timer-done-' + appId);
+    btn.style.display = 'none';
+    display.style.display = 'inline';
+    done.style.display = 'none';
+    const iv = setInterval(() => {
+      secs--;
+      const m = Math.floor(secs / 60);
+      const s = String(secs % 60).padStart(2, '0');
+      display.textContent = m + ':' + s;
+      display.classList.toggle('warn', secs < 30);
+      if (secs <= 0) {
+        clearInterval(iv);
+        display.style.display = 'none';
+        done.style.display = 'inline';
+        btn.textContent = '🔄 再練一次';
+        btn.style.display = 'inline-flex';
+      }
+    }, 1000);
+  }
+
+  // ── Checkbox state → localStorage ───────────────────────────────────
+  (function () {
+    document.querySelectorAll('input[type=checkbox][data-key]').forEach((cb) => {
+      const k = cb.dataset.key;
+      if (localStorage.getItem(k) === '1') cb.checked = true;
+      cb.addEventListener('change', () => localStorage.setItem(k, cb.checked ? '1' : '0'));
+    });
+  })();
+  </script>
 </body>
 </html>
 `, 'utf8');
@@ -579,7 +649,10 @@ const cards = apps.map((app) => {
 `;
 }).join('');
 
-const quickLinks = apps.map((app) => `<a href="./${app.id}/">${app.name}</a>`).join('');
+const quickLinks = apps.flatMap((app) => [
+  `<a href="./${app.id}/">${app.name}</a>`,
+  `<a href="./${app.id}-guide.html">📋 ${escapeHtml(app.shortName)} 教學</a>`,
+]).join('');
 
 fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
 <html lang="zh-Hant">
@@ -617,6 +690,9 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
     .actions a { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; padding: 0 12px; text-decoration: none; font-weight: 950; }
     .primary { justify-content: space-between !important; background: #111827; color: white; }
     .secondary { border: 1px solid #cdd8e7; background: #fff; color: #334155; }
+    .guide-cta-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 20px; padding: 14px 18px; border-radius: 12px; border: 1px solid #dde6f0; background: rgb(255 255 255 / .82); }
+    .guide-cta-label { font-size: 14px; font-weight: 950; color: #334155; white-space: nowrap; }
+    .guide-cta-link { min-height: 38px; display: inline-flex; align-items: center; padding: 0 14px; border: 1.5px solid; border-radius: 8px; background: white; font-size: 14px; font-weight: 950; text-decoration: none; }
     footer { margin-top: 22px; color: #6d7787; font-size: 13px; font-weight: 750; line-height: 1.6; }
     @media (max-width: 820px) {
       main { width: min(100% - 24px, 560px); padding: 18px 0 28px; }
@@ -639,10 +715,14 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
     <header>
       <span class="eyebrow">Student Live Demo</span>
       <h1>115 資通訊三隊 App 展示入口</h1>
-      <p class="lead">學生可以直接點選下方作品操作。App 1 在 GitHub Pages 會使用瀏覽器展示模式保存資料與模擬硬體指令；接上本機 bridge 後再走 Arduino UNO R4 Serial。</p>
+      <p class="lead">三個 AI 機器人 App，只要打開網址就能展示！上台前先點「📋 手把手教學」，把步驟看一遍，知道每一步要按哪裡，就可以上場了。</p>
       <div class="quick"><a href="./${allGuidesUrl()}">一次看三隊講稿</a></div>
-      <div class="status"><span>手機可操作</span><span>資料存在本機瀏覽器</span><span>無硬體也可展示</span></div>
+      <div class="status"><span>📱 手機可操作</span><span>💾 資料存在瀏覽器</span><span>🤖 無硬體也可展示</span></div>
     </header>
+    <div class="guide-cta-bar">
+      <span class="guide-cta-label">📋 上台前先看教學</span>
+      ${apps.map((a) => `<a class="guide-cta-link" href="./${a.id}-guide.html" style="border-color:${a.accent};color:${a.accent}">${escapeHtml(a.shortName)} 手把手教學 →</a>`).join('')}
+    </div>
     <section class="grid">${cards}</section>
     <footer>資料存在各自瀏覽器 localStorage。這是比賽展示與學生體驗網址，不是正式雲端多人資料庫。</footer>
   </main>

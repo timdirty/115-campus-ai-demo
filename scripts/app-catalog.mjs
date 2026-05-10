@@ -35,6 +35,12 @@ export const apps = [
       '確認機器人任務有被記錄下來',
       '送指令給板擦機器人，看白板出現 ✓',
     ],
+    stepNavHints: [
+      '首頁 → 上傳白板',
+      '教師看板',
+      '任務紀錄',
+      '確認 ✓ 出現',
+    ],
     scorecardMustShow: [
       'Student performs 拍白板 -> 看決策 -> 送指令 without assistance.',
       'Student points to pixel analysis result and explains what changed.',
@@ -85,6 +91,14 @@ export const apps = [
       '到教學頁，幫老師做一次點名',
       '按搖桿按鈕，控制機器人前後左右',
       '到報表頁，讓評審看今天的紀錄',
+    ],
+    stepNavHints: [
+      '首頁',
+      '配送頁 → 下單',
+      '追蹤頁 → 送達',
+      '教學頁 → 點名',
+      '首頁 → 遙控搖桿',
+      '報表頁',
     ],
     scorecardMustShow: [
       'Student performs 下任務 -> 看追蹤 -> 匯報表 without assistance.',
@@ -139,6 +153,15 @@ export const apps = [
       '打開麥克風，等 20 秒看圖有沒有動',
       '展開底部遙控列，測試機器人移動',
       '點機器人頁，確認動作有被記錄',
+    ],
+    stepNavHints: [
+      '校園地圖',
+      '點高風險區域',
+      '預警 Tab',
+      '感知 Tab → 按示範',
+      '感知 Tab → 麥克風',
+      '底部遙控列',
+      '機器人 Tab',
     ],
     scorecardMustShow: [
       'Student performs 看總覽 -> 處理提醒 -> 自我照護 without assistance.',
