@@ -86,6 +86,17 @@ export default function App() {
     }
   }, []);
 
+  // Hash-based deep-link: guide page chips can link to e.g. ./app1/#teacher
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (isAppTab(hash)) setCurrentTab(hash);
+  }, []);
+
+  // Keep URL hash in sync with active tab so shared URLs open correct tab
+  useEffect(() => {
+    history.replaceState(null, '', window.location.pathname + '#' + currentTab);
+  }, [currentTab]);
+
   const [resetting, setResetting] = useState(false);
   const resetDemo = useCallback(async () => {
     setResetting(true);

@@ -42,10 +42,10 @@ export const apps = [
       '確認 ✓ 出現',
     ],
     stepNavUrls: [
-      './app1/',
-      './app1/',
-      './app1/',
-      './app1/',
+      './app1/#whiteboard',
+      './app1/#teacher',
+      './app1/#robot',
+      './app1/#whiteboard',
     ],
     scorecardMustShow: [
       'Student performs 拍白板 -> 看決策 -> 送指令 without assistance.',

@@ -214,10 +214,18 @@ async function writeGuidePage(app) {
     ['時間快到了（3 分鐘快結束）',
       '① 計時的同學在 2 分 30 秒時舉手 → ② 說話的同學說：「最後幫評審看一個最重要的功能」→ ③ 快速點最厲害的那一步，然後說謝謝'],
   ];
-  const emergencyHtml = emergencyItems.map(([scenario, solution]) => `<div class="emergency-item">
+  const emergencyHtml = emergencyItems.map(([scenario, solution]) => {
+    const steps = solution.split('→').map((s, i) => {
+      const text = escapeHtml(s.trim());
+      return i === 0
+        ? `<span style="display:block;font-size:1.1rem;font-weight:950;color:#7f1d1d;margin-bottom:5px">👉 ${text}</span>`
+        : `<span style="display:block;color:#14532d;font-weight:700;font-size:.92rem;margin-top:3px">→ ${text}</span>`;
+    }).join('');
+    return `<div class="emergency-item">
       <div class="emergency-scenario">🚨 ${escapeHtml(scenario)}</div>
-      <div class="emergency-solution">✓ ${escapeHtml(solution)}</div>
-    </div>`).join('\n');
+      <div class="emergency-solution">${steps}</div>
+    </div>`;
+  }).join('\n');
 
   const hardwareNote = app.hardwarePitchNote
     ? `<div class="hardware-note">🤖 硬體亮點：${escapeHtml(app.hardwarePitchNote)}</div>`
@@ -380,6 +388,8 @@ async function writeGuidePage(app) {
     .prog-dot.done { background: var(--accent); }
     /* Must-show completion celebration */
     .must-card-done { border-color: #16a34a !important; box-shadow: 0 0 0 2px #bbf7d0, 0 4px 20px rgb(27 35 52 / .05) !important; }
+    /* Step done — number badge turns green when step checkbox is checked */
+    .step.done .step-num { background: #16a34a !important; }
     @media (max-width: 600px) {
       .hero { padding: 20px; }
       .step { flex-direction: column; gap: 8px; }
@@ -596,7 +606,14 @@ async function writeGuidePage(app) {
       const m = Math.floor(secs / 60);
       const s = String(secs % 60).padStart(2, '0');
       display.textContent = m + ':' + s;
-      display.classList.toggle('warn', secs < 30);
+      display.classList.toggle('warn', secs < 50);
+      if (secs === 50) {
+        const toast = document.createElement('div');
+        toast.textContent = '⏰ 剩 50 秒！計時者請舉手';
+        toast.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#f59e0b;color:white;font-weight:950;padding:12px 24px;border-radius:999px;z-index:9999;font-size:1.05rem;box-shadow:0 4px 24px rgb(0 0 0/.2);animation:fadein .3s';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 7000);
+      }
       if (secs <= 0) {
         clearInterval(iv);
         display.style.display = 'none';
@@ -607,12 +624,21 @@ async function writeGuidePage(app) {
     }, 1000);
   }
 
-  // ── Checkbox state → localStorage ───────────────────────────────────
+  // ── Checkbox state → localStorage + step-done green badge ───────────
   (function () {
+    function markStepDone(cb) {
+      // Find if this checkbox is inside a .step and if it's a step-level checkbox (data-key has 'step-')
+      const k = cb.dataset.key || '';
+      if (k.includes('-step-')) {
+        const idx = parseInt(k.split('-step-')[1], 10);
+        const stepEl = document.getElementById('${app.id}-step' + (idx + 1));
+        if (stepEl) stepEl.classList.toggle('done', cb.checked);
+      }
+    }
     document.querySelectorAll('input[type=checkbox][data-key]').forEach((cb) => {
       const k = cb.dataset.key;
-      if (localStorage.getItem(k) === '1') cb.checked = true;
-      cb.addEventListener('change', () => localStorage.setItem(k, cb.checked ? '1' : '0'));
+      if (localStorage.getItem(k) === '1') { cb.checked = true; markStepDone(cb); }
+      cb.addEventListener('change', () => { localStorage.setItem(k, cb.checked ? '1' : '0'); markStepDone(cb); });
     });
   })();
   </script>
