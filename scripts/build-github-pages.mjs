@@ -232,6 +232,13 @@ async function writeGuidePage(app) {
     </div>`;
   }).join('\n');
 
+  // Q&A quick-summary for cheat sheet (first 3, one-liner each)
+  const qaQuickHtml = (app.judgeQaExtra || []).slice(0, 3).map((qa) => {
+    const shortQ = qa.q.length > 24 ? qa.q.slice(0, 24) + '…' : qa.q;
+    const shortA = qa.a.split('。')[0].split('，')[0];
+    return `<div class="qa-quick-item"><strong>${escapeHtml(shortQ)}</strong><span>${escapeHtml(shortA.length > 48 ? shortA.slice(0, 48) + '…' : shortA)}</span></div>`;
+  }).join('');
+
   // Judge Highlight Mode overlay content (generated at build time)
   const judgeHighlightsHtml = (app.judgeHighlights || []).map((h, i) => `
     <div class="jhl-card">
@@ -350,6 +357,16 @@ async function writeGuidePage(app) {
     .quick-review .must-ref { margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: #f0fdf4; border: 1px solid #bbf7d0; font-size: .82rem; font-weight: 800; color: #14532d; line-height: 1.55; }
     .quick-review .kbd-hint { margin-top: 10px; font-size: .78rem; font-weight: 700; color: #94a3b8; }
     .quick-review .kbd-hint kbd { display: inline-block; border: 1px solid #e2e8f0; border-radius: 4px; background: white; padding: 1px 5px; font-size: .78rem; font-family: monospace; color: #334155; }
+    .qa-quick { margin-top: 10px; border-top: 1px dashed color-mix(in srgb, var(--accent), transparent 70%); padding-top: 10px; }
+    .qa-quick-title { font-size: .76rem; font-weight: 950; color: color-mix(in srgb, var(--accent), #1e293b 20%); margin-bottom: 6px; letter-spacing: .04em; }
+    .qa-quick-item { font-size: .8rem; line-height: 1.5; margin-bottom: 5px; display: grid; gap: 1px; }
+    .qa-quick-item strong { color: #1e293b; font-weight: 900; }
+    .qa-quick-item span { color: #475569; font-weight: 700; padding-left: 8px; }
+    /* Sticky "you are here" step chip */
+    .step-chip { display: none; position: fixed; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); left: 16px; z-index: 198; align-items: center; gap: 8px; background: #111827; color: #e2e8f0; border-radius: 999px; padding: 7px 10px 7px 14px; font-size: .82rem; font-weight: 900; box-shadow: 0 4px 18px rgb(0 0 0 / .28); }
+    .step-chip.vis { display: flex; animation: fadein .3s; }
+    .step-chip-link { color: #fbbf24; text-decoration: none; white-space: nowrap; font-weight: 950; }
+    .step-chip-close { background: none; border: none; color: #64748b; cursor: pointer; font-size: 16px; padding: 0 0 0 4px; line-height: 1; }
 
     /* Checklist */
     .check-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
@@ -497,7 +514,7 @@ async function writeGuidePage(app) {
     @media print {
       body { background: white; }
       .topnav, .jump-nav, .timer-row, .qr-block, .script-details,
-      .fab-open, .offline-banner, .prog-bar, .cel-overlay, .judge-overlay,
+      .fab-open, .offline-banner, .prog-bar, .cel-overlay, .judge-overlay, .step-chip,
       .hero-row a.hero-btn:not(:first-child), button.hero-btn { display: none !important; }
       .hero { border-radius: 0; box-shadow: none; padding: 12px 0; background: white !important; }
       .hero::after { display: none; }
@@ -567,6 +584,11 @@ async function writeGuidePage(app) {
       </ol>
       <div class="must-ref">✅ 必做確認：${mustShowItems.slice(0, 3).map((s) => escapeHtml(s.replace(/^Student (performs|points|shows|demonstrates|explains|opens) /, '').replace(/ without assistance\.?$/, ''))).join(' → ')}</div>
       <div class="kbd-hint">快捷鍵：<kbd>1</kbd>–<kbd>9</kbd> 跳到對應步驟 · <kbd>c</kbd> 清除所有打勾</div>
+      ${qaQuickHtml ? `<div class="qa-quick">
+        <div class="qa-quick-title">🎤 評審常問，說不出來快看這裡</div>
+        ${qaQuickHtml}
+        <a href="#qa-section-${app.id}" style="font-size:.76rem;font-weight:950;color:color-mix(in srgb,var(--accent),#1e293b 20%)">看全部問答 →</a>
+      </div>` : ''}
     </details>
 
     <div class="card">
@@ -657,6 +679,12 @@ async function writeGuidePage(app) {
       <p class="cel-sub">所有重點都確認過了。<br>深呼吸一下，去上台展示吧！</p>
       <button class="cel-close" onclick="document.getElementById('cel-overlay-${app.id}').classList.remove('show')">我準備好了，去上台！ 💪</button>
     </div>
+  </div>
+  <!-- Sticky step chip: shows current step + link to app while student is on guide page -->
+  <div class="step-chip" id="step-chip-${app.id}" role="status" aria-live="polite">
+    <span id="step-chip-text-${app.id}">📍 步驟 1</span>
+    <a id="step-chip-link-${app.id}" href="./${app.id}/" class="step-chip-link">→ 開 App</a>
+    <button class="step-chip-close" onclick="document.getElementById('step-chip-${app.id}').classList.remove('vis')" aria-label="關閉步驟提示">×</button>
   </div>
   <a class="fab-open" href="./${app.id}/" title="開啟 ${escapeHtml(app.shortName)} App">🚀 開啟 App</a>
   <script>
@@ -889,6 +917,21 @@ async function writeGuidePage(app) {
     });
   });
 
+  // ── Gap 3: Sticky "you are here" step chip ───────────────────────────
+  function updateStepChip() {
+    const allCbs = [...document.querySelectorAll('input[type=checkbox][data-key*="-step-"]')];
+    const chip = document.getElementById('step-chip-${app.id}');
+    if (!chip) return;
+    const anyChecked = allCbs.some((cb) => cb.checked);
+    if (!anyChecked) { chip.classList.remove('vis'); return; }
+    const uncheckedIdx = allCbs.findIndex((cb) => !cb.checked);
+    const currentNum = uncheckedIdx === -1 ? allCbs.length : uncheckedIdx + 1;
+    const total = allCbs.length;
+    const chipText = document.getElementById('step-chip-text-${app.id}');
+    if (chipText) chipText.textContent = '📍 步驟 ' + currentNum + ' / ' + total;
+    chip.classList.add('vis');
+  }
+
   // ── A: Judge Highlight Mode ──────────────────────────────────────────
   function toggleJudgeMode(appId) {
     const overlay = document.getElementById('judge-overlay-' + appId);
@@ -973,6 +1016,8 @@ async function writeGuidePage(app) {
         markStepDone(cb);
         // Haptic feedback on mobile (short pulse when checked)
         if (cb.checked && navigator.vibrate) navigator.vibrate(30);
+        // Update step chip on every checkbox change
+        updateStepChip();
         // Auto-scroll to next unchecked step checkbox when one is checked
         if (cb.checked && k.includes('-step-')) {
           const allStepCbs = [...document.querySelectorAll('input[type=checkbox][data-key*="-step-"]')];
@@ -985,6 +1030,7 @@ async function writeGuidePage(app) {
         }
       });
     });
+    updateStepChip(); // init chip visibility based on restored state
   })();
   </script>
 </body>
@@ -1029,10 +1075,17 @@ function writeOpsGuidePage(app) {
     .fab-top { background: #111827; color: white; opacity: 0; pointer-events: none; text-decoration: none; }
     .fab-top.vis { opacity: 1; pointer-events: auto; }
     .fab-print { background: ${app.accent}; color: white; }
+    .fab-wake { background: #1e293b; color: #fbbf24; }
+    .fab-wake.wake-active { background: #16a34a; color: white; }
+    .fab-timer-ops { background: #0f172a; color: #f1f5f9; font-size: 13px !important; font-weight: 950; min-width: 56px !important; border-radius: 12px !important; }
+    .fab-timer-ops.warn { background: #dc2626; }
     @media print { .fab { display: none; } nav { display: none; } }
+    .offline-banner { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 9000; background: #f59e0b; color: #1c1917; font-weight: 950; font-size: .88rem; padding: 8px 16px; text-align: center; }
+    .offline-banner.show { display: block; }
   </style>
 </head>
 <body>
+  <div class="offline-banner" id="ops-offline-banner" role="status">📵 目前離線 — 手冊已快取，可離線閱讀</div>
   <main style="padding: 20px 0 calc(96px + env(safe-area-inset-bottom, 0px))">
     <nav aria-label="返回">
       <a href="./">返回總入口</a>
@@ -1043,6 +1096,8 @@ function writeOpsGuidePage(app) {
   </main>
   <div class="fab">
     <button class="fab-print" title="列印手冊" onclick="window.print()">🖨️</button>
+    <button class="fab-wake" id="ops-wake-btn" title="防止螢幕自動關閉" onclick="opsToggleWake()">💡</button>
+    <button class="fab-timer-ops" id="ops-timer-btn" title="計時 5 分鐘展示" onclick="opsStartTimer()">⏱ 5:00</button>
     <a class="fab-top" id="fab-top" href="#" title="回到頂端" onclick="window.scrollTo({top:0,behavior:'smooth'});return false">↑</a>
   </div>
   <script>
@@ -1050,6 +1105,35 @@ function writeOpsGuidePage(app) {
     const btn = document.getElementById('fab-top');
     const onScroll = () => { btn.classList.toggle('vis', window.scrollY > 300); };
     window.addEventListener('scroll', onScroll, {passive: true});
+    // Offline banner
+    const banner = document.getElementById('ops-offline-banner');
+    function updateOffline() { if (banner) banner.classList.toggle('show', !navigator.onLine); }
+    window.addEventListener('online', updateOffline); window.addEventListener('offline', updateOffline); updateOffline();
+    // Wake lock
+    let opsWakeLock = null, opsWakePending = false;
+    window.opsToggleWake = async function() {
+      if (opsWakePending) return; opsWakePending = true;
+      const b = document.getElementById('ops-wake-btn');
+      try {
+        if (opsWakeLock) { await opsWakeLock.release(); opsWakeLock = null; if (b) { b.textContent = '💡'; b.classList.remove('wake-active'); } }
+        else { try { opsWakeLock = await navigator.wakeLock.request('screen'); if (b) { b.textContent = '🟢'; b.classList.add('wake-active'); } opsWakeLock.addEventListener('release', () => { opsWakeLock = null; if (b) { b.textContent = '💡'; b.classList.remove('wake-active'); } }); } catch(e) { if (b) { b.textContent = '❌'; setTimeout(() => b.textContent = '💡', 2000); } } }
+      } finally { opsWakePending = false; }
+    };
+    document.addEventListener('visibilitychange', async () => { if (opsWakeLock && document.visibilityState === 'visible') { try { opsWakeLock = await navigator.wakeLock.request('screen'); } catch(_){} } });
+    // 5-minute timer
+    let opsTimerInterval = null;
+    window.opsStartTimer = function() {
+      const b = document.getElementById('ops-timer-btn');
+      if (opsTimerInterval) { clearInterval(opsTimerInterval); opsTimerInterval = null; b.textContent = '⏱ 5:00'; b.classList.remove('warn'); return; }
+      let secs = 300;
+      opsTimerInterval = setInterval(() => {
+        secs--;
+        const m = Math.floor(secs / 60), s = String(secs % 60).padStart(2, '0');
+        b.textContent = m + ':' + s;
+        b.classList.toggle('warn', secs < 60);
+        if (secs <= 0) { clearInterval(opsTimerInterval); opsTimerInterval = null; b.textContent = '⏱ 5:00'; b.classList.remove('warn'); }
+      }, 1000);
+    };
   })();
   </script>
 </body>
