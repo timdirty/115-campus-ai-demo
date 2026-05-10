@@ -463,13 +463,18 @@ async function writeGuidePage(app) {
     }
     @media print {
       body { background: white; }
-      .topnav, .timer-row, .qr-block, .script-details { display: none !important; }
+      .topnav, .jump-nav, .timer-row, .qr-block, .script-details,
+      .fab-open, .offline-banner, .prog-bar, .cel-overlay,
+      .hero-row a.hero-btn:not(:first-child), button.hero-btn { display: none !important; }
       .hero { border-radius: 0; box-shadow: none; padding: 12px 0; background: white !important; }
       .hero::after { display: none; }
+      .hero-row { margin-top: 8px; }
       .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
       .step { page-break-inside: avoid; }
+      .steps { grid-template-columns: 1fr !important; }
       .screenshot-frame img { max-height: 180px; width: auto; }
       .screenshot-hint { display: none; }
+      .quick-review .kbd-hint { display: none; }
       main { padding: 8px 0; gap: 10px; }
       a[href]::after { content: none; }
     }
