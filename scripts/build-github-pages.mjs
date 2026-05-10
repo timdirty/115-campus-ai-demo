@@ -823,6 +823,8 @@ async function writeGuidePage(app) {
       cb.addEventListener('change', () => {
         localStorage.setItem(k, cb.checked ? '1' : '0');
         markStepDone(cb);
+        // Haptic feedback on mobile (short pulse when checked)
+        if (cb.checked && navigator.vibrate) navigator.vibrate(30);
         // Auto-scroll to next unchecked step checkbox when one is checked
         if (cb.checked && k.includes('-step-')) {
           const allStepCbs = [...document.querySelectorAll('input[type=checkbox][data-key*="-step-"]')];
@@ -1054,6 +1056,11 @@ for (const app of apps) {
 
 writeAllGuidesPage();
 
+// Generate QR code for index page URL so teachers can share easily
+const indexUrl = 'https://timdirty.github.io/115-campus-ai-demo/';
+const indexQrRaw = await QRCode.toString(indexUrl, {type: 'svg', margin: 1, color: {dark: '#0f172a', light: '#ffffff'}});
+const indexQrSvg = indexQrRaw.replace(/<\?xml[^?]*\?>\s*/g, '');
+
 const cards = apps.map((app) => {
   const opsUrl = opsGuideUrl(app);
   const extraLink = opsUrl ? `<a class="secondary" href="./${opsUrl}">操作手冊</a>` : '';
@@ -1173,7 +1180,13 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
       }).join('')}
     </div>
     <section class="grid">${cards}</section>
-    <footer>資料存在各自瀏覽器 localStorage。這是比賽展示與學生體驗網址，不是正式雲端多人資料庫。</footer>
+    <footer style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:16px">
+      <p style="margin:0;flex:1">資料存在各自瀏覽器 localStorage。這是比賽展示與學生體驗網址，不是正式雲端多人資料庫。</p>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid #dde4ef;border-radius:10px;background:white;padding:8px">
+        ${indexQrSvg.replace(/width="\d+"/, 'width="80"').replace(/height="\d+"/, 'height="80"')}
+        <span style="font-size:10px;font-weight:900;color:#64748b;text-align:center">掃我分享給同學</span>
+      </div>
+    </footer>
   </main>
   <script>
   (function(){
