@@ -1650,7 +1650,7 @@ export default function App() {
   const demoCancelRef = useRef(false);
 
   // Emotion drawer (default hidden)
-  const [showEmotionDrawer, setShowEmotionDrawer] = useState(false);
+  const [showEmotionDrawer, setShowEmotionDrawer] = useState(true);
 
   const robotWrapperRef = useRef(null);
   const videoRef = useRef(null);
