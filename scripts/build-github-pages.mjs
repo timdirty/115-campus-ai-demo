@@ -253,6 +253,7 @@ async function writeGuidePage(app) {
   <meta name="theme-color" content="${app.accent}" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="description" content="${escapeHtml(app.desc)} 共 ${(app.simpleSteps || app.checklistItems).length} 步，有截圖、有計時、有緊急備案。" />
   <meta property="og:title" content="${escapeHtml(app.name)} 手把手操作教學" />
   <meta property="og:description" content="${escapeHtml(app.desc)} 共 ${(app.simpleSteps || app.checklistItems).length} 步，有截圖、有計時、有緊急備案。" />
   <meta property="og:type" content="website" />
@@ -372,8 +373,8 @@ async function writeGuidePage(app) {
     .qa-a code { background: #eef3f8; border-radius: 4px; padding: 1px 4px; font-size: .9em; font-family: monospace; }
 
     /* 3-minute timer */
-    .timer-row { display: flex; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
-    .timer-btn { border: 1.5px solid #e2e8f0; border-radius: 10px; background: white; padding: 10px 16px; font-size: 1rem; font-weight: 900; cursor: pointer; color: #334155; display: flex; align-items: center; gap: 6px; }
+    .timer-row { display: flex; align-items: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .timer-btn { border: 1.5px solid #e2e8f0; border-radius: 10px; background: white; padding: 8px 12px; font-size: .9rem; font-weight: 900; cursor: pointer; color: #334155; display: flex; align-items: center; gap: 5px; min-height: 40px; }
     .timer-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
     .timer-display { font-size: 2rem; font-weight: 950; color: #111827; font-variant-numeric: tabular-nums; letter-spacing: -.04em; display: none; }
     .timer-display.warn { color: #dc2626; }
@@ -1135,6 +1136,7 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#111827" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="description" content="三個 AI 機器人 App 展示。上台前點「手把手教學」看步驟、截圖、計時、緊急備案，全都有。" />
   <meta property="og:title" content="115 資通訊三隊 App 展示入口" />
   <meta property="og:description" content="三個 AI 機器人 App 展示。上台前點「手把手教學」看步驟、截圖、計時、緊急備案，全都有。" />
   <link rel="manifest" href="./manifest.json" />
