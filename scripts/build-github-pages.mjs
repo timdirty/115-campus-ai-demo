@@ -232,6 +232,16 @@ async function writeGuidePage(app) {
     </div>`;
   }).join('\n');
 
+  // Judge Highlight Mode overlay content (generated at build time)
+  const judgeHighlightsHtml = (app.judgeHighlights || []).map((h, i) => `
+    <div class="jhl-card">
+      <div class="jhl-num">${i + 1}</div>
+      <div class="jhl-text">
+        <div class="jhl-headline">${escapeHtml(h.headline)}</div>
+        <div class="jhl-detail">${escapeHtml(h.detail)}</div>
+      </div>
+    </div>`).join('');
+
   const hardwareNote = app.hardwarePitchNote
     ? `<div class="hardware-note">🤖 硬體亮點：${escapeHtml(app.hardwarePitchNote)}</div>`
     : '';
@@ -271,6 +281,21 @@ async function writeGuidePage(app) {
     /* Celebration modal */
     .cel-overlay { display: none; position: fixed; inset: 0; z-index: 500; background: rgb(0 0 0 / .55); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 20px; }
     .cel-overlay.show { display: flex; }
+    /* Judge Highlight Mode overlay */
+    .judge-overlay { display: none; position: fixed; inset: 0; z-index: 600; background: rgb(15 23 42 / .97); backdrop-filter: blur(10px); align-items: center; justify-content: center; padding: 20px; }
+    .judge-overlay.show { display: flex; animation: fadein .2s; }
+    .judge-panel { background: #0f172a; color: white; border-radius: 22px; padding: 26px 28px; width: min(680px, 100%); max-height: 92vh; overflow-y: auto; border: 1px solid rgb(255 255 255 / .1); box-shadow: 0 32px 80px rgb(0 0 0 / .6); }
+    .judge-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .judge-title { font-size: 1.05rem; font-weight: 950; color: #fbbf24; letter-spacing: .05em; }
+    .judge-close { background: rgb(255 255 255 / .08); border: 1px solid rgb(255 255 255 / .12); color: #94a3b8; border-radius: 8px; padding: 6px 14px; font-weight: 900; cursor: pointer; font-size: .88rem; transition: background .15s; }
+    .judge-close:hover { background: rgb(255 255 255 / .18); color: white; }
+    .jhl-card { display: flex; gap: 16px; align-items: flex-start; padding: 18px 20px; border-radius: 16px; background: rgb(255 255 255 / .05); border: 1px solid rgb(255 255 255 / .09); margin-bottom: 12px; }
+    .jhl-card:last-of-type { margin-bottom: 0; }
+    .jhl-num { flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%; background: #fbbf24; color: #0f172a; font-size: 1.1rem; font-weight: 950; display: flex; align-items: center; justify-content: center; }
+    .jhl-headline { font-size: 1.22rem; font-weight: 950; color: #f1f5f9; line-height: 1.35; margin-bottom: 7px; }
+    .jhl-detail { font-size: .92rem; color: #94a3b8; font-weight: 700; line-height: 1.65; }
+    .judge-footer { text-align: center; font-size: .8rem; color: #334155; font-weight: 800; margin-top: 20px; letter-spacing: .03em; }
+    .judge-btn { background: color-mix(in srgb, var(--accent), #0f172a 85%) !important; color: #fbbf24 !important; border: 1px solid color-mix(in srgb, var(--accent), transparent 30%) !important; }
     .cel-box { background: white; border-radius: 20px; padding: 36px 28px 28px; max-width: 360px; width: 100%; text-align: center; box-shadow: 0 32px 80px rgb(0 0 0 / .22); }
     .cel-emoji { font-size: 3.5rem; line-height: 1; margin-bottom: 12px; }
     .cel-title { margin: 0 0 8px; font-size: 1.55rem; font-weight: 950; color: #111827; }
@@ -470,7 +495,7 @@ async function writeGuidePage(app) {
     @media print {
       body { background: white; }
       .topnav, .jump-nav, .timer-row, .qr-block, .script-details,
-      .fab-open, .offline-banner, .prog-bar, .cel-overlay,
+      .fab-open, .offline-banner, .prog-bar, .cel-overlay, .judge-overlay,
       .hero-row a.hero-btn:not(:first-child), button.hero-btn { display: none !important; }
       .hero { border-radius: 0; box-shadow: none; padding: 12px 0; background: white !important; }
       .hero::after { display: none; }
@@ -525,6 +550,7 @@ async function writeGuidePage(app) {
         <button class="timer-btn" onclick="window.print()" title="列印教學備用">🖨️ 列印</button>
         <button class="font-toggle" id="font-toggle-${app.id}" onclick="toggleFont('${app.id}')" title="放大/縮小字體">🔡 字</button>
         <button class="timer-btn" id="wake-btn-${app.id}" onclick="toggleWake('${app.id}')" title="防止螢幕自動關閉">💡 防熄屏</button>
+        ${judgeHighlightsHtml ? `<button class="timer-btn judge-btn" onclick="toggleJudgeMode('${app.id}')" title="顯示評審亮點模式（大字全螢幕）">📊 評審模式</button>` : ''}
         <div class="qr-block">
           ${qrSvg}
           <span class="qr-label">掃我開始展示</span>
@@ -611,6 +637,17 @@ async function writeGuidePage(app) {
     </p>
   </main>
 
+  ${judgeHighlightsHtml ? `
+  <div class="judge-overlay" id="judge-overlay-${app.id}" role="dialog" aria-modal="true" aria-label="評審亮點模式">
+    <div class="judge-panel">
+      <div class="judge-header">
+        <span class="judge-title">📊 ${escapeHtml(app.shortName)} 評審亮點</span>
+        <button class="judge-close" onclick="toggleJudgeMode('${app.id}')">✕ 關閉</button>
+      </div>
+      ${judgeHighlightsHtml}
+      <p class="judge-footer">← 請讓評審閱讀，學生用手指指著螢幕說明 →</p>
+    </div>
+  </div>` : ''}
   <div class="cel-overlay" id="cel-overlay-${app.id}" role="dialog" aria-modal="true">
     <div class="cel-box">
       <div class="cel-emoji">🎉</div>
@@ -849,6 +886,40 @@ async function writeGuidePage(app) {
       setTimeout(() => flashStep(document.getElementById(id)), 350);
     });
   });
+
+  // ── A: Judge Highlight Mode ──────────────────────────────────────────
+  function toggleJudgeMode(appId) {
+    const overlay = document.getElementById('judge-overlay-' + appId);
+    if (overlay) overlay.classList.toggle('show');
+  }
+  (function () {
+    const overlay = document.getElementById('judge-overlay-${app.id}');
+    if (overlay) overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) toggleJudgeMode('${app.id}');
+    });
+  })();
+
+  // ── C: First-visit auto-expand quick review card ─────────────────────
+  (function () {
+    const key = '${app.id}-quick-review-seen';
+    const card = document.querySelector('.quick-review');
+    if (card && !localStorage.getItem(key)) {
+      card.open = true;
+      localStorage.setItem(key, '1');
+    }
+  })();
+
+  // ── D: Resume from last checkpoint (scroll to first unchecked step) ───
+  (function () {
+    const allStepCbs = [...document.querySelectorAll('input[type=checkbox][data-key*="-step-"]')];
+    const anyChecked = allStepCbs.some((cb) => cb.checked);
+    if (!anyChecked) return; // fresh start — don't skip the hero
+    const firstUnchecked = allStepCbs.find((cb) => !cb.checked);
+    const target = firstUnchecked
+      ? (firstUnchecked.closest('label') || firstUnchecked.closest('.step'))
+      : document.getElementById('must-card-${app.id}'); // all steps done → jump to must-show card
+    if (target) setTimeout(() => target.scrollIntoView({behavior: 'smooth', block: 'center'}), 700);
+  })();
 
   // ── Offline / online status banner ───────────────────────────────────
   (function () {
