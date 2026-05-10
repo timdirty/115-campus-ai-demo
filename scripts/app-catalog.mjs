@@ -41,6 +41,12 @@ export const apps = [
       '任務紀錄',
       '確認 ✓ 出現',
     ],
+    stepNavUrls: [
+      './app1/',
+      './app1/',
+      './app1/',
+      './app1/',
+    ],
     scorecardMustShow: [
       'Student performs 拍白板 -> 看決策 -> 送指令 without assistance.',
       'Student points to pixel analysis result and explains what changed.',
@@ -99,6 +105,14 @@ export const apps = [
       '教學頁 → 點名',
       '首頁 → 遙控搖桿',
       '報表頁',
+    ],
+    stepNavUrls: [
+      './app2/',
+      './app2/#delivery',
+      './app2/#delivery',
+      './app2/#teach',
+      './app2/',
+      './app2/#life',
     ],
     scorecardMustShow: [
       'Student performs 下任務 -> 看追蹤 -> 匯報表 without assistance.',
@@ -162,6 +176,15 @@ export const apps = [
       '感知 Tab → 麥克風',
       '底部遙控列',
       '機器人 Tab',
+    ],
+    stepNavUrls: [
+      './app3/',
+      './app3/',
+      './app3/#alerts',
+      './app3/#sensing',
+      './app3/#sensing',
+      './app3/',
+      './app3/#robot',
     ],
     scorecardMustShow: [
       'Student performs 看總覽 -> 處理提醒 -> 自我照護 without assistance.',

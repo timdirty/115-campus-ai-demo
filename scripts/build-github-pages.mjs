@@ -3,6 +3,7 @@
 import {spawnSync} from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import QRCode from 'qrcode';
 import {allGuidesUrl, appDir, apps, guidePath, guideUrl, opsGuidePath, opsGuideUrl, pagesDir, rootDir} from './app-catalog.mjs';
 
 function run(command, args, cwd) {
@@ -110,7 +111,7 @@ function extractRoles(markdown) {
   return roles;
 }
 
-function writeGuidePage(app) {
+async function writeGuidePage(app) {
   const markdown = fs.readFileSync(guidePath(app), 'utf8');
   const guideHtml = renderGuideMarkdown(markdown);
 
@@ -157,8 +158,9 @@ function writeGuidePage(app) {
     const num = String(i + 1).padStart(2, '0');
     const imgSrc = `./screenshots/${app.id}-step${i + 1}.png`;
     const navHintText = (app.stepNavHints || [])[i] || '';
+    const navHintUrl = (app.stepNavUrls || [])[i] || `./${app.id}/`;
     const navHintHtml = navHintText
-      ? `<a class="step-nav-chip" href="./${app.id}/">→ ${escapeHtml(navHintText)}</a>`
+      ? `<a class="step-nav-chip" href="${navHintUrl}">→ ${escapeHtml(navHintText)}</a>`
       : '';
     return `<div class="step" id="${app.id}-step${i + 1}">
       <div class="step-num">${num}</div>
@@ -168,14 +170,15 @@ function writeGuidePage(app) {
           <span class="step-time">約 ${secPerStep} 秒</span>
         </div>
         ${navHintHtml}
-        <div class="screenshot-frame">
+        <a class="screenshot-frame" href="${imgSrc}" target="_blank" title="點我放大看截圖">
           <img src="${imgSrc}" alt="步驟 ${num} 操作畫面截圖" loading="lazy"
                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
           <div class="no-img-placeholder">
             <span class="no-img-icon">📷</span>
             <span>步驟 ${num} 的畫面長這樣</span>
           </div>
-        </div>
+          <div class="screenshot-hint">🔍 點我放大</div>
+        </a>
       </div>
     </div>`;
   }).join('\n');
@@ -219,6 +222,16 @@ function writeGuidePage(app) {
   const hardwareNote = app.hardwarePitchNote
     ? `<div class="hardware-note">🤖 硬體亮點：${escapeHtml(app.hardwarePitchNote)}</div>`
     : '';
+
+  const baseUrl = 'https://timdirty.github.io/115-campus-ai-demo/';
+  const guidePageUrl = `${baseUrl}${app.id}-guide.html`;
+  const qrSvgRaw = await QRCode.toString(guidePageUrl, {
+    type: 'svg',
+    margin: 1,
+    color: {dark: '#0f172a', light: '#ffffff'},
+  });
+  // Strip the XML declaration so the SVG embeds cleanly in HTML
+  const qrSvg = qrSvgRaw.replace(/<\?xml[^?]*\?>\s*/g, '');
 
   fs.writeFileSync(path.join(pagesDir, guideUrl(app)), `<!doctype html>
 <html lang="zh-Hant">
@@ -288,8 +301,10 @@ function writeGuidePage(app) {
     .step-time { flex-shrink: 0; font-size: .8rem; font-weight: 950; color: white; background: #64748b; padding: 3px 8px; border-radius: 999px; margin-top: 2px; }
     .step-nav-chip { display: inline-flex; align-items: center; margin-bottom: 10px; border: 1px solid color-mix(in srgb, var(--accent), white 55%); border-radius: 999px; padding: 4px 11px; font-size: .8rem; font-weight: 900; color: var(--accent); background: color-mix(in srgb, var(--accent), white 92%); text-decoration: none; }
     .step-nav-chip:hover { background: color-mix(in srgb, var(--accent), white 80%); }
-    .screenshot-frame { border-radius: 10px; overflow: hidden; border: 1.5px solid #e2e8f0; background: #f8fafc; }
+    .screenshot-frame { display: block; border-radius: 10px; overflow: hidden; border: 1.5px solid #e2e8f0; background: #f8fafc; text-decoration: none; position: relative; }
+    .screenshot-frame:hover { border-color: var(--accent); }
     .screenshot-frame img { width: 100%; display: block; }
+    .screenshot-hint { position: absolute; bottom: 0; right: 0; background: rgb(0 0 0 / .55); color: white; font-size: 11px; font-weight: 900; padding: 4px 8px; border-top-left-radius: 8px; pointer-events: none; }
     .no-img-placeholder { display: none; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 20px; color: #cbd5e1; font-size: 13px; font-weight: 700; text-align: center; min-height: 72px; background: #f8fafc; }
     .no-img-icon { font-size: 1.5rem; line-height: 1; }
 
@@ -316,6 +331,11 @@ function writeGuidePage(app) {
     .timer-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
     .timer-display { font-size: 2rem; font-weight: 950; color: #111827; font-variant-numeric: tabular-nums; letter-spacing: -.04em; display: none; }
     .timer-display.warn { color: #dc2626; }
+
+    /* QR code block */
+    .qr-block { max-width: 96px; border-radius: 10px; border: 1px solid #e2e8f0; padding: 6px; background: white; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .qr-block svg { width: 84px; height: 84px; display: block; }
+    .qr-label { font-size: 10px; font-weight: 900; color: #64748b; text-align: center; line-height: 1.3; }
 
     /* Emergency */
     .emergency-list { display: grid; gap: 10px; }
@@ -349,6 +369,18 @@ function writeGuidePage(app) {
       .flow-bar { gap: 6px; }
       .topnav a { font-size: 13px; }
     }
+    @media print {
+      body { background: white; }
+      .topnav, .timer-row, .qr-block, .script-details { display: none !important; }
+      .hero { border-radius: 0; box-shadow: none; padding: 12px 0; background: white !important; }
+      .hero::after { display: none; }
+      .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
+      .step { page-break-inside: avoid; }
+      .screenshot-frame img { max-height: 180px; width: auto; }
+      .screenshot-hint { display: none; }
+      main { padding: 8px 0; gap: 10px; }
+      a[href]::after { content: none; }
+    }
   </style>
 </head>
 <body>
@@ -357,6 +389,7 @@ function writeGuidePage(app) {
       <a href="./">← 返回總入口</a>
       <a class="open-btn" href="./${app.id}/">開啟 App →</a>
       ${otherGuideLinks.replace(/<a /g, '<a class="other-guide" ')}
+      <a class="other-guide" href="./${allGuidesUrl()}">📋 三隊講稿</a>
     </nav>
 
     <div class="hero">
@@ -374,6 +407,10 @@ function writeGuidePage(app) {
         <button class="timer-btn" id="timer-btn-${app.id}" onclick="startTimer('${app.id}')">🕐 練習計時 3 分鐘</button>
         <span class="timer-display" id="timer-display-${app.id}">3:00</span>
         <span id="timer-done-${app.id}" style="display:none;font-weight:900;color:#16a34a">✅ 時間到！講完了嗎？</span>
+        <div class="qr-block">
+          ${qrSvg}
+          <span class="qr-label">掃我開始展示</span>
+        </div>
       </div>
     </div>
 
@@ -594,16 +631,14 @@ function writeAllGuidesPage() {
   <main>
     <nav class="topbar" aria-label="快速切換">
       <div class="nav-links">
-        <a href="./">返回總入口</a>
-        <a href="./app1/">App 1</a>
-        <a href="./app2/">App 2</a>
-        <a href="./app3/">App 3</a>
+        <a href="./">← 返回首頁</a>
+        ${apps.map((a) => `<a href="./${a.id}/">${escapeHtml(a.shortName)} App</a><a href="./${guideUrl(a)}">📋 ${escapeHtml(a.shortName)} 教學</a>`).join('')}
       </div>
     </nav>
     <header>
-      <span class="eyebrow">All Student Guides</span>
-      <h1>115 資通訊三隊學生講稿總覽</h1>
-      <p class="lead">這一頁把三隊作品操作入口和學生講稿放在同一個地方。可以先在這裡挑隊伍看講稿，也可以直接跳去對應 App 做現場展示。</p>
+      <span class="eyebrow">三隊學生教學總覽</span>
+      <h1>三隊上台操作稿</h1>
+      <p class="lead">這裡可以看三隊的完整講稿。點「📋 教學」進手把手步驟教學，點「App」直接開展示。</p>
     </header>
     <nav class="tab-row" aria-label="講稿導覽">${tabs}
     </nav>
@@ -619,12 +654,13 @@ fs.rmSync(pagesDir, {recursive: true, force: true});
 fs.mkdirSync(pagesDir, {recursive: true});
 copyScreenshots();
 
+(async () => {
 for (const app of apps) {
   const sourceDir = appDir(app);
   run('npm', ['ci'], sourceDir);
   run('npm', ['run', 'build'], sourceDir);
   copyDir(path.join(sourceDir, 'dist'), path.join(pagesDir, app.id));
-  writeGuidePage(app);
+  await writeGuidePage(app);
   writeOpsGuidePage(app);
 }
 
@@ -732,3 +768,4 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
 
 fs.writeFileSync(path.join(pagesDir, '.nojekyll'), '', 'utf8');
 console.log(`GitHub Pages bundle ready: ${pagesDir}`);
+})();

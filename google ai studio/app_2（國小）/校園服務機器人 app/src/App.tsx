@@ -119,6 +119,12 @@ export default function App() {
     setSubView(null);
   }, [activeTab]);
 
+  // Hash-based deep-link: guide page chips can link to e.g. ./app2/#delivery
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (TABS.find((t) => t.id === hash)) setActiveTab(hash);
+  }, []);
+
   return (
     <TourProvider onTabChange={setActiveTab}>
     <div className="app2-shell min-h-screen overflow-x-hidden text-on-surface md:bg-surface-container-low">

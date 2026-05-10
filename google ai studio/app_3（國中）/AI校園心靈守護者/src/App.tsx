@@ -244,6 +244,12 @@ function AppContent() {
   useEffect(() => () => { robotTimersRef.current.forEach(clearTimeout); robotTimersRef.current = []; }, []);
   useEffect(() => () => { autoDemoTimersRef.current.forEach(clearTimeout); }, []);
 
+  // Hash-based deep-link: guide page chips can link to e.g. ./app3/#sensing
+  useEffect(() => {
+    const hash = window.location.hash.slice(1) as ActivePanel;
+    if (panelNav.find((p) => p.id === hash)) setActivePanel(hash);
+  }, []);
+
   // Push real state to robot display (debounced 1500ms to prevent iPad thrashing)
   const snapshotPushRef = useRef<number | null>(null);
   useEffect(() => {
