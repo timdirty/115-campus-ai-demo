@@ -7,7 +7,7 @@ export function getBridgeBase(): string {
   } catch {
     // localStorage not available (SSR/test env)
   }
-  return `http://${window.location.hostname}:3201`;
+  return 'http://localhost:3201';
 }
 
 export function setBridgeHost(host: string): void {

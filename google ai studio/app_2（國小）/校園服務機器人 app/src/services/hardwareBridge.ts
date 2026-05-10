@@ -1,6 +1,6 @@
 export const BRIDGE_URL =
   ((import.meta as unknown as {env?: Record<string, string>}).env?.VITE_ARDUINO_BRIDGE_URL) ||
-  `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:3202`;
+  'http://localhost:3202';
 
 export type HardwareBridgeResult = {
   ok: boolean;

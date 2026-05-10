@@ -78,7 +78,13 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
       }
     }, 5000);
 
-    const ws = new WebSocket(wsUrl);
+    let ws: WebSocket;
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch {
+      startPolling();
+      return;
+    }
     wsRef.current = ws;
 
     ws.onopen = () => {

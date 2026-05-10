@@ -81,7 +81,14 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
       }
     }, 5000);
 
-    const ws = new WebSocket(wsUrl);
+    let ws: WebSocket;
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch {
+      // SecurityError: insecure WS from HTTPS page, or malformed URL — fall back to polling
+      startPolling();
+      return;
+    }
     wsRef.current = ws;
 
     ws.onopen = () => {
