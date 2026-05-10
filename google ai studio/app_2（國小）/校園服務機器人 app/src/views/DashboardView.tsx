@@ -26,6 +26,7 @@ import { BatteryCharging, MapPin, Activity, Navigation, Wind, Building2, Route, 
 import { useAppActions, useAppState } from '../state/AppStateProvider';
 import { getDemoHealth, getDemoSteps } from '../services/demoFlow';
 import { analyzeCampusFrame, analyzeCampusImage, CampusVisionResult } from '../services/localVision';
+import { BRIDGE_URL } from '../services/hardwareBridge';
 
 export function DashboardView({ showToast, navigateTo }: { showToast: (m: string) => void, navigateTo: (id: string, props?: any) => void }) {
   const state = useAppState();
@@ -48,7 +49,7 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
     let cancelled = false;
     const fetchLogs = async () => {
       try {
-        const res = await fetch('http://localhost:3202/api/logs');
+        const res = await fetch(`${BRIDGE_URL}/api/logs`);
         if (!res.ok) return;
         const data = await res.json();
         if (!cancelled) {

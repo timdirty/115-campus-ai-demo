@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { BottomSheet } from '../components/ui';
-import { Video, MessageCircle, AlertCircle, Trophy, Send, Activity, Focus, ArrowUpRight, Camera } from 'lucide-react';
+import { Video, MessageCircle, AlertCircle, Send, Activity, Focus, ArrowUpRight, Camera } from 'lucide-react';
 import { useAppActions, useAppState } from '../state/AppStateProvider';
 import type { TeachingSignal } from '../state/appState';
 import { generateTeacherReply } from '../services/localAi';
 import { openPrintableReport } from '../services/reports';
-import { BRIDGE_URL } from '../services/hardwareBridge';
+import {useCamera} from '../hooks/useCamera';
+import {useGeminiVision} from '../hooks/useGeminiVision';
 
 const SCENE_LABELS: Record<string, string> = {
   crowd: '人流偵測',
@@ -32,18 +33,25 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
   const [focusScore, setFocusScore] = useState(87);
   const [waveData, setWaveData] = useState([40, 60, 85, 70, 90, 55, 45, 30]);
 
-  // Camera / vision state for video modal
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const visionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [camReady, setCamReady] = useState(false);
-  const [camAnalyzing, setCamAnalyzing] = useState(false);
-  const [camScene, setCamScene] = useState<string>('patrol');
-  const [camConfidence, setCamConfidence] = useState<number>(0);
-  const [camZone, setCamZone] = useState<string>('');
-  const [camSummary, setCamSummary] = useState<string>('');
-  const [camSource, setCamSource] = useState<'gemini' | 'local'>('local');
+  const attendanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const {videoRef, canvasRef, ready: camReady, error: camError} = useCamera(modal === 'video');
+  const {result: camResult, analyzing: camAnalyzing, source: camSource} = useGeminiVision(
+    modal === 'video' && camReady,
+    videoRef,
+    canvasRef,
+    5000,
+  );
+  const camScene = camResult?.scene ?? 'patrol';
+  const camConfidence = camResult?.confidence ?? 0;
+  const camZone = camResult?.zone ?? '';
+  const camSummary = camResult?.summary ?? '';
+
+  useEffect(() => {
+    return () => {
+      if (attendanceTimerRef.current) clearTimeout(attendanceTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -54,73 +62,6 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
     }, 2500);
     return () => clearInterval(interval);
   }, []);
-
-  const captureAndAnalyze = useCallback(async () => {
-    if (camAnalyzing) return;
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas || video.readyState < 2) return;
-    canvas.width = 320;
-    canvas.height = Math.round(video.videoHeight * (320 / video.videoWidth)) || 240;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-    const imageBase64 = dataUrl.split(',')[1];
-    setCamAnalyzing(true);
-    try {
-      const res = await fetch(`${BRIDGE_URL}/api/ai/vision-classify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64 }),
-        signal: AbortSignal.timeout(8000),
-      });
-      if (!res.ok) throw new Error('vision-classify failed');
-      const data = await res.json() as { scene: string; confidence: number; zone: string; summary: string; source: 'gemini' | 'local' };
-      setCamScene(data.scene);
-      setCamConfidence(data.confidence);
-      setCamZone(data.zone);
-      setCamSummary(data.summary);
-      setCamSource(data.source);
-    } catch {
-      // keep previous result
-    } finally {
-      setCamAnalyzing(false);
-    }
-  }, [camAnalyzing]);
-
-  useEffect(() => {
-    if (modal !== 'video') {
-      // cleanup
-      if (visionTimerRef.current) { clearInterval(visionTimerRef.current); visionTimerRef.current = null; }
-      if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
-      setCamReady(false);
-      setCamAnalyzing(false);
-      return;
-    }
-    let cancelled = false;
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false })
-      .then(stream => {
-        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play().catch(() => {});
-        }
-        setCamReady(true);
-        visionTimerRef.current = setInterval(captureAndAnalyze, 5000);
-        captureAndAnalyze();
-      })
-      .catch(() => {
-        if (!cancelled) setCamReady(false);
-      });
-    return () => {
-      cancelled = true;
-      if (visionTimerRef.current) { clearInterval(visionTimerRef.current); visionTimerRef.current = null; }
-      if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
-      setCamReady(false);
-    };
-  }, [modal, captureAndAnalyze]);
 
   const openStudent = (signal: TeachingSignal) => {
     setChatReply(null);
@@ -167,7 +108,9 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
 
   const handleRollCall = () => {
     setModal('attendance_scan');
-    setTimeout(() => {
+    if (attendanceTimerRef.current) clearTimeout(attendanceTimerRef.current);
+    attendanceTimerRef.current = setTimeout(() => {
+      attendanceTimerRef.current = null;
       actions.scanAttendance();
       setModal(null);
       showToast('AI 場域點名已完成：2 個座位待確認');
@@ -460,22 +403,29 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       {/* Fullscreen Video Modal */}
       <BottomSheet isOpen={modal === 'video'} onClose={() => setModal(null)} fullScreen={true}>
         <div className="w-full h-full bg-black relative flex flex-col justify-center overflow-hidden">
-          <canvas ref={canvasRef} className="hidden" />
-
           {/* Real camera feed — always in DOM so ref stays stable */}
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            className={`absolute inset-0 w-full h-full object-cover scale-[1.02] transition-opacity duration-700 ${camReady ? 'opacity-100' : 'opacity-0'}`}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${camReady ? 'opacity-100' : 'opacity-0'}`}
           />
+          <canvas ref={canvasRef} className="hidden" />
 
           {/* Placeholder shown while camera starts */}
           {!camReady && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none" style={{background: 'linear-gradient(160deg, #0d2137 0%, #1e3a5f 60%, #0a1a2e 100%)'}}>
-              <Video size={48} className="text-white/40 animate-pulse" />
-              <p className="text-white/50 text-sm font-mono">開啟攝影機中…</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none"
+              style={{background: 'linear-gradient(160deg, #0d2137 0%, #1e3a5f 60%, #0a1a2e 100%)'}}>
+              {camError ? (
+                <>
+                  <p className="text-red-300 text-sm font-mono text-center px-6">{camError}</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-white/50 text-sm font-mono animate-pulse">開啟攝影機中…</p>
+                </>
+              )}
             </div>
           )}
 

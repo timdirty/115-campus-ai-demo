@@ -52,7 +52,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function waitForBridge() {
   let lastError;
 
-  for (let attempt = 0; attempt < 50; attempt += 1) {
+  for (let attempt = 0; attempt < 150; attempt += 1) {
     try {
       const health = await fetch(`${baseUrl}/api/health`);
       if (health.ok) return;
@@ -60,7 +60,7 @@ async function waitForBridge() {
     } catch (error) {
       lastError = error;
     }
-    await sleep(120);
+    await sleep(500);
   }
 
   throw lastError instanceof Error ? lastError : new Error('Bridge did not become ready');

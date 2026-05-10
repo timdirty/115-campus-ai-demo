@@ -131,6 +131,32 @@ export async function sendGuardianDriveCommand(command: string) {
   }
 }
 
+export interface GuardianSnapshotPayload {
+  emotion: string;
+  stress: number;
+  stability: number;
+  focus: number;
+  fusionScore: number;
+  signals: {moodScore: number; soundScore: number; nodeScore: number; alertScore: number};
+  riskScore: number;
+  riskLabel: string;
+  moodLabel: string;
+  robotActive: boolean;
+}
+
+export async function pushGuardianSnapshot(payload: GuardianSnapshotPayload): Promise<void> {
+  try {
+    await fetch(`${BRIDGE_URL}/api/display/guardian-snapshot`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(2000),
+    });
+  } catch {
+    // Bridge offline is expected during standalone demo — silently ignore
+  }
+}
+
 export async function resetBridgeDemoData(): Promise<boolean> {
   const {signal, clear} = withTimeout(3000);
   try {

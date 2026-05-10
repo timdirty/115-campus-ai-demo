@@ -160,6 +160,7 @@ export function GuardianControlPanel({bridgeOnline, zones, sensors, state, onDis
   const [logOpen, setLogOpen] = useState(false);
   const speedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flashTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const driveActiveRef = useRef<string | null>(null);
 
   const connectedSensorCount = sensors.filter((s) => s.connected).length;
   const avgTemp = (() => {
@@ -188,12 +189,14 @@ export function GuardianControlPanel({bridgeOnline, zones, sensors, state, onDis
   };
 
   const startDrive = (dir: string) => {
+    driveActiveRef.current = dir;
     setDriveActive(dir);
     void sendDrive(dir, true);
   };
 
   const stopDrive = () => {
-    if (!driveActive) return;
+    if (!driveActiveRef.current) return;
+    driveActiveRef.current = null;
     setDriveActive(null);
     void sendDrive('STOP', true);
   };

@@ -59,10 +59,27 @@ interface ZoneSensorReading {
 
 const portZoneMap = new Map<string, string>();
 
+interface GuardianSnapshot {
+  emotion: string;
+  stress: number;
+  stability: number;
+  focus: number;
+  fusionScore: number;
+  signals: {moodScore: number; soundScore: number; nodeScore: number; alertScore: number};
+  riskScore: number;
+  riskLabel: string;
+  moodLabel: string;
+  robotActive: boolean;
+  updatedAt: string;
+}
+
+let latestGuardianSnapshot: GuardianSnapshot | null = null;
+
 type WsEvent =
   | {type: 'arduino_status'; connected: boolean; port: string; simulated: boolean}
   | {type: 'command_ack'; command: string; ok: boolean; response?: string}
-  | {type: 'sensor_snapshot'; temp: number | null; hum: number | null; light: number | null};
+  | {type: 'sensor_snapshot'; temp: number | null; hum: number | null; light: number | null}
+  | {type: 'guardian_snapshot'} & GuardianSnapshot;
 
 const app = express();
 const httpServer = createServer(app);
@@ -87,6 +104,10 @@ wss.on('connection', (ws, req) => {
   if (req.url === '/display') {
     displayClients.add(ws);
     ws.send(JSON.stringify({type: 'display_ready'}));
+    // Replay latest snapshot immediately so reconnecting iPad gets current state
+    if (latestGuardianSnapshot) {
+      ws.send(JSON.stringify({type: 'guardian_snapshot', ...latestGuardianSnapshot}), (err) => { if (err) { /* ignore */ } });
+    }
     ws.on('close', () => displayClients.delete(ws));
   }
 });
@@ -319,6 +340,38 @@ app.post('/api/spike/command', async (req, res) => {
   if (!command) { res.status(400).json({ok: false, error: 'command required'}); return; }
   const result = await sendSpikeCommand(command);
   res.json(result);
+});
+
+// Guardian snapshot — App3 pushes real state; bridge stores + replays to display clients
+app.post('/api/display/guardian-snapshot', (req, res) => {
+  const snap = req.body as Partial<GuardianSnapshot>;
+  if (!snap || typeof snap.emotion !== 'string') {
+    res.status(400).json({ok: false, error: 'invalid snapshot'});
+    return;
+  }
+  latestGuardianSnapshot = {
+    emotion: snap.emotion,
+    stress: typeof snap.stress === 'number' ? snap.stress : 0,
+    stability: typeof snap.stability === 'number' ? snap.stability : 100,
+    focus: typeof snap.focus === 'number' ? snap.focus : 75,
+    fusionScore: typeof snap.fusionScore === 'number' ? snap.fusionScore : 0,
+    signals: snap.signals ?? {moodScore: 0, soundScore: 0, nodeScore: 0, alertScore: 0},
+    riskScore: typeof snap.riskScore === 'number' ? snap.riskScore : 0,
+    riskLabel: typeof snap.riskLabel === 'string' ? snap.riskLabel : '低風險',
+    moodLabel: typeof snap.moodLabel === 'string' ? snap.moodLabel : '未簽到',
+    robotActive: snap.robotActive === true,
+    updatedAt: new Date().toISOString(),
+  };
+  const payload = JSON.stringify({type: 'guardian_snapshot', ...latestGuardianSnapshot});
+  let pushed = 0;
+  for (const client of displayClients) {
+    if (client.readyState === WebSocket.OPEN) { client.send(payload, (err) => { if (err) { /* ignore */ } }); pushed++; }
+  }
+  res.json({ok: true, pushed});
+});
+
+app.get('/api/display/guardian-snapshot', (_req, res) => {
+  res.json(latestGuardianSnapshot ?? {ok: false, message: 'no snapshot yet'});
 });
 
 // Robot face display info — returns LAN IP + full robot-display URL for QR generation

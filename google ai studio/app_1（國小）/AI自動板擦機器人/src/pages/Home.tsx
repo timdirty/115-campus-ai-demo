@@ -329,7 +329,7 @@ export default function Home(_props: {onNavigate: (tab: string) => void}) {
   };
 
   const resetWhiteboardDemoState = () => {
-    ['app1:home:transcript', 'app1:home:previewImage', 'app1:home:analysis', 'app1:home:ocrResult'].forEach((k) => {
+    ['app1:home:transcript', 'app1:home:previewImage', 'app1:home:analysis', 'app1:home:ocrResult', 'app1:practiceChecks'].forEach((k) => {
       try { sessionStorage.removeItem(k); } catch { /* ignore */ }
     });
     setTranscript('');

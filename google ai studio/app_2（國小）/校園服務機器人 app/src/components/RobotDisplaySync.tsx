@@ -8,6 +8,7 @@
 import {memo, useCallback, useEffect, useRef, useState} from 'react';
 import {Bot, ChevronDown, ChevronUp, Copy, Check, ExternalLink, QrCode, RefreshCw, Smile, Wifi, WifiOff} from 'lucide-react';
 import {useAppState} from '../state/AppStateProvider';
+import {BRIDGE_URL} from '../services/hardwareBridge';
 
 type EmotionKey =
   | 'neutral' | 'happy' | 'sad' | 'angry' | 'surprised'
@@ -39,7 +40,6 @@ function autoEmotion(inProgressCount: number, completedToday: number): EmotionKe
   return 'neutral';
 }
 
-const BRIDGE_URL = 'http://localhost:3202';
 
 export const RobotDisplaySync = memo(function RobotDisplaySync() {
   const state = useAppState();

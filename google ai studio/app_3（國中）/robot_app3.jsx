@@ -807,7 +807,18 @@ export default function App() {
   const stageRef = useRef(null);
   const bubbleTimerRef = useRef(null);
   const hasIntroducedRef = useRef(false);
+  // Live metrics from App3 guardian snapshot (null = no data yet, use EMOTIONS fallback)
+  const [liveMetrics, setLiveMetrics] = useState(null);
   const e = EMOTIONS[emotion];
+  // Derived display values: use live data when available, fall back to EMOTIONS constants
+  const displayStress = liveMetrics?.stress ?? e.stress;
+  const displayStability = liveMetrics?.stability ?? e.stability;
+  const displayFocus = liveMetrics?.focus ?? e.focus;
+  const displayMoodLabel = liveMetrics?.moodLabel ?? null;
+  const displayRiskLabel = liveMetrics?.riskLabel ?? null;
+  const displayFusionScore = liveMetrics?.fusionScore ?? null;
+  const displaySignals = liveMetrics?.signals ?? null;
+  const isLiveData = liveMetrics !== null;
   // WebSocket — 透過 LAN 橋接伺服器與主控 App3 同步情緒
   const wsRef = useRef(null);
   const [bcConnected, setBcConnected] = useState(false);
@@ -1020,6 +1031,20 @@ export default function App() {
   bcHandlerRef.current = (data) => {
     if ((data.type === 'display_emotion' || data.type === 'EMOTION_UPDATE') && EMOTIONS[data.emotion]) {
       setManual(data.emotion);
+    }
+    if (data.type === 'guardian_snapshot') {
+      if (EMOTIONS[data.emotion]) setManual(data.emotion);
+      setLiveMetrics({
+        stress: typeof data.stress === 'number' ? data.stress : null,
+        stability: typeof data.stability === 'number' ? data.stability : null,
+        focus: typeof data.focus === 'number' ? data.focus : null,
+        fusionScore: typeof data.fusionScore === 'number' ? data.fusionScore : null,
+        signals: data.signals ?? null,
+        riskScore: typeof data.riskScore === 'number' ? data.riskScore : null,
+        riskLabel: typeof data.riskLabel === 'string' ? data.riskLabel : null,
+        moodLabel: typeof data.moodLabel === 'string' ? data.moodLabel : null,
+        robotActive: data.robotActive === true,
+      });
     }
   };
 
@@ -1467,15 +1492,24 @@ export default function App() {
 
           <div className="rounded-2xl p-5 mb-5 relative overflow-hidden border"
             style={{ background: `linear-gradient(135deg, ${e.light}cc, white)`, borderColor: `${e.color}40` }}>
-            <div className="text-[10px] tracking-[0.2em] text-stone-500 uppercase font-bold mb-2">即時偵測</div>
-            <div className="flex items-baseline gap-2 mb-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-[10px] tracking-[0.2em] text-stone-500 uppercase font-bold">即時偵測</div>
+              {isLiveData && <div className="text-[9px] font-bold tracking-widest px-2 py-0.5 rounded-full" style={{ background: e.color, color: 'white' }}>LIVE</div>}
+            </div>
+            <div className="flex items-baseline gap-2 mb-1">
               <span className="font-display text-4xl font-bold" style={{ color: e.color }}>{e.zh}</span>
               <span className="text-sm font-mono-tight text-stone-400">{e.en}</span>
             </div>
-            <div className="space-y-2">
-              <StatBar label="壓力指數" value={e.stress} color={e.color} />
-              <StatBar label="穩定度" value={e.stability} color="#14B8A6" />
-              <StatBar label="專注力" value={e.focus} color="#0EA5E9" />
+            {(displayMoodLabel || displayRiskLabel) && (
+              <div className="flex items-center gap-2 mb-3">
+                {displayMoodLabel && <span className="text-[10px] font-bold text-stone-500">心情：{displayMoodLabel}</span>}
+                {displayRiskLabel && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${e.color}22`, color: e.color }}>{displayRiskLabel}</span>}
+              </div>
+            )}
+            <div className="space-y-2 mt-2">
+              <StatBar label="壓力指數" value={displayStress} color={e.color} />
+              <StatBar label="穩定度" value={displayStability} color="#14B8A6" />
+              <StatBar label="專注力" value={displayFocus} color="#0EA5E9" />
             </div>
           </div>
 
@@ -1724,20 +1758,34 @@ export default function App() {
             style={{ background: `linear-gradient(135deg, ${e.light}cc, white)`, borderColor: `${e.color}40` }}>
             <div className="flex items-start justify-between mb-3">
               <div>
-                <div className="text-[10px] tracking-[0.2em] text-stone-500 uppercase font-bold mb-1">Current Emotion</div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="text-[10px] tracking-[0.2em] text-stone-500 uppercase font-bold">Current Emotion</div>
+                  {isLiveData && <div className="text-[9px] font-bold tracking-widest px-1.5 py-0.5 rounded-full" style={{ background: e.color, color: 'white' }}>LIVE</div>}
+                </div>
                 <div className="flex items-baseline gap-2">
                   <h3 className="font-display text-4xl font-bold tracking-tight" style={{ color: e.color }}>{e.zh}</h3>
                   <span className="text-sm font-mono-tight text-stone-400">{e.en}</span>
                 </div>
+                {(displayMoodLabel || displayRiskLabel) && (
+                  <div className="flex items-center gap-2 mt-1">
+                    {displayMoodLabel && <span className="text-[10px] font-bold text-stone-500">心情：{displayMoodLabel}</span>}
+                    {displayRiskLabel && <span className="text-[10px] font-bold" style={{ color: e.color }}>{displayRiskLabel}</span>}
+                  </div>
+                )}
               </div>
-              <div className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider" style={{ background: e.color, color: 'white' }}>
-                {e.short}
+              <div className="text-right">
+                <div className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider mb-1" style={{ background: e.color, color: 'white' }}>
+                  {e.short}
+                </div>
+                {displayFusionScore !== null && (
+                  <div className="text-[10px] font-mono-tight text-stone-500">融合 {displayFusionScore}/10</div>
+                )}
               </div>
             </div>
             <div className="flex items-center justify-around gap-2 mt-4">
-              <Gauge value={e.stress} color={e.color} label="壓力指數" size="lg" />
-              <Gauge value={e.stability} color="#14B8A6" label="穩定度" size="lg" />
-              <Gauge value={e.focus} color="#0EA5E9" label="專注力" size="lg" />
+              <Gauge value={displayStress} color={e.color} label="壓力指數" size="lg" />
+              <Gauge value={displayStability} color="#14B8A6" label="穩定度" size="lg" />
+              <Gauge value={displayFocus} color="#0EA5E9" label="專注力" size="lg" />
             </div>
           </div>
 
@@ -1747,14 +1795,25 @@ export default function App() {
                 <Activity className="w-4 h-4 text-stone-700" />
                 <span className="text-sm font-bold text-stone-800">多重感知融合</span>
               </div>
-              <span className="text-[10px] font-mono-tight text-stone-400 tracking-widest">FUSION SCORE</span>
+              <span className="text-[10px] font-mono-tight text-stone-400 tracking-widest">
+                {isLiveData ? 'APP3 · LIVE' : 'DEMO MODE'}
+              </span>
             </div>
-            <div className="grid grid-cols-2 gap-x-5 gap-y-3">
-              <StatBar label="臉部表情 Face" value={e.stability} color={e.color} />
-              <StatBar label="語音語氣 Voice" value={Math.round((e.stability + e.focus) / 2)} color="#14B8A6" />
-              <StatBar label="行為模式 Behavior" value={e.focus} color="#0EA5E9" />
-              <StatBar label="環境感測 Ambient" value={Math.max(20, 100 - e.stress)} color="#A855F7" />
-            </div>
+            {isLiveData && displaySignals ? (
+              <div className="grid grid-cols-2 gap-x-5 gap-y-3">
+                <StatBar label="心情訊號 Mood" value={Math.round((displaySignals.moodScore / 2) * 100)} color={e.color} />
+                <StatBar label="聲量訊號 Acoustic" value={Math.round((displaySignals.soundScore / 3) * 100)} color="#14B8A6" />
+                <StatBar label="節點狀態 Nodes" value={Math.max(0, 100 - Math.round((displaySignals.nodeScore / 3) * 100))} color="#0EA5E9" />
+                <StatBar label="警示狀態 Alerts" value={Math.max(0, 100 - Math.round((displaySignals.alertScore / 2) * 100))} color="#A855F7" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-x-5 gap-y-3">
+                <StatBar label="臉部表情 Face" value={e.stability} color={e.color} />
+                <StatBar label="語音語氣 Voice" value={Math.round((e.stability + e.focus) / 2)} color="#14B8A6" />
+                <StatBar label="行為模式 Behavior" value={e.focus} color="#0EA5E9" />
+                <StatBar label="環境感測 Ambient" value={Math.max(20, 100 - e.stress)} color="#A855F7" />
+              </div>
+            )}
           </div>
 
           <div className="rounded-2xl bg-white p-5 border border-stone-200 mb-4">
@@ -1787,8 +1846,8 @@ export default function App() {
 
           <div className="overflow-hidden rounded-full bg-stone-900 text-stone-300 px-4 py-2 font-mono-tight text-[10px] tracking-widest">
             <div className="flex whitespace-nowrap ticker-anim">
-              <TickerContent e={e} />
-              <TickerContent e={e} />
+              <TickerContent e={e} stress={displayStress} stability={displayStability} isLive={isLiveData} moodLabel={displayMoodLabel} riskLabel={displayRiskLabel} fusionScore={displayFusionScore} />
+              <TickerContent e={e} stress={displayStress} stability={displayStability} isLive={isLiveData} moodLabel={displayMoodLabel} riskLabel={displayRiskLabel} fusionScore={displayFusionScore} />
             </div>
           </div>
         </div>
@@ -1797,14 +1856,27 @@ export default function App() {
   );
 }
 
-const TickerContent = ({ e }) => (
+const TickerContent = ({ e, stress, stability, isLive, moodLabel, riskLabel, fusionScore }) => (
   <div className="flex items-center gap-8 px-4 shrink-0">
     <span>● 系統正常 SYSTEM OK</span>
     <span style={{ color: e.color }}>● 當前狀態 {e.short}</span>
-    <span>● 壓力指數 {e.stress}%</span>
-    <span>● 穩定度 {e.stability}%</span>
-    <span>● 邊緣運算延遲 92ms</span>
-    <span>● 雲端同步 SYNCED</span>
+    {isLive ? (
+      <>
+        <span>● 壓力指數 {stress}%</span>
+        <span>● 穩定度 {stability}%</span>
+        {moodLabel && <span style={{ color: e.color }}>● 心情：{moodLabel}</span>}
+        {riskLabel && <span>● {riskLabel}</span>}
+        {fusionScore !== null && <span>● AI融合分數 {fusionScore}/10</span>}
+        <span style={{ color: '#10b981' }}>● APP3 LIVE SYNC</span>
+      </>
+    ) : (
+      <>
+        <span>● 壓力指數 {e.stress}%</span>
+        <span>● 穩定度 {e.stability}%</span>
+        <span>● 邊緣運算延遲 92ms</span>
+        <span>● DEMO MODE</span>
+      </>
+    )}
     <span>● 加密保護 AES-256</span>
     <span>● 5 節點 ONLINE</span>
   </div>

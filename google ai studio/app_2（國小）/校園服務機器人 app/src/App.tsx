@@ -5,6 +5,7 @@ import { TourOverlay } from './components/tour/TourOverlay';
 import { useTour } from './components/tour/useTour';
 import { IssueReporter } from './components/IssueReporter';
 import {useHardwareSocket} from './hooks/useHardwareSocket';
+import {BRIDGE_URL} from './services/hardwareBridge';
 import {HardwareStatusBanner} from './components/HardwareStatusBanner';
 import {CommandFeedbackToast} from './components/CommandFeedbackToast';
 import {DemoTimer} from './components/DemoTimer';
@@ -66,7 +67,7 @@ export default function App() {
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const proxyOnline = useProxyHealth();
   const [bannerDismissed, setBannerDismissed] = useState(false);
-  const hwStatus = useHardwareSocket('http://localhost:3202');
+  const hwStatus = useHardwareSocket(BRIDGE_URL);
 
   const showToast = useCallback((message: string) => {
     setToastMessage({ id: Date.now(), message });

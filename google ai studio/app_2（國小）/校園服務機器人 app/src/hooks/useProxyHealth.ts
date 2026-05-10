@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-
-const BRIDGE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ARDUINO_BRIDGE_URL) || 'http://localhost:3202';
+import { BRIDGE_URL } from '../services/hardwareBridge';
 
 export function useProxyHealth() {
   const [proxyOnline, setProxyOnline] = useState<boolean | null>(null);

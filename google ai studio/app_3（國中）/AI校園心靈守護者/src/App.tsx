@@ -48,7 +48,7 @@ import {analyzeEmotionTypography} from './services/emotionTypography';
 import {analyzePrivacyFrame, VisualPrivacyResult} from './services/visualPrivacyGuardian';
 import {evaluateProactiveGuardianState, ProactiveInsight} from './services/proactiveGuardian';
 import {buildSchoolZoneStatuses, SchoolZoneStatus} from './services/schoolSpaces';
-import {assignSensorPort, fetchBridgeHealth, fetchSensorPorts, fetchZoneSensors, resetBridgeDemoData, sendGuardianHardwareCommand} from './services/hardwareBridge';
+import {assignSensorPort, fetchBridgeHealth, fetchSensorPorts, fetchZoneSensors, pushGuardianSnapshot, resetBridgeDemoData, sendGuardianHardwareCommand} from './services/hardwareBridge';
 import {AlertDetail, AlertRow, MetricCard, NodeRow, RiskPill} from './components/guardianUi';
 import {EmotionHeatmap} from './components/EmotionHeatmap';
 import {CampusMapSvg} from './components/CampusMapSvg';
@@ -72,6 +72,17 @@ interface CommandCenterViewModel {
   latestSoundLabel: string;
   campusHealthLabel: string;
   signalSummary: Array<{label: string; value: string; tone: 'teal' | 'rose' | 'amber' | 'emerald'}>;
+}
+
+function mapToRobotEmotion(mood: MoodType | undefined, riskLevel: string, robotActive: boolean): string {
+  if (robotActive) return 'focused';
+  if (mood === 'happy') return 'happy';
+  if (mood === 'steady') return 'calm';
+  if (mood === 'tired') return 'sad';
+  if (mood === 'worried') return riskLevel === 'high' ? 'stressed' : 'anxious';
+  if (riskLevel === 'high') return 'stressed';
+  if (riskLevel === 'medium') return 'anxious';
+  return 'happy';
 }
 
 const moodOptions: Array<{mood: MoodType; label: string; note: string; tone: string}> = [
@@ -154,6 +165,7 @@ function AppContent() {
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const robotTimersRef = useRef<number[]>([]);
   const autoDemoRunningRef = useRef(false);
+  const autoDemoTimersRef = useRef<number[]>([]);
   const proxyOnline = useProxyHealth();
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const hwStatus = useHardwareSocket('http://localhost:3203');
@@ -230,6 +242,51 @@ function AppContent() {
 
   useEffect(() => () => stopAcousticMonitor(), []);
   useEffect(() => () => { robotTimersRef.current.forEach(clearTimeout); robotTimersRef.current = []; }, []);
+  useEffect(() => () => { autoDemoTimersRef.current.forEach(clearTimeout); }, []);
+
+  // Push real state to robot display (debounced 1500ms to prevent iPad thrashing)
+  const snapshotPushRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (snapshotPushRef.current) clearTimeout(snapshotPushRef.current);
+    snapshotPushRef.current = window.setTimeout(() => {
+      const insight = viewModel.proactiveInsight;
+      const latestMood = state.moodLogs[0];
+      const latestAcoustic = state.acousticSignals[0];
+      const robotActive = viewModel.activeRobotCount > 0;
+      const stress = Math.min(100, Math.round((insight.score / 10) * 100));
+      const stability = Math.max(0, 100 - stress);
+      const focus = latestAcoustic?.volumeIndex != null
+        ? Math.max(10, Math.min(95, 95 - Math.round(latestAcoustic.volumeIndex * 0.7)))
+        : 75;
+      const s = insight.signals;
+      void pushGuardianSnapshot({
+        emotion: mapToRobotEmotion(latestMood?.mood, insight.riskLevel, robotActive),
+        stress,
+        stability,
+        focus,
+        fusionScore: insight.score,
+        signals: {
+          moodScore: s.find((x) => x.label === '心情訊號')?.score ?? 0,
+          soundScore: s.find((x) => x.label === '聲量訊號')?.score ?? 0,
+          nodeScore: s.find((x) => x.label === '節點狀態')?.score ?? 0,
+          alertScore: s.find((x) => x.label === '未結提醒')?.score ?? 0,
+        },
+        riskScore: viewModel.highestZone.riskScore,
+        riskLabel: insight.riskLevel === 'high' ? '高風險' : insight.riskLevel === 'medium' ? '中風險' : '低風險',
+        moodLabel: latestMood?.label ?? '未簽到',
+        robotActive,
+      });
+    }, 1500);
+  }, [
+    state.moodLogs,
+    state.acousticSignals,
+    state.robotMissions,
+    state.alerts,
+    state.nodes,
+    viewModel.proactiveInsight,
+    viewModel.highestZone.riskScore,
+    viewModel.activeRobotCount,
+  ]);
 
   const showToast = useCallback((text: string) => setToastMessage(text), []);
 
@@ -405,25 +462,30 @@ function AppContent() {
   const runAutoDemo = useCallback(() => {
     if (autoDemoRunningRef.current) { showToast('示範進行中，請稍後再試'); return; }
     autoDemoRunningRef.current = true;
+    autoDemoTimersRef.current.forEach(clearTimeout);
+    autoDemoTimersRef.current = [];
     dispatch({type: 'RESET_DEMO'});
     showToast('自動示範開始，3 步快速展示全流程…');
-    window.setTimeout(() => {
+    autoDemoTimersRef.current.push(window.setTimeout(() => {
       dispatch({type: 'CREATE_PROACTIVE_ALERT', payload: viewModel.proactiveInsight});
       setActivePanel('alerts');
       showToast('① AI 主動巡查偵測到異常，建立預警');
-    }, 800);
-    window.setTimeout(() => {
+    }, 800));
+    autoDemoTimersRef.current.push(window.setTimeout(() => {
       const elevated = {source: 'demo' as const, location: '穿堂', level: 'elevated' as const, volumeIndex: 72, volatility: 34, summary: '示範：下課時間穿堂聲量偏高，AI 融合多來源訊號建議低壓確認。'};
       dispatch({type: 'RECORD_ACOUSTIC_SIGNAL', payload: elevated});
       setActivePanel('sensing');
       showToast('② 環境聲量偏高訊號已記錄到感知中心');
-    }, 2400);
-    window.setTimeout(() => {
+    }, 2400));
+    autoDemoTimersRef.current.push(window.setTimeout(() => {
       dispatchRobotToZone(viewModel.highestZone);
       setActivePanel('robot');
       showToast('③ 機器人已派往最高風險區，任務追蹤中');
-    }, 4200);
-    window.setTimeout(() => { autoDemoRunningRef.current = false; }, 5200);
+    }, 4200));
+    autoDemoTimersRef.current.push(window.setTimeout(() => {
+      autoDemoRunningRef.current = false;
+      autoDemoTimersRef.current = [];
+    }, 5200));
   }, [dispatch, viewModel.proactiveInsight, viewModel.highestZone, showToast, dispatchRobotToZone]);
 
   const exportDemoData = () => {
@@ -1302,7 +1364,12 @@ const MAX_SAMPLES = 180; // 30 min @ 10s interval
 function loadTrend(): {t: number; v: number}[] {
   try {
     const raw = localStorage.getItem(TREND_LS_KEY);
-    return raw ? (JSON.parse(raw) as {t: number; v: number}[]) : [];
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) { localStorage.removeItem(TREND_LS_KEY); return []; }
+    return parsed.filter((p): p is {t: number; v: number} =>
+      p !== null && typeof p === 'object' && typeof (p as Record<string,unknown>).t === 'number' && typeof (p as Record<string,unknown>).v === 'number'
+    );
   } catch {
     return [];
   }
@@ -1409,6 +1476,8 @@ function SensingPanel({
       }
       setVisualCameraReady(true);
     } catch {
+      visualStreamRef.current?.getTracks().forEach((track) => track.stop());
+      visualStreamRef.current = null;
       setVisualError('無法開啟攝影機，請確認瀏覽器權限。');
     } finally {
       setVisualBusy(false);
@@ -1540,8 +1609,22 @@ function SensingPanel({
       </GlassPanel>
 
       <GlassPanel>
-        <p className="text-xs font-black text-slate-500">主動判斷</p>
+        <p className="text-xs font-black text-slate-500">AI 融合分析</p>
         <h3 className="mt-2 text-xl font-black text-slate-950">{proactiveInsight.title}</h3>
+        <p className="mt-1 text-xs font-semibold text-slate-400">融合分數 {proactiveInsight.score}/10 · {proactiveInsight.score >= 7 ? '高風險' : proactiveInsight.score >= 4 ? '中風險' : '低風險'}</p>
+        <div className="mt-3 space-y-1.5">
+          {proactiveInsight.signals.map(({label, score: s, max}) => (
+            <div key={label} className="flex items-center gap-2">
+              <span className="w-16 text-[10px] font-black text-slate-500">{label}</span>
+              <div className="flex flex-1 gap-0.5">
+                {Array.from({length: max}).map((_, i) => (
+                  <div key={i} className={`h-2 flex-1 rounded-full ${i < s ? (s === max ? 'bg-rose-400' : 'bg-amber-400') : 'bg-slate-200'}`} />
+                ))}
+              </div>
+              <span className="w-8 text-right text-[10px] font-black text-slate-400">{s}/{max}</span>
+            </div>
+          ))}
+        </div>
         <button onClick={onCreateProactiveAlert} className="mt-4 min-h-11 w-full rounded-xl bg-slate-950 text-sm font-black text-white">
           由多來源訊號建立提醒
         </button>
