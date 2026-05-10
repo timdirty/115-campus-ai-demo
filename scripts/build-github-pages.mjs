@@ -254,6 +254,7 @@ async function writeGuidePage(app) {
   <meta property="og:description" content="${escapeHtml(app.desc)} 共 ${(app.simpleSteps || app.checklistItems).length} 步，有截圖、有計時、有緊急備案。" />
   <meta property="og:type" content="website" />
   <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='${encodeURIComponent(app.accent)}'/%3E%3Ctext x='256' y='340' font-family='Arial,sans-serif' font-size='220' font-weight='bold' fill='white' text-anchor='middle'%3E115%3C/text%3E%3C/svg%3E" />
   <title>${escapeHtml(app.name)} — 手把手操作教學</title>
   <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});</script>
   <style>
@@ -295,7 +296,7 @@ async function writeGuidePage(app) {
     .badge { border: 1px solid color-mix(in srgb, var(--accent), white 50%); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 900; color: color-mix(in srgb, var(--accent), #334155 30%); background: white; }
 
     /* Section card */
-    .card { background: white; border: 1px solid #dde4ef; border-radius: 12px; padding: clamp(16px, 3vw, 26px); box-shadow: 0 4px 20px rgb(27 35 52 / .05); }
+    .card { background: white; border: 1px solid #dde4ef; border-radius: 12px; padding: clamp(16px, 3vw, 26px); box-shadow: 0 4px 20px rgb(27 35 52 / .05); scroll-margin-top: 60px; }
     .section-title { margin: 0 0 14px; font-size: 1.05rem; font-weight: 950; color: #111827; }
 
     /* Flow */
@@ -1125,6 +1126,7 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
   <meta property="og:title" content="115 資通訊三隊 App 展示入口" />
   <meta property="og:description" content="三個 AI 機器人 App 展示。上台前點「手把手教學」看步驟、截圖、計時、緊急備案，全都有。" />
   <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%23111827'/%3E%3Ctext x='256' y='340' font-family='Arial,sans-serif' font-size='220' font-weight='bold' fill='white' text-anchor='middle'%3E115%3C/text%3E%3C/svg%3E" />
   <title>115 資通訊三隊 App 展示入口</title>
   <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});</script>
   <style>
