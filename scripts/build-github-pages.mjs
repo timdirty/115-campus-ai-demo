@@ -335,8 +335,8 @@ async function writeGuidePage(app) {
     .step-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
     .step-title { margin: 0; font-size: 1.05rem; font-weight: 850; color: #1e293b; line-height: 1.65; flex: 1; }
     .step-time { flex-shrink: 0; font-size: .8rem; font-weight: 950; color: white; background: #64748b; padding: 3px 8px; border-radius: 999px; margin-top: 2px; }
-    .step-nav-chip { display: inline-flex; align-items: center; margin-bottom: 10px; border: 1px solid color-mix(in srgb, var(--accent), white 55%); border-radius: 999px; padding: 4px 11px; font-size: .8rem; font-weight: 900; color: var(--accent); background: color-mix(in srgb, var(--accent), white 92%); text-decoration: none; }
-    .step-nav-chip:hover { background: color-mix(in srgb, var(--accent), white 80%); }
+    .step-nav-chip { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 10px; border: 1.5px solid color-mix(in srgb, var(--accent), white 45%); border-radius: 999px; padding: 6px 14px; min-height: 36px; font-size: .83rem; font-weight: 950; color: var(--accent); background: color-mix(in srgb, var(--accent), white 90%); text-decoration: none; transition: background .15s, box-shadow .15s; }
+    .step-nav-chip:hover { background: color-mix(in srgb, var(--accent), white 78%); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent), transparent 65%); }
     .screenshot-frame { display: block; border-radius: 10px; overflow: hidden; border: 1.5px solid #e2e8f0; background: #f8fafc; text-decoration: none; position: relative; }
     .screenshot-frame:hover { border-color: var(--accent); }
     .screenshot-frame img { width: 100%; display: block; }
@@ -482,6 +482,7 @@ async function writeGuidePage(app) {
       <div class="hero-row">
         <a class="hero-btn" href="./${app.id}/">開啟 App 開始展示 →</a>
         <a class="hero-btn" href="#${app.id}-step1" style="background:white;color:var(--accent);border:2px solid var(--accent)">👉 從步驟一開始做</a>
+        <button class="hero-btn" onclick="resetAndStart('${app.id}')" style="background:#f1f5f9;color:#334155;border:2px solid #e2e8f0" title="清除所有打勾，重新從第一步開始練習">🔄 重新練習</button>
         <div class="hero-badges">
           <span class="badge">手機可操作</span>
           <span class="badge">無硬體也可展示</span>
@@ -717,6 +718,15 @@ async function writeGuidePage(app) {
         btn.style.display = 'inline-flex';
       }
     }, 1000);
+  }
+
+  // ── Reset + Scroll to step 1 for re-practice ─────────────────────────
+  function resetAndStart(appId) {
+    clearAllChecks();
+    setTimeout(() => {
+      const step1 = document.getElementById(appId + '-step1');
+      if (step1) step1.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }, 80);
   }
 
   // ── Wake Lock: prevent screen from sleeping during presentation ───────
