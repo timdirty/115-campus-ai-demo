@@ -25,6 +25,7 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const connectDeadlineRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
 
   function stopPolling() {
@@ -72,7 +73,9 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
       wsRef.current = null;
     }
 
-    const connectDeadline = setTimeout(() => {
+    if (connectDeadlineRef.current) clearTimeout(connectDeadlineRef.current);
+    connectDeadlineRef.current = setTimeout(() => {
+      connectDeadlineRef.current = null;
       if (wsRef.current && wsRef.current.readyState !== WebSocket.OPEN) {
         startPolling();
       }
@@ -82,7 +85,10 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
     wsRef.current = ws;
 
     ws.onopen = () => {
-      clearTimeout(connectDeadline);
+      if (connectDeadlineRef.current) {
+        clearTimeout(connectDeadlineRef.current);
+        connectDeadlineRef.current = null;
+      }
       reconnectDelayRef.current = 1000;
       stopPolling();
       if (mountedRef.current) setStatus((s) => ({...s, mode: 'ws', reconnecting: false}));
@@ -116,7 +122,10 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
     };
 
     ws.onclose = () => {
-      clearTimeout(connectDeadline);
+      if (connectDeadlineRef.current) {
+        clearTimeout(connectDeadlineRef.current);
+        connectDeadlineRef.current = null;
+      }
       stopHeartbeat();
       wsRef.current = null;
       if (!mountedRef.current) return;
@@ -142,6 +151,10 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
     return () => {
       mountedRef.current = false;
       if (reconnectTimerRef.current !== null) clearTimeout(reconnectTimerRef.current);
+      if (connectDeadlineRef.current) {
+        clearTimeout(connectDeadlineRef.current);
+        connectDeadlineRef.current = null;
+      }
       stopPolling();
       stopHeartbeat();
       if (wsRef.current) {

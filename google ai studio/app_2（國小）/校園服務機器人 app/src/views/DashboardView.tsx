@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 const VISION_SAMPLES = [
   '福利社前取物配送',
@@ -24,6 +24,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { BottomSheet } from '../components/ui';
 import { BatteryCharging, MapPin, Activity, Navigation, Wind, Building2, Route, Terminal, CheckCircle2, CircleDashed, FileText, Bot, ArrowRight, Package, CalendarClock, Camera, ScanSearch, Sparkles } from 'lucide-react';
 import { useAppActions, useAppState } from '../state/AppStateProvider';
+import { useCamera } from '../hooks/useCamera';
+import { useGeminiVision } from '../hooks/useGeminiVision';
 import { getDemoHealth, getDemoSteps } from '../services/demoFlow';
 import { analyzeCampusFrame, analyzeCampusImage, CampusVisionResult } from '../services/localVision';
 import { BRIDGE_URL } from '../services/hardwareBridge';
@@ -34,14 +36,22 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
   const [modal, setModal] = useState<string | null>(null);
   const [speed, setSpeed] = useState(1.2);
   const [activeRobotId, setActiveRobotId] = useState('4號');
-  const [visionResult, setVisionResult] = useState<CampusVisionResult>(() => analyzeCampusFrame('下課穿堂人流擁擠'));
+  const [manualVisionResult, setManualVisionResult] = useState<CampusVisionResult>(() => analyzeCampusFrame('下課穿堂人流擁擠'));
   const [visionSourceName, setVisionSourceName] = useState('示範畫面');
-  const [visionCameraReady, setVisionCameraReady] = useState(false);
-  const [visionBusy, setVisionBusy] = useState(false);
-  const [visionError, setVisionError] = useState('');
-  const visionVideoRef = useRef<HTMLVideoElement | null>(null);
-  const visionCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const visionStreamRef = useRef<MediaStream | null>(null);
+  const [visionCameraEnabled, setVisionCameraEnabled] = useState(false);
+  const [visionFileBusy, setVisionFileBusy] = useState(false);
+  const [visionFileError, setVisionFileError] = useState('');
+  const visionModalOpen = visionCameraEnabled;
+  const {videoRef: visionVideoRef, canvasRef: visionCanvasRef, ready: visionReady, error: visionCameraError} = useCamera(visionModalOpen);
+  const {result: liveVisionResult, analyzing: visionAnalyzing} = useGeminiVision(
+    visionModalOpen && visionReady,
+    visionVideoRef,
+    visionCanvasRef,
+    5000,
+  );
+  const visionResult = liveVisionResult ?? manualVisionResult;
+  const visionBusy = visionFileBusy || visionAnalyzing;
+  const visionError = visionCameraError ?? visionFileError;
 
   const [taskLogs, setTaskLogs] = useState<Array<{id: number; createdAt: string; command?: string; status?: string; destination?: string; taskType?: string; description?: string}>>([]);
 
@@ -90,23 +100,19 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
     if (activeRobot) setSpeed(activeRobot.speed);
   }, [activeRobot?.id, activeRobot?.speed]);
 
-  useEffect(() => () => {
-    visionStreamRef.current?.getTracks().forEach((track) => track.stop());
-  }, []);
-
   if (!activeRobot) return null;
 
   const runVisionDemo = () => {
     const sample = VISION_SAMPLES[Math.floor(Date.now() / 1000) % VISION_SAMPLES.length];
-    setVisionResult(analyzeCampusFrame(sample));
+    setManualVisionResult(analyzeCampusFrame(sample));
     setVisionSourceName('示範畫面');
     showToast('已完成本機影像辨識');
   };
 
   const handleVisionFile = async (file: File | undefined) => {
     if (!file) return;
-    setVisionBusy(true);
-    setVisionError('');
+    setVisionFileBusy(true);
+    setVisionFileError('');
     try {
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -115,73 +121,36 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
         reader.readAsDataURL(file);
       });
       try {
-        setVisionResult(await analyzeCampusImage(dataUrl));
+        setManualVisionResult(await analyzeCampusImage(dataUrl));
         setVisionSourceName(file.name);
         showToast('照片已完成像素辨識');
       } catch {
-        setVisionResult(analyzeCampusFrame(`${file.name}:${file.type}:${dataUrl.slice(0, 4000)}`));
-        setVisionError('影像解碼失敗，已切換備援判讀');
+        setManualVisionResult(analyzeCampusFrame(`${file.name}:${file.type}:${dataUrl.slice(0, 4000)}`));
+        setVisionFileError('影像解碼失敗，已切換備援判讀');
         showToast('影像解碼失敗，已使用備援判讀');
       }
     } catch {
-      setVisionError('無法讀取檔案，請改用 JPG 或 PNG 圖片。');
+      setVisionFileError('無法讀取檔案，請改用 JPG 或 PNG 圖片。');
       showToast('檔案讀取失敗');
     } finally {
-      setVisionBusy(false);
+      setVisionFileBusy(false);
     }
   };
 
   const toggleVisionCamera = async () => {
-    if (visionCameraReady) {
-      visionStreamRef.current?.getTracks().forEach((track) => track.stop());
-      visionStreamRef.current = null;
-      setVisionCameraReady(false);
-      return;
-    }
-    try {
-      setVisionError('');
-      setVisionBusy(true);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' }, width: { ideal: 960 }, height: { ideal: 540 } },
-        audio: false,
-      });
-      visionStreamRef.current = stream;
-      if (visionVideoRef.current) {
-        visionVideoRef.current.srcObject = stream;
-        await visionVideoRef.current.play();
-      }
-      setVisionCameraReady(true);
-      showToast('校園影像鏡頭已啟用');
-    } catch {
-      setVisionError('無法開啟攝影機，請確認瀏覽器權限或改用拍照上傳。');
-      showToast('攝影機無法啟用');
-    } finally {
-      setVisionBusy(false);
-    }
+    setVisionFileError('');
+    setVisionCameraEnabled((enabled) => {
+      const next = !enabled;
+      showToast(next ? '校園影像鏡頭已啟用' : '校園影像鏡頭已關閉');
+      return next;
+    });
   };
 
-  const analyzeLiveVisionFrame = async () => {
-    const video = visionVideoRef.current;
-    const canvas = visionCanvasRef.current;
-    if (!video || !canvas || !visionCameraReady) return;
-    const width = video.videoWidth || 640;
-    const height = video.videoHeight || 360;
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d');
-    if (!context) return;
-    context.drawImage(video, 0, 0, width, height);
-    setVisionBusy(true);
-    try {
-      setVisionResult(await analyzeCampusImage(canvas.toDataURL('image/jpeg', 0.82)));
-      setVisionSourceName('即時鏡頭');
-      showToast('即時畫面已完成像素辨識');
-    } catch {
-      setVisionResult(analyzeCampusFrame(`live:${canvas.width}x${canvas.height}`));
-      showToast('即時畫面解析失敗，已使用備援判讀');
-    } finally {
-      setVisionBusy(false);
-    }
+  const useLiveVisionFrame = () => {
+    if (!liveVisionResult) return;
+    setVisionSourceName('即時鏡頭');
+    setManualVisionResult(liveVisionResult);
+    showToast('即時畫面已完成 AI 判讀');
   };
 
   const dispatchVisionTask = () => {
@@ -446,8 +415,8 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
         <div className="mt-5 grid gap-3 lg:grid-cols-[0.9fr_1.1fr_0.9fr]">
           <div className="overflow-hidden rounded-2xl border border-outline-variant/20 bg-surface-container-low">
             <div className="relative aspect-video bg-[#111827]">
-              <video ref={visionVideoRef} muted playsInline className={`h-full w-full object-cover ${visionCameraReady ? 'opacity-100' : 'opacity-20'}`} />
-              {!visionCameraReady && (
+              <video ref={visionVideoRef} muted playsInline className={`h-full w-full object-cover ${visionReady ? 'opacity-100' : 'opacity-20'}`} />
+              {!visionReady && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/70">
                   <Camera size={28} />
                   <p className="text-xs font-black">即時鏡頭待啟用</p>
@@ -458,10 +427,10 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
             {visionError && <p className="px-4 py-2 text-xs font-bold text-error">{visionError}</p>}
             <div className="flex gap-2 p-3">
               <button onClick={toggleVisionCamera} disabled={visionBusy} className="min-h-11 min-w-20 flex-1 rounded-xl bg-primary px-3 text-xs font-black text-white disabled:opacity-50">
-                {visionCameraReady ? '關閉鏡頭' : '開啟鏡頭'}
+                {visionCameraEnabled ? '關閉鏡頭' : '開啟鏡頭'}
               </button>
-              <button onClick={() => void analyzeLiveVisionFrame()} disabled={!visionCameraReady || visionBusy} className="min-h-11 min-w-20 flex-1 rounded-xl border border-outline-variant/30 bg-white px-3 text-xs font-black text-on-surface-variant disabled:opacity-50">
-                擷取判讀
+              <button onClick={useLiveVisionFrame} disabled={!visionReady || !liveVisionResult || visionBusy} className="min-h-11 min-w-20 flex-1 rounded-xl border border-outline-variant/30 bg-white px-3 text-xs font-black text-on-surface-variant disabled:opacity-50">
+                {visionAnalyzing ? '判讀中' : '使用判讀'}
               </button>
             </div>
           </div>
