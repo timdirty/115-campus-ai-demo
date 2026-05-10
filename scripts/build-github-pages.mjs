@@ -417,6 +417,17 @@ async function writeGuidePage(app) {
     .lightbox-ov img { max-width: 100%; max-height: 100%; border-radius: 10px; object-fit: contain; cursor: default; }
     .lightbox-hint { position: absolute; bottom: max(20px, env(safe-area-inset-bottom, 0px)); color: white; font-size: 1rem; font-weight: 900; text-align: center; width: 100%; pointer-events: none; }
 
+    /* Wake lock indicator */
+    .wake-active { background: #16a34a !important; color: white !important; border-color: #16a34a !important; }
+
+    /* Two-column step grid on wider screens */
+    @media (min-width: 700px) {
+      .steps { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 699px) {
+      .steps { grid-template-columns: 1fr; }
+    }
+
     /* Sticky step progress bar */
     .prog-bar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 6px 16px; background: rgb(255 255 255 / .96); backdrop-filter: blur(10px); border-bottom: 1px solid #e2e8f0; overflow: hidden; max-height: 0; transition: max-height .25s ease, padding .25s ease; pointer-events: none; }
     .prog-bar.active { max-height: 50px; pointer-events: auto; }
@@ -484,6 +495,7 @@ async function writeGuidePage(app) {
         <button class="timer-btn" onclick="shareGuide()" title="分享這個教學頁面">📤 分享</button>
         <button class="timer-btn" onclick="window.print()" title="列印教學備用">🖨️ 列印</button>
         <button class="font-toggle" id="font-toggle-${app.id}" onclick="toggleFont('${app.id}')" title="放大/縮小字體">🔡 字</button>
+        <button class="timer-btn" id="wake-btn-${app.id}" onclick="toggleWake('${app.id}')" title="防止螢幕自動關閉">💡 防熄屏</button>
         <div class="qr-block">
           ${qrSvg}
           <span class="qr-label">掃我開始展示</span>
@@ -706,6 +718,34 @@ async function writeGuidePage(app) {
       }
     }, 1000);
   }
+
+  // ── Wake Lock: prevent screen from sleeping during presentation ───────
+  let wakeLock = null;
+  async function toggleWake(appId) {
+    const btn = document.getElementById('wake-btn-' + appId);
+    if (wakeLock) {
+      await wakeLock.release();
+      wakeLock = null;
+      if (btn) { btn.textContent = '💡 防熄屏'; btn.classList.remove('wake-active'); }
+    } else {
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        if (btn) { btn.textContent = '🟢 防熄屏中'; btn.classList.add('wake-active'); }
+        wakeLock.addEventListener('release', () => {
+          wakeLock = null;
+          if (btn) { btn.textContent = '💡 防熄屏'; btn.classList.remove('wake-active'); }
+        });
+      } catch (e) {
+        if (btn) { btn.textContent = '❌ 不支援'; setTimeout(() => { btn.textContent = '💡 防熄屏'; }, 2000); }
+      }
+    }
+  }
+  // Re-acquire wake lock after tab becomes visible again
+  document.addEventListener('visibilitychange', async () => {
+    if (wakeLock !== null && document.visibilityState === 'visible') {
+      try { wakeLock = await navigator.wakeLock.request('screen'); } catch(_) {}
+    }
+  });
 
   // ── Confetti celebration ─────────────────────────────────────────────
   function launchConfetti() {
