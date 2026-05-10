@@ -238,6 +238,12 @@ async function writeGuidePage(app) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="${app.accent}" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta property="og:title" content="${escapeHtml(app.name)} 手把手操作教學" />
+  <meta property="og:description" content="${escapeHtml(app.desc)} 共 ${(app.simpleSteps || app.checklistItems).length} 步，有截圖、有計時、有緊急備案。" />
+  <meta property="og:type" content="website" />
   <title>${escapeHtml(app.name)} — 手把手操作教學</title>
   <style>
     :root { --accent: ${app.accent}; color-scheme: light; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif; }
@@ -728,6 +734,28 @@ function writeAllGuidesPage() {
     <section class="guide-list">${sections}
     </section>
   </main>
+  <script>
+  // Sync active tab as user scrolls to each guide section
+  (function () {
+    const tabs = document.querySelectorAll('.tab');
+    const sections = document.querySelectorAll('.guide-card');
+    const tabMap = {};
+    tabs.forEach((t) => { const href = t.getAttribute('href'); if (href) tabMap[href.slice(1)] = t; });
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const id = entry.target.id;
+        tabs.forEach((t) => t.classList.remove('current'));
+        if (tabMap[id]) tabMap[id].classList.add('current');
+      });
+    }, {threshold: 0.3});
+    sections.forEach((s) => observer.observe(s));
+    tabs.forEach((t) => t.addEventListener('click', () => {
+      tabs.forEach((x) => x.classList.remove('current'));
+      t.classList.add('current');
+    }));
+  })();
+  </script>
 </body>
 </html>
 `, 'utf8');
@@ -785,6 +813,10 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#111827" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta property="og:title" content="115 資通訊三隊 App 展示入口" />
+  <meta property="og:description" content="三個 AI 機器人 App 展示。上台前點「手把手教學」看步驟、截圖、計時、緊急備案，全都有。" />
   <title>115 資通訊三隊 App 展示入口</title>
   <style>
     :root { color-scheme: light; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif; }
