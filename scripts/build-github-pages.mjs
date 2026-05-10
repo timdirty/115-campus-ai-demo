@@ -453,6 +453,9 @@ async function writeGuidePage(app) {
     .confetti-piece { position: fixed; width: 10px; height: 16px; border-radius: 3px; pointer-events: none; z-index: 9999; animation: confetti-fall linear forwards; }
     /* Step done — number badge turns green when step checkbox is checked */
     .step.done .step-num { background: #16a34a !important; }
+    /* Step highlight flash when navigating via keyboard/link */
+    @keyframes step-flash { 0%,100% { box-shadow: none; } 30% { box-shadow: 0 0 0 3px var(--accent); } }
+    .step.flash { animation: step-flash .7s ease; }
     @media (max-width: 600px) {
       .hero { padding: 20px; }
       .step { flex-direction: column; gap: 8px; }
@@ -806,15 +809,32 @@ async function writeGuidePage(app) {
     }
   }
 
+  // ── Step highlight flash helper ───────────────────────────────────────
+  function flashStep(el) {
+    if (!el) return;
+    el.classList.remove('flash');
+    void el.offsetWidth; // reflow to restart animation
+    el.classList.add('flash');
+    el.addEventListener('animationend', () => el.classList.remove('flash'), {once: true});
+  }
+
   // ── Keyboard shortcuts: 1-9 jumps to step, c clears checkboxes ───────
   document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     const n = parseInt(e.key, 10);
     if (n >= 1 && n <= 9) {
       const el = document.getElementById('${app.id}-step' + n);
-      if (el) { el.scrollIntoView({behavior: 'smooth', block: 'center'}); }
+      if (el) { el.scrollIntoView({behavior: 'smooth', block: 'center'}); setTimeout(() => flashStep(el), 350); }
     }
     if (e.key === 'c' || e.key === 'C') { clearAllChecks(); }
+  });
+
+  // Flash step when navigating from quick-review links
+  document.querySelectorAll('.quick-review a[href^="#${app.id}-step"]').forEach((a) => {
+    a.addEventListener('click', () => {
+      const id = a.getAttribute('href').slice(1);
+      setTimeout(() => flashStep(document.getElementById(id)), 350);
+    });
   });
 
   // ── Offline / online status banner ───────────────────────────────────
