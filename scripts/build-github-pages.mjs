@@ -426,6 +426,9 @@ async function writeGuidePage(app) {
     .prog-dot.done { background: var(--accent); }
     /* Must-show completion celebration */
     .must-card-done { border-color: #16a34a !important; box-shadow: 0 0 0 2px #bbf7d0, 0 4px 20px rgb(27 35 52 / .05) !important; }
+    /* Confetti pieces */
+    @keyframes confetti-fall { 0% { transform: translateY(-60px) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+    .confetti-piece { position: fixed; width: 10px; height: 16px; border-radius: 3px; pointer-events: none; z-index: 9999; animation: confetti-fall linear forwards; }
     /* Step done — number badge turns green when step checkbox is checked */
     .step.done .step-num { background: #16a34a !important; }
     @media (max-width: 600px) {
@@ -663,6 +666,7 @@ async function writeGuidePage(app) {
     if (allDone) {
       setTimeout(() => {
         document.getElementById('cel-overlay-${app.id}')?.classList.add('show');
+        launchConfetti();
       }, 400);
     }
   }
@@ -701,6 +705,28 @@ async function writeGuidePage(app) {
         btn.style.display = 'inline-flex';
       }
     }, 1000);
+  }
+
+  // ── Confetti celebration ─────────────────────────────────────────────
+  function launchConfetti() {
+    const colors = ['#${app.accent.slice(1)}','#fbbf24','#34d399','#60a5fa','#f472b6','#a78bfa'];
+    for (let i = 0; i < 60; i++) {
+      const el = document.createElement('div');
+      el.className = 'confetti-piece';
+      el.style.cssText = [
+        'left:' + (5 + Math.random() * 90) + 'vw',
+        'top:-20px',
+        'background:' + colors[Math.floor(Math.random() * colors.length)],
+        'animation-duration:' + (1.2 + Math.random() * 1.8) + 's',
+        'animation-delay:' + (Math.random() * 0.6) + 's',
+        'width:' + (8 + Math.random() * 8) + 'px',
+        'height:' + (10 + Math.random() * 10) + 'px',
+        'border-radius:' + (Math.random() > 0.5 ? '50%' : '3px'),
+        'opacity:1',
+      ].join(';');
+      document.body.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }
   }
 
   // ── Keyboard shortcuts: 1-9 jumps to step, c clears checkboxes ───────
