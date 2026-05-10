@@ -125,6 +125,11 @@ export default function App() {
     if (TABS.find((t) => t.id === hash)) setActiveTab(hash);
   }, []);
 
+  // Keep URL hash in sync with active tab so shared URLs always open correct tab
+  useEffect(() => {
+    history.replaceState(null, '', window.location.pathname + '#' + activeTab);
+  }, [activeTab]);
+
   return (
     <TourProvider onTabChange={setActiveTab}>
     <div className="app2-shell min-h-screen overflow-x-hidden text-on-surface md:bg-surface-container-low">

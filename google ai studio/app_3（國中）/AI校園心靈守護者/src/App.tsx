@@ -250,6 +250,15 @@ function AppContent() {
     if (panelNav.find((p) => p.id === hash)) setActivePanel(hash);
   }, []);
 
+  // Keep URL hash in sync with active panel so shared URLs always open correct panel
+  useEffect(() => {
+    if (activePanel) {
+      history.replaceState(null, '', window.location.pathname + '#' + activePanel);
+    } else {
+      history.replaceState(null, '', window.location.pathname);
+    }
+  }, [activePanel]);
+
   // Push real state to robot display (debounced 1500ms to prevent iPad thrashing)
   const snapshotPushRef = useRef<number | null>(null);
   useEffect(() => {
