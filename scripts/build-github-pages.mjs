@@ -501,6 +501,11 @@ async function writeGuidePage(app) {
       <summary class="script-summary">上台說話稿（展開備用）</summary>
       <div class="script-content">${guideHtml}</div>
     </details>
+
+    <p style="text-align:center;color:#94a3b8;font-size:.78rem;font-weight:700;margin:8px 0 0">
+      教學頁建立時間：${new Date().toLocaleString('zh-TW', {timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}
+      · <a href="./">返回首頁</a>
+    </p>
   </main>
   <a class="fab-open" href="./${app.id}/" title="開啟 ${escapeHtml(app.shortName)} App">🚀 開啟 App</a>
   <script>
@@ -866,9 +871,9 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
     .actions a { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; padding: 0 12px; text-decoration: none; font-weight: 950; }
     .primary { justify-content: space-between !important; background: #111827; color: white; }
     .secondary { border: 1px solid #cdd8e7; background: #fff; color: #334155; }
-    .guide-cta-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 20px; padding: 14px 18px; border-radius: 12px; border: 1px solid #dde6f0; background: rgb(255 255 255 / .82); }
-    .guide-cta-label { font-size: 14px; font-weight: 950; color: #334155; white-space: nowrap; }
-    .guide-cta-link { min-height: 38px; display: inline-flex; align-items: center; padding: 0 14px; border: 1.5px solid; border-radius: 8px; background: white; font-size: 14px; font-weight: 950; text-decoration: none; }
+    .guide-cta-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 20px; padding: 16px 20px; border-radius: 14px; border: 1.5px solid #fde68a; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); box-shadow: 0 4px 16px rgb(251 191 36 / .12); }
+    .guide-cta-label { font-size: 15px; font-weight: 950; color: #92400e; white-space: nowrap; }
+    .guide-cta-link { min-height: 42px; display: inline-flex; align-items: center; padding: 0 16px; border: 2px solid; border-radius: 10px; background: white; font-size: 14px; font-weight: 950; text-decoration: none; box-shadow: 0 2px 8px rgb(0 0 0 / .06); }
     footer { margin-top: 22px; color: #6d7787; font-size: 13px; font-weight: 750; line-height: 1.6; }
     @media (max-width: 820px) {
       main { width: min(100% - 24px, 560px); padding: 18px 0 28px; }
@@ -896,8 +901,11 @@ fs.writeFileSync(path.join(pagesDir, 'index.html'), `<!doctype html>
       <div class="status"><span>📱 手機可操作</span><span>💾 資料存在瀏覽器</span><span>🤖 無硬體也可展示</span></div>
     </header>
     <div class="guide-cta-bar">
-      <span class="guide-cta-label">📋 上台前先看教學</span>
-      ${apps.map((a) => `<a class="guide-cta-link" href="./${a.id}-guide.html" style="border-color:${a.accent};color:${a.accent}">${escapeHtml(a.shortName)} 手把手教學 →</a>`).join('')}
+      <span class="guide-cta-label">⚡ 上台前必看！</span>
+      ${apps.map((a) => {
+        const steps = (a.simpleSteps || a.checklistItems).length;
+        return `<a class="guide-cta-link" href="./${a.id}-guide.html" style="border-color:${a.accent};color:${a.accent}">${escapeHtml(a.shortName)} 教學（${steps}步）→</a>`;
+      }).join('')}
     </div>
     <section class="grid">${cards}</section>
     <footer>資料存在各自瀏覽器 localStorage。這是比賽展示與學生體驗網址，不是正式雲端多人資料庫。</footer>
