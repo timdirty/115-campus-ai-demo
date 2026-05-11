@@ -144,7 +144,7 @@ export default function RobotControl() {
   const handleDriveStart = useCallback((dir: string) => {
     setDriveActive(dir);
     if (!isConnected) {
-      setActiveFeedback({title: '展示模式', detail: '未偵測到 Arduino，方向鍵僅供展示用途，不會送出真實指令。', ok: false, working: false});
+      setActiveFeedback({title: '展示模式', detail: '未偵測到 Arduino，方向鍵僅供展示用途。', ok: false, working: false});
       return;
     }
     fetch('/api/robot/drive', {

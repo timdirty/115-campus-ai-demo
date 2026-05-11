@@ -92,7 +92,7 @@ export default function Home(_props: {onNavigate: (tab: string) => void}) {
     '到紀錄本找到剛才的課堂筆記',
   ];
 
-  const togglePracticeCheck = (i: number) => {
+  const toggleCheck = (i: number) => {
     setPracticeChecks((prev) => {
       const next = [...prev];
       next[i] = !next[i];
@@ -101,7 +101,7 @@ export default function Home(_props: {onNavigate: (tab: string) => void}) {
     });
   };
 
-  const allPracticeDone = practiceChecks.every(Boolean);
+  const allDone = practiceChecks.every(Boolean);
 
   useEffect(() => { ssSet('transcript', transcript); }, [transcript]);
   useEffect(() => { ssSet('previewImage', previewImage); }, [previewImage]);
@@ -490,7 +490,7 @@ export default function Home(_props: {onNavigate: (tab: string) => void}) {
             {PRACTICE_STEPS.map((step, i) => (
               <button
                 key={i}
-                onClick={() => togglePracticeCheck(i)}
+                onClick={() => toggleCheck(i)}
                 className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${practiceChecks[i] ? 'bg-primary/10 text-primary' : 'bg-surface hover:bg-surface-container-high text-on-surface'}`}
               >
                 <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-bold transition-colors ${practiceChecks[i] ? 'border-primary bg-primary text-on-primary' : 'border-outline-variant'}`}>
@@ -499,7 +499,7 @@ export default function Home(_props: {onNavigate: (tab: string) => void}) {
                 <span className="text-sm font-medium leading-snug">{step}</span>
               </button>
             ))}
-            {allPracticeDone && (
+            {allDone && (
               <div className="mt-3 rounded-xl bg-primary px-4 py-3 text-center text-sm font-extrabold text-on-primary">
                 🎉 你已完成完整流程！準備好上台了。
               </div>
