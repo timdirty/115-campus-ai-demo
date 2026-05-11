@@ -779,6 +779,22 @@ const useListen = () => {
 /* ════════════════════════════════════════════════════════════════
    主應用
    ════════════════════════════════════════════════════════════════ */
+const BRIDGE_KEY_APP3 = 'robot-bridge-url-app3';
+
+function getBridgeWsUrl(input) {
+  if (!input) input = 'localhost:3203';
+  if (/^wss?:\/\//.test(input)) {
+    try {
+      const u = new URL(input);
+      u.pathname = '/display';
+      return u.toString();
+    } catch { /* fall through */ }
+  }
+  const clean = input.replace(/^https?:\/\//, '');
+  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  return `${proto}://${clean}/display`;
+}
+
 export default function App() {
   const [emotion, setEmotion] = useState('happy');
   const [scanning, setScanning] = useState(false);
@@ -824,6 +840,14 @@ export default function App() {
   const [bcConnected, setBcConnected] = useState(false);
   const bcHandlerRef = useRef(null);
   const wsReconnectRef = useRef(null);
+  const BRIDGE_KEY = BRIDGE_KEY_APP3;
+  const [bridgeInput, setBridgeInput] = React.useState(() => {
+    const stored = localStorage.getItem(BRIDGE_KEY);
+    if (stored) return stored;
+    return new URLSearchParams(window.location.search).get('bridge') || 'localhost:3203';
+  });
+  const [bridgeEditing, setBridgeEditing] = React.useState(false);
+  const [bridgeDraft, setBridgeDraft] = React.useState(bridgeInput);
 
   /* 時鐘 */
   useEffect(() => {
@@ -843,13 +867,12 @@ export default function App() {
   /* WebSocket setup — 透過 LAN 橋接伺服器接收主控 App3 情緒指令 */
   /* iPad 開啟頁面時加 ?bridge=IP:PORT 指定橋接伺服器，例如 ?bridge=192.168.1.10:3203 */
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const bridgeAddr = params.get('bridge') || 'localhost:3203';
+    const wsUrl = getBridgeWsUrl(bridgeInput);
     let stopped = false;
 
     const connect = () => {
       if (stopped) return;
-      const ws = new WebSocket(`ws://${bridgeAddr}/display`);
+      const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
       ws.onopen = () => setBcConnected(true);
       ws.onmessage = (ev) => {
@@ -871,7 +894,7 @@ export default function App() {
       wsRef.current?.close();
       wsRef.current = null;
     };
-  }, []);
+  }, [bridgeInput]);
 
   /* Screen Wake Lock — 防止 iPad 螢幕關閉 */
   useEffect(() => {
@@ -1148,6 +1171,62 @@ export default function App() {
         fontFamily: '"Noto Sans TC", "Bricolage Grotesque", system-ui, sans-serif'
       }}
     >
+      {/* ─── Bridge Settings Overlay ─── */}
+      <div style={{position:'fixed',top:12,right:12,zIndex:9999,display:'flex',flexDirection:'column',alignItems:'flex-end',gap:8}}>
+        <button
+          onClick={() => { setBridgeDraft(bridgeInput); setBridgeEditing(v => !v); }}
+          style={{
+            background: bcConnected ? 'rgba(16,185,129,0.85)' : 'rgba(239,68,68,0.85)',
+            color:'#fff', border:'none', borderRadius:20, padding:'6px 14px',
+            fontSize:13, fontWeight:700, cursor:'pointer', backdropFilter:'blur(8px)',
+            boxShadow:'0 2px 8px rgba(0,0,0,0.3)'
+          }}
+        >
+          {bcConnected ? '🟢 已連線' : '🔴 未連線'} ⚙️
+        </button>
+        {bridgeEditing && (
+          <div style={{
+            background:'rgba(15,23,42,0.95)', backdropFilter:'blur(12px)',
+            borderRadius:16, padding:16, minWidth:280, boxShadow:'0 8px 32px rgba(0,0,0,0.5)',
+            border:'1px solid rgba(255,255,255,0.12)', color:'#f1f5f9'
+          }}>
+            <p style={{margin:'0 0 8px',fontSize:13,fontWeight:700}}>🔗 橋接伺服器設定</p>
+            <input
+              value={bridgeDraft}
+              onChange={e => setBridgeDraft(e.target.value)}
+              placeholder="IP:PORT 或 wss://xxx.trycloudflare.com"
+              style={{
+                width:'100%', boxSizing:'border-box', background:'rgba(255,255,255,0.08)',
+                border:'1px solid rgba(255,255,255,0.2)', borderRadius:8, padding:'6px 10px',
+                color:'#f1f5f9', fontSize:13, outline:'none'
+              }}
+            />
+            <p style={{margin:'6px 0 10px',fontSize:11,color:'#94a3b8',lineHeight:1.4}}>
+              LAN：192.168.1.10:3203 ｜ 外網：wss://xxx.trycloudflare.com
+            </p>
+            <div style={{display:'flex',gap:8}}>
+              <button
+                onClick={() => {
+                  localStorage.setItem(BRIDGE_KEY, bridgeDraft);
+                  setBridgeInput(bridgeDraft);
+                  setBridgeEditing(false);
+                }}
+                style={{
+                  flex:1, background:'#3b82f6', color:'#fff', border:'none',
+                  borderRadius:8, padding:'7px 0', fontSize:13, fontWeight:700, cursor:'pointer'
+                }}
+              >儲存並重新連線</button>
+              <button
+                onClick={() => setBridgeEditing(false)}
+                style={{
+                  background:'rgba(255,255,255,0.1)', color:'#94a3b8', border:'none',
+                  borderRadius:8, padding:'7px 12px', fontSize:13, cursor:'pointer'
+                }}
+              >取消</button>
+            </div>
+          </div>
+        )}
+      </div>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
         @keyframes float-idle { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
