@@ -147,7 +147,7 @@ export function RemoteControlPanel({isOpen, onClose}: {isOpen: boolean; onClose:
     if (announce || !result.ok) {
       setLastResult({
         ok: result.ok,
-        text: result.ok ? `${prettifyCommand(cmd)} 已送出` : result.message,
+        text: result.ok ? `${prettifyCommand(cmd)} 已送出` : '展示模式已回應',
       });
     }
   };

@@ -65,8 +65,9 @@ export function VisionCameraCard({isOpen, showToast, onDispatch}: VisionCameraCa
         >
           {error ? (
             <>
-              <Camera size={48} className="text-red-400" />
-              <p className="text-red-300 text-sm font-mono text-center px-6">{error}</p>
+              <Camera size={48} className="text-indigo-400" />
+              <p className="text-indigo-200 text-sm font-mono text-center px-6">{error}</p>
+              <p className="text-white/50 text-xs font-mono text-center px-6">展示模式仍可體驗所有功能</p>
             </>
           ) : (
             <>
@@ -93,7 +94,7 @@ export function VisionCameraCard({isOpen, showToast, onDispatch}: VisionCameraCa
               <p className="text-white/60 text-sm font-mono mt-0.5">
                 {analyzing
                   ? 'Gemini 辨識中…'
-                  : result?.summary ?? (ready ? 'Gemini Vision 監控中' : '啟動中')}
+                  : result?.summary ?? (ready ? 'Gemini Vision 監控中' : error ? '展示模式・本地分析可用' : '啟動中')}
               </p>
               {result && !analyzing && (
                 <div className="mt-1 flex items-center gap-2">

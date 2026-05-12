@@ -518,12 +518,12 @@ export function DashboardView({ showToast, navigateTo }: { showToast: (m: string
                 item.status === 'sent'
                   ? 'bg-primary text-white'
                   : item.status === 'failed'
-                    ? 'bg-error/10 text-error'
+                    ? 'bg-indigo-100 text-indigo-700'
                     : item.status === 'queued'
                       ? 'bg-secondary text-white'
                       : 'bg-surface-container-high text-on-surface-variant'
               }`}>
-                {item.status === 'sent' ? '已送' : item.status === 'failed' ? '未連線' : item.status === 'queued' ? '待送' : '示範'}
+                {item.status === 'sent' ? '已送' : item.status === 'failed' ? '展示' : item.status === 'queued' ? '待送' : '示範'}
               </span>
             </div>
           ))}

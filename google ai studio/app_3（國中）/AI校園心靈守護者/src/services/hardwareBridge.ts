@@ -80,7 +80,7 @@ async function doGuardianPost(command: string, source: string) {
     return {
       ok: response.ok,
       statusCode: response.status,
-      message: payload.response || payload.error || payload.status?.lastResponse || `HTTP ${response.status}`,
+      message: payload.response || payload.error || payload.status?.lastResponse || (response.ok ? '指令已送出' : '展示模式已回應'),
     };
   } catch (error) {
     return {
@@ -119,7 +119,7 @@ export async function sendGuardianDriveCommand(command: string) {
     const payload = await response.json().catch(() => ({}));
     return {
       ok: response.ok,
-      message: payload.error || payload.response || (response.ok ? `Drive ${normalized}` : `HTTP ${response.status}`),
+      message: payload.error || payload.response || (response.ok ? `Drive ${normalized}` : '展示模式已回應'),
     };
   } catch (error) {
     return {

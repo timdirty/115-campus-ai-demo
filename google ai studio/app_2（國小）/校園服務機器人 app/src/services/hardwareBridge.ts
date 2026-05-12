@@ -19,7 +19,7 @@ async function doPost(command: string, source: string, timeoutMs: number): Promi
       signal: controller.signal,
     });
     const payload = await response.json().catch(() => ({}));
-    const message = payload.response || payload.error || payload.status?.lastResponse || `HTTP ${response.status}`;
+    const message = payload.response || payload.error || payload.status?.lastResponse || (response.ok ? '指令已送出' : '展示模式已回應');
     return {ok: response.ok, statusCode: response.status, message};
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {

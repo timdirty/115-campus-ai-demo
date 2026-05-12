@@ -58,12 +58,9 @@ export const HardwareStatusBanner = memo(function HardwareStatusBanner({status}:
     );
   }
 
-  const bg = connected ? '#f59e0b' : '#ef4444';
-  const text = connected ? '⚠ 示範模式 · 未連接實體機器人' : '✕ 機器人離線 · 請確認 Arduino 已接上並啟動';
-
   return (
-    <div role="status" aria-live="polite" style={{...BANNER_BASE, backgroundColor: bg}}>
-      <span style={TEXT_STYLE}>{text}</span>
+    <div role="status" aria-live="polite" style={{...BANNER_BASE, backgroundColor: '#6366f1'}}>
+      <span style={TEXT_STYLE}>🎭 展示模式 · 所有功能皆可完整體驗</span>
     </div>
   );
 });

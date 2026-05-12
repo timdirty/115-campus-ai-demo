@@ -66,8 +66,8 @@ export function useCamera(active: boolean): UseCameraResult {
       if (!stream) {
         const msg =
           lastError?.name === 'NotAllowedError'
-            ? '相機權限被拒絕，請在瀏覽器設定中允許'
-            : `相機無法啟動：${lastError?.message ?? '未知錯誤'}`;
+            ? '相機權限被拒絕，請在瀏覽器設定中允許相機'
+            : '相機無法啟動，請確認設備有攝影機並重新整理';
         setError(msg);
         return;
       }

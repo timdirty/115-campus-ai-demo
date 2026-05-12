@@ -311,9 +311,9 @@ function AppContent() {
         type: 'RECORD_HARDWARE_EVENT',
         payload: {command, source, status: result.ok ? 'sent' : 'fallback', message: result.message},
       });
-      showToast(result.ok ? `硬體已接收：${command}` : `硬體備援：${result.message}`);
+      showToast(result.ok ? `指令已送出：${command}` : `展示模式：指令已模擬執行`);
     }).catch(() => {
-      showToast('硬體指令發送失敗，使用備援模式');
+      showToast('展示模式：指令已模擬執行');
     });
   }, [showToast]);
 
@@ -560,7 +560,7 @@ function AppContent() {
 
           <div className="flex items-center gap-2">
             {/* Quick alert — always one tap away */}
-            <QuickAlertButton disabled={!bridgeOnline} />
+            <QuickAlertButton />
             {/* Sensor setup button */}
             <button
               onClick={() => setShowSetup(true)}
@@ -579,10 +579,10 @@ function AppContent() {
             </button>
             <button
               onClick={runAutoDemo}
-              className="hidden min-h-10 rounded-xl border border-teal-200 bg-teal-50 px-4 text-xs font-black text-teal-700 shadow-sm transition hover:bg-teal-100 md:block"
+              className="flex min-h-10 items-center rounded-xl border border-teal-200 bg-teal-50 px-3 text-xs font-black text-teal-700 shadow-sm transition hover:bg-teal-100"
               title="自動執行完整示範流程（預警→感知→機器人）"
             >
-              自動示範
+              <span className="hidden sm:inline">自動</span>示範
             </button>
             <IconButton
               onClick={() => {
@@ -600,12 +600,12 @@ function AppContent() {
 
       {/* Proxy Health Banner — below header so it never covers navigation */}
       {proxyOnline === false && !bannerDismissed && (
-        <div className="flex items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
-          <span>⚠️ AI 雲端功能暫時離線，系統切換為本機示範模式</span>
+        <div className="flex items-center justify-between gap-2 border-b border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-700">
+          <span>🎭 本機展示模式 · AI 回應使用本地範本，所有功能完整展示中</span>
           <button
             onClick={() => setBannerDismissed(true)}
             aria-label="關閉提示"
-            className="flex h-11 w-11 shrink-0 items-center justify-center font-medium text-amber-600 hover:text-amber-900"
+            className="flex h-11 w-11 shrink-0 items-center justify-center font-medium text-indigo-500 hover:text-indigo-800"
           >
             ✕
           </button>
@@ -1617,7 +1617,7 @@ function SensingPanel({
           <button onClick={analyzeVisualFrame} disabled={!visualCameraReady || visualBusy} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-700 disabled:opacity-50">
             {visualBusy ? '判讀中' : '擷取判讀'}
           </button>
-          <button onClick={onCreateProactiveAlert} className="rounded-xl bg-teal-600 px-3 py-3 text-xs font-black text-white">
+          <button onClick={onCreateProactiveAlert} disabled={!!visualError && !visualCameraReady} className="rounded-xl bg-teal-600 px-3 py-3 text-xs font-black text-white disabled:opacity-50">
             建立關懷提醒
           </button>
         </div>

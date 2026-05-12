@@ -138,7 +138,7 @@ export const RobotDisplaySync = memo(function RobotDisplaySync({latestMood, aler
             {em.label}
             {connected
               ? <span className="ml-1.5 text-[10px] font-mono text-emerald-600">[iPad 已連線]</span>
-              : <span className="ml-1.5 text-[10px] font-mono text-slate-400">[等待 iPad]</span>}
+              : <span className="ml-1.5 text-[10px] font-mono text-slate-400">機器人待機中</span>}
           </p>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">

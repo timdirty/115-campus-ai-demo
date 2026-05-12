@@ -147,7 +147,7 @@ export const RobotDisplaySync = memo(function RobotDisplaySync() {
             <span>{current.label}</span>
             {connected
               ? <span className="text-[10px] text-emerald-600 font-mono">[iPad 已連線]</span>
-              : <span className="text-[10px] text-slate-400 font-mono">[等待 iPad]</span>}
+              : <span className="text-[10px] text-slate-400 font-mono">機器人待機中</span>}
           </p>
         </div>
         {expanded ? <ChevronUp className="h-4 w-4 text-on-surface-variant" /> : <ChevronDown className="h-4 w-4 text-on-surface-variant" />}

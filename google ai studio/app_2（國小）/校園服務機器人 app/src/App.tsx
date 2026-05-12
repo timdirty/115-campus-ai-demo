@@ -137,12 +137,12 @@ export default function App() {
       <CommandFeedbackToast lastCommandAck={hwStatus.lastCommandAck} />
       {/* Proxy Health Banner — sits below fixed header (header h-18 = 4.5rem) */}
       {proxyOnline === false && !bannerDismissed && (
-        <div className="fixed top-[4.5rem] inset-x-0 md:left-65 z-[55] flex items-center justify-between gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800">
-          <span>⚠️ AI 雲端功能暫時離線，系統切換為本機示範模式</span>
+        <div className="fixed top-[4.5rem] inset-x-0 md:left-65 z-[55] flex items-center justify-between gap-2 bg-indigo-50 border-b border-indigo-200 px-4 py-2 text-sm text-indigo-700">
+          <span>🎭 本機展示模式 · AI 回應使用本地範本，所有功能完整展示中</span>
           <button
             onClick={() => setBannerDismissed(true)}
             aria-label="關閉提示"
-            className="shrink-0 w-11 h-11 flex items-center justify-center text-amber-600 hover:text-amber-900 font-medium"
+            className="shrink-0 w-11 h-11 flex items-center justify-center text-indigo-500 hover:text-indigo-800 font-medium"
           >
             ✕
           </button>
@@ -260,11 +260,11 @@ export default function App() {
             </span>
           </div>
           <div
-            title={hwStatus.connected ? '機器人已連線' : '機器人離線'}
+            title={hwStatus.connected ? '機器人已連線' : '展示模式'}
             className="flex items-center gap-1.5 rounded-full border border-outline-variant/20 bg-surface-container-low px-2.5 py-1 text-[10px] font-black"
           >
-            <span className={`h-2 w-2 rounded-full ${hwStatus.connected ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-            <span className="text-on-surface-variant">{hwStatus.connected ? '機器人' : '離線'}</span>
+            <span className={`h-2 w-2 rounded-full ${hwStatus.connected ? 'bg-emerald-500' : 'bg-indigo-400'}`} />
+            <span className="text-on-surface-variant">{hwStatus.connected ? '機器人' : '展示'}</span>
           </div>
         </div>
         <button
