@@ -60,3 +60,4 @@ map_*.png
 !assets/screenshots/*.png
 scripts/gitnexus-prewarm-fts.mjs
 scripts/reindex.sh
+.agents/
