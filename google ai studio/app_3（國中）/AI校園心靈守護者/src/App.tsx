@@ -40,7 +40,7 @@ import {
   X,
 } from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
-import {AcousticSignal, DetectedPort, GuardianAlert, GuardianState, MoodType, ZoneSensorReading} from './types';
+import {AcousticSignal, DetectedPort, GuardianAlert, GuardianState, MoodType, RiskLevel, ZoneSensorReading} from './types';
 import {guardianReducer, loadGuardianState, normalizeGuardianState, persistGuardianState} from './state/guardianState';
 import {analyzeAcousticFrame, describeAcousticSignal} from './services/acousticGuardian';
 import {generateSupportReply} from './services/localGuardianAi';
@@ -48,7 +48,7 @@ import {analyzeEmotionTypography} from './services/emotionTypography';
 import {analyzePrivacyFrame, VisualPrivacyResult} from './services/visualPrivacyGuardian';
 import {evaluateProactiveGuardianState, ProactiveInsight} from './services/proactiveGuardian';
 import {buildSchoolZoneStatuses, SchoolZoneStatus} from './services/schoolSpaces';
-import {assignSensorPort, fetchBridgeHealth, fetchSensorPorts, fetchZoneSensors, pushGuardianSnapshot, resetBridgeDemoData, sendGuardianHardwareCommand} from './services/hardwareBridge';
+import {assignSensorPort, evaluateCampusEvent, fetchBridgeHealth, fetchRobotEmotionEvents, fetchSensorPorts, fetchZoneInsight, fetchZoneSensors, pushGuardianSnapshot, pushRobotAssignment, resetBridgeDemoData, sendGuardianHardwareCommand, type RobotEmotionEvent, type ZoneInsightResponse} from './services/hardwareBridge';
 import {AlertDetail, AlertRow, MetricCard, NodeRow, RiskPill} from './components/guardianUi';
 import {EmotionHeatmap} from './components/EmotionHeatmap';
 import {CampusMapSvg} from './components/CampusMapSvg';
@@ -60,6 +60,18 @@ import {RobotDisplaySync} from './components/RobotDisplaySync';
 type ActivePanel = 'alerts' | 'sensing' | 'care' | 'robot' | null;
 type RobotDispatchFeedback = {zoneId: string; zoneName: string; stage: '指令送出' | '前往現場' | '老師確認'; createdAt: number; missionId: string} | null;
 type RobotDispatchStage = NonNullable<RobotDispatchFeedback>['stage'];
+type ZoneInsightDialogState = {zone: SchoolZoneStatus; loading: boolean; result: ZoneInsightResponse | null; error?: string} | null;
+type ZoneInsightAssessment = ZoneInsightResponse & {updatedAt: number};
+type AutoDispatchTask = {id: string; zoneId: string; riskLevel: Exclude<RiskLevel, 'low'>; reason: string; createdAt: number};
+type RobotRoutePoint = {zoneId: string; name: string; location: string};
+type RobotTravelState = {
+  from: RobotRoutePoint;
+  to: RobotRoutePoint;
+  riskLevel: RiskLevel;
+  statusLabel: string;
+  startedAt: number;
+  durationMs: number;
+} | null;
 
 interface CommandCenterViewModel {
   zones: SchoolZoneStatus[];
@@ -69,7 +81,6 @@ interface CommandCenterViewModel {
   openAlerts: GuardianAlert[];
   highPriorityCount: number;
   activeRobotCount: number;
-  latestSoundLabel: string;
   campusHealthLabel: string;
   signalSummary: Array<{label: string; value: string; tone: 'teal' | 'rose' | 'amber' | 'emerald'}>;
 }
@@ -101,6 +112,12 @@ const panelNav: Array<{id: Exclude<ActivePanel, null>; label: string; icon: Luci
 
 const defaultAcoustic = describeAcousticSignal(0, 0);
 const robotDispatchSteps: RobotDispatchStage[] = ['指令送出', '前往現場', '老師確認'];
+const ROBOT_TRAVEL_MS = 5000;
+const ROBOT_HOME_POINT: RobotRoutePoint = {zoneId: 'robot-home', name: '巡邏底盤', location: '中控待命點'};
+
+function zoneToRobotRoutePoint(zone: SchoolZoneStatus): RobotRoutePoint {
+  return {zoneId: zone.id, name: zone.name, location: zone.location};
+}
 
 function getRobotStageIndex(stage: RobotDispatchStage | undefined) {
   return stage ? Math.max(0, robotDispatchSteps.indexOf(stage)) : -1;
@@ -118,6 +135,50 @@ function getRobotStageProgress(stage: RobotDispatchStage | undefined) {
   if (stage === '前往現場') return 72;
   if (stage === '老師確認') return 100;
   return 0;
+}
+
+function getRiskStatusLabel(level: string) {
+  if (level === 'high') return '高風險';
+  if (level === 'medium') return '注意';
+  return '安全';
+}
+
+function normalizeRiskLevel(level: unknown): RiskLevel {
+  return level === 'high' || level === 'medium' || level === 'low' ? level : 'medium';
+}
+
+function getRiskStatusTone(level: string) {
+  if (level === 'high') {
+    return {
+      dot: 'bg-rose-500',
+      text: 'text-rose-700',
+      soft: 'bg-rose-50 text-rose-700 ring-rose-200',
+      panel: 'border-rose-200 bg-rose-50',
+      bar: 'bg-rose-500',
+    };
+  }
+  if (level === 'medium') {
+    return {
+      dot: 'bg-amber-500',
+      text: 'text-amber-700',
+      soft: 'bg-amber-50 text-amber-700 ring-amber-200',
+      panel: 'border-amber-200 bg-amber-50',
+      bar: 'bg-amber-500',
+    };
+  }
+  return {
+    dot: 'bg-emerald-500',
+    text: 'text-emerald-700',
+    soft: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+    panel: 'border-emerald-200 bg-emerald-50',
+    bar: 'bg-emerald-500',
+  };
+}
+
+function getRiskStatusColor(level: string) {
+  if (level === 'high') return '#f43f5e';
+  if (level === 'medium') return '#f59e0b';
+  return '#10b981';
 }
 
 const CRISIS_KEYWORDS_UI = ['不想活', '想死', '自殺', '消失', '傷害自己', '活不下去', '尋死', '割腕', '跳樓', '喝農藥', '結束生命', '不想存在'];
@@ -154,6 +215,14 @@ function AppContent() {
   const [postBusy, setPostBusy] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [robotFeedback, setRobotFeedback] = useState<RobotDispatchFeedback>(null);
+  const [robotDisplayZoneId, setRobotDisplayZoneId] = useState<string | null>(null);
+  const [robotTravel, setRobotTravel] = useState<RobotTravelState>(null);
+  const [zoneInsightDialog, setZoneInsightDialog] = useState<ZoneInsightDialogState>(null);
+  const [zoneAssessments, setZoneAssessments] = useState<Record<string, ZoneInsightAssessment>>({});
+  const [manualEventText, setManualEventText] = useState('');
+  const [manualEventZoneId, setManualEventZoneId] = useState('zone-field');
+  const [manualEventBusy, setManualEventBusy] = useState(false);
+  const [autoDispatchQueue, setAutoDispatchQueue] = useState<AutoDispatchTask[]>([]);
   const [micActive, setMicActive] = useState(false);
   const [micStarting, setMicStarting] = useState(false);
   const [micError, setMicError] = useState('');
@@ -164,8 +233,16 @@ function AppContent() {
   const [bridgeOnline, setBridgeOnline] = useState(false);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const robotTimersRef = useRef<number[]>([]);
+  const robotTravelTimerRef = useRef<number | null>(null);
+  const robotTravelRef = useRef<RobotTravelState>(null);
+  const robotLocationRef = useRef<SchoolZoneStatus | null>(null);
   const autoDemoRunningRef = useRef(false);
   const autoDemoTimersRef = useRef<number[]>([]);
+  const zoneStatusBusyRef = useRef(false);
+  const baseZonesRef = useRef<SchoolZoneStatus[]>([]);
+  const autoDispatchSeenRef = useRef<Record<string, RiskLevel>>({});
+  const robotEmotionCursorRef = useRef<string>('');
+  const robotEmotionSeenRef = useRef<Set<string>>(new Set());
   const proxyOnline = useProxyHealth();
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const hwStatus = useHardwareSocket('http://localhost:3203');
@@ -175,12 +252,21 @@ function AppContent() {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
-  const viewModel = useMemo(() => buildCommandCenterViewModel(state, zoneSensors), [state, zoneSensors]);
+  const baseViewModel = useMemo(() => buildCommandCenterViewModel(state, zoneSensors), [state, zoneSensors]);
+  const viewModel = useMemo(() => applyZoneAssessments(baseViewModel, zoneAssessments), [baseViewModel, zoneAssessments]);
   const selectedZone = useMemo(
     () => viewModel.zones.find((zone) => zone.id === selectedZoneId) ?? viewModel.highestZone,
     [viewModel.zones, viewModel.highestZone, selectedZoneId],
   );
+  const robotDisplayZone = useMemo(
+    () => robotDisplayZoneId ? viewModel.zones.find((zone) => zone.id === robotDisplayZoneId) ?? null : null,
+    [robotDisplayZoneId, viewModel.zones],
+  );
   const latestMood = state.moodLogs[0];
+
+  useEffect(() => {
+    baseZonesRef.current = baseViewModel.zones;
+  }, [baseViewModel.zones]);
 
   useEffect(() => {
     persistGuardianState(state);
@@ -203,7 +289,7 @@ function AppContent() {
       }
     };
     poll();
-    const timer = setInterval(poll, 8000);
+    const timer = setInterval(poll, 3000);
     return () => {
       cancelled = true;
       clearInterval(timer);
@@ -242,6 +328,9 @@ function AppContent() {
 
   useEffect(() => () => stopAcousticMonitor(), []);
   useEffect(() => () => { robotTimersRef.current.forEach(clearTimeout); robotTimersRef.current = []; }, []);
+  useEffect(() => () => {
+    if (robotTravelTimerRef.current) window.clearTimeout(robotTravelTimerRef.current);
+  }, []);
   useEffect(() => () => { autoDemoTimersRef.current.forEach(clearTimeout); }, []);
 
   // Hash-based deep-link: guide page chips can link to e.g. ./app3/#sensing
@@ -282,7 +371,7 @@ function AppContent() {
         fusionScore: insight.score,
         signals: {
           moodScore: s.find((x) => x.label === '心情訊號')?.score ?? 0,
-          soundScore: s.find((x) => x.label === '聲量訊號')?.score ?? 0,
+          soundScore: 0,
           nodeScore: s.find((x) => x.label === '節點狀態')?.score ?? 0,
           alertScore: s.find((x) => x.label === '未結提醒')?.score ?? 0,
         },
@@ -303,7 +392,173 @@ function AppContent() {
     viewModel.activeRobotCount,
   ]);
 
+  useEffect(() => {
+    if (!robotDisplayZone) return;
+    if (robotTravel) return;
+    const liveFeedback = robotFeedback?.zoneId === robotDisplayZone.id ? robotFeedback : null;
+    void pushRobotAssignment({
+      zoneId: robotDisplayZone.id,
+      zoneName: robotDisplayZone.name,
+      location: robotDisplayZone.location,
+      riskLevel: robotDisplayZone.riskLevel,
+      statusLabel: getRiskStatusLabel(robotDisplayZone.riskLevel),
+      stage: liveFeedback?.stage ?? '現場待命',
+      missionId: liveFeedback?.missionId ?? null,
+      active: Boolean(liveFeedback),
+      moving: false,
+    });
+  }, [
+    robotDisplayZone?.id,
+    robotDisplayZone?.name,
+    robotDisplayZone?.location,
+    robotDisplayZone?.riskLevel,
+    robotFeedback?.zoneId,
+    robotFeedback?.stage,
+    robotFeedback?.missionId,
+    robotTravel,
+  ]);
+
+  const selectZoneForRobotDisplay = useCallback((zone: SchoolZoneStatus): boolean => {
+    if (robotTravelRef.current) return false;
+    setSelectedZoneId(zone.id);
+    setRobotDisplayZoneId(zone.id);
+    if (robotLocationRef.current?.id === zone.id) return true;
+
+    const travel: NonNullable<RobotTravelState> = {
+      from: robotLocationRef.current ? zoneToRobotRoutePoint(robotLocationRef.current) : ROBOT_HOME_POINT,
+      to: zoneToRobotRoutePoint(zone),
+      riskLevel: zone.riskLevel,
+      statusLabel: getRiskStatusLabel(zone.riskLevel),
+      startedAt: Date.now(),
+      durationMs: ROBOT_TRAVEL_MS,
+    };
+    const travelStartedAt = new Date(travel.startedAt).toISOString();
+    const travelEndsAt = new Date(travel.startedAt + travel.durationMs).toISOString();
+    if (robotTravelTimerRef.current) window.clearTimeout(robotTravelTimerRef.current);
+    robotTravelRef.current = travel;
+    setRobotTravel(travel);
+    void pushRobotAssignment({
+      zoneId: zone.id,
+      zoneName: zone.name,
+      location: zone.location,
+      riskLevel: zone.riskLevel,
+      statusLabel: getRiskStatusLabel(zone.riskLevel),
+      stage: '前往現場',
+      missionId: null,
+      active: true,
+      moving: true,
+      travelStartedAt,
+      travelEndsAt,
+      fromZoneId: travel.from.zoneId,
+      fromZoneName: travel.from.name,
+      fromLocation: travel.from.location,
+    });
+    robotTravelTimerRef.current = window.setTimeout(() => {
+      robotLocationRef.current = zone;
+      robotTravelRef.current = null;
+      setRobotTravel(null);
+      robotTravelTimerRef.current = null;
+    }, ROBOT_TRAVEL_MS);
+    return true;
+  }, []);
+
   const showToast = useCallback((text: string) => setToastMessage(text), []);
+
+  const queueAutoDispatch = useCallback((zone: SchoolZoneStatus, reason: string, riskLevelOverride?: Exclude<RiskLevel, 'low'>) => {
+    const riskLevel = riskLevelOverride ?? (zone.riskLevel === 'high' ? 'high' : zone.riskLevel === 'medium' ? 'medium' : null);
+    if (!riskLevel) return;
+    setAutoDispatchQueue((current) => {
+      if (robotFeedback?.zoneId === zone.id || current.some((item) => item.zoneId === zone.id)) return current;
+      return [
+        ...current,
+        {id: `auto-${zone.id}-${Date.now().toString(36)}`, zoneId: zone.id, riskLevel, reason, createdAt: Date.now()},
+      ];
+    });
+  }, [robotFeedback?.zoneId]);
+
+  const recordZoneAssessment = useCallback((zone: SchoolZoneStatus, result: ZoneInsightResponse) => {
+    setZoneAssessments((current) => ({
+      ...current,
+      [zone.id]: {...result, updatedAt: Date.now()},
+    }));
+  }, []);
+
+  const buildZoneInsightPayload = useCallback((zone: SchoolZoneStatus, mode: 'status' | 'detail' = 'detail') => {
+    return {
+      mode,
+      zoneId: zone.id,
+      zoneName: zone.name,
+      location: zone.location,
+      currentStatusLabel: getRiskStatusLabel(zone.riskLevel),
+      currentRiskLevel: zone.riskLevel,
+      ruleBasedScore: zone.riskScore,
+      alertCount: zone.alertCount,
+      nodeStatus: zone.nodeStatus,
+      sensor: zone.sensor ? {
+        temperature: zone.sensor.temp,
+        humidity: zone.sensor.hum,
+        light: zone.sensor.light,
+        status: zone.sensor.connected ? 'online' : 'offline',
+      } : undefined,
+    };
+  }, []);
+
+  const requestZoneInsight = useCallback(async (zone: SchoolZoneStatus, mode: 'status' | 'detail' = 'detail') => {
+    const result = await fetchZoneInsight(buildZoneInsightPayload(zone, mode));
+    if (mode === 'status') {
+      setZoneAssessments((current) => ({
+        ...current,
+        [zone.id]: {...result, updatedAt: Date.now()},
+      }));
+    }
+    return result;
+  }, [buildZoneInsightPayload]);
+
+  const openZoneInsight = useCallback((zone: SchoolZoneStatus) => {
+    if (!selectZoneForRobotDisplay(zone)) return;
+    setZoneInsightDialog({zone, loading: true, result: null});
+    void requestZoneInsight(zone, 'detail').then((result) => {
+      setZoneInsightDialog((current) => current?.zone.id === zone.id ? {...current, loading: false, result} : current);
+    }).catch((error) => {
+      setZoneInsightDialog((current) => current?.zone.id === zone.id ? {
+        ...current,
+        loading: false,
+        result: null,
+        error: error instanceof Error ? error.message : String(error),
+      } : current);
+    });
+  }, [requestZoneInsight, selectZoneForRobotDisplay]);
+
+  const refreshAllZoneAssessments = useCallback(async (zones: SchoolZoneStatus[], silent = false) => {
+    if (zones.length === 0) return;
+    await Promise.allSettled(zones.map(async (zone) => {
+      const result = await fetchZoneInsight(buildZoneInsightPayload(zone, 'status'));
+      setZoneAssessments((current) => ({
+        ...current,
+        [zone.id]: {...result, updatedAt: Date.now()},
+      }));
+    }));
+    if (!silent) showToast('三個區域燈號已依感測器數值重新判讀');
+  }, [buildZoneInsightPayload, showToast]);
+
+  const refreshZoneStatuses = useCallback(async () => {
+    if (zoneStatusBusyRef.current || baseZonesRef.current.length === 0) return;
+    zoneStatusBusyRef.current = true;
+    try {
+      await refreshAllZoneAssessments(baseZonesRef.current, true);
+    } finally {
+      zoneStatusBusyRef.current = false;
+    }
+  }, [refreshAllZoneAssessments]);
+
+  useEffect(() => {
+    if (!bridgeOnline) return;
+    void refreshZoneStatuses();
+    const timer = window.setInterval(() => {
+      void refreshZoneStatuses();
+    }, 3000);
+    return () => window.clearInterval(timer);
+  }, [bridgeOnline, refreshZoneStatuses]);
 
   const sendHardwareCue = useCallback((command: string, source: string) => {
     void sendGuardianHardwareCommand(command, source).then((result) => {
@@ -311,14 +566,18 @@ function AppContent() {
         type: 'RECORD_HARDWARE_EVENT',
         payload: {command, source, status: result.ok ? 'sent' : 'fallback', message: result.message},
       });
-      showToast(result.ok ? `指令已送出：${command}` : `展示模式：指令已模擬執行`);
+      showToast(result.ok ? `硬體已接收：${command}` : `硬體備援：${result.message}`);
     }).catch(() => {
-      showToast('展示模式：指令已模擬執行');
+      showToast('硬體指令發送失敗，使用備援模式');
     });
   }, [showToast]);
 
   const dispatchRobotToZone = useCallback((zone: SchoolZoneStatus) => {
-    setSelectedZoneId(zone.id);
+    if (robotTravelRef.current) {
+      showToast('機器人移動中，地圖暫時鎖定');
+      return;
+    }
+    if (!selectZoneForRobotDisplay(zone)) return;
     if (robotFeedback?.zoneId === zone.id) {
       showToast(`${zone.name} 任務已在進行中`);
       return;
@@ -339,7 +598,130 @@ function AppContent() {
     dispatch({type: 'DISPATCH_ROBOT', payload: {zoneName: zone.name, riskScore: zone.riskScore, command: 'ROBOT_DISPATCH'}});
     sendHardwareCue('CARE_DEPLOYED', `app3:robot:${zone.id}`);
     showToast(`已指派機器人前往${zone.name}`);
-  }, [robotFeedback, showToast, sendHardwareCue]);
+  }, [robotFeedback, showToast, sendHardwareCue, selectZoneForRobotDisplay]);
+
+  const submitManualEvent = useCallback(async () => {
+    const eventText = manualEventText.trim();
+    const zone = viewModel.zones.find((item) => item.id === manualEventZoneId) ?? selectedZone;
+    if (!eventText || !zone || manualEventBusy) return;
+    setManualEventBusy(true);
+    const result = await evaluateCampusEvent({
+      zoneId: zone.id,
+      zoneName: zone.name,
+      location: zone.location,
+      eventText,
+      source: 'manual',
+    });
+    const riskLevel: Exclude<RiskLevel, 'low'> = result.riskLevel === 'high' ? 'high' : 'medium';
+    const normalizedResult: ZoneInsightResponse = {
+      ...result,
+      riskLevel,
+      statusLabel: riskLevel === 'high' ? '高風險' : '注意',
+      summary: result.summary || eventText,
+    };
+    dispatch({
+      type: 'CREATE_CONTEXT_ALERT',
+      payload: {
+        location: zone.location,
+        type: '手動輸入事件',
+        description: `${normalizedResult.summary} 原始紀錄：${eventText}`,
+        riskLevel,
+        category: '手動事件',
+        studentAlias: '值勤老師回報',
+      },
+    });
+    recordZoneAssessment(zone, normalizedResult);
+    queueAutoDispatch(zone, `手動事件：${normalizedResult.statusLabel}`, riskLevel);
+    setManualEventText('');
+    setActivePanel('alerts');
+    setManualEventBusy(false);
+    showToast(`已加入${zone.name}事件：${normalizedResult.statusLabel}`);
+  }, [manualEventText, manualEventZoneId, manualEventBusy, viewModel.zones, selectedZone, recordZoneAssessment, queueAutoDispatch, showToast]);
+
+  const handleRobotEmotionEvent = useCallback((event: RobotEmotionEvent) => {
+    if (robotEmotionSeenRef.current.has(event.id)) return;
+    robotEmotionSeenRef.current.add(event.id);
+    const zone = viewModel.zones.find((item) => item.id === event.zoneId)
+      ?? viewModel.zones.find((item) => event.zoneName.includes(item.name) || event.location.includes(item.name))
+      ?? viewModel.zones.find((item) => item.id === 'zone-field')
+      ?? viewModel.highestZone;
+    const riskLevel: Exclude<RiskLevel, 'low'> = event.riskLevel === 'high' ? 'high' : 'medium';
+    const statusLabel = riskLevel === 'high' ? '高風險' : '注意';
+    const summary = `${event.zoneName || zone.name}偵測到「${event.emotionLabel || event.emotion}」情緒，建議老師確認現場。`;
+    dispatch({
+      type: 'CREATE_CONTEXT_ALERT',
+      payload: {
+        location: zone.location,
+        type: '機器人情緒判斷',
+        description: event.description || summary,
+        riskLevel,
+        category: '情緒判斷',
+        studentAlias: '機器人前端',
+      },
+    });
+    recordZoneAssessment(zone, {
+      ok: true,
+      source: event.source || 'robot-display',
+      model: null,
+      riskLevel,
+      statusLabel,
+      confidence: riskLevel === 'high' ? 88 : 66,
+      summary,
+      situations: [event.description || summary],
+      suggestions: ['請機器人或值勤老師先前往確認，保持低壓關懷。'],
+    });
+    queueAutoDispatch(zone, `情緒事件：${event.emotionLabel || event.emotion}`, riskLevel);
+    showToast(`機器人回報${zone.name}情緒事件：${statusLabel}`);
+  }, [viewModel.zones, viewModel.highestZone, recordZoneAssessment, queueAutoDispatch, showToast]);
+
+  useEffect(() => {
+    if (!bridgeOnline) return;
+    let stopped = false;
+    const pull = async () => {
+      const events = await fetchRobotEmotionEvents(robotEmotionCursorRef.current || undefined);
+      if (stopped || events.length === 0) return;
+      const sorted = [...events].sort((a, b) => Date.parse(a.updatedAt) - Date.parse(b.updatedAt));
+      for (const event of sorted) {
+        handleRobotEmotionEvent(event);
+        if (!robotEmotionCursorRef.current || Date.parse(event.updatedAt) > Date.parse(robotEmotionCursorRef.current)) {
+          robotEmotionCursorRef.current = event.updatedAt;
+        }
+      }
+    };
+    void pull();
+    const timer = window.setInterval(() => void pull(), 1800);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
+  }, [bridgeOnline, handleRobotEmotionEvent]);
+
+  useEffect(() => {
+    for (const zone of viewModel.zones) {
+      if (zone.riskLevel === 'low') {
+        delete autoDispatchSeenRef.current[zone.id];
+        continue;
+      }
+      const previous = autoDispatchSeenRef.current[zone.id];
+      if (previous === zone.riskLevel) continue;
+      autoDispatchSeenRef.current[zone.id] = zone.riskLevel;
+      queueAutoDispatch(zone, `區域燈號變為${getRiskStatusLabel(zone.riskLevel)}`);
+    }
+  }, [viewModel.zones, queueAutoDispatch]);
+
+  useEffect(() => {
+    if (robotFeedback || robotTravel || autoDispatchQueue.length === 0) return;
+    const next = [...autoDispatchQueue].sort((a, b) => {
+      const riskDelta = (b.riskLevel === 'high' ? 2 : 1) - (a.riskLevel === 'high' ? 2 : 1);
+      return riskDelta || a.createdAt - b.createdAt;
+    })[0];
+    if (!next) return;
+    const zone = viewModel.zones.find((item) => item.id === next.zoneId);
+    setAutoDispatchQueue((current) => current.filter((item) => item.id !== next.id));
+    if (!zone || zone.riskLevel === 'low') return;
+    dispatchRobotToZone(zone);
+    showToast(`自動派遣：${zone.name}（${next.reason}）`);
+  }, [autoDispatchQueue, robotFeedback, robotTravel, viewModel.zones, dispatchRobotToZone, showToast]);
 
   const createProactiveAlert = useCallback(() => {
     dispatch({type: 'CREATE_PROACTIVE_ALERT', payload: viewModel.proactiveInsight});
@@ -350,7 +732,7 @@ function AppContent() {
 
   const recordAcousticSignal = useCallback((signal: Omit<AcousticSignal, 'id' | 'createdAt'>) => {
     dispatch({type: 'RECORD_ACOUSTIC_SIGNAL', payload: signal});
-    showToast('已記錄本機環境聲量訊號');
+    showToast('已記錄本機環境紀錄');
   }, [showToast]);
 
   const createAcousticAlert = useCallback(() => {
@@ -560,7 +942,7 @@ function AppContent() {
 
           <div className="flex items-center gap-2">
             {/* Quick alert — always one tap away */}
-            <QuickAlertButton />
+            <QuickAlertButton disabled={!bridgeOnline} />
             {/* Sensor setup button */}
             <button
               onClick={() => setShowSetup(true)}
@@ -579,10 +961,10 @@ function AppContent() {
             </button>
             <button
               onClick={runAutoDemo}
-              className="flex min-h-10 items-center rounded-xl border border-teal-200 bg-teal-50 px-3 text-xs font-black text-teal-700 shadow-sm transition hover:bg-teal-100"
+              className="hidden min-h-10 rounded-xl border border-teal-200 bg-teal-50 px-4 text-xs font-black text-teal-700 shadow-sm transition hover:bg-teal-100 md:block"
               title="自動執行完整示範流程（預警→感知→機器人）"
             >
-              <span className="hidden sm:inline">自動</span>示範
+              自動示範
             </button>
             <IconButton
               onClick={() => {
@@ -600,12 +982,12 @@ function AppContent() {
 
       {/* Proxy Health Banner — below header so it never covers navigation */}
       {proxyOnline === false && !bannerDismissed && (
-        <div className="flex items-center justify-between gap-2 border-b border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-700">
-          <span>🎭 本機展示模式 · AI 回應使用本地範本，所有功能完整展示中</span>
+        <div className="flex items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+          <span>⚠️ AI 雲端功能暫時離線，系統切換為本機示範模式</span>
           <button
             onClick={() => setBannerDismissed(true)}
             aria-label="關閉提示"
-            className="flex h-11 w-11 shrink-0 items-center justify-center font-medium text-indigo-500 hover:text-indigo-800"
+            className="flex h-11 w-11 shrink-0 items-center justify-center font-medium text-amber-600 hover:text-amber-900"
           >
             ✕
           </button>
@@ -613,19 +995,19 @@ function AppContent() {
       )}
 
       <main className="mx-auto grid max-w-7xl gap-4 px-4 py-4 pb-28 sm:px-6 lg:pb-20 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <CommandCenterScreen
-          viewModel={viewModel}
-          selectedZone={selectedZone}
-          selectedZoneId={selectedZoneId}
-          state={state}
-          robotFeedback={robotFeedback}
-          onSelectZone={(zone) => {
-            setSelectedZoneId(zone.id);
-          }}
-          onOpenPanel={setActivePanel}
-          onCreateProactiveAlert={createProactiveAlert}
-          onDispatchRobot={dispatchRobotToZone}
-        />
+          <CommandCenterScreen
+            viewModel={viewModel}
+            selectedZone={selectedZone}
+            selectedZoneId={selectedZoneId}
+            robotFeedback={robotFeedback}
+            robotTravel={robotTravel}
+            zoneAssessments={zoneAssessments}
+            onSelectZone={selectZoneForRobotDisplay}
+            onOpenZoneInsight={openZoneInsight}
+            onOpenPanel={setActivePanel}
+            onCreateProactiveAlert={createProactiveAlert}
+            onDispatchRobot={dispatchRobotToZone}
+          />
 
         <aside className="hidden lg:flex lg:flex-col gap-4 lg:sticky lg:top-21 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
           {/* Top open alerts */}
@@ -646,6 +1028,37 @@ function AppContent() {
             <button onClick={() => setActivePanel('alerts')} className="mt-2 w-full rounded-xl bg-slate-50 min-h-11 py-1.5 text-[10px] font-black text-slate-500 transition hover:bg-rose-50 hover:text-rose-600">
               查看全部 →
             </button>
+            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-[10px] font-black tracking-widest text-teal-700 uppercase">手動新增事件</p>
+                <span className="rounded-full bg-white px-2 py-0.5 text-[9px] font-black text-slate-400 ring-1 ring-slate-200">LLM 分級</span>
+              </div>
+              <select
+                value={manualEventZoneId}
+                onChange={(event) => setManualEventZoneId(event.target.value)}
+                className="mb-2 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 outline-none focus:border-teal-500"
+              >
+                {viewModel.zones.map((zone) => (
+                  <option key={zone.id} value={zone.id}>{zone.name} · {zone.location}</option>
+                ))}
+              </select>
+              <textarea
+                value={manualEventText}
+                onChange={(event) => setManualEventText(event.target.value)}
+                maxLength={180}
+                rows={3}
+                className="w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-xs font-bold leading-5 text-slate-700 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                placeholder="例：操場有學生情緒低落、不願回教室..."
+              />
+              <button
+                onClick={() => void submitManualEvent()}
+                disabled={!manualEventText.trim() || manualEventBusy}
+                className="mt-2 flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-teal-600 px-3 text-xs font-black text-white transition hover:bg-teal-700 disabled:bg-slate-200 disabled:text-slate-500"
+              >
+                {manualEventBusy && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                {manualEventBusy ? '判斷中' : '加入需注意狀況'}
+              </button>
+            </div>
           </div>
           <div data-tour="zone-inspector" className="flex-1"><ZoneInspector zone={selectedZone} robotFeedback={robotFeedback} onDispatchRobot={dispatchRobotToZone} /></div>
           <div data-tour="panel-dock"><PanelDock activePanel={activePanel} onOpenPanel={setActivePanel} onShowDemo={restartTour} /></div>
@@ -737,6 +1150,21 @@ function AppContent() {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {zoneInsightDialog && (
+          <ZoneInsightDialog
+            insight={zoneInsightDialog}
+            onRefresh={(zone) => {
+              setZoneInsightDialog((current) => current?.zone.id === zone.id ? {...current, loading: true, error: undefined} : current);
+              void requestZoneInsight(zone, 'detail').then((result) => {
+                setZoneInsightDialog((current) => current?.zone.id === zone.id ? {...current, loading: false, result} : current);
+              });
+            }}
+            onClose={() => setZoneInsightDialog(null)}
+          />
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }
@@ -749,27 +1177,50 @@ function buildCommandCenterViewModel(state: GuardianState, sensorReadings: ZoneS
   const openAlerts = state.alerts.filter((alert) => alert.status !== 'resolved');
   const highPriorityCount = openAlerts.filter((alert) => alert.riskLevel === 'high').length;
   const activeRobotCount = state.robotMissions.filter((mission) => mission.status !== 'completed').length;
-  const latestSound = state.acousticSignals[0];
-  const latestSoundLabel = latestSound?.level === 'elevated' ? '偏高' : latestSound?.level === 'active' ? '活動' : '平穩';
   const offlineNodeCount = state.nodes.filter((node) => node.status === 'offline').length;
+  const onlineSensorCount = sensorReadings.filter((sensor) => sensor.connected).length;
   const campusHealthLabel = highestZone?.riskLevel === 'high' ? '高風險區需立即確認' : highestZone?.riskLevel === 'medium' ? '校園有區域需觀察' : '全校維持穩定巡查';
   const signalSummary: CommandCenterViewModel['signalSummary'] = [
     {label: '待關懷提醒', value: `${openAlerts.length} 則`, tone: openAlerts.length > 3 ? 'amber' : 'teal'},
     {label: '高優先處理', value: `${highPriorityCount} 則`, tone: highPriorityCount > 0 ? 'rose' : 'emerald'},
-    {label: '聲量訊號', value: latestSoundLabel, tone: latestSound?.level === 'elevated' ? 'amber' : 'teal'},
+    {label: '感測器', value: `${onlineSensorCount}/3 在線`, tone: onlineSensorCount >= 3 ? 'emerald' : 'amber'},
     {label: '節點狀態', value: `${offlineNodeCount} 離線`, tone: offlineNodeCount > 0 ? 'rose' : 'emerald'},
   ];
 
-  return {zones, highestZone, dispatchableZones, proactiveInsight, openAlerts, highPriorityCount, activeRobotCount, latestSoundLabel, campusHealthLabel, signalSummary};
+  return {zones, highestZone, dispatchableZones, proactiveInsight, openAlerts, highPriorityCount, activeRobotCount, campusHealthLabel, signalSummary};
+}
+
+function applyZoneAssessments(viewModel: CommandCenterViewModel, assessments: Record<string, ZoneInsightAssessment>): CommandCenterViewModel {
+  const zones = viewModel.zones.map((zone) => {
+    const assessment = assessments[zone.id];
+    if (!assessment) return zone;
+    const riskLevel = normalizeRiskLevel(assessment.riskLevel);
+    const confidence = typeof assessment.confidence === 'number' ? assessment.confidence : riskLevel === 'high' ? 86 : riskLevel === 'medium' ? 58 : 26;
+    const levelBase = riskLevel === 'high' ? 72 : riskLevel === 'medium' ? 46 : 18;
+    const riskScore = Math.max(0, Math.min(100, Math.round(levelBase + confidence * 0.18)));
+    return {
+      ...zone,
+      riskLevel,
+      riskScore,
+      stability: Math.max(0, 100 - riskScore),
+      summary: assessment.summary || zone.summary,
+    };
+  });
+  const highestZone = [...zones].sort((a, b) => b.riskScore - a.riskScore)[0] ?? zones[0];
+  const dispatchableZones = zones.filter((zone) => zone.riskLevel !== 'low');
+  const campusHealthLabel = highestZone?.riskLevel === 'high' ? '高風險區需立即確認' : highestZone?.riskLevel === 'medium' ? '校園有區域需觀察' : '全校維持穩定巡查';
+  return {...viewModel, zones, highestZone, dispatchableZones, campusHealthLabel};
 }
 
 function CommandCenterScreen({
   viewModel,
   selectedZone,
   selectedZoneId,
-  state,
   robotFeedback,
+  robotTravel,
+  zoneAssessments,
   onSelectZone,
+  onOpenZoneInsight,
   onOpenPanel,
   onCreateProactiveAlert,
   onDispatchRobot,
@@ -777,9 +1228,11 @@ function CommandCenterScreen({
   viewModel: CommandCenterViewModel;
   selectedZone: SchoolZoneStatus;
   selectedZoneId: string | null;
-  state: GuardianState;
   robotFeedback: RobotDispatchFeedback;
+  robotTravel: RobotTravelState;
+  zoneAssessments: Record<string, ZoneInsightAssessment>;
   onSelectZone: (zone: SchoolZoneStatus) => void;
+  onOpenZoneInsight: (zone: SchoolZoneStatus) => void;
   onOpenPanel: (panel: ActivePanel) => void;
   onCreateProactiveAlert: () => void;
   onDispatchRobot: (zone: SchoolZoneStatus) => void;
@@ -795,9 +1248,8 @@ function CommandCenterScreen({
                 <h2 className="mt-1.5 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">校園即時總覽</h2>
                 <p className="mt-1 text-sm font-semibold text-slate-500">{viewModel.campusHealthLabel}</p>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[24rem]">
-                <SignalTile label="守護指數" value={`${state.stabilityScore}%`} tone="teal" />
-                <SignalTile label="最高風險" value={viewModel.highestZone.riskScore.toString()} tone={viewModel.highestZone.riskLevel === 'high' ? 'rose' : 'amber'} />
+              <div className="grid grid-cols-2 gap-2 text-center sm:min-w-[16rem]">
+                <SignalTile label="最高風險" value={getRiskStatusLabel(viewModel.highestZone.riskLevel)} tone={viewModel.highestZone.riskLevel === 'high' ? 'rose' : viewModel.highestZone.riskLevel === 'medium' ? 'amber' : 'emerald'} />
                 <SignalTile label="機器人" value={viewModel.activeRobotCount.toString()} tone="emerald" />
               </div>
             </div>
@@ -808,7 +1260,7 @@ function CommandCenterScreen({
       </div>
 
       <div data-tour="campus-map">
-        <CampusMap2D zones={viewModel.zones} selectedZone={selectedZone} selectedZoneId={selectedZoneId} robotFeedback={robotFeedback} onSelectZone={onSelectZone} onDispatchRobot={onDispatchRobot} />
+        <CampusMap2D zones={viewModel.zones} selectedZone={selectedZone} selectedZoneId={selectedZoneId} robotFeedback={robotFeedback} robotTravel={robotTravel} zoneAssessments={zoneAssessments} onSelectZone={onSelectZone} onOpenZoneInsight={onOpenZoneInsight} onDispatchRobot={onDispatchRobot} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -823,18 +1275,18 @@ function CommandCenterScreen({
               <StatusChip level={viewModel.highestZone.riskLevel} />
             </div>
             <div className="mt-4 grid grid-cols-3 gap-2">
-              <MetricTile label="風險" value={viewModel.highestZone.riskScore} />
-              <MetricTile label="聲量" value={viewModel.highestZone.soundIndex} />
+              <MetricTile label="燈號" value={getRiskStatusLabel(viewModel.highestZone.riskLevel)} />
+              <MetricTile label="感測" value={viewModel.highestZone.sensor?.connected ? '在線' : '離線'} />
               <MetricTile label="提醒" value={viewModel.highestZone.alertCount} />
             </div>
             <PrimaryAction
               onClick={() => onDispatchRobot(viewModel.highestZone)}
-              disabled={viewModel.highestZone.riskLevel === 'low'}
-              active={robotFeedback?.zoneId === viewModel.highestZone.id}
+              disabled={viewModel.highestZone.riskLevel === 'low' || Boolean(robotTravel)}
+              active={robotFeedback?.zoneId === viewModel.highestZone.id || Boolean(robotTravel)}
               className="mt-4"
             >
-              <Bot className={`h-5 w-5 ${robotFeedback?.zoneId === viewModel.highestZone.id ? 'animate-pulse' : ''}`} />
-              {viewModel.highestZone.riskLevel === 'low' ? '維持一般巡查' : robotFeedback?.zoneId === viewModel.highestZone.id ? '已送出派遣' : '派遣機器人介入'}
+              <Bot className={`h-5 w-5 ${robotFeedback?.zoneId === viewModel.highestZone.id || robotTravel ? 'animate-pulse' : ''}`} />
+              {robotTravel ? '機器人移動中' : viewModel.highestZone.riskLevel === 'low' ? '維持一般巡查' : robotFeedback?.zoneId === viewModel.highestZone.id ? '已送出派遣' : '派遣機器人介入'}
             </PrimaryAction>
           </Surface>
         </div>
@@ -852,7 +1304,7 @@ const ZONE_EMOJI: Record<string, string> = {
 const ZONE_IDENTITY: Record<string, {bg: string; border: string; dot: string}> = {
   'zone-library': {bg: 'bg-blue-50/95',    border: 'border-blue-300',    dot: 'bg-blue-500'},
   'zone-hall':    {bg: 'bg-emerald-50/95', border: 'border-emerald-300', dot: 'bg-emerald-500'},
-  'zone-field':   {bg: 'bg-orange-50/95',  border: 'border-orange-300',  dot: 'bg-orange-500'},
+  'zone-field':   {bg: 'bg-emerald-50/95', border: 'border-emerald-300', dot: 'bg-emerald-500'},
 };
 const ZONE_IDENTITY_FALLBACK = {bg: 'bg-white/95', border: 'border-slate-200', dot: 'bg-slate-400'};
 
@@ -861,20 +1313,27 @@ function CampusMap2D({
   selectedZone,
   selectedZoneId,
   robotFeedback,
+  robotTravel,
+  zoneAssessments,
   onSelectZone,
+  onOpenZoneInsight,
   onDispatchRobot,
 }: {
   zones: SchoolZoneStatus[];
   selectedZone: SchoolZoneStatus;
   selectedZoneId: string | null;
   robotFeedback: RobotDispatchFeedback;
+  robotTravel: RobotTravelState;
+  zoneAssessments: Record<string, ZoneInsightAssessment>;
   onSelectZone: (zone: SchoolZoneStatus) => void;
+  onOpenZoneInsight: (zone: SchoolZoneStatus) => void;
   onDispatchRobot: (zone: SchoolZoneStatus) => void;
 }) {
   const selectedLeft = Math.min(selectedZone.x, 76);
-  const activeDispatch = robotFeedback?.zoneId === selectedZone.id;
+  const mapLocked = Boolean(robotTravel);
+  const activeDispatch = robotFeedback?.zoneId === selectedZone.id || robotTravel?.to.zoneId === selectedZone.id;
   const dispatchProgress = getRobotStageProgress(activeDispatch ? robotFeedback?.stage : undefined);
-  const [expandedZoneId, setExpandedZoneId] = useState<string | null>(null);
+  const travelColor = getRiskStatusColor(robotTravel?.riskLevel ?? selectedZone.riskLevel);
 
   return (
     <Surface className="relative overflow-hidden p-3 sm:p-4">
@@ -889,11 +1348,20 @@ function CampusMap2D({
           <LegendDot tone="rose" label="高風險" />
         </div>
       </div>
+      <ZoneStatusBar
+        zones={zones}
+        selectedZoneId={selectedZone.id}
+        robotFeedback={robotFeedback}
+        zoneAssessments={zoneAssessments}
+        onSelectZone={onSelectZone}
+        onOpenZoneInsight={onOpenZoneInsight}
+      />
       <div className="relative min-h-112 overflow-hidden rounded-2xl border border-slate-200/80 bg-[linear-gradient(145deg,#eef4fb,#e6f0f9)] shadow-inner lg:min-h-152">
         <CampusMapSvg
-          zones={zones.map((z) => ({id: z.id, riskLevel: z.riskLevel, sensor: z.sensor}))}
+          zones={zones.map((z) => ({id: z.id, riskLevel: z.riskLevel}))}
           selectedZoneId={selectedZoneId}
           onZoneClick={(id) => {
+            if (mapLocked) return;
             const zone = zones.find((z) => z.id === id);
             if (zone) onSelectZone(zone);
           }}
@@ -917,88 +1385,19 @@ function CampusMap2D({
           <Bot className="h-6 w-6" />
           <span className="text-[9px] font-black text-slate-500 leading-none">{activeDispatch ? robotFeedback?.stage : '待命'}</span>
         </div>
-        {zones.map((zone) => {
-          const selected = zone.id === selectedZone.id;
-          const dispatching = robotFeedback?.zoneId === zone.id;
-          const left = Math.min(zone.x, 76);
-          const identity = ZONE_IDENTITY[zone.id] ?? ZONE_IDENTITY_FALLBACK;
-          const cardBorder = zone.riskLevel === 'high' ? 'border-rose-400' : zone.riskLevel === 'medium' ? 'border-amber-400' : identity.border;
-          const cardShadow = zone.riskLevel === 'high' ? 'shadow-rose-200/50' : zone.riskLevel === 'medium' ? 'shadow-amber-200/50' : 'shadow-slate-200/30';
-          const scoreColor = zone.riskLevel === 'high' ? 'text-rose-600' : zone.riskLevel === 'medium' ? 'text-amber-600' : 'text-emerald-600';
-          const riskDot = zone.riskLevel === 'high' ? 'bg-rose-500' : zone.riskLevel === 'medium' ? 'bg-amber-500' : identity.dot;
-          const isExpanded = expandedZoneId === zone.id;
-          return (
-            <button
-              key={zone.id}
-              onClick={() => {
-                onSelectZone(zone);
-                setExpandedZoneId(isExpanded ? null : zone.id);
-              }}
-              className={`campus-zone-card absolute w-32 rounded-2xl border-2 p-2.5 text-left shadow-xl backdrop-blur-sm transition hover:shadow-2xl sm:w-44 sm:p-3 ${identity.bg} ${cardBorder} ${cardShadow} ${selected ? 'ring-2 ring-teal-500 ring-offset-1' : ''} ${dispatching ? 'zone-dispatch-pulse' : ''} ${isExpanded ? 'z-35' : 'z-20'}`}
-              style={{left: `${left}%`, top: `${zone.y}%`}}
-            >
-              <div className="flex items-start justify-between gap-1">
-                <span className="text-base leading-none">{ZONE_EMOJI[zone.id] ?? '📍'}</span>
-                <div className="flex items-center gap-1">
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${riskDot} shadow-sm`} />
-                  <span className="text-[9px] text-slate-400 leading-none">{isExpanded ? '▲' : '▼'}</span>
-                </div>
-              </div>
-              <p className="mt-1.5 text-xs font-black leading-tight text-slate-800">{zone.name}</p>
-              <div className="mt-2 flex items-end justify-between gap-1">
-                <span className={`text-2xl font-black leading-none ${scoreColor}`}>{zone.riskScore}</span>
-                <span className="text-[10px] font-semibold text-slate-500 leading-tight">
-                  {dispatching ? '派遣中' : zone.riskLevel === 'low' ? '安全' : zone.riskLevel === 'medium' ? '注意' : '危險'}
-                </span>
-              </div>
-              <AnimatePresence>
-                {isExpanded && (
-                  <motion.div
-                    initial={{height: 0, opacity: 0}}
-                    animate={{height: 'auto', opacity: 1}}
-                    exit={{height: 0, opacity: 0}}
-                    transition={{duration: 0.18}}
-                    className="overflow-hidden"
-                  >
-                    <div className="mt-2 space-y-1 border-t border-slate-200/80 pt-2">
-                      {zone.sensor?.connected ? (
-                        <>
-                          <div className="flex items-center gap-1 text-[10px] tabular-nums text-slate-700">
-                            <Thermometer className="h-3 w-3 shrink-0 text-rose-400" />
-                            <span>{zone.sensor.temp !== null ? zone.sensor.temp.toFixed(1) : '--'}°C</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-[10px] tabular-nums text-slate-700">
-                            <Droplets className="h-3 w-3 shrink-0 text-blue-400" />
-                            <span>{zone.sensor.hum !== null ? zone.sensor.hum : '--'}%</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-[10px] tabular-nums text-slate-500">
-                            <Sun className="h-3 w-3 shrink-0 text-amber-400" />
-                            <span>光 {zone.sensor.light !== null ? zone.sensor.light : '--'}</span>
-                          </div>
-                        </>
-                      ) : (
-                        <p className="text-[10px] italic text-slate-400">感測器未連線</p>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </button>
-          );
-        })}
         <div className="absolute bottom-3 left-3 right-3 z-30 rounded-2xl border border-white/60 bg-white/88 p-3 shadow-xl shadow-slate-300/30 backdrop-blur-md">
           <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-center">
             <div>
               <p className="text-xs font-black text-slate-500">選取區域</p>
-              <p className="font-black text-slate-950">{selectedZone.name} · 風險 {selectedZone.riskScore}</p>
+              <p className="font-black text-slate-950">{selectedZone.name} · {getRiskStatusLabel(selectedZone.riskLevel)}</p>
             </div>
             <StatusChip level={selectedZone.riskLevel} />
             <button
               onClick={() => onDispatchRobot(selectedZone)}
-              disabled={selectedZone.riskLevel === 'low' || activeDispatch}
+              disabled={selectedZone.riskLevel === 'low' || activeDispatch || mapLocked}
               className={`min-h-10 rounded-xl px-4 text-xs font-black text-white transition active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed ${activeDispatch ? 'bg-emerald-600 ring-4 ring-emerald-100' : 'bg-teal-600 hover:bg-teal-700'}`}
             >
-              {selectedZone.riskLevel === 'low' ? '維持巡查' : activeDispatch ? robotFeedback?.stage : '派遣'}
+              {mapLocked ? '移動中' : selectedZone.riskLevel === 'low' ? '維持巡查' : activeDispatch ? robotFeedback?.stage : '派遣'}
             </button>
           </div>
           {activeDispatch && (
@@ -1021,7 +1420,325 @@ function CampusMap2D({
           <DispatchProgress stage={activeDispatch ? robotFeedback?.stage : undefined} connected={activeDispatch} className="mt-3" compact />
         </div>
       </div>
+      <AnimatePresence>
+        {robotTravel && (
+          <motion.div
+            className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-[3px]"
+            initial={{opacity: 0}}
+            animate={{opacity: 1}}
+            exit={{opacity: 0}}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <motion.div
+              key={robotTravel.startedAt}
+              className="w-full max-w-xl overflow-hidden rounded-2xl border border-white/70 bg-white/95 shadow-2xl shadow-slate-950/25"
+              initial={{y: 14, scale: 0.98}}
+              animate={{y: 0, scale: 1}}
+              exit={{y: 14, scale: 0.98}}
+            >
+              <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                <div>
+                  <p className="text-[10px] font-black tracking-widest text-teal-600 uppercase">Robot Dispatch</p>
+                  <h4 className="mt-0.5 text-2xl font-black text-slate-950">移動中</h4>
+                </div>
+                <span className="rounded-full px-3 py-1 text-xs font-black text-white shadow-sm" style={{background: travelColor}}>
+                  地圖鎖定
+                </span>
+              </div>
+              <div className="p-4">
+                <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-[10px] font-black text-slate-400">出發</p>
+                    <p className="mt-1 truncate text-lg font-black text-slate-900">{robotTravel.from.name}</p>
+                    <p className="truncate text-xs font-bold text-slate-500">{robotTravel.from.location}</p>
+                  </div>
+                  <div className="hidden h-px w-10 bg-slate-200 sm:block" />
+                  <div className="rounded-xl border p-3" style={{borderColor: `${travelColor}55`, background: `${travelColor}10`}}>
+                    <p className="text-[10px] font-black text-slate-400">目的地</p>
+                    <p className="mt-1 truncate text-lg font-black" style={{color: travelColor}}>{robotTravel.to.name}</p>
+                    <p className="truncate text-xs font-bold text-slate-500">{robotTravel.to.location}</p>
+                  </div>
+                </div>
+                <div className="relative mt-4 h-24 overflow-hidden rounded-2xl border border-slate-200 bg-linear-to-br from-slate-50 to-white">
+                  <svg className="absolute inset-0 h-full w-full" viewBox="0 0 360 90" preserveAspectRatio="none" aria-hidden="true">
+                    <motion.path
+                      d="M28 52 C105 8 238 8 332 52"
+                      fill="none"
+                      stroke={travelColor}
+                      strokeWidth="5"
+                      strokeLinecap="round"
+                      strokeDasharray="10 12"
+                      initial={{pathLength: 0, opacity: 0.45}}
+                      animate={{pathLength: 1, opacity: 0.9}}
+                      transition={{duration: robotTravel.durationMs / 1000, ease: 'linear'}}
+                    />
+                  </svg>
+                  <span className="absolute left-[8%] top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full ring-4 ring-white" style={{background: travelColor}} />
+                  <span className="absolute left-[92%] top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full ring-4 ring-white" style={{background: travelColor}} />
+                  <motion.div
+                    className="absolute top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl text-white shadow-xl"
+                    style={{background: travelColor, boxShadow: `0 18px 34px -16px ${travelColor}`}}
+                    initial={{left: '8%'}}
+                    animate={{left: '92%'}}
+                    transition={{duration: robotTravel.durationMs / 1000, ease: [0.34, 0.9, 0.23, 1]}}
+                  >
+                    <Bot className="h-6 w-6" />
+                  </motion.div>
+                </div>
+                <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{background: travelColor}}
+                    initial={{width: '0%'}}
+                    animate={{width: '100%'}}
+                    transition={{duration: robotTravel.durationMs / 1000, ease: 'linear'}}
+                  />
+                </div>
+                <p className="mt-3 text-center text-xs font-bold text-slate-500">移動期間暫停地圖選取與派遣操作，預計 5 秒抵達。</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Surface>
+  );
+}
+
+function ZoneStatusBar({
+  zones,
+  selectedZoneId,
+  robotFeedback,
+  zoneAssessments,
+  onSelectZone,
+  onOpenZoneInsight,
+}: {
+  zones: SchoolZoneStatus[];
+  selectedZoneId: string;
+  robotFeedback: RobotDispatchFeedback;
+  zoneAssessments: Record<string, ZoneInsightAssessment>;
+  onSelectZone: (zone: SchoolZoneStatus) => void;
+  onOpenZoneInsight: (zone: SchoolZoneStatus) => void;
+}) {
+  return (
+    <div className="mb-3 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+      <div className="flex flex-col gap-2 border-b border-slate-100 bg-slate-50/80 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-[10px] font-black tracking-widest text-teal-600 uppercase">AI 區域燈號</p>
+          <p className="text-xs font-bold text-slate-500">點選卡片查看 LLM 判讀與建議處置</p>
+        </div>
+        <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black text-slate-500 ring-1 ring-slate-200">
+          感測器數值優先
+        </span>
+      </div>
+      <div className="p-2">
+      <div className="grid gap-2 md:grid-cols-3">
+        {zones.map((zone) => {
+          const selected = zone.id === selectedZoneId;
+          const dispatching = robotFeedback?.zoneId === zone.id;
+          const identity = ZONE_IDENTITY[zone.id] ?? ZONE_IDENTITY_FALLBACK;
+          const assessment = zoneAssessments[zone.id];
+          const cardBorder = zone.riskLevel === 'high' ? 'border-rose-300' : zone.riskLevel === 'medium' ? 'border-amber-300' : 'border-emerald-300';
+          const tone = getRiskStatusTone(zone.riskLevel);
+          const statusLabel = dispatching ? '派遣中' : getRiskStatusLabel(zone.riskLevel);
+          const sensor = zone.sensor;
+          const sourceLabel = !assessment ? '待判讀' : assessment.source === 'fallback' ? '備援規則' : 'LLM 判讀';
+
+          return (
+            <button
+              key={zone.id}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => {
+                onSelectZone(zone);
+                onOpenZoneInsight(zone);
+              }}
+              className={`group relative min-h-32 overflow-hidden rounded-xl border-2 bg-white px-3 py-3 text-left transition hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.99] ${cardBorder} ${selected ? 'ring-2 ring-teal-500 ring-offset-1 ring-offset-slate-50' : ''} ${dispatching ? 'zone-dispatch-pulse' : ''}`}
+            >
+              <span className={`absolute inset-x-0 top-0 h-1 ${tone.bar}`} />
+              <span className={`absolute -right-12 -top-12 h-28 w-28 rounded-full opacity-25 blur-xl ${tone.dot}`} />
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${identity.bg} text-lg leading-none ring-1 ring-white/70`}>{ZONE_EMOJI[zone.id] ?? '📍'}</span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black leading-tight text-slate-900">{zone.name}</p>
+                    <p className="mt-0.5 text-[10px] font-bold text-slate-500">{zone.location}</p>
+                  </div>
+                </div>
+                <span className="flex shrink-0 items-center gap-1 rounded-full bg-white/75 px-2 py-1 text-[10px] font-black text-slate-600 ring-1 ring-slate-200/70">
+                  <span className={`h-2 w-2 rounded-full ${dispatching ? identity.dot : tone.dot}`} />
+                  AI 判讀
+                </span>
+              </div>
+
+              <div className="mt-3 grid gap-2 sm:grid-cols-[0.9fr_1.1fr] sm:items-stretch">
+                <div className={`flex min-h-16 flex-col justify-center rounded-xl border px-3 py-2 ${tone.panel}`}>
+                  <div className="flex items-center gap-2">
+                    <span className={`h-3 w-3 rounded-full ${tone.dot}`} />
+                    <p className={`text-lg font-black leading-tight ${tone.text}`}>{statusLabel}</p>
+                  </div>
+                  <p className="mt-1 text-[10px] font-black text-slate-500">依 LLM 對感測器數值判斷</p>
+                  <p className="mt-1 text-[10px] font-black text-slate-400">{sourceLabel}</p>
+                </div>
+                <div className="grid min-w-0 flex-1 grid-cols-3 gap-1.5 text-[10px] font-black text-slate-600">
+                  <span className="flex min-h-8 items-center justify-center gap-1 rounded-lg bg-white/65 px-1 tabular-nums">
+                    <Thermometer className="h-3 w-3 shrink-0 text-rose-400" />
+                    {sensor?.connected && sensor.temp !== null ? sensor.temp.toFixed(1) : '--'}°
+                  </span>
+                  <span className="flex min-h-8 items-center justify-center gap-1 rounded-lg bg-white/65 px-1 tabular-nums">
+                    <Droplets className="h-3 w-3 shrink-0 text-blue-400" />
+                    {sensor?.connected && sensor.hum !== null ? Math.round(sensor.hum) : '--'}%
+                  </span>
+                  <span className="flex min-h-8 items-center justify-center gap-1 rounded-lg bg-white/65 px-1 tabular-nums">
+                    <Sun className="h-3 w-3 shrink-0 text-amber-400" />
+                    {sensor?.connected && sensor.light !== null ? sensor.light : '--'}
+                  </span>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      </div>
+    </div>
+  );
+}
+
+function ZoneInsightDialog({
+  insight,
+  onRefresh,
+  onClose,
+}: {
+  insight: NonNullable<ZoneInsightDialogState>;
+  onRefresh: (zone: SchoolZoneStatus) => void;
+  onClose: () => void;
+}) {
+  const {zone, loading, result, error} = insight;
+  const displayLevel = normalizeRiskLevel(result?.riskLevel ?? zone.riskLevel);
+  const tone = getRiskStatusTone(displayLevel);
+  const sensor = zone.sensor;
+  const situations = result?.situations?.length ? result.situations : ['正在整理此區域可能發生的狀況。'];
+  const suggestions = result?.suggestions?.length ? result.suggestions : ['請先依區域燈號與現場回報處理。'];
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm"
+      initial={{opacity: 0}}
+      animate={{opacity: 1}}
+      exit={{opacity: 0}}
+      onClick={onClose}
+    >
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="zone-insight-title"
+        className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/20"
+        initial={{opacity: 0, y: 18, scale: 0.98}}
+        animate={{opacity: 1, y: 0, scale: 1}}
+        exit={{opacity: 0, y: 18, scale: 0.98}}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className={`h-1.5 ${tone.bar}`} />
+        <div className="p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-black tracking-wide text-teal-600">Gemma 區域判讀</p>
+              <h3 id="zone-insight-title" className="mt-1 text-2xl font-black text-slate-950">{zone.name}</h3>
+              <p className="mt-1 text-sm font-bold text-slate-500">{zone.location}</p>
+            </div>
+            <button
+              onClick={onClose}
+              aria-label="關閉區域判讀"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1.4fr]">
+            <div className={`rounded-2xl border p-4 ${tone.panel}`}>
+              <p className="text-[10px] font-black tracking-widest text-slate-500 uppercase">目前狀態</p>
+              <div className="mt-3 flex items-center gap-3">
+                <span className={`h-5 w-5 rounded-full ${tone.dot}`} />
+                <span className={`text-3xl font-black ${tone.text}`}>{result?.statusLabel || getRiskStatusLabel(displayLevel)}</span>
+              </div>
+              <p className="mt-2 text-xs font-bold text-slate-500">燈號由 LLM 依感測器數值判斷；沒有回應時使用本機備援規則。</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <SensorMiniStat icon={Thermometer} label="溫度" value={sensor?.connected && sensor.temp !== null ? `${sensor.temp.toFixed(1)}°C` : '--'} tone="text-rose-500" />
+              <SensorMiniStat icon={Droplets} label="濕度" value={sensor?.connected && sensor.hum !== null ? `${Math.round(sensor.hum)}%` : '--'} tone="text-blue-500" />
+              <SensorMiniStat icon={Sun} label="光照" value={sensor?.connected && sensor.light !== null ? sensor.light.toString() : '--'} tone="text-amber-500" />
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-black text-slate-500">LLM 設定</p>
+              <p className="mt-1 text-xs font-bold text-slate-400">API key、URL、model 只從 `zone_advisor.py` 或環境變數讀取。</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onRefresh(zone)}
+              className="flex min-h-10 items-center justify-center gap-2 rounded-xl bg-teal-600 px-3 text-xs font-black text-white shadow-sm shadow-teal-200 transition hover:bg-teal-700"
+            >
+              <RefreshCw className="h-4 w-4" />
+              重新判讀
+            </button>
+          </div>
+
+          <div className="mt-4 rounded-2xl bg-slate-50 p-4">
+            {loading ? (
+              <div className="flex min-h-36 flex-col items-center justify-center gap-3 text-slate-500">
+                <RefreshCw className="h-6 w-6 animate-spin text-teal-600" />
+                <p className="text-sm font-black">正在請 Gemma 判讀區域狀況...</p>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                <div>
+                  <p className="text-xs font-black text-slate-400">判讀摘要</p>
+                  <p className="mt-1 text-sm font-bold leading-6 text-slate-800">{result?.summary || error || '目前沒有可用的 AI 判讀內容。'}</p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <InsightList title="可能狀況" items={situations} toneDot={tone.dot} />
+                  <InsightList title="建議處置" items={suggestions} toneDot="bg-teal-500" />
+                </div>
+                <p className="text-[10px] font-bold text-slate-400">
+                  來源：{result?.source === 'ollama-gemma' ? `Ollama / ${result.model ?? 'Gemma'}` : result?.source === 'cloud-gemma' ? `Cloud / ${result.model ?? 'Gemma'}` : '本機備援判讀'}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function SensorMiniStat({icon: Icon, label, value, tone}: {icon: LucideIcon; label: string; value: string; tone: string}) {
+  return (
+    <div className="flex min-h-24 flex-col justify-between rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[10px] font-black text-slate-400">{label}</p>
+        <Icon className={`h-4 w-4 ${tone}`} />
+      </div>
+      <p className="text-xl font-black text-slate-950 tabular-nums">{value}</p>
+    </div>
+  );
+}
+
+function InsightList({title, items, toneDot}: {title: string; items: string[]; toneDot: string}) {
+  return (
+    <div>
+      <p className="text-xs font-black text-slate-400">{title}</p>
+      <div className="mt-2 grid gap-2">
+        {items.map((item, index) => (
+          <div key={`${title}-${index}`} className="flex gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold leading-5 text-slate-700 shadow-sm">
+            <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${toneDot}`} />
+            <span>{item}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -1087,7 +1804,7 @@ function RobotReadinessCard({state, robotFeedback}: {state: GuardianState; robot
 }
 
 function ZoneInspector({zone, robotFeedback, onDispatchRobot}: {zone: SchoolZoneStatus; robotFeedback: RobotDispatchFeedback; onDispatchRobot: (zone: SchoolZoneStatus) => void}) {
-  const riskTone = zone.riskLevel === 'high' ? 'bg-rose-500' : zone.riskLevel === 'medium' ? 'bg-amber-500' : 'bg-emerald-500';
+  const tone = getRiskStatusTone(zone.riskLevel);
   const activeDispatch = robotFeedback?.zoneId === zone.id;
   return (
     <Surface className="p-4">
@@ -1099,19 +1816,19 @@ function ZoneInspector({zone, robotFeedback, onDispatchRobot}: {zone: SchoolZone
         </div>
         <StatusChip level={zone.riskLevel} />
       </div>
-      <div className="mt-4">
-        <div className="flex items-center justify-between text-xs font-black text-slate-500">
-          <span>風險刻度</span>
-          <span>{zone.riskScore}/100</span>
-        </div>
-        <div className="mt-2 h-2 rounded-full bg-slate-100">
-          <div className={`h-full rounded-full ${riskTone}`} style={{width: `${zone.riskScore}%`}} />
+      <div className={`mt-4 overflow-hidden rounded-2xl border ${tone.panel}`}>
+        <div className={`h-1 ${tone.bar}`} />
+        <div className="flex items-center justify-between gap-3 p-4">
+          <div>
+            <p className="text-[10px] font-black tracking-widest text-slate-500 uppercase">LLM 燈號</p>
+            <p className={`mt-1 text-3xl font-black ${tone.text}`}>{getRiskStatusLabel(zone.riskLevel)}</p>
+          </div>
+          <span className={`h-6 w-6 rounded-full shadow-sm ${tone.dot}`} />
         </div>
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <MetricTile label="穩定" value={zone.stability} />
-        <MetricTile label="風險" value={zone.riskScore} />
-        <MetricTile label="聲量" value={zone.soundIndex} />
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        <MetricTile label="燈號" value={getRiskStatusLabel(zone.riskLevel)} />
+        <MetricTile label="感測" value={zone.sensor?.connected ? '在線' : '離線'} />
         <MetricTile label="提醒" value={zone.alertCount} />
       </div>
       {zone.sensor && <ZoneSensorPanel sensor={zone.sensor} />}
@@ -1617,7 +2334,7 @@ function SensingPanel({
           <button onClick={analyzeVisualFrame} disabled={!visualCameraReady || visualBusy} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-700 disabled:opacity-50">
             {visualBusy ? '判讀中' : '擷取判讀'}
           </button>
-          <button onClick={onCreateProactiveAlert} disabled={!!visualError && !visualCameraReady} className="rounded-xl bg-teal-600 px-3 py-3 text-xs font-black text-white disabled:opacity-50">
+          <button onClick={onCreateProactiveAlert} className="rounded-xl bg-teal-600 px-3 py-3 text-xs font-black text-white">
             建立關懷提醒
           </button>
         </div>
@@ -1867,7 +2584,7 @@ function NodesPanel({state, zones, robotFeedback, onRestartNode, onDispatchRobot
               <span>
                 <span className="block font-black text-slate-950">{zone.name}</span>
                 <span className="text-xs font-semibold text-slate-500">
-                  {robotFeedback?.zoneId === zone.id ? '派遣確認中' : zone.riskLevel === 'low' ? '維持巡查' : '可派遣'} · 風險 {zone.riskScore}
+                  {robotFeedback?.zoneId === zone.id ? '派遣確認中' : zone.riskLevel === 'low' ? '維持巡查' : '可派遣'} · {getRiskStatusLabel(zone.riskLevel)}
                 </span>
               </span>
               <span className="flex items-center gap-2">

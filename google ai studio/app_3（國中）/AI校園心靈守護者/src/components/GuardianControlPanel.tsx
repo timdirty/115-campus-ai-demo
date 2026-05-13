@@ -182,7 +182,7 @@ export function GuardianControlPanel({bridgeOnline, zones, sensors, state, onDis
         ok: result.ok,
         cmd,
         title: result.ok ? `底盤指令已接收：${cmd}` : '底盤指令已記錄',
-        detail: result.ok ? '四輪 L293D 底盤正在依照方向與速度移動。' : '展示模式：指令已記錄，接上機器人後自動執行。',
+        detail: result.ok ? '四輪 L293D 底盤正在依照方向與速度移動。' : result.message,
       });
     }
     return result;
@@ -236,7 +236,7 @@ export function GuardianControlPanel({bridgeOnline, zones, sensors, state, onDis
           : '目前使用展示備援模式，任務仍完整記錄。',
       });
     } catch {
-      setFeedback({ok: false, cmd, title: '展示模式已記錄', detail: '目前使用展示備援模式，任務仍完整記錄。'});
+      setFeedback({ok: false, cmd, title: '指令未送出', detail: '橋接伺服器未回應，請確認連線後再試。'});
     } finally {
       setBusy(false);
     }
@@ -255,14 +255,14 @@ export function GuardianControlPanel({bridgeOnline, zones, sensors, state, onDis
         <p className="mb-3 text-[11px] font-black uppercase tracking-widest text-slate-400">連線狀態</p>
         <div className="grid grid-cols-3 gap-2">
           {/* Bridge */}
-          <div className={`flex flex-col items-center gap-1.5 rounded-xl p-3 ${bridgeOnline ? 'bg-emerald-50' : 'bg-indigo-50'}`}>
-            <span className={`flex h-8 w-8 items-center justify-center rounded-full ${bridgeOnline ? 'bg-emerald-500' : 'bg-indigo-400'}`}>
+          <div className={`flex flex-col items-center gap-1.5 rounded-xl p-3 ${bridgeOnline ? 'bg-emerald-50' : 'bg-red-50'}`}>
+            <span className={`flex h-8 w-8 items-center justify-center rounded-full ${bridgeOnline ? 'bg-emerald-500' : 'bg-red-400'}`}>
               {bridgeOnline
                 ? <CheckCircle2 className="h-4 w-4 text-white" />
                 : <WifiOff className="h-4 w-4 text-white" />}
             </span>
-            <p className={`text-[10px] font-black ${bridgeOnline ? 'text-emerald-700' : 'text-indigo-600'}`}>
-              {bridgeOnline ? '橋接在線' : '展示模式'}
+            <p className={`text-[10px] font-black ${bridgeOnline ? 'text-emerald-700' : 'text-red-600'}`}>
+              {bridgeOnline ? '橋接在線' : '橋接離線'}
             </p>
           </div>
           {/* Sensor */}
@@ -520,7 +520,7 @@ export const BridgeStatusPill = memo(function BridgeStatusPill({online, sensorCo
         ? sensorCount > 0
           ? `感測器 ${sensorCount} 個在線`
           : '橋接已連線'
-        : '展示模式'}
+        : '橋接離線'}
     </div>
   );
 });
@@ -605,7 +605,7 @@ export function GuardianDriveDock({bridgeOnline}: {bridgeOnline: boolean}) {
       const label = DRIVE_LABELS[cmd] ?? (cmd.startsWith('SPEED:') ? '速度' : cmd);
       setLastResult({
         ok: result.ok,
-        text: result.ok ? `${label} 已送出` : '展示模式已回應',
+        text: result.ok ? `${label} 已送出` : result.message,
       });
     }
     return result;

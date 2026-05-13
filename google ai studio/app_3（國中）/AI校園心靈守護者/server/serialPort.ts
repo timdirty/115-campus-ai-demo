@@ -34,6 +34,7 @@ export interface BridgeTelemetry {
 
 const baudRate = 115200;
 const requestedPath = process.env.ARDUINO_PORT?.trim() || undefined;
+const maxSensorPorts = Math.max(1, Number(process.env.SENSOR_PORT_LIMIT ?? 3) || 3);
 
 const RECONNECT_MIN_MS = 500;
 const RECONNECT_MAX_MS = 8000;
@@ -46,6 +47,10 @@ let isOpening = false;
 let cleanupAttempted = false;
 let pendingSensorResolvers: Array<(value: SensorSnapshot) => void> = [];
 let lastSensorSnapshot: SensorSnapshot | null = null;
+
+const sensorPorts = new Map<string, SerialPort>();
+const sensorSnapshots = new Map<string, SensorSnapshot>();
+const pendingSensorResolversByPath = new Map<string, Array<(value: SensorSnapshot) => void>>();
 
 type ConnectionChangeHandler = (connected: boolean, path: string | null) => void;
 const connectionHandlers: ConnectionChangeHandler[] = [];
@@ -84,10 +89,15 @@ export function isArduinoLikePort(port: PortInfo) {
   return text.includes('arduino') || text.includes('usbmodem') || text.includes('uno');
 }
 
+export async function listSensorPorts(): Promise<PortInfo[]> {
+  const ports = await listPorts();
+  return ports.filter(isArduinoLikePort).slice(0, maxSensorPorts);
+}
+
 async function pickPortPath(): Promise<string | null> {
   if (requestedPath) return requestedPath;
-  const ports = await listPorts();
-  const match = ports.find(isArduinoLikePort);
+  const ports = await listSensorPorts();
+  const match = ports[0];
   return match?.path ?? null;
 }
 
@@ -101,6 +111,16 @@ export function isConnected(): boolean {
 
 export function getLastSensorSnapshot(): SensorSnapshot | null {
   return lastSensorSnapshot;
+}
+
+export function getSensorSnapshot(portPath: string): SensorSnapshot | null {
+  if (portPath === activePath) return lastSensorSnapshot;
+  return sensorSnapshots.get(portPath) ?? null;
+}
+
+export function isSensorPortConnected(portPath: string): boolean {
+  if (portPath === activePath) return isConnected();
+  return Boolean(sensorPorts.get(portPath)?.isOpen);
 }
 
 export function getTelemetry(): BridgeTelemetry {
@@ -184,6 +204,42 @@ function attachListeners(port: SerialPort, parser: ReadlineParser) {
   });
 }
 
+function resolveSensorPathSnapshot(portPath: string, snapshot: SensorSnapshot) {
+  sensorSnapshots.set(portPath, snapshot);
+  const resolvers = pendingSensorResolversByPath.get(portPath) ?? [];
+  pendingSensorResolversByPath.delete(portPath);
+  for (const resolve of resolvers) resolve(snapshot);
+}
+
+function attachSensorPortListeners(portPath: string, port: SerialPort, parser: ReadlineParser) {
+  parser.on('data', (raw: string) => {
+    const line = raw.toString().trim();
+    if (!line) return;
+    process.stdout.write(`[sensor:${portPath}] ${line}\n`);
+    const snapshot = parseSensorLine(line);
+    if (snapshot) resolveSensorPathSnapshot(portPath, snapshot);
+  });
+
+  const markDisconnected = () => {
+    if (sensorPorts.get(portPath) === port) {
+      sensorPorts.delete(portPath);
+      const nullSnap: SensorSnapshot = {temp: null, hum: null, light: null, receivedAt: new Date().toISOString()};
+      resolveSensorPathSnapshot(portPath, nullSnap);
+    }
+  };
+
+  port.on('close', markDisconnected);
+  port.on('error', (error) => {
+    console.error(`[sensor:${portPath}] port error: ${error.message}`);
+    markDisconnected();
+    try {
+      port.close(() => {});
+    } catch {
+      // ignore
+    }
+  });
+}
+
 function killPortHolders(portPath: string): boolean {
   try {
     const pids = execSync(`lsof -ti "${portPath}" 2>/dev/null`, {encoding: 'utf8'}).trim();
@@ -204,6 +260,43 @@ async function openPortOnce(portPath: string): Promise<SerialPort> {
   const parser = port.pipe(new ReadlineParser({delimiter: '\n'}));
   attachListeners(port, parser);
   return port;
+}
+
+async function openSensorPortOnce(portPath: string): Promise<SerialPort> {
+  const port = new SerialPort({path: portPath, baudRate, autoOpen: false});
+  await new Promise<void>((resolve, reject) => {
+    port.open((error) => (error ? reject(error) : resolve()));
+  });
+  const parser = port.pipe(new ReadlineParser({delimiter: '\n'}));
+  attachSensorPortListeners(portPath, port, parser);
+  return port;
+}
+
+async function openSensorPort(portPath: string): Promise<SerialPort | null> {
+  if (portPath === activePath && activePort?.isOpen) return activePort;
+
+  const existing = sensorPorts.get(portPath);
+  if (existing?.isOpen) return existing;
+
+  try {
+    const port = await openSensorPortOnce(portPath);
+    sensorPorts.set(portPath, port);
+    return port;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/resource busy|cannot lock|in use/i.test(message) && killPortHolders(portPath)) {
+      try {
+        const port = await openSensorPortOnce(portPath);
+        sensorPorts.set(portPath, port);
+        return port;
+      } catch {
+        // fall through to disconnected snapshot
+      }
+    }
+    const nullSnap: SensorSnapshot = {temp: null, hum: null, light: null, receivedAt: new Date().toISOString()};
+    resolveSensorPathSnapshot(portPath, nullSnap);
+    return null;
+  }
 }
 
 async function openPort(): Promise<SerialPort | null> {
@@ -282,6 +375,40 @@ export async function sendCommand(command: string): Promise<{ok: boolean; messag
   }
 }
 
+export async function sendSensorCommand(portPath: string, command: string): Promise<{ok: boolean; message: string}> {
+  const normalized = command.trim().toUpperCase();
+  if (!normalized) return {ok: false, message: 'command required'};
+
+  if (process.env.DEMO_SIMULATE_HARDWARE === '1') {
+    return {ok: true, message: `[SIM:${portPath}] ${normalized}`};
+  }
+
+  try {
+    if (portPath === activePath) {
+      return sendCommand(normalized);
+    }
+
+    const port = await openSensorPort(portPath);
+    if (!port?.isOpen) {
+      return {ok: false, message: `sensor port unavailable: ${portPath}`};
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      port.write(`${normalized}\n`, (error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        port.drain((drainError) => drainError ? reject(drainError) : resolve());
+      });
+    });
+
+    return {ok: true, message: `Sent ${normalized} to ${portPath}`};
+  } catch (error) {
+    return {ok: false, message: error instanceof Error ? error.message : String(error)};
+  }
+}
+
 export async function requestSensorRead(timeoutMs = 1500): Promise<SensorSnapshot | null> {
   if (process.env.DEMO_SIMULATE_HARDWARE === '1') {
     return {temp: 25.5, hum: 60, light: 512, receivedAt: new Date().toISOString()};
@@ -301,6 +428,49 @@ export async function requestSensorRead(timeoutMs = 1500): Promise<SensorSnapsho
     deferred,
     new Promise<SensorSnapshot | null>((resolve) => setTimeout(() => resolve(lastSensorSnapshot), timeoutMs)),
   ]);
+}
+
+export async function requestSensorReadForPort(portPath: string, timeoutMs = 1500): Promise<SensorSnapshot | null> {
+  if (process.env.DEMO_SIMULATE_HARDWARE === '1') {
+    const hash = Array.from(portPath).reduce((total, char) => total + char.charCodeAt(0), 0);
+    return {
+      temp: 24 + (hash % 45) / 10,
+      hum: 45 + (hash % 30),
+      light: 420 + (hash % 480),
+      receivedAt: new Date().toISOString(),
+    };
+  }
+
+  if (portPath === activePath) {
+    return requestSensorRead(timeoutMs);
+  }
+
+  const port = await openSensorPort(portPath);
+  if (!port) return sensorSnapshots.get(portPath) ?? null;
+
+  const deferred = new Promise<SensorSnapshot>((resolve) => {
+    const resolvers = pendingSensorResolversByPath.get(portPath) ?? [];
+    resolvers.push(resolve);
+    pendingSensorResolversByPath.set(portPath, resolvers);
+  });
+
+  await new Promise<void>((resolve) => {
+    port.write('READ_SENSORS\n', () => resolve());
+  });
+
+  return Promise.race([
+    deferred,
+    new Promise<SensorSnapshot | null>((resolve) => setTimeout(() => resolve(sensorSnapshots.get(portPath) ?? null), timeoutMs)),
+  ]);
+}
+
+export async function requestAllSensorReads(timeoutMs = 1500): Promise<Map<string, SensorSnapshot | null>> {
+  const ports = await listSensorPorts();
+  const entries = await Promise.all(ports.map(async (port) => {
+    const snapshot = await requestSensorReadForPort(port.path, timeoutMs).catch(() => null);
+    return [port.path, snapshot] as const;
+  }));
+  return new Map(entries);
 }
 
 export async function tryAutoOpen(): Promise<boolean> {

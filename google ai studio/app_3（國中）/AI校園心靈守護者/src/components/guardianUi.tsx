@@ -1,8 +1,9 @@
-import {memo} from 'react';
+import {memo, useEffect, useMemo, useState} from 'react';
 import type {Dispatch} from 'react';
 import {AlertCircle, CheckCircle2, Sparkles} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
 import {GuardianAlert, GuardianNode} from '../types';
+import {fetchAlertCareRecommendation} from '../services/hardwareBridge';
 import {recommendationForAlert} from '../services/localGuardianAi';
 
 export const MetricCard = memo(function MetricCard({label, value, tone}: {label: string; value: string; tone: string}) {
@@ -31,6 +32,36 @@ export const AlertRow = memo(function AlertRow({alert, onOpen}: {key?: unknown; 
 });
 
 export function AlertDetail({alert, dispatch, onHardwareCommand}: {alert: GuardianAlert; dispatch: Dispatch<any>; onHardwareCommand?: (command: string, source: string) => void}) {
+  const fallbackRecommendation = useMemo(() => recommendationForAlert(alert), [alert]);
+  const [careAdvice, setCareAdvice] = useState<{reply: string; source: string; loading: boolean}>({
+    reply: fallbackRecommendation,
+    source: 'local',
+    loading: true,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    setCareAdvice({reply: fallbackRecommendation, source: 'local', loading: true});
+    fetchAlertCareRecommendation(alert).then((result) => {
+      if (cancelled) return;
+      setCareAdvice({
+        reply: result.reply || fallbackRecommendation,
+        source: result.reply ? result.source : 'local',
+        loading: false,
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [alert, fallbackRecommendation]);
+
+  const adviceSourceLabel = careAdvice.loading
+    ? 'LLM 產生中'
+    : careAdvice.source !== 'local' && careAdvice.source !== 'fallback' && careAdvice.source !== 'timeout'
+      ? 'LLM 建議'
+      : '本機備援';
+  const isLlmAdvice = !careAdvice.loading && careAdvice.source !== 'local' && careAdvice.source !== 'fallback' && careAdvice.source !== 'timeout';
+
   return (
     <div className="mt-5 space-y-4">
       <div className="rounded-xl bg-slate-50 p-5">
@@ -43,11 +74,16 @@ export function AlertDetail({alert, dispatch, onHardwareCommand}: {alert: Guardi
       </div>
 
       <div className="rounded-xl border border-teal-100 bg-teal-50 p-5">
-        <div className="flex items-center gap-2 text-teal-800">
-          <Sparkles className="h-5 w-5" />
-          <p className="font-black">AI 關懷建議</p>
+        <div className="flex flex-wrap items-center justify-between gap-2 text-teal-800">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5" />
+            <p className="font-black">AI 關懷建議</p>
+          </div>
+          <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ring-1 ${careAdvice.loading ? 'bg-white text-teal-700 ring-teal-100' : isLlmAdvice ? 'bg-teal-600 text-white ring-teal-500' : 'bg-white text-slate-500 ring-slate-200'}`}>
+            {adviceSourceLabel}
+          </span>
         </div>
-        <p className="mt-3 text-sm font-semibold leading-7 text-teal-900">{recommendationForAlert(alert)}</p>
+        <p className="mt-3 text-sm font-semibold leading-7 text-teal-900">{careAdvice.reply}</p>
       </div>
 
       <div className="space-y-2">
@@ -140,4 +176,3 @@ export const TabButton = memo(function TabButton({active, icon: Icon, label, onC
     </button>
   );
 });
-

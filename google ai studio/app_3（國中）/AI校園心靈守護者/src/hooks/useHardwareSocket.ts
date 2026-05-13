@@ -48,10 +48,11 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
       const t = setTimeout(() => ctrl.abort(), 2500);
       fetch(`${bridgeBaseUrl}/api/health`, {signal: ctrl.signal})
         .then((r) => (r.ok ? r.json() : Promise.reject()))
-        .then((data: {arduinoConnected?: boolean; activePath?: string}) => {
+        .then((data: {arduinoConnected?: boolean; activePath?: string; connectedSensorCount?: number}) => {
           clearTimeout(t);
           if (!mountedRef.current) return;
-          setStatus((s) => ({...s, connected: Boolean(data.arduinoConnected), port: data.activePath ?? '', mode: 'polling', reconnecting: false}));
+          const connected = Boolean(data.arduinoConnected) || (data.connectedSensorCount ?? 0) > 0;
+          setStatus((s) => ({...s, connected, port: data.activePath ?? '', mode: 'polling', reconnecting: false}));
         })
         .catch(() => {
           clearTimeout(t);

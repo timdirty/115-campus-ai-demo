@@ -98,6 +98,9 @@ export function SensorSetupModal({ports, sensors, onClose, onChanged}: Props) {
   };
 
   const sensorFor = (zoneId: string) => sensors.find((s) => s.zoneId === zoneId);
+  const sensorForPort = (port: DetectedPort) =>
+    sensors.find((s) => s.portPath === port.path) ??
+    (port.assignedZone ? sensorFor(port.assignedZone) : undefined);
 
   const allAssigned = ports.length > 0 && ports.every((p) => p.assignedZone);
 
@@ -165,7 +168,7 @@ export function SensorSetupModal({ports, sensors, onClose, onChanged}: Props) {
                     const isSelected = port.path === selectedPath;
                     const isBusy = busyPath === port.path;
                     const zoneMeta = ZONES.find((z) => z.id === port.assignedZone);
-                    const sensor = sensorFor(port.assignedZone ?? '');
+                    const sensor = sensorForPort(port);
 
                     return (
                       <button

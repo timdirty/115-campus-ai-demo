@@ -8,18 +8,29 @@ import {createInitialGuardianState, guardianReducer, normalizeGuardianState} fro
 async function run() {
   const initial = createInitialGuardianState();
   assert.equal(initial.privacyMode, true);
-  assert.ok(initial.alerts.length >= 3);
+  assert.equal(initial.alerts.length, 0);
   assert.ok(initial.nodes.some((node) => node.status === 'offline'));
   assert.ok(initial.hardwareEvents.some((event) => event.command === 'SYSTEM_READY'));
   assert.ok(initial.acousticSignals.some((signal) => signal.source === 'demo'));
   assert.ok(initial.robotMissions.some((mission) => mission.zoneName === '圖書館'));
 
-  const mooded = guardianReducer(initial, {
+  const seeded = guardianReducer(initial, {
+    type: 'CREATE_CONTEXT_ALERT',
+    payload: {
+      location: '圖書館',
+      type: '測試關懷提醒',
+      description: '測試用提醒，確認 checklist 與狀態流程。',
+      riskLevel: 'medium',
+      category: '測試',
+    },
+  });
+
+  const mooded = guardianReducer(seeded, {
     type: 'ADD_MOOD',
     payload: {mood: 'worried', label: '有點擔心', note: '考前壓力'},
   });
   assert.equal(mooded.moodLogs[0].mood, 'worried');
-  assert.ok(mooded.stabilityScore < initial.stabilityScore);
+  assert.ok(mooded.stabilityScore < seeded.stabilityScore);
 
   const alert = mooded.alerts.find((item) => item.status === 'new');
   assert.ok(alert, 'fixture should include a new alert');
@@ -134,7 +145,7 @@ async function run() {
   assert.equal(partiallyRecovered.stabilityScore, 100);
   assert.equal(partiallyRecovered.alerts.length, 1);
   assert.equal(partiallyRecovered.alerts[0].id, 'custom-alert');
-  assert.equal(partiallyRecovered.alerts[0].riskLevel, initial.alerts[1].riskLevel);
+  assert.equal(partiallyRecovered.alerts[0].riskLevel, 'medium');
   assert.equal(partiallyRecovered.alerts[0].checklist[0].id, 'custom-check');
   assert.equal(partiallyRecovered.nodes.length, 1);
   assert.equal(partiallyRecovered.nodes[0].status, initial.nodes[1].status);

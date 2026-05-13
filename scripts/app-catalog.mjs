@@ -310,6 +310,8 @@ export const apps = [
     path: 'google ai studio/app_3（國中）/AI校園心靈守護者',
     guide: 'google ai studio/app_3（國中）/AI校園心靈守護者/STUDENT_DEMO_GUIDE.md',
     opsGuide: 'google ai studio/app_3（國中）/AI校園心靈守護者/DEMO_OPERATIONS_GUIDE.md',
+    manualPdf: 'app3/app3-operation-guide.pdf',
+    manualLabel: '操作說明 PDF',
     desc: '匿名關懷、預警處理、自我照護、聊天與節點監控。',
     accent: '#0f766e',
     flow: ['看總覽', '處理提醒', '自我照護'],

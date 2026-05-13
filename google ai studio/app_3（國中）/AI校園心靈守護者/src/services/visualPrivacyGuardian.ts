@@ -74,7 +74,7 @@ export function analyzePrivacyFrame(width: number, height: number, data: Uint8Cl
       level: 'watch',
       label: '持續觀察',
       score: riskScore,
-      summary: '場域有活動變化，建議保留低解析度環境紀錄並搭配聲量訊號判斷。',
+      summary: '場域有活動變化，建議保留低解析度環境紀錄並搭配現場巡查確認。',
       evidence: [...evidence, '隱私保護模式'],
       quality,
       metrics,

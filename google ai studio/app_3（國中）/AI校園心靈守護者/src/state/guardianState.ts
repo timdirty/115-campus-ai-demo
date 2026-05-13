@@ -43,6 +43,7 @@ export type GuardianAction =
   | {type: 'RECORD_ACOUSTIC_SIGNAL'; payload: Omit<AcousticSignal, 'id' | 'createdAt'>}
   | {type: 'CREATE_ACOUSTIC_ALERT'; payload: Omit<AcousticSignal, 'id' | 'createdAt' | 'source'>}
   | {type: 'CREATE_PROACTIVE_ALERT'; payload: {location: string; title: string; description: string; riskLevel: RiskLevel; score: number}}
+  | {type: 'CREATE_CONTEXT_ALERT'; payload: {location: string; type: string; description: string; riskLevel: Exclude<RiskLevel, 'low'>; category: string; studentAlias?: string; className?: string}}
   | {type: 'DISPATCH_ROBOT'; payload: {zoneName: string; riskScore: number; command: string}}
   | {type: 'UPDATE_ROBOT_MISSION_STATUS'; payload: {zoneName: string; status: RobotMission['status']}}
   | {type: 'RESTORE_DEMO_STATE'; payload: {state: GuardianState}}
@@ -162,7 +163,7 @@ export function createInitialGuardianState(): GuardianState {
     stabilityScore: 78,
     teacherWellbeingScore: 82,
     privacyMode: true,
-    alerts,
+    alerts: [],
     nodes,
     moodLogs: [
       {id: 'mood-1', mood: 'steady', label: '還可以', note: '早自習後比較穩定', createdAt: '今天 08:20'},
@@ -408,6 +409,32 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
         lastUpdated: now,
       };
 
+    case 'CREATE_CONTEXT_ALERT':
+      return {
+        ...state,
+        alerts: [
+          {
+            id: uid('alert-context'),
+            studentAlias: action.payload.studentAlias ?? '場域事件',
+            className: action.payload.className ?? '匿名場域',
+            location: action.payload.location,
+            time: timeLabel(now),
+            type: action.payload.type,
+            description: action.payload.description,
+            riskLevel: action.payload.riskLevel,
+            category: action.payload.category,
+            status: 'new' as AlertStatus,
+            checklist: [
+              {id: uid('context-check-1'), text: '先派機器人或值週老師到場確認', completed: false},
+              {id: uid('context-check-2'), text: '確認是否需要導師或輔導室接手', completed: false},
+              {id: uid('context-check-3'), text: '處理後回填觀察紀錄並關閉提醒', completed: false},
+            ],
+          },
+          ...state.alerts,
+        ].slice(0, 50),
+        lastUpdated: now,
+      };
+
     case 'DISPATCH_ROBOT':
       return {
         ...state,
@@ -470,7 +497,7 @@ export function loadGuardianState(): GuardianState {
   try {
     const raw = window.localStorage.getItem(GUARDIAN_STORAGE_KEY);
     if (!raw) return createInitialGuardianState();
-    const normalized = normalizeGuardianState(JSON.parse(raw));
+    const normalized = {...normalizeGuardianState(JSON.parse(raw)), alerts: []};
     window.localStorage.setItem(GUARDIAN_STORAGE_KEY, JSON.stringify(normalized));
     return normalized;
   } catch {
@@ -632,13 +659,19 @@ export function normalizeGuardianState(input: unknown): GuardianState {
     };
   };
 
+  const normalizedAlerts = Array.isArray(parsed.alerts)
+    ? parsed.alerts
+        .map((item, index) => normalizeAlert(item, alerts[index % alerts.length] ?? alerts[0]))
+        .filter((item): item is GuardianAlert => Boolean(item))
+    : fallback.alerts;
+
   return {
     ...fallback,
     ...parsed,
     stabilityScore: number(parsed.stabilityScore, fallback.stabilityScore),
     teacherWellbeingScore: number(parsed.teacherWellbeingScore, fallback.teacherWellbeingScore),
     privacyMode: typeof parsed.privacyMode === 'boolean' ? parsed.privacyMode : true,
-    alerts: normalizeList(parsed.alerts, fallback.alerts, normalizeAlert).slice(0, 50),
+    alerts: normalizedAlerts.slice(0, 50),
     nodes: normalizeList(parsed.nodes, fallback.nodes, normalizeNode).slice(0, 20),
     moodLogs: normalizeList(parsed.moodLogs, fallback.moodLogs, normalizeMood).slice(0, 20),
     supportMessages: normalizeList(parsed.supportMessages, fallback.supportMessages, normalizeMessage).slice(-30),

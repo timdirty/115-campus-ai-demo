@@ -1,11 +1,9 @@
 import {memo, useCallback} from 'react';
 import type React from 'react';
-import type {ZoneSensorReading} from '../types';
 
 interface ZoneData {
   id: string;
   riskLevel: 'low' | 'medium' | 'high';
-  sensor?: ZoneSensorReading;
 }
 
 interface CampusMapSvgProps {
@@ -45,36 +43,14 @@ const ZONE_FILL: Record<string, Record<RiskLevel, {bg: string; border: string; g
     high:   {bg: '#fef2f2', border: '#f87171', glow: 'rgba(248,113,113,0.2)'},
   },
   'zone-field': {
-    low:    {bg: '#f0fdf4', border: '#4ade80', glow: 'rgba(74,222,128,0)'},
-    medium: {bg: '#fff7ed', border: '#fb923c', glow: 'rgba(251,146,60,0.15)'},
+    low:    {bg: '#ecfdf5', border: '#6ee7b7', glow: 'rgba(110,231,183,0)'},
+    medium: {bg: '#fef9ec', border: '#fbbf24', glow: 'rgba(251,191,36,0.15)'},
     high:   {bg: '#fef2f2', border: '#f87171', glow: 'rgba(248,113,113,0.2)'},
   },
 };
 
-function formatTemperature(value: number | null) {
-  return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(1) : '--';
-}
-function formatHumidity(value: number | null) {
-  return typeof value === 'number' && Number.isFinite(value) ? Math.round(value).toString() : '--';
-}
-
 function getZoneData(zones: ZoneData[], id: string) {
   return zones.find((z) => z.id === id);
-}
-
-function SensorBadge({sensor, x, y}: {sensor?: ZoneSensorReading; x: number; y: number}) {
-  if (!sensor?.connected) return null;
-  return (
-    <g aria-hidden="true">
-      <rect x={x} y={y} width="100" height="22" rx="11" fill="#0f172a" opacity="0.82" />
-      <circle cx={x + 12} cy={y + 11} r="3.5" fill="#34d399">
-        <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite" />
-      </circle>
-      <text x={x + 22} y={y + 15} fontSize="10" fontWeight="700" fill="#f1f5f9">
-        {`${formatTemperature(sensor.temp)}° · ${formatHumidity(sensor.hum)}%`}
-      </text>
-    </g>
-  );
 }
 
 function SelectionRing({zone}: {zone: ZoneLayout}) {
@@ -282,8 +258,6 @@ export const CampusMapSvg = memo(function CampusMapSvg({zones = [], selectedZone
         const isSelected = zone.id === selectedZoneId;
 
         const gradId = zone.id === 'zone-library' ? 'libGrad' : zone.id === 'zone-hall' ? 'hallGrad' : 'fieldGrad';
-        const badgeX = zone.x + zone.w / 2 - 50;
-        const badgeY = zone.y + zone.h - 30;
 
         return (
           <g
@@ -307,7 +281,7 @@ export const CampusMapSvg = memo(function CampusMapSvg({zones = [], selectedZone
             {/* building body — gradient fill + risk border */}
             <rect
               x={zone.x} y={zone.y} width={zone.w} height={zone.h} rx={zone.rx}
-              fill={`url(#${gradId})`}
+              fill={risk === 'low' ? `url(#${gradId})` : style.bg}
               stroke={style.border}
               strokeWidth={risk === 'high' ? 2.5 : isSelected ? 2 : 1.5}
               filter="url(#bld-shadow)"
@@ -357,8 +331,6 @@ export const CampusMapSvg = memo(function CampusMapSvg({zones = [], selectedZone
               </g>
             )}
 
-            {/* sensor badge */}
-            <SensorBadge sensor={zData?.sensor} x={badgeX} y={badgeY} />
           </g>
         );
       })}

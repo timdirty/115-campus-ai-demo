@@ -46,6 +46,11 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
           </div>
           <h1 className="text-2xl font-bold mt-5">介面發生錯誤</h1>
           <p className="text-sm text-slate-500 mt-2">應用程式沒有白屏，錯誤已被攔截。點「重試」可恢復，若無效再選「重新整理」。</p>
+          {this.state.message && (
+            <pre className="mt-4 max-h-32 overflow-auto rounded-xl bg-slate-100 p-3 text-xs text-slate-600 whitespace-pre-wrap">
+              {this.state.message}
+            </pre>
+          )}
           <div className="mt-5 flex gap-3">
             <button
               type="button"
