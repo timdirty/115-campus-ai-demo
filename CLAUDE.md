@@ -12,13 +12,20 @@ This is the canonical project guidance shared by Claude Code and Codex for this 
 
 ## Project Shape
 
-- Three competition apps share one Arduino UNO R4 WiFi firmware target.
-- App 1 is the hardware gateway through `server/serialBridge.ts`.
-- App 2 and App 3 are frontend-first apps that still depend on the shared command model.
+- Three competition apps are intentionally independent app workspaces under `apps/`.
+- App 1 owns `apps/app1-whiteboard/` and is the hardware gateway through `apps/app1-whiteboard/server/serialBridge.ts`.
+- App 2 owns `apps/app2-campus-service/` and its local sweeper / service demo stack.
+- App 3 owns `apps/app3-guardian/`, including its `robot-app/` companion display.
+- Physical firmware is also separated by project under `firmware/`; do not merge one team's sketch into another team's folder.
+- The shared command demo remains available only as a compatibility/demo firmware target, not as the place for app-specific robot behavior.
 
 ## Canonical Paths
 
-- Firmware: `platformio.ini`, `src/`, `include/`, `lib/`, `test/`
+- App 1 workspace: `apps/app1-whiteboard/`
+- App 2 workspace: `apps/app2-campus-service/`
+- App 3 workspace: `apps/app3-guardian/`
+- Firmware: `platformio.ini`, `firmware/`, `include/`, `lib/`, `test/`
+- Shared command demo firmware: `firmware/shared-command-demo/`
 - Shared skills source: `.skillshare/skills/`
 - Project interop notes: `docs/AGENT_INTEROP.md`
 - Task handoff scratchpad: `.orchestra/handoff.md`
@@ -26,6 +33,8 @@ This is the canonical project guidance shared by Claude Code and Codex for this 
 ## Shared Rules
 
 - Prefer small, reversible edits.
+- Keep App 1, App 2, and App 3 changes inside their own app folders unless a shared script, shared doc, or `platformio.ini` update is genuinely required.
+- Keep runtime data, `.env`, demo caches, and generated local state app-local and out of git.
 - Do not delete project files unless the user explicitly asks.
 - Treat `.orchestra/handoff.md` as transient workflow state, not the source of truth.
 - Treat `docs/AGENT_INTEROP.md` and this file as the source of truth for Claude/Codex project alignment.
