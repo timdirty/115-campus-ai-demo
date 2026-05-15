@@ -7,7 +7,9 @@ BRIDGE_PORT="${STUDENT_BRIDGE_PORT:-}"
 
 pause_exit() {
   echo ""
-  read "reply?按 Enter 關閉"
+  if [[ -t 0 ]]; then
+    read "reply?按 Enter 關閉"
+  fi
   exit "${1:-0}"
 }
 
@@ -31,6 +33,11 @@ if [[ -d "$RUNTIME_DIR" ]]; then
     fi
     rm -f "$pid_file"
   done
+fi
+
+ocr_pids="$(lsof -tiTCP:3209 -sTCP:LISTEN 2>/dev/null || true)"
+if [[ -n "$ocr_pids" ]]; then
+  kill -9 ${(f)ocr_pids} >/dev/null 2>&1 || true
 fi
 
 port_pids="$(lsof -tiTCP:"$BRIDGE_PORT" -sTCP:LISTEN 2>/dev/null || true)"

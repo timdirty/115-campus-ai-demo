@@ -222,6 +222,19 @@ try {
   assert.equal(updatedNote.body.note.ocrText, '更新後 OCR');
   assert.ok(updatedNote.body.notes.some((note) => note.id === createdNote.body.note.id && note.subject === '測試更新'));
 
+  const ocrLinkedNote = await request('/api/notes', {
+    method: 'POST',
+    body: JSON.stringify({
+      title: '白板 OCR 打通測試',
+      subject: '國小數學',
+      content: '老師正在把白板內容整理成孩子可以練習的學習單。',
+      ocrText: '白板實際文字：三角形面積 = 底 x 高 ÷ 2',
+      transcript: '老師說三角形面積要先找底和高。',
+    }),
+  });
+  assert.equal(ocrLinkedNote.response.status, 200);
+  assert.equal(ocrLinkedNote.body.note.ocrText, '白板實際文字：三角形面積 = 底 x 高 ÷ 2');
+
   const robotCommand = await request('/api/robot/command', {
     method: 'POST',
     body: JSON.stringify({command: 'PAUSE_TASK', source: 'contract-test'}),
@@ -315,19 +328,31 @@ try {
   const aiChat = await request('/api/ai/chat', {
     method: 'POST',
     headers: {'x-ai-fallback': '1'},
-    body: JSON.stringify({message: '請根據第 1 筆課堂紀錄設計國小生提問', noteIds: [1], history: []}),
+    body: JSON.stringify({message: '請用孩子聽得懂的方式說明白板文字', noteIds: [ocrLinkedNote.body.note.id], history: []}),
   });
   assert.equal(aiChat.response.status, 200);
   assert.equal(typeof aiChat.body.reply, 'string');
+  assert.match(aiChat.body.reply, /白板上的實際文字|三角形面積/);
+
+  const aiSummary = await request('/api/ai/review', {
+    method: 'POST',
+    headers: {'x-ai-fallback': '1'},
+    body: JSON.stringify({noteId: ocrLinkedNote.body.note.id, mode: 'summary'}),
+  });
+  assert.equal(aiSummary.response.status, 200);
+  assert.equal(typeof aiSummary.body.summary, 'string');
+  assert.match(aiSummary.body.summary, /白板實際文字/);
+  assert.match(aiSummary.body.summary, /三角形面積/);
 
   const aiReview = await request('/api/ai/review', {
     method: 'POST',
     headers: {'x-ai-fallback': '1'},
-    body: JSON.stringify({noteId: 1, mode: 'quiz'}),
+    body: JSON.stringify({noteId: ocrLinkedNote.body.note.id, mode: 'quiz'}),
   });
   assert.equal(aiReview.response.status, 200);
   assert.ok(Array.isArray(aiReview.body.quiz));
   assert.ok(aiReview.body.quiz.length > 0);
+  assert.match(JSON.stringify(aiReview.body.quiz), /三角形面積|白板實際文字|底 x 高/);
 
   const deletedNote = await request(`/api/notes/${createdNote.body.note.id}`, {method: 'DELETE'});
   assert.equal(deletedNote.response.status, 200);

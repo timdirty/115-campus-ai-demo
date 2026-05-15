@@ -143,19 +143,21 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
       setPreviewImage(imageBase64);
       setOcrResult(null);
       // OCR runs in parallel; result enriches ocrText in the note
-      const [result] = await Promise.all([
+      const [result, ocr] = await Promise.all([
         analyzeBoardCapture({imageBase64, transcript, subjectHint, boardCalibration}),
         runOcr(imageBase64),
       ]);
-      setAnalysis(result);
+      const enrichedResult = mergeOcrIntoAnalysis(result, ocr);
+      setAnalysis(enrichedResult);
       const mergedSession = {
-        ...result.session,
+        ...enrichedResult.session,
+        boardOcrText: ocr.ok && ocr.text.trim() ? ocr.text.trim() : enrichedResult.session.boardOcrText,
         hardwareProfile: {
-          ...result.session.hardwareProfile,
+          ...enrichedResult.session.hardwareProfile,
           boardCalibration,
           boardCalibrationMode: calibrationMode,
           boardDetectionConfidence: detectionConfidence,
-          cameraMounted: media.cameraReady || result.session.hardwareProfile.cameraMounted,
+          cameraMounted: media.cameraReady || enrichedResult.session.hardwareProfile.cameraMounted,
         },
       };
       setClassroom(mergedSession);
@@ -184,15 +186,17 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
       });
       setPreviewImage(imageBase64);
       setOcrResult(null);
-      const [result] = await Promise.all([
+      const [result, ocr] = await Promise.all([
         analyzeBoardCapture({imageBase64, transcript, subjectHint, boardCalibration}),
         runOcr(imageBase64),
       ]);
-      setAnalysis(result);
+      const enrichedResult = mergeOcrIntoAnalysis(result, ocr);
+      setAnalysis(enrichedResult);
       const mergedSession = {
-        ...result.session,
+        ...enrichedResult.session,
+        boardOcrText: ocr.ok && ocr.text.trim() ? ocr.text.trim() : enrichedResult.session.boardOcrText,
         hardwareProfile: {
-          ...result.session.hardwareProfile,
+          ...enrichedResult.session.hardwareProfile,
           boardCalibration,
           boardCalibrationMode: calibrationMode,
           boardDetectionConfidence: detectionConfidence,
@@ -220,6 +224,7 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
         subject: analysis.noteDraft.subject || subjectHint || '國小課堂紀錄',
         title: analysis.noteDraft.title,
         content: analysis.noteDraft.content,
+        ocrText: ocrResult?.ok && ocrResult.text.trim() ? ocrResult.text.trim() : analysis.noteDraft.ocrText,
         boardRegions: analysis.boardRegions,
         aiRecommendation: analysis.currentRecommendation,
         img: analysis.noteDraft.img || analysis.noteDraft.imageUrl || previewImage,
@@ -300,6 +305,32 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
     } finally {
       setBusy('');
     }
+  };
+
+  const mergeOcrIntoAnalysis = (result: BoardAnalysisResponse, ocr: OcrLocalResult): BoardAnalysisResponse => {
+    const text = ocr.ok && ocr.text.trim() ? ocr.text.trim() : '';
+    if (!text) return result;
+    const content = result.noteDraft.content.includes(text)
+      ? result.noteDraft.content
+      : [
+        result.noteDraft.content,
+        '',
+        '白板實際辨識文字：',
+        text,
+      ].join('\n');
+    return {
+      ...result,
+      noteDraft: {
+        ...result.noteDraft,
+        ocrText: text,
+        content,
+        keywords: [...new Set([...(result.noteDraft.keywords ?? []), '白板OCR', ...text.split(/\s+/).slice(0, 6)])],
+      },
+      session: {
+        ...result.session,
+        boardOcrText: text,
+      },
+    };
   };
 
   const applyRegions = async (regions: BoardRegion[], recommendation: string) => {

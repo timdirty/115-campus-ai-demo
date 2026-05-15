@@ -389,6 +389,24 @@ export function registerRoutes(app: Express) {
       ]);
 
       const boardOcrText = (finalOcr?.ok ? finalOcr.text : undefined) ?? realOcrText;
+      const trimmedBoardOcrText = boardOcrText?.trim() ?? '';
+      const noteDraftContent = trimmedBoardOcrText && !result.noteDraft.content.includes(trimmedBoardOcrText)
+        ? [
+          result.noteDraft.content,
+          '',
+          '白板實際辨識文字：',
+          trimmedBoardOcrText,
+        ].filter(Boolean).join('\n')
+        : result.noteDraft.content;
+      const noteDraft = {
+        ...result.noteDraft,
+        ocrText: trimmedBoardOcrText || result.noteDraft.ocrText,
+        content: noteDraftContent,
+        keywords: [
+          ...(result.noteDraft.keywords ?? []),
+          ...(trimmedBoardOcrText ? ['白板OCR', ...trimmedBoardOcrText.split(/\s+/).slice(0, 6)] : []),
+        ],
+      };
       const current = normalizeSessionShape(await readJsonFile<ClassroomSession>(classroomFile, defaultClassroomSession));
       const nextSession: ClassroomSession = {
         ...current,
@@ -403,7 +421,7 @@ export function registerRoutes(app: Express) {
         boardOcrText: boardOcrText ?? current.boardOcrText,
       };
       await writeJsonFile(classroomFile, nextSession);
-      res.json({...result, session: nextSession});
+      res.json({...result, noteDraft, session: nextSession});
     } catch (error) {
       sendError(res, error);
     }

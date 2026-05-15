@@ -16,10 +16,13 @@ START_SCRIPT="${STUDENT_START_SCRIPT:-start}"
 NODE_MAJOR_REQUIRED="${STUDENT_NODE_MAJOR_REQUIRED:-20}"
 RUNTIME_DIR=""
 APP_PID=""
+OCR_PID=""
 
 pause_exit() {
   echo ""
-  read "reply?按 Enter 關閉"
+  if [[ -t 0 ]]; then
+    read "reply?按 Enter 關閉"
+  fi
   exit "${1:-0}"
 }
 
@@ -31,6 +34,9 @@ open_url() {
 }
 
 cleanup() {
+  if [[ -n "$OCR_PID" ]] && kill -0 "$OCR_PID" >/dev/null 2>&1; then
+    kill "$OCR_PID" >/dev/null 2>&1 || true
+  fi
   if [[ -n "$APP_PID" ]] && kill -0 "$APP_PID" >/dev/null 2>&1; then
     kill "$APP_PID" >/dev/null 2>&1 || true
   fi
@@ -98,6 +104,14 @@ for pid_file in "$RUNTIME_DIR"/*.pid(N); do
   fi
   rm -f "$pid_file"
 done
+
+if node -e "const pkg=require('./package.json'); process.exit(pkg.scripts && pkg.scripts.ocr ? 0 : 1)" >/dev/null 2>&1; then
+  echo ""
+  echo "啟動白板文字辨識服務（可用時會自動讀出白板真實文字）..."
+  npm run ocr > "$RUNTIME_DIR/ocr.log" 2>&1 &
+  OCR_PID=$!
+  echo "$OCR_PID" > "$RUNTIME_DIR/ocr.pid"
+fi
 
 port_pids="$(lsof -tiTCP:"$BRIDGE_PORT" -sTCP:LISTEN 2>/dev/null || true)"
 if [[ -n "$port_pids" ]]; then

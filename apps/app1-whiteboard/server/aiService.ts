@@ -137,11 +137,15 @@ function localTranscript(_mimeType: string) {
 }
 
 function localSummary(note: WhiteboardNote) {
-  const lines = note.content.split(/\n+/).map((line) => line.replace(/^[-\d.、\s]+/, '').trim()).filter(Boolean);
+  const sourceText = [note.ocrText, note.content, note.transcript].filter(Boolean).join('\n');
+  const lines = sourceText.split(/\n+/).map((line) => line.replace(/^[-\d.、\s]+/, '').trim()).filter(Boolean);
   return [
     `# ${note.title} 國小學習單`,
     '',
     `科目：${note.subject}`,
+    '',
+    '## 白板實際文字',
+    note.ocrText?.trim() || '尚未取得白板文字。',
     '',
     '## 今天我學到',
     ...lines.slice(0, 6).map((line) => `- ${line}`),
@@ -158,7 +162,8 @@ function localSummary(note: WhiteboardNote) {
 }
 
 function localQuiz(note: WhiteboardNote): QuizQuestion[] {
-  const pool = note.content
+  const sourceText = [note.ocrText, note.content, note.transcript].filter(Boolean).join('\n');
+  const pool = sourceText
     .split(/\n+/)
     .map((line) => line.replace(/^[-\d.、\s]+/, '').trim())
     .filter((line) => line.length >= 6);
@@ -186,11 +191,17 @@ function localChatReply(message: string, notes: WhiteboardNote[]) {
   const note = notes[0];
   const context = note ? `我會優先參考「${note.title}」。` : '目前沒有指定課堂紀錄，我會用國小課堂小老師方式回答。';
   const lines: string[] = [context, ''];
+  if (note?.ocrText?.trim()) {
+    const boardText = note.ocrText.trim().split(/\n+/).slice(0, 6);
+    lines.push('我先讀到白板上的實際文字：');
+    boardText.forEach((line) => lines.push(`- ${line}`));
+    lines.push('');
+  }
   if (/孩子|聽得懂|簡單/.test(message)) {
     lines.push('### 改成孩子版說法');
-    lines.push('1. 把抽象名詞換成生活中看得到、摸得到的例子。');
-    lines.push('2. 用「就像⋯⋯一樣」的比喻開頭。');
-    lines.push('3. 先問孩子「你有沒有看過⋯⋯」，再引導到概念。');
+    lines.push('1. 先指著白板上的關鍵字，請孩子唸一次。');
+    lines.push('2. 把白板句子換成生活例子，讓孩子說「像什麼」。');
+    lines.push('3. 最後請孩子用自己的話重講一遍。');
   } else if (/測驗|題目|練習題|小考/.test(message)) {
     lines.push('### 小測驗設計方向');
     lines.push('1. 先從是非題開始，讓孩子建立信心。');
@@ -352,7 +363,7 @@ export async function reviewWithAI(note: WhiteboardNote, mode: 'quiz' | 'summary
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.0-flash',
-      contents: `請根據以下白板紀錄產生 5 題適合國小生的繁體中文單選題。題幹要短，一題只測一個概念，解析要像老師鼓勵孩子的說明。只輸出 JSON array，每題格式 {"q":"題目","options":["A","B","C","D"],"ans":0,"explanation":"解析"}。\n\n${note.content}`,
+      contents: `請根據以下白板紀錄產生 5 題適合國小生的繁體中文單選題。題幹要短，一題只測一個概念，解析要像老師鼓勵孩子的說明。題目必須優先引用「白板文字」中的實際內容。只輸出 JSON array，每題格式 {"q":"題目","options":["A","B","C","D"],"ans":0,"explanation":"解析"}。\n\n白板文字:${note.ocrText ?? ''}\n逐字稿:${note.transcript ?? ''}\n課堂紀錄:${note.content}`,
       config: {temperature: 0.35},
     });
     const quiz = parseJsonFromText<QuizQuestion[]>(response.text ?? '[]')
