@@ -4,6 +4,16 @@
 
 ## Local Production Run
 
+學生展示請優先雙擊：
+
+```text
+一鍵啟動展示.command
+```
+
+第一次會自動安裝套件並建立 `.env.local`。如果電腦尚未安裝 Node.js，視窗會開啟 Node.js 下載頁；安裝完成後再雙擊一次即可。完整學生版說明見 `學生一鍵啟動說明.md`。
+
+手動啟動方式：
+
 ```zsh
 npm install
 cp .env.example .env.local
