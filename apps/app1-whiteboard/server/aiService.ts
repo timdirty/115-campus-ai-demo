@@ -32,6 +32,14 @@ function normalizePercent(value: unknown, fallback: number, max = 100) {
   return numeric;
 }
 
+function withAiTimeout<T>(promise: Promise<T>, ms = 20_000): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`AI call timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer!));
+}
+
 function normalizeRegionId(value: unknown, index: number, used: Set<string>) {
   const raw = String(value ?? '').trim().toUpperCase();
   const matched = raw.match(/(?:REGION|區塊|AREA|ZONE)?[\s_-]*([AB])\b/)?.[1] ?? raw.match(/\b([AB])\b/)?.[1];
@@ -252,11 +260,11 @@ export async function analyzeBoardWithAI(imageBase64: string, transcript: string
       `科目提示：${subjectHint || '未提供'}`,
       `教師逐字稿：${transcript || '未提供'}${ocrHint}`,
     ].join('\n');
-    const response = await ai.models.generateContent({
+    const response = await withAiTimeout(ai.models.generateContent({
       model: geminiVisionModel,
       contents: [{role: 'user', parts: [{text: prompt}, createPartFromBase64(media.data, media.mimeType)]}],
       config: {temperature: 0.35},
-    });
+    }));
     const parsed = parseJsonFromText<Partial<BoardAnalysisResult>>(response.text ?? '');
     const fallback = localBoardAnalysis(transcript, subjectHint, imageBase64, options.realOcrText);
     const noteDraft = {
@@ -294,7 +302,7 @@ export async function transcribeWithAI(audioBase64: string, mimeType: string, op
 
   try {
     const media = stripDataUrl(audioBase64, mimeType || 'audio/webm');
-    const response = await ai.models.generateContent({
+    const response = await withAiTimeout(ai.models.generateContent({
       model: geminiVisionModel,
       contents: [{
         role: 'user',
@@ -304,7 +312,7 @@ export async function transcribeWithAI(audioBase64: string, mimeType: string, op
         ],
       }],
       config: {temperature: 0.2},
-    });
+    }));
     return {transcript: response.text || localTranscript(mimeType), aiMode: 'gemini' as const};
   } catch (error) {
     console.warn('Gemini transcription failed, using local fallback:', error);
@@ -326,7 +334,7 @@ export async function chatWithAI(message: string, noteIds: number[], history: Ch
       `逐字稿：${note.transcript ?? ''}`,
       `課堂紀錄：${note.content}`,
     ].join('\n')).join('\n\n---\n\n');
-    const response = await ai.models.generateContent({
+    const response = await withAiTimeout(ai.models.generateContent({
       model: geminiModel,
       contents: [
         ...history.slice(-8).map((item) => ({
@@ -339,7 +347,7 @@ export async function chatWithAI(message: string, noteIds: number[], history: Ch
         },
       ],
       config: {temperature: 0.55},
-    });
+    }));
     return {reply: response.text || localChatReply(message, notes), aiMode: 'gemini' as const};
   } catch (error) {
     console.warn('Gemini chat failed, using local fallback:', error);
@@ -356,19 +364,19 @@ export async function reviewWithAI(note: WhiteboardNote, mode: 'quiz' | 'summary
 
   try {
     if (mode === 'summary') {
-      const response = await ai.models.generateContent({
+      const response = await withAiTimeout(ai.models.generateContent({
         model: geminiModel,
         contents: `請將以下白板紀錄整理成國小生可讀的繁體中文 Markdown 學習單。句子短、步驟清楚，包含「今天我學到」、「畫一畫或說一說」、「小檢核」、「老師提醒」。\n\n${note.content}\n\n白板文字:${note.ocrText ?? ''}\n逐字稿:${note.transcript ?? ''}`,
         config: {temperature: 0.35},
-      });
+      }));
       return {summary: response.text || localSummary(note), aiMode: 'gemini' as const};
     }
 
-    const response = await ai.models.generateContent({
+    const response = await withAiTimeout(ai.models.generateContent({
       model: geminiModel,
       contents: `請根據以下白板紀錄產生 5 題適合國小生的繁體中文單選題。題幹要短，一題只測一個概念，解析要像老師鼓勵孩子的說明。題目必須優先引用「白板文字」中的實際內容。只輸出 JSON array，每題格式 {"q":"題目","options":["A","B","C","D"],"ans":0,"explanation":"解析"}。\n\n白板文字:${note.ocrText ?? ''}\n逐字稿:${note.transcript ?? ''}\n課堂紀錄:${note.content}`,
       config: {temperature: 0.35},
-    });
+    }));
     const quiz = parseJsonFromText<QuizQuestion[]>(response.text ?? '[]')
       .slice(0, 8)
       .filter((item) => item.q && Array.isArray(item.options) && item.options.length === 4);
