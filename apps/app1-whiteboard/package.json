@@ -7,7 +7,7 @@
     "dev": "concurrently \"npm:dev:web\" \"npm:dev:bridge\"",
     "dev:web": "vite --port=3000 --host=0.0.0.0",
     "dev:bridge": "tsx server/serialBridge.ts",
-    "ocr": "python3 server/ocr_service.py",
+    "ocr": "bash scripts/run-ocr-service.sh",
     "dev:full": "concurrently \"npm:dev:web\" \"npm:dev:bridge\" \"npm:ocr\"",
     "build": "vite build",
     "start": "NODE_ENV=production tsx server/serialBridge.ts",

@@ -105,8 +105,17 @@ for pid_file in "$RUNTIME_DIR"/*.pid(N); do
   rm -f "$pid_file"
 done
 
+ocr_pids="$(lsof -tiTCP:3209 -sTCP:LISTEN 2>/dev/null || true)"
+if [[ -n "$ocr_pids" ]]; then
+  kill -9 ${(f)ocr_pids} >/dev/null 2>&1 || true
+fi
+
 if node -e "const pkg=require('./package.json'); process.exit(pkg.scripts && pkg.scripts.ocr ? 0 : 1)" >/dev/null 2>&1; then
   echo ""
+  if [[ -x "scripts/setup-ocr-env.sh" ]]; then
+    echo "確認白板文字辨識環境..."
+    bash scripts/setup-ocr-env.sh
+  fi
   echo "啟動白板文字辨識服務（可用時會自動讀出白板真實文字）..."
   npm run ocr > "$RUNTIME_DIR/ocr.log" 2>&1 &
   OCR_PID=$!

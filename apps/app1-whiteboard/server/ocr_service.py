@@ -11,7 +11,7 @@ Routes :
                         resp: {"ok": true, "text": "...", "blocks": [...], "engine": "easyocr"}
 
 Fallback: if easyocr is not installed, returns {"ok": false, "error": "easyocr not installed"}.
-Install : pip3 install easyocr pillow numpy
+Install : bash scripts/setup-ocr-env.sh
 """
 
 import base64
@@ -132,7 +132,7 @@ if __name__ == '__main__':
         get_reader()
         print('[OCR] EasyOCR 模型已載入，準備就緒。')
     except ImportError:
-        print('[OCR] 警告：easyocr 未安裝，請執行：pip3 install easyocr pillow numpy')
+        print('[OCR] 警告：easyocr 未安裝，請執行：bash scripts/setup-ocr-env.sh')
         print('[OCR] 服務仍會啟動，但 /ocr 端點會回傳 ok:false。')
     except Exception as exc:
         print(f'[OCR] 模型載入失敗：{exc}')
