@@ -706,12 +706,13 @@ export async function sendRobotTask(action: string, regionId?: string, source = 
   }
 }
 
-export async function analyzeBoardCapture(input: {imageBase64: string; transcript?: string; subjectHint?: string; boardCalibration?: BoardCalibration}): Promise<BoardAnalysisResponse> {
+export async function analyzeBoardCapture(input: {imageBase64: string; transcript?: string; subjectHint?: string; boardCalibration?: BoardCalibration}, signal?: AbortSignal): Promise<BoardAnalysisResponse> {
   try {
     return await apiRequest<BoardAnalysisResponse>('/api/ai/analyze-board', {
       method: 'POST',
       body: JSON.stringify(input),
       timeoutMs: 30000,
+      signal,
     });
   } catch {
     try {
@@ -793,12 +794,13 @@ export function eraseRegionSequence(
   return () => es.close();
 }
 
-export async function transcribeAudio(input: {audioBase64: string; mimeType: string}): Promise<{transcript: string; aiMode: 'gemini' | 'local-fallback'}> {
+export async function transcribeAudio(input: {audioBase64: string; mimeType: string}, signal?: AbortSignal): Promise<{transcript: string; aiMode: 'gemini' | 'local-fallback'}> {
   try {
     return await apiRequest<{transcript: string; aiMode: 'gemini' | 'local-fallback'}>('/api/ai/transcribe', {
       method: 'POST',
       body: JSON.stringify(input),
       timeoutMs: 30000,
+      signal,
     });
   } catch {
     return {

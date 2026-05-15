@@ -555,6 +555,14 @@ export function registerRoutes(app: Express) {
 
     try {
       const result = await sendSerialCommand(command, requestedPath);
+      if (result.timedOut) {
+        const timeoutMsg = `命令已送出但機器人未回應確認 (${command})`;
+        const status = await updateRobotStatus({connected: false, activePort: result.port, lastCommand: command, lastResponse: timeoutMsg});
+        const taskLog = await appendTaskLog({command, source, ok: false, message: timeoutMsg});
+        res.status(503).json({ok: false, error: 'ack_timeout', message: timeoutMsg, action, regionId, command, status, taskLog});
+        broadcast({type: 'command_ack', command, ok: false});
+        return;
+      }
       const message = result.response || `Sent ${command} to ${result.port}`;
       const status = await updateRobotStatus({
         connected: true,

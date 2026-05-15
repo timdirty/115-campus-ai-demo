@@ -151,7 +151,7 @@ export async function sendSerialCommandDrive(command: string, requestedPath?: st
   return {port: activePath};
 }
 
-export async function sendSerialCommand(command: string, requestedPath?: string) {
+export async function sendSerialCommand(command: string, requestedPath?: string): Promise<{port: string; response: string; timedOut?: boolean}> {
   if (isSimulated()) {
     activePath = simulatedPortPath;
     const response = command === 'READ_SENSORS'
