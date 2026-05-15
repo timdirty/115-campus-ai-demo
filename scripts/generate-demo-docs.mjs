@@ -19,19 +19,54 @@ function commandLine(app) {
   return app.ev3.commands.map((command) => `\`${command}\``).join(', ');
 }
 
+function routeCommandLine(route) {
+  return (route.hardware ?? []).map((command) => `\`${command}\``).join(', ');
+}
+
+function routeStepLine(route) {
+  return route.steps.join(' -> ');
+}
+
+function rolesBlock(app) {
+  const roles = app.studentRoles ?? [];
+  if (roles.length === 0) return '';
+  return `### 三位上台分工\n\n${roles.map((role) => `- ${role}`).join('\n')}\n\n`;
+}
+
+function routeScript(route, minutes) {
+  if (minutes === 1) {
+    return `先跑「${route.title}」：${route.studentLine} 操作順序是 ${routeStepLine(route)}。完成時要指給評審看：${route.proof.join('、')}。`;
+  }
+  if (minutes === 3) {
+    return `第一條主線跑「${route.title}」。目的：${route.purpose} AI / 辨識來源是：${route.aiSource}。硬體或模擬指令會用 ${routeCommandLine(route)}。完成後用 ${route.proof.join('、')} 當證據；如果現場卡住，說法是：${route.fallback}`;
+  }
+  return `「${route.badge}：${route.title}」負責回答一個評審追問。學生說法：${route.studentLine} 依序做 ${routeStepLine(route)}；成功證據是 ${route.proof.join('、')}；備援說法是 ${route.fallback}`;
+}
+
 function pitchFor(app) {
   const steps = app.flow.join(' -> ');
+  const routes = app.demoRoutes ?? [];
+  const primaryRoute = routes[0];
+  const secondRoute = routes[1];
   const hardwareExtra = app.hardwarePitchNote ? `${app.hardwarePitchNote}` : '';
   const hardwareLine = hardwareExtra
     ? `硬體連動部分，我們預留 LEGO EV3 角色：「${app.ev3.role}」。沒有接硬體時也能用模擬模式完整展示；接上 EV3 後，會使用 ${commandLine(app)} 等指令。${hardwareExtra}`
     : `硬體連動部分，我們預留 LEGO EV3 角色：「${app.ev3.role}」。沒有接硬體時也能用模擬模式完整展示；接上 EV3 後，會使用 ${commandLine(app)} 等指令。`;
+  const oneMinute = primaryRoute
+    ? routeScript(primaryRoute, 1)
+    : `展示時我們會照著三步驟：${steps}。第一步讓系統取得現場資料，第二步由 AI 或本機辨識做判斷，第三步把結果轉成機器人可以執行的指令。`;
+  const threeMinute = [primaryRoute, secondRoute].filter(Boolean).map((route) => routeScript(route, 3)).join('\n\n');
+  const fiveMinute = routes.length
+    ? routes.map((route) => routeScript(route, 5)).join('\n\n')
+    : `解法：我們不是只做一頁展示，而是做成一個可以操作的校園工具。使用者從首頁進入後，可以依序完成 ${steps}。`;
   return `## ${app.team} - ${app.name}
 
+${rolesBlock(app)}
 ### 1 minute
 
 大家好，我們是${app.team}。我們的作品是「${app.name}」，它要解決的是：${app.desc}
 
-展示時我們會照著三步驟：${steps}。第一步讓系統取得現場資料，第二步由 AI 或本機辨識做判斷，第三步把結果轉成機器人可以執行的指令。
+${oneMinute}
 
 ${hardwareLine}
 
@@ -41,7 +76,7 @@ ${hardwareLine}
 
 這個作品的技術重點有三個。第一，前端是完整可操作的 app，不是只有簡報畫面。第二，系統有本機備援邏輯，AI 或網路不穩時仍能展示主要流程。第三，機器人指令已經整理成 catalog，未來接 EV3 時不用重寫作品。
 
-我們現場會展示：${steps}。如果評審想看硬體，我們會說明 EV3 的角色是「${app.ev3.role}」，並展示指令如何從 app 送到 bridge，再到 EV3 或 Arduino。若沒有硬體，系統會啟用模擬模式，留下任務紀錄，證明流程仍然完整。
+${threeMinute || `我們現場會展示：${steps}。如果評審想看硬體，我們會說明 EV3 的角色是「${app.ev3.role}」，並展示指令如何從 app 送到 bridge，再到 EV3 或 Arduino。若沒有硬體，系統會啟用模擬模式，留下任務紀錄，證明流程仍然完整。`}
 
 ### 5 minutes
 
@@ -49,9 +84,9 @@ ${hardwareLine}
 
 問題：${app.desc}
 
-解法：我們不是只做一頁展示，而是做成一個可以操作的校園工具。使用者從首頁進入後，可以依序完成 ${steps}。
+解法：這組有 ${routes.length || 1} 條閉環路線，主線給 3 分鐘展示，支線回答 AI、硬體與真實場景追問。
 
-AI：作品會把輸入資料轉成可理解的建議。可以使用雲端 AI，也保留本機分析或 fallback，避免現場網路造成展示中斷。
+${fiveMinute}
 
 硬體：EV3 指令已先規劃成 ${commandLine(app)}。這代表 app 端、bridge 端、EV3 server 端可以用同一份指令語言溝通。
 
@@ -64,6 +99,44 @@ function buildPitches() {
 這份講稿給三隊上台前練習用。每隊都有 1 分鐘、3 分鐘、5 分鐘版本，可以依比賽時間縮放。
 
 ${apps.map(pitchFor).join('\n\n')}`;
+}
+
+function buildDemoRoutesManual() {
+  return `# 三組 App 多閉環展示操作手冊
+
+這份手冊由 \`scripts/app-catalog.mjs\` 的 \`demoRoutes\` 自動產生。每一組都有一條主線與兩條支線；主線給 2-3 分鐘穩定跑通，支線用來回答評審追問。
+
+${apps.map((app) => `## ${app.team} - ${app.name}
+
+入口：${publicBase}/${app.id}/
+教學頁：${publicBase}/${guideUrl(app)}
+
+### 三位上台分工
+
+${(app.studentRoles ?? []).map((role) => `- ${role}`).join('\n')}
+
+${(app.demoRoutes ?? []).map((route, routeIndex) => `### 路線 ${String.fromCharCode(65 + routeIndex)} ${route.badge}：${route.title}
+
+**目的**：${route.purpose}
+
+**學生一句話**：${route.studentLine}
+
+**按哪裡**
+
+${route.steps.map((step, i) => `${i + 1}. ${step}`).join('\n')}
+
+**AI / 辨識來源**：${route.aiSource}
+
+**硬體 / 模擬指令**：${routeCommandLine(route)}
+
+**成功證據**：${route.proof.join('、')}
+
+**卡關備案**：${route.fallback}
+
+**標註截圖清單**
+
+${route.screenshots.map((shot, i) => `![${app.shortName} ${route.title} 截圖 ${i + 1}：${route.steps[Math.min(i, route.steps.length - 1)]}](../assets/screenshots/${shot})`).join('\n\n')}
+`).join('\n')}`).join('\n\n')}`;
 }
 
 function buildCalibration() {
@@ -148,7 +221,8 @@ function buildFieldChecklist() {
 
 ${apps.map((app) => {
   const items = (app.checklistItems ?? []).map((item) => `- [ ] ${item}`).join('\n');
-  return `## ${app.shortName}\n\n${items}`;
+  const routeItems = (app.demoRoutes ?? []).map((route) => `- [ ] ${route.badge}「${route.title}」已跑到完成證據：${route.proof.join('、')}`).join('\n');
+  return `## ${app.shortName}\n\n${items}\n\n### 閉環路線\n\n${routeItems}`;
 }).join('\n\n')}
 
 ## Recovery Lines
@@ -162,11 +236,18 @@ ${apps.map((app) => {
 function buildJudgeQa() {
   const appSections = apps.map((app) => {
     const extraQa = (app.judgeQaExtra ?? []).map(({q, a}) => `### Q: ${q}\n\nA: ${a}\n`).join('\n');
+    const routeSummary = (app.demoRoutes ?? []).map((route) => `- ${route.badge}「${route.title}」：${route.studentLine}`).join('\n');
     return `## ${app.team} - ${app.name}
 
 ### Q: 這跟一般展示網頁差在哪？
 
 A: 這不是只放圖片的網頁，而是可以操作的作品。它有自己的資料流程、任務狀態、展示備援，並且可透過 bridge 接 Arduino UNO R4 與 LEGO EV3。
+
+### Q: 這組有哪幾條閉環路線？
+
+A:
+
+${routeSummary}
 
 ### Q: AI 真的做了什麼？
 
@@ -199,10 +280,11 @@ ${appSections}
 }
 
 ensureDocsDir();
+writeDoc('DEMO_ROUTES.md', buildDemoRoutesManual());
 writeDoc('STUDENT_PITCHES.md', buildPitches());
 writeDoc('EV3_CALIBRATION_TABLE.md', buildCalibration());
 writeDoc('DEMO_READY.md', buildReadyGuide());
 writeDoc('FIELD_CHECKLIST.md', buildFieldChecklist());
 writeDoc('JUDGE_QA.md', buildJudgeQa());
 
-console.log('Demo docs generated: docs/STUDENT_PITCHES.md, docs/EV3_CALIBRATION_TABLE.md, docs/DEMO_READY.md, docs/FIELD_CHECKLIST.md, docs/JUDGE_QA.md');
+console.log('Demo docs generated: docs/DEMO_ROUTES.md, docs/STUDENT_PITCHES.md, docs/EV3_CALIBRATION_TABLE.md, docs/DEMO_READY.md, docs/FIELD_CHECKLIST.md, docs/JUDGE_QA.md');

@@ -9,9 +9,9 @@
 **Tech Stack:** TypeScript / React 19 / Vite / Express / Node.js / ws@8 / serialport@13 / tsx / PlatformIO / Arduino UNO R4 (Minima & WiFi)
 
 **Path aliases (used throughout this plan):**
-- `A1/` = `google ai studio/app_1（國小）/AI自動板擦機器人/`
-- `A2/` = `google ai studio/app_2（國小）/校園服務機器人 app/`
-- `A3/` = `google ai studio/app_3（國中）/AI校園心靈守護者/`
+- `A1/` = `apps/app1-whiteboard/`
+- `A2/` = `apps/app2-campus-service/`
+- `A3/` = `apps/app3-guardian/`
 - `ROOT/` = repo root (`/Volumes/Tim aaddtional/Download/115資通訊/tedt/`)
 - `FW/` = `src/` (PlatformIO firmware source)
 
@@ -75,7 +75,7 @@
 - [ ] **Step 1: 在 A2 加入 ws 依賴與 start script**
 
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app"
+cd "apps/app2-campus-service"
 npm install ws@^8.18.0
 npm install --save-dev @types/ws@^8.5.14
 ```
@@ -88,7 +88,7 @@ Then add to `A2/package.json` scripts:
 - [ ] **Step 2: 在 A3 加入 ws 依賴與 start script**
 
 ```bash
-cd "google ai studio/app_3（國中）/AI校園心靈守護者"
+cd "apps/app3-guardian"
 npm install ws@^8.18.0
 npm install --save-dev @types/ws@^8.5.14
 ```
@@ -127,18 +127,18 @@ If root `package.json` does not exist, create it:
 - [ ] **Step 4: 驗證 ws 安裝**
 
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && node -e "import('ws').then(m => console.log('ws ok:', typeof m.WebSocketServer))"
-cd "google ai studio/app_3（國中）/AI校園心靈守護者" && node -e "import('ws').then(m => console.log('ws ok:', typeof m.WebSocketServer))"
+cd "apps/app2-campus-service" && node -e "import('ws').then(m => console.log('ws ok:', typeof m.WebSocketServer))"
+cd "apps/app3-guardian" && node -e "import('ws').then(m => console.log('ws ok:', typeof m.WebSocketServer))"
 ```
 Expected: `ws ok: function` for both.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/package.json" \
-        "google ai studio/app_2（國小）/校園服務機器人 app/package-lock.json" \
-        "google ai studio/app_3（國中）/AI校園心靈守護者/package.json" \
-        "google ai studio/app_3（國中）/AI校園心靈守護者/package-lock.json"
+git add "apps/app2-campus-service/package.json" \
+        "apps/app2-campus-service/package-lock.json" \
+        "apps/app3-guardian/package.json" \
+        "apps/app3-guardian/package-lock.json"
 git commit -m "feat: add ws dependency and start script to App 2 and App 3"
 ```
 
@@ -165,9 +165,9 @@ Create `ROOT/scripts/start-all-bridges.sh`:
 # Start all three Arduino bridges. Ctrl+C stops all.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-A1="$ROOT/google ai studio/app_1（國小）/AI自動板擦機器人"
-A2="$ROOT/google ai studio/app_2（國小）/校園服務機器人 app"
-A3="$ROOT/google ai studio/app_3（國中）/AI校園心靈守護者"
+A1="$ROOT/apps/app1-whiteboard"
+A2="$ROOT/apps/app2-campus-service"
+A3="$ROOT/apps/app3-guardian"
 
 PIDS=()
 cleanup() {
@@ -217,9 +217,9 @@ Create `ROOT/scripts/reset-all-demos.sh`:
 ```bash
 #!/usr/bin/env bash
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-A1="$ROOT/google ai studio/app_1（國小）/AI自動板擦機器人"
-A2="$ROOT/google ai studio/app_2（國小）/校園服務機器人 app"
-A3="$ROOT/google ai studio/app_3（國中）/AI校園心靈守護者"
+A1="$ROOT/apps/app1-whiteboard"
+A2="$ROOT/apps/app2-campus-service"
+A3="$ROOT/apps/app3-guardian"
 
 reset_via_api() {
   local port=$1 name=$2
@@ -408,13 +408,13 @@ Also update the signal handlers to use `httpServer.close()` instead of `server.c
 - [ ] **Step 3: 確認 TypeScript 編譯無錯誤**
 
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npx tsc --noEmit
+cd "apps/app2-campus-service" && npx tsc --noEmit
 ```
 Expected: no errors.
 
 - [ ] **Step 4: 手動測試 WebSocket 端點**
 
-Start bridge: `cd "google ai studio/app_2（國小）/校園服務機器人 app" && BRIDGE_PORT=3202 npx tsx server/serialBridge.ts &`
+Start bridge: `cd "apps/app2-campus-service" && BRIDGE_PORT=3202 npx tsx server/serialBridge.ts &`
 
 Test WS endpoint:
 ```bash
@@ -433,7 +433,7 @@ Kill the bridge: `kill %1`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/server/"
+git add "apps/app2-campus-service/server/"
 git commit -m "feat(app2): add WebSocket endpoint to serial bridge"
 ```
 
@@ -492,14 +492,14 @@ Update the WsEvent type to include:
 - [ ] **Step 3: TypeScript 編譯檢查**
 
 ```bash
-cd "google ai studio/app_3（國中）/AI校園心靈守護者" && npx tsc --noEmit
+cd "apps/app3-guardian" && npx tsc --noEmit
 ```
 Expected: no errors.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add "google ai studio/app_3（國中）/AI校園心靈守護者/server/"
+git add "apps/app3-guardian/server/"
 git commit -m "feat(app3): add WebSocket endpoint with sensor snapshot broadcast"
 ```
 
@@ -600,14 +600,14 @@ broadcast({type: 'command_ack', command: normalized, ok: true});
 - [ ] **Step 3: TypeScript 編譯檢查**
 
 ```bash
-cd "google ai studio/app_1（國小）/AI自動板擦機器人" && npx tsc --noEmit
+cd "apps/app1-whiteboard" && npx tsc --noEmit
 ```
 Expected: no errors.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add "google ai studio/app_1（國小）/AI自動板擦機器人/server/"
+git add "apps/app1-whiteboard/server/"
 git commit -m "feat(app1): add WebSocket endpoint to serial bridge"
 ```
 
@@ -834,9 +834,9 @@ Same as Step 5 but for `A3/src/App.tsx`.
 - [ ] **Step 8: TypeScript 編譯三個 App**
 
 ```bash
-cd "google ai studio/app_1（國小）/AI自動板擦機器人" && npx tsc --noEmit
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npx tsc --noEmit
-cd "google ai studio/app_3（國中）/AI校園心靈守護者" && npx tsc --noEmit
+cd "apps/app1-whiteboard" && npx tsc --noEmit
+cd "apps/app2-campus-service" && npx tsc --noEmit
+cd "apps/app3-guardian" && npx tsc --noEmit
 ```
 Expected: no errors in any App.
 
@@ -844,15 +844,15 @@ Expected: no errors in any App.
 
 ```bash
 git add \
-  "google ai studio/app_1（國小）/AI自動板擦機器人/src/hooks/useHardwareSocket.ts" \
-  "google ai studio/app_1（國小）/AI自動板擦機器人/src/components/HardwareStatusBanner.tsx" \
-  "google ai studio/app_1（國小）/AI自動板擦機器人/src/App.tsx" \
-  "google ai studio/app_2（國小）/校園服務機器人 app/src/hooks/useHardwareSocket.ts" \
-  "google ai studio/app_2（國小）/校園服務機器人 app/src/components/HardwareStatusBanner.tsx" \
-  "google ai studio/app_2（國小）/校園服務機器人 app/src/App.tsx" \
-  "google ai studio/app_3（國中）/AI校園心靈守護者/src/hooks/useHardwareSocket.ts" \
-  "google ai studio/app_3（國中）/AI校園心靈守護者/src/components/HardwareStatusBanner.tsx" \
-  "google ai studio/app_3（國中）/AI校園心靈守護者/src/App.tsx"
+  "apps/app1-whiteboard/src/hooks/useHardwareSocket.ts" \
+  "apps/app1-whiteboard/src/components/HardwareStatusBanner.tsx" \
+  "apps/app1-whiteboard/src/App.tsx" \
+  "apps/app2-campus-service/src/hooks/useHardwareSocket.ts" \
+  "apps/app2-campus-service/src/components/HardwareStatusBanner.tsx" \
+  "apps/app2-campus-service/src/App.tsx" \
+  "apps/app3-guardian/src/hooks/useHardwareSocket.ts" \
+  "apps/app3-guardian/src/components/HardwareStatusBanner.tsx" \
+  "apps/app3-guardian/src/App.tsx"
 git commit -m "feat: add useHardwareSocket hook and HardwareStatusBanner to all 3 apps"
 ```
 
@@ -996,15 +996,15 @@ function localCampusReply(taskType: string): string {
 - [ ] **Step 3: TypeScript 編譯檢查**
 
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npx tsc --noEmit
+cd "apps/app2-campus-service" && npx tsc --noEmit
 ```
 Expected: no errors.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/server/storage.ts" \
-        "google ai studio/app_2（國小）/校園服務機器人 app/server/aiService.ts"
+git add "apps/app2-campus-service/server/storage.ts" \
+        "apps/app2-campus-service/server/aiService.ts"
 git commit -m "feat(app2): add server storage and AI service"
 ```
 
@@ -1107,7 +1107,7 @@ app.post('/api/ops/reset', async (_req, res) => {
 - [ ] **Step 7: TypeScript 編譯 + 測試**
 
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npx tsc --noEmit
+cd "apps/app2-campus-service" && npx tsc --noEmit
 ```
 
 Start bridge and test:
@@ -1122,7 +1122,7 @@ Expected: `ready ok: true`
 - [ ] **Step 8: Commit**
 
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/server/serialBridge.ts"
+git add "apps/app2-campus-service/server/serialBridge.ts"
 git commit -m "feat(app2): add /api/ready, /api/robot/task, /api/ai/campus, /api/logs, /api/ops/reset"
 ```
 
@@ -1355,14 +1355,14 @@ app.post('/api/ops/reset', async (_req, res) => {
 - [ ] **Step 4: TypeScript 編譯**
 
 ```bash
-cd "google ai studio/app_3（國中）/AI校園心靈守護者" && npx tsc --noEmit
+cd "apps/app3-guardian" && npx tsc --noEmit
 ```
 Expected: no errors.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "google ai studio/app_3（國中）/AI校園心靈守護者/server/"
+git add "apps/app3-guardian/server/"
 git commit -m "feat(app3): add server storage, AI service, persistence, and new API routes"
 ```
 
@@ -1469,7 +1469,7 @@ Expected: all three compile without errors.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/app1_whiteboard_drive/main.cpp src/app2_sweeper_drive/main.cpp src/app3_guardian_drive/main.cpp
+git add firmware/app1-whiteboard-drive/main.cpp firmware/app2-sweeper-drive/main.cpp firmware/app3-guardian-drive/main.cpp
 git commit -m "feat(firmware): add HEARTBEAT/PONG and STATUS queries to all app targets"
 ```
 
@@ -1559,14 +1559,14 @@ if (cal) {
 - [ ] **Step 4: TypeScript 編譯**
 
 ```bash
-cd "google ai studio/app_1（國小）/AI自動板擦機器人" && npx tsc --noEmit
+cd "apps/app1-whiteboard" && npx tsc --noEmit
 ```
 Expected: no errors.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "google ai studio/app_1（國小）/AI自動板擦機器人/server/"
+git add "apps/app1-whiteboard/server/"
 git commit -m "feat(app1): persist whiteboard calibration to data/calibration.json"
 ```
 
@@ -1657,18 +1657,18 @@ export function HardwareStatusBanner({connected, port, simulated, mode}: Props) 
 - [ ] **Step 3: TypeScript 編譯三個 App**
 
 ```bash
-cd "google ai studio/app_1（國小）/AI自動板擦機器人" && npx tsc --noEmit
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npx tsc --noEmit
-cd "google ai studio/app_3（國中）/AI校園心靈守護者" && npx tsc --noEmit
+cd "apps/app1-whiteboard" && npx tsc --noEmit
+cd "apps/app2-campus-service" && npx tsc --noEmit
+cd "apps/app3-guardian" && npx tsc --noEmit
 ```
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add \
-  "google ai studio/app_1（國小）/AI自動板擦機器人/src/" \
-  "google ai studio/app_2（國小）/校園服務機器人 app/src/" \
-  "google ai studio/app_3（國中）/AI校園心靈守護者/src/"
+  "apps/app1-whiteboard/src/" \
+  "apps/app2-campus-service/src/" \
+  "apps/app3-guardian/src/"
 git commit -m "feat: add CommandFeedbackToast and lift useHardwareSocket to App in all 3 apps"
 ```
 
@@ -1777,13 +1777,13 @@ Render the logs as a simple list:
 - [ ] **Step 4: TypeScript 編譯**
 
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npx tsc --noEmit
+cd "apps/app2-campus-service" && npx tsc --noEmit
 ```
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/"
+git add "apps/app2-campus-service/src/"
 git commit -m "feat(app2): delivery queue ordering, dispatch highlight, task history panel"
 ```
 
@@ -1896,13 +1896,13 @@ The `fromLocal` flag should come from the AI service response (`analyzeGuardianA
 - [ ] **Step 4: TypeScript 編譯**
 
 ```bash
-cd "google ai studio/app_3（國中）/AI校園心靈守護者" && npx tsc --noEmit
+cd "apps/app3-guardian" && npx tsc --noEmit
 ```
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "google ai studio/app_3（國中）/AI校園心靈守護者/src/"
+git add "apps/app3-guardian/src/"
 git commit -m "feat(app3): severity colors, emotion heatmap, AI confidence labels"
 ```
 
@@ -1915,21 +1915,21 @@ git commit -m "feat(app3): severity colors, emotion heatmap, AI confidence label
 - [ ] **Step 1: App 1 full check**
 
 ```bash
-cd "google ai studio/app_1（國小）/AI自動板擦機器人" && npm run check
+cd "apps/app1-whiteboard" && npm run check
 ```
 Expected: all tests pass, TypeScript clean, build succeeds.
 
 - [ ] **Step 2: App 2 full check**
 
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npm run check
+cd "apps/app2-campus-service" && npm run check
 ```
 Expected: all tests pass, TypeScript clean, build succeeds.
 
 - [ ] **Step 3: App 3 full check**
 
 ```bash
-cd "google ai studio/app_3（國中）/AI校園心靈守護者" && npm run check
+cd "apps/app3-guardian" && npm run check
 ```
 Expected: all tests pass, TypeScript clean, build succeeds.
 

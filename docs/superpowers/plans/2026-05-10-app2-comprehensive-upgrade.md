@@ -8,7 +8,7 @@
 
 **Tech Stack:** React 19, TypeScript 5.8, Vite 6, Tailwind v4, motion/react, Gemini 2.5 Flash via bridge
 
-**App root:** `google ai studio/app_2（國小）/校園服務機器人 app/`  
+**App root:** `apps/app2-campus-service/`
 （以下所有路徑皆相對於此目錄）
 
 ---
@@ -108,13 +108,13 @@ cancelSignal?.addEventListener('abort', () => controller.abort(), {once: true});
 
 - [ ] **Step 5: 跑 TypeScript 確認無錯誤**
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npx tsc --noEmit 2>&1 | head -20
+cd "apps/app2-campus-service" && npx tsc --noEmit 2>&1 | head -20
 ```
 Expected: 無錯誤輸出。
 
 - [ ] **Step 6: Commit**
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/services/localVision.ts"
+git add "apps/app2-campus-service/src/services/localVision.ts"
 git commit -m "fix(vision): 8s Gemini timeout, remove dup getBridgeUrl, validate scene, once listener"
 ```
 
@@ -158,7 +158,7 @@ export async function sendHardwareCommand(command: string, source: string): Prom
 
 - [ ] **Step 2: Commit**
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/services/hardwareBridge.ts"
+git add "apps/app2-campus-service/src/services/hardwareBridge.ts"
 git commit -m "fix(bridge): only retry on 503, not timeout — prevent duplicate Arduino commands"
 ```
 
@@ -231,7 +231,7 @@ wss.on('connection', (ws, req) => {
 
 - [ ] **Step 3: Commit**
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/server/serialBridge.ts"
+git add "apps/app2-campus-service/server/serialBridge.ts"
 git commit -m "fix(bridge): guard double-response in timeout middleware + push initial arduino_status on WS connect"
 ```
 
@@ -346,12 +346,12 @@ export function useCamera(active: boolean): UseCameraResult {
 
 - [ ] **Step 2: 確認 TypeScript 通過**
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npx tsc --noEmit 2>&1 | head -20
+cd "apps/app2-campus-service" && npx tsc --noEmit 2>&1 | head -20
 ```
 
 - [ ] **Step 3: Commit**
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/hooks/useCamera.ts"
+git add "apps/app2-campus-service/src/hooks/useCamera.ts"
 git commit -m "feat(hooks): add useCamera — shared camera lifecycle with iOS env→user fallback"
 ```
 
@@ -494,12 +494,12 @@ export function useGeminiVision(
 
 - [ ] **Step 2: 確認 TypeScript 通過**
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npx tsc --noEmit 2>&1 | head -20
+cd "apps/app2-campus-service" && npx tsc --noEmit 2>&1 | head -20
 ```
 
 - [ ] **Step 3: Commit**
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/hooks/useGeminiVision.ts"
+git add "apps/app2-campus-service/src/hooks/useGeminiVision.ts"
 git commit -m "feat(hooks): add useGeminiVision — loop-based, global 6s rate limiter, abort-safe"
 ```
 
@@ -636,12 +636,12 @@ signal: AbortSignal.timeout(8000),
 
 - [ ] **Step 7: 確認 TypeScript 通過**
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npx tsc --noEmit 2>&1 | head -20
+cd "apps/app2-campus-service" && npx tsc --noEmit 2>&1 | head -20
 ```
 
 - [ ] **Step 8: Commit**
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/views/TeachView.tsx"
+git add "apps/app2-campus-service/src/views/TeachView.tsx"
 git commit -m "refactor(teach): use useCamera+useGeminiVision hooks, fix AbortSignal compat, fix attendance timer leak"
 ```
 
@@ -802,12 +802,12 @@ const prevVisionSceneRef = useRef<VisionScene | null>(null);
 
 - [ ] **Step 6: 確認 TypeScript 通過**
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npx tsc --noEmit 2>&1 | head -20
+cd "apps/app2-campus-service" && npx tsc --noEmit 2>&1 | head -20
 ```
 
 - [ ] **Step 7: Commit**
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/views/LifeView.tsx"
+git add "apps/app2-campus-service/src/views/LifeView.tsx"
 git commit -m "fix(life): move _eventId, remove auto-dispatch hw cmd, fix srcObject cleanup, fix broadcast timer leaks"
 ```
 
@@ -946,12 +946,12 @@ export function EnvMonitorCard() {
 
 - [ ] **Step 4: TypeScript check**
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npx tsc --noEmit 2>&1 | head -20
+cd "apps/app2-campus-service" && npx tsc --noEmit 2>&1 | head -20
 ```
 
 - [ ] **Step 5: Commit**
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/components/life/"
+git add "apps/app2-campus-service/src/components/life/"
 git commit -m "refactor(life): extract BellScheduleCard + EnvMonitorCard components"
 ```
 
@@ -1059,12 +1059,12 @@ export function ScanMapCard(_props: ScanMapCardProps) {
 
 - [ ] **Step 4: TypeScript check**
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npx tsc --noEmit 2>&1 | head -20
+cd "apps/app2-campus-service" && npx tsc --noEmit 2>&1 | head -20
 ```
 
 - [ ] **Step 5: Commit**
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/components/life/"
+git add "apps/app2-campus-service/src/components/life/"
 git commit -m "refactor(life): extract BroadcastCard + ScanMapCard components"
 ```
 
@@ -1204,12 +1204,12 @@ export function VisionCameraCard({ isOpen, onClose, showToast, onDispatch }: Vis
 
 - [ ] **Step 2: TypeScript check**
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npx tsc --noEmit 2>&1 | head -20
+cd "apps/app2-campus-service" && npx tsc --noEmit 2>&1 | head -20
 ```
 
 - [ ] **Step 3: Commit**
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/components/life/VisionCameraCard.tsx"
+git add "apps/app2-campus-service/src/components/life/VisionCameraCard.tsx"
 git commit -m "feat(life): VisionCameraCard using useCamera+useGeminiVision, user-triggered dispatch"
 ```
 
@@ -1263,18 +1263,18 @@ import { VisionCameraCard } from '../components/life/VisionCameraCard';
 
 - [ ] **Step 5: 確認 TypeScript 通過**
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npx tsc --noEmit 2>&1 | head -20
+cd "apps/app2-campus-service" && npx tsc --noEmit 2>&1 | head -20
 ```
 
 確認行數縮短：
 ```bash
-wc -l "google ai studio/app_2（國小）/校園服務機器人 app/src/views/LifeView.tsx"
+wc -l "apps/app2-campus-service/src/views/LifeView.tsx"
 ```
 Expected: ≤ 280 行。
 
 - [ ] **Step 6: Commit**
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/views/LifeView.tsx"
+git add "apps/app2-campus-service/src/views/LifeView.tsx"
 git commit -m "refactor(life): LifeView down to ~220 lines using Card components"
 ```
 
@@ -1321,12 +1321,12 @@ const { result: visionResult, analyzing: visionAnalyzing } = useGeminiVision(
 
 - [ ] **Step 4: TypeScript check**
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npx tsc --noEmit 2>&1 | head -20
+cd "apps/app2-campus-service" && npx tsc --noEmit 2>&1 | head -20
 ```
 
 - [ ] **Step 5: Commit**
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/views/DashboardView.tsx"
+git add "apps/app2-campus-service/src/views/DashboardView.tsx"
 git commit -m "fix(dashboard): use BRIDGE_URL env var, refactor camera to useCamera+useGeminiVision"
 ```
 
@@ -1377,12 +1377,12 @@ git commit -m "fix(dashboard): use BRIDGE_URL env var, refactor camera to useCam
 
 - [ ] **Step 2: TypeScript check**
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npx tsc --noEmit 2>&1 | head -20
+cd "apps/app2-campus-service" && npx tsc --noEmit 2>&1 | head -20
 ```
 
 - [ ] **Step 3: Commit**
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/hooks/useHardwareSocket.ts"
+git add "apps/app2-campus-service/src/hooks/useHardwareSocket.ts"
 git commit -m "fix(socket): move connectDeadline to ref so cleanup can clear it"
 ```
 
@@ -1392,29 +1392,29 @@ git commit -m "fix(socket): move connectDeadline to ref so cleanup can clear it"
 
 - [ ] **Step 1: 完整 check 通過**
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npm run check 2>&1 | tail -20
+cd "apps/app2-campus-service" && npm run check 2>&1 | tail -20
 ```
 Expected: `npm run test` + `npm run lint` + `npm run build` 全部通過。
 
 - [ ] **Step 2: 確認 LifeView 行數**
 ```bash
-wc -l "google ai studio/app_2（國小）/校園服務機器人 app/src/views/LifeView.tsx"
+wc -l "apps/app2-campus-service/src/views/LifeView.tsx"
 ```
 Expected: ≤ 280 行。
 
 - [ ] **Step 3: 確認無 critical bugs 殘留**
 ```bash
 grep -n "AbortSignal\.timeout\|localhost:3202\|let _eventId" \
-  "google ai studio/app_2（國小）/校園服務機器人 app/src/views/TeachView.tsx" \
-  "google ai studio/app_2（國小）/校園服務機器人 app/src/views/DashboardView.tsx" \
-  "google ai studio/app_2（國小）/校園服務機器人 app/src/views/LifeView.tsx" \
-  "google ai studio/app_2（國小）/校園服務機器人 app/src/services/localVision.ts"
+  "apps/app2-campus-service/src/views/TeachView.tsx" \
+  "apps/app2-campus-service/src/views/DashboardView.tsx" \
+  "apps/app2-campus-service/src/views/LifeView.tsx" \
+  "apps/app2-campus-service/src/services/localVision.ts"
 ```
 Expected: 無輸出（所有問題已修復）。
 
 - [ ] **Step 4: 啟動 dev server 確認正常**
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npm run dev &
+cd "apps/app2-campus-service" && npm run dev &
 sleep 5 && curl -s http://localhost:3202/api/ready | head -c 200
 ```
 Expected: `{"ok":true,"arduino":false,"ai":true,"bridge_port":3202}` 或類似。

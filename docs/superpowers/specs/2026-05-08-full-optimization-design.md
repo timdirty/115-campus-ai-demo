@@ -137,15 +137,15 @@ function useHardwareSocket(bridgeUrl: string) {
   - 未知指令回 `ERR:UNKNOWN:<COMMAND>\n`
   - 前端 parser 兼容層：看到 `OK:` 或 `ERR:` 就解析，其他行維持現有處理
 
-**App 1** (`src/app1_whiteboard_drive/main.cpp`)：
+**App 1** (`firmware/app1-whiteboard-drive/main.cpp`)：
 - 加入 `HEARTBEAT → PONG` 回應
 - 加入 `STATUS` 指令：回 `STATUS:SPEED:<n>,WDT:<armed|off>\n`
 
-**App 2** (`src/app2_sweeper_drive/main.cpp`)：
+**App 2** (`firmware/app2-sweeper-drive/main.cpp`)：
 - 加入 `HEARTBEAT → PONG` 回應
 - `SWEEP_STATUS` 查詢回 `STATUS:SWEEP:<on|off|reversed>,SPEED:<n>\n`
 
-**App 3** (`src/app3_guardian_drive/main.cpp`)：
+**App 3** (`firmware/app3-guardian-drive/main.cpp`)：
 - `SENSOR_SNAPSHOT` 指令：立即回 `SENSORS:TEMP:<f>,HUM:<n>,LIGHT:<n>\n`
 - `NODE_STATUS` 查詢回 `STATUS:NODES:connected,WDT:<armed|off>\n`
 

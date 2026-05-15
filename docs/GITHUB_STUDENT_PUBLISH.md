@@ -40,11 +40,11 @@ CHECK_PUBLIC_URLS=1 node scripts/competition-readiness-check.mjs
 App 2、App 3 是 local-first 前端展示版，學生可各自在瀏覽器操作，資料存在自己的 localStorage。
 
 ```zsh
-cd "google ai studio/app_2（國小）/校園服務機器人 app"
+cd "apps/app2-campus-service"
 npm install
 npm run dev
 
-cd "google ai studio/app_3（國中）/AI校園心靈守護者"
+cd "apps/app3-guardian"
 npm install
 npm run dev
 ```
@@ -62,7 +62,7 @@ VITE_ARDUINO_BRIDGE_URL="http://localhost:3202"
 App 1 需要 Node bridge 才有完整 API、JSON storage、Gemini fallback 與 Arduino gateway。
 
 ```zsh
-cd "google ai studio/app_1（國小）/AI自動板擦機器人"
+cd "apps/app1-whiteboard"
 npm install
 npm run build
 BRIDGE_PORT=3200 NODE_ENV=production npm run start

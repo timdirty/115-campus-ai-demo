@@ -44,7 +44,7 @@ Arduino UNO R4 WiFi
 ### 方法 A：一鍵啟動（推薦）
 
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app"
+cd "apps/app2-campus-service"
 npm run dev
 ```
 

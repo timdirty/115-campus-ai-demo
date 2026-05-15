@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-A1="$ROOT/google ai studio/app_1（國小）/AI自動板擦機器人"
-A2="$ROOT/google ai studio/app_2（國小）/校園服務機器人 app"
-A3="$ROOT/google ai studio/app_3（國中）/AI校園心靈守護者"
+A1="$ROOT/apps/app1-whiteboard"
+A2="$ROOT/apps/app2-campus-service"
+A3="$ROOT/apps/app3-guardian"
 
 reset_via_api() {
   local port=$1 name=$2

@@ -17,6 +17,8 @@
     "check:hardware": "node scripts/hardware-doctor.mjs",
     "check:polish": "node scripts/polish-500-check.mjs",
     "check:public": "CHECK_PUBLIC_URLS=1 node scripts/competition-readiness-check.mjs",
+    "check:bridges": "node scripts/bridge-smoke-check.mjs",
+    "check:routes": "node scripts/demo-routes-check.mjs",
     "check:visual": "node scripts/responsive-layout-check.mjs",
     "demo:docs": "node scripts/generate-demo-docs.mjs",
     "demo:evidence": "node scripts/generate-demo-evidence.mjs",

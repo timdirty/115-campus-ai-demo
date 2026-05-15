@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>校園服務機器人學生操作手冊</title>
+  <style>
+    @page { size: A4; margin: 12mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      color: #152033;
+      background: #f5f7fb;
+      line-height: 1.55;
+    }
+    .page {
+      min-height: 273mm;
+      break-after: page;
+      background: #fff;
+      border: 1px solid #e6ebf4;
+      border-radius: 18px;
+      padding: 18mm;
+      position: relative;
+      overflow: hidden;
+    }
+    .page:last-child { break-after: auto; }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      background: #e8f1ff;
+      color: #075db8;
+      font-size: 13px;
+      font-weight: 900;
+      padding: 6px 12px;
+    }
+    h1, h2, h3 { margin: 0; letter-spacing: 0; }
+    h1 { margin-top: 16px; font-size: 34px; line-height: 1.15; }
+    h2 { margin-top: 10px; font-size: 25px; }
+    h3 { font-size: 17px; }
+    p { margin: 8px 0 0; }
+    .lead { margin-top: 14px; font-size: 19px; font-weight: 850; color: #334155; }
+    .big-line {
+      margin-top: 18px;
+      border-radius: 18px;
+      background: #075db8;
+      color: white;
+      padding: 18px;
+      font-size: 25px;
+      font-weight: 950;
+      text-align: center;
+    }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 18px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 16px; }
+    .card {
+      border: 1px solid #dbe4f0;
+      border-radius: 16px;
+      padding: 14px;
+      background: #fff;
+    }
+    .step-num {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: #075db8;
+      color: white;
+      font-weight: 950;
+      margin-bottom: 10px;
+    }
+    .card p { font-size: 14px; color: #475569; font-weight: 700; }
+    .quote {
+      margin-top: 16px;
+      border-left: 6px solid #075db8;
+      background: #f1f6ff;
+      padding: 14px 16px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 850;
+    }
+    .screen {
+      width: 100%;
+      border-radius: 16px;
+      border: 1px solid #dbe4f0;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10);
+      margin-top: 12px;
+    }
+    .caption {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 800;
+    }
+    .checklist {
+      margin: 14px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+    .checklist li {
+      border-radius: 13px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 10px 12px;
+      font-weight: 800;
+    }
+    .mini { font-size: 13px; color: #64748b; font-weight: 750; }
+    .scene-card {
+      break-inside: avoid;
+      border: 2px solid #0f172a;
+      border-radius: 14px;
+      overflow: hidden;
+      background: white;
+    }
+    .scene-card img { width: 100%; display: block; aspect-ratio: 16/9; object-fit: cover; }
+    .scene-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      font-weight: 950;
+      font-size: 17px;
+    }
+    .scene-title span:last-child { color: #075db8; font-size: 13px; }
+    .footer {
+      position: absolute;
+      left: 18mm;
+      right: 18mm;
+      bottom: 10mm;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      justify-content: space-between;
+    }
+    @media print {
+      body { background: #fff; }
+      .page { border: 0; border-radius: 0; min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <section class="page">
+    <span class="tag">學生上台版</span>
+    <h1>校園服務機器人<br />操作手冊</h1>
+    <p class="lead">不用背功能名稱。照順序按四個大按鈕，就能完成一場完整展示。</p>
+    <div class="big-line">看見問題、派出任務、留下紀錄</div>
+    <div class="grid-4">
+      <div class="card"><div class="step-num">1</div><h3>開始</h3><p>用圖卡做影像任務。</p></div>
+      <div class="card"><div class="step-num">2</div><h3>教學</h3><p>點名和課堂互動。</p></div>
+      <div class="card"><div class="step-num">3</div><h3>配送</h3><p>建立訂單並追蹤。</p></div>
+      <div class="card"><div class="step-num">4</div><h3>生活</h3><p>把事件派成任務。</p></div>
+    </div>
+    <div class="quote">開場白：我們的機器人會先看見校園問題，再派出任務，最後留下紀錄給老師和評審看。</div>
+    <h2>展示前準備</h2>
+    <ul class="checklist">
+      <li>打開 App：進入「學生展示模式」。</li>
+      <li>印出後面五張影像辨識圖卡。</li>
+      <li>展示時只照畫面按，不需要找後台功能。</li>
+    </ul>
+    <div class="footer"><span>App2 校園服務機器人</span><span>學生可直接照讀</span></div>
+  </section>
+
+  <section class="page">
+    <span class="tag">App 操作畫面</span>
+    <h2>第一步：學生首頁</h2>
+    <p class="lead">看到四個大按鈕後，從左到右依序按。</p>
+    <img class="screen" src="screenshots/01-student-home.png" alt="學生首頁截圖" />
+    <p class="caption">學生只要看這個頁面，不用進設定、不用看技術狀態。</p>
+    <h2>怎麼用圖卡測影像辨識</h2>
+    <ul class="checklist">
+      <li>拿一張圖卡放在鏡頭前。</li>
+      <li>按「開始 · 影像任務」。</li>
+      <li>看到辨識結果後，按「派遣任務」。</li>
+      <li>任務送出後，按「下一個展示」。</li>
+    </ul>
+    <div class="footer"><span>重點：看見、派遣、紀錄</span><span>第 2 頁</span></div>
+  </section>
+
+  <section class="page">
+    <span class="tag">四段閉環</span>
+    <h2>教學、配送、生活怎麼演</h2>
+    <div class="grid-2">
+      <div>
+        <h3>教學閉環</h3>
+        <img class="screen" src="screenshots/02-teach-loop.png" alt="教學閉環截圖" />
+        <p class="caption">按「1 點名」，再說明機器人能協助老師掌握課堂狀態。</p>
+      </div>
+      <div>
+        <h3>配送閉環</h3>
+        <img class="screen" src="screenshots/03-delivery-loop.png" alt="配送閉環截圖" />
+        <p class="caption">按「一鍵配送示範」，說明訂單、庫存和追蹤會留下紀錄。</p>
+      </div>
+    </div>
+    <h3 style="margin-top: 18px;">生活閉環</h3>
+    <img class="screen" src="screenshots/04-life-loop.png" alt="生活閉環截圖" />
+    <p class="caption">按「一鍵派遣」，讓評審看到校園事件會變成任務。</p>
+    <div class="footer"><span>每一步都會改變 App 狀態</span><span>第 3 頁</span></div>
+  </section>
+
+  <section class="page">
+    <span class="tag">機器人顯示端</span>
+    <h2>讓評審看到機器人也收到任務</h2>
+    <p class="lead">如果有 iPad 或第二個螢幕，打開機器人顯示端。學生按 App 的任務後，機器人臉會同步任務名稱和狀態。</p>
+    <img class="screen" src="screenshots/05-robot-display.png" alt="機器人顯示端截圖" />
+    <ul class="checklist">
+      <li>主控 App 打開「機器人顯示面板」。</li>
+      <li>按「產生 QR 碼」，iPad 掃描後連線。</li>
+      <li>沒有 iPad 時，按「在新分頁預覽機器人顯示」。</li>
+      <li>展示時說：App 不是只改畫面，任務會同步到機器人顯示端。</li>
+    </ul>
+    <div class="quote">閉環：學生操作 App → 任務紀錄更新 → 機器人顯示端同步任務語句。</div>
+    <div class="footer"><span>App 與 robot_app2.jsx 已同步</span><span>第 4 頁</span></div>
+  </section>
+
+  <section class="page">
+    <span class="tag">列印圖卡 1</span>
+    <h2>影像辨識圖卡</h2>
+    <p class="lead">列印後，一張一張放到鏡頭前測。不要五張同時拿。</p>
+    <div class="grid-2">
+      <div class="scene-card">
+        <img src="../public/demo-assets/vision-cards/01-crowd-hallway.png" alt="人流疏導圖卡" />
+        <div class="scene-title"><span>1 人流疏導</span><span>廣播疏導</span></div>
+      </div>
+      <div class="scene-card">
+        <img src="../public/demo-assets/vision-cards/02-safety-patrol.png" alt="安全巡查圖卡" />
+        <div class="scene-title"><span>2 安全巡查</span><span>巡邏確認</span></div>
+      </div>
+    </div>
+    <div class="footer"><span>請單張測試，畫面會更穩</span><span>第 5 頁</span></div>
+  </section>
+
+  <section class="page">
+    <span class="tag">列印圖卡 2</span>
+    <h2>影像辨識圖卡</h2>
+    <div class="grid-2">
+      <div class="scene-card">
+        <img src="../public/demo-assets/vision-cards/03-cleaning-needed.png" alt="清掃需求圖卡" />
+        <div class="scene-title"><span>3 清掃需求</span><span>清掃巡查</span></div>
+      </div>
+      <div class="scene-card">
+        <img src="../public/demo-assets/vision-cards/04-delivery-service.png" alt="配送服務圖卡" />
+        <div class="scene-title"><span>4 配送服務</span><span>配送任務</span></div>
+      </div>
+    </div>
+    <div class="scene-card" style="margin-top: 16px;">
+      <img src="../public/demo-assets/vision-cards/05-normal-patrol.png" alt="一般巡邏圖卡" />
+      <div class="scene-title"><span>5 一般巡邏</span><span>日常巡邏</span></div>
+    </div>
+    <p class="mini">老師提醒：圖卡距離鏡頭約 30 到 50 公分，讓畫面充滿大約一半到三分之二。</p>
+    <div class="footer"><span>五張獨立圖卡已放入 public/demo-assets/vision-cards</span><span>第 6 頁</span></div>
+  </section>
+</body>
+</html>

@@ -2,9 +2,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-APP1_DIR="${ROOT_DIR}/google ai studio/app_1（國小）/AI自動板擦機器人"
-APP2_DIR="${ROOT_DIR}/google ai studio/app_2（國小）/校園服務機器人 app"
-APP3_DIR="${ROOT_DIR}/google ai studio/app_3（國中）/AI校園心靈守護者"
+APP1_DIR="${ROOT_DIR}/apps/app1-whiteboard"
+APP2_DIR="${ROOT_DIR}/apps/app2-campus-service"
+APP3_DIR="${ROOT_DIR}/apps/app3-guardian"
 
 step() {
   printf '\n== %s ==\n' "$1"
@@ -55,18 +55,18 @@ cat <<'MSG'
 All demo checks passed.
 
 App 1 single-server demo:
-  cd "google ai studio/app_1（國小）/AI自動板擦機器人"
+  cd "apps/app1-whiteboard"
   npm run build
   BRIDGE_PORT=3200 NODE_ENV=production npm run start
   open http://localhost:3200
 
 App 2 local demo:
-  cd "google ai studio/app_2（國小）/校園服務機器人 app"
+  cd "apps/app2-campus-service"
   npm run dev
   open the Vite URL shown in the terminal
 
 App 3 local demo:
-  cd "google ai studio/app_3（國中）/AI校園心靈守護者"
+  cd "apps/app3-guardian"
   npm run dev
   open the Vite URL shown in the terminal
 

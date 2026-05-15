@@ -8,7 +8,7 @@
 
 **Tech Stack:** React 18, TypeScript, motion/react (已有), Tailwind CSS (已有)
 
-**App root:** `google ai studio/app_2（國小）/校園服務機器人 app/src`
+**App root:** `apps/app2-campus-service/src`
 
 ---
 
@@ -36,7 +36,7 @@
 - [ ] **Step 1: 建立目錄與檔案**
 
 ```bash
-mkdir -p "google ai studio/app_2（國小）/校園服務機器人 app/src/components/tour"
+mkdir -p "apps/app2-campus-service/src/components/tour"
 ```
 
 - [ ] **Step 2: 寫入 tourSteps.ts**
@@ -150,7 +150,7 @@ export const TOUR_STORAGE_KEY = 'tour-app2:v1';
 - [ ] **Step 3: 確認檔案存在**
 
 ```bash
-ls "google ai studio/app_2（國小）/校園服務機器人 app/src/components/tour/"
+ls "apps/app2-campus-service/src/components/tour/"
 ```
 
 Expected: `tourSteps.ts`
@@ -158,7 +158,7 @@ Expected: `tourSteps.ts`
 - [ ] **Step 4: Commit**
 
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/components/tour/tourSteps.ts"
+git add "apps/app2-campus-service/src/components/tour/tourSteps.ts"
 git commit -m "feat(app2-tour): add tour step definitions"
 ```
 
@@ -183,7 +183,7 @@ export function useTour(): TourContextValue {
 - [ ] **Step 2: Commit**
 
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/components/tour/useTour.ts"
+git add "apps/app2-campus-service/src/components/tour/useTour.ts"
 git commit -m "feat(app2-tour): add useTour hook"
 ```
 
@@ -303,7 +303,7 @@ export function TourProvider({
 - [ ] **Step 2: Commit**
 
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/components/tour/TourProvider.tsx"
+git add "apps/app2-campus-service/src/components/tour/TourProvider.tsx"
 git commit -m "feat(app2-tour): add TourProvider with localStorage auto-start"
 ```
 
@@ -497,7 +497,7 @@ export function TourOverlay() {
 - [ ] **Step 2: Commit**
 
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/components/tour/TourOverlay.tsx"
+git add "apps/app2-campus-service/src/components/tour/TourOverlay.tsx"
 git commit -m "feat(app2-tour): add TourOverlay spotlight component"
 ```
 
@@ -541,7 +541,7 @@ className="col-span-2 bg-surface-container-low rounded-[2.5rem] p-8 relative ove
 - [ ] **Step 3: Commit**
 
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/views/DashboardView.tsx"
+git add "apps/app2-campus-service/src/views/DashboardView.tsx"
 git commit -m "feat(app2-tour): add data-tour attrs to DashboardView"
 ```
 
@@ -577,7 +577,7 @@ git commit -m "feat(app2-tour): add data-tour attrs to DashboardView"
 - [ ] **Step 3: Commit**
 
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/views/TeachView.tsx"
+git add "apps/app2-campus-service/src/views/TeachView.tsx"
 git commit -m "feat(app2-tour): add data-tour attrs to TeachView"
 ```
 
@@ -618,7 +618,7 @@ git commit -m "feat(app2-tour): add data-tour attrs to TeachView"
 - [ ] **Step 3: Commit**
 
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/views/DeliveryView.tsx"
+git add "apps/app2-campus-service/src/views/DeliveryView.tsx"
 git commit -m "feat(app2-tour): add data-tour attrs to DeliveryView"
 ```
 
@@ -645,7 +645,7 @@ git commit -m "feat(app2-tour): add data-tour attrs to DeliveryView"
 - [ ] **Step 2: Commit**
 
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/views/LifeView.tsx"
+git add "apps/app2-campus-service/src/views/LifeView.tsx"
 git commit -m "feat(app2-tour): add data-tour attr to LifeView"
 ```
 
@@ -735,7 +735,7 @@ return (
 - [ ] **Step 5: 驗證 TypeScript 不報錯**
 
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npm run lint
+cd "apps/app2-campus-service" && npm run lint
 ```
 
 Expected: 0 errors.
@@ -743,7 +743,7 @@ Expected: 0 errors.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add "google ai studio/app_2（國小）/校園服務機器人 app/src/App.tsx"
+git add "apps/app2-campus-service/src/App.tsx"
 git commit -m "feat(app2-tour): wire TourProvider into App, add restart button in settings"
 ```
 
@@ -754,7 +754,7 @@ git commit -m "feat(app2-tour): wire TourProvider into App, add restart button i
 - [ ] **Step 1: 跑 check**
 
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npm run check
+cd "apps/app2-campus-service" && npm run check
 ```
 
 Expected: TypeScript 0 errors, tests pass, build succeeds.
@@ -762,7 +762,7 @@ Expected: TypeScript 0 errors, tests pass, build succeeds.
 - [ ] **Step 2: 手動確認導覽啟動**
 
 ```bash
-cd "google ai studio/app_2（國小）/校園服務機器人 app" && npm run dev
+cd "apps/app2-campus-service" && npm run dev
 ```
 
 開 `http://localhost:11502`（或 3000 如果直接從 app 目錄跑）：

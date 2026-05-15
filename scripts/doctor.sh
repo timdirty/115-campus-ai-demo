@@ -19,9 +19,9 @@ pio boards uno_r4
 echo
 echo "== Project =="
 test -f platformio.ini
-test -f src/main.cpp
+test -f firmware/shared-command-demo/main.cpp
 test -f include/commands.h
-test -f src/commands.cpp
+test -f firmware/shared-command-demo/commands.cpp
 sed -n '1,80p' platformio.ini
 
 echo

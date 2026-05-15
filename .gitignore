@@ -28,8 +28,12 @@ include/arduino_secrets.h
 **/firebase-applet-config.local.json
 
 # Local runtime data
-google ai studio/app_1（國小）/AI自動板擦機器人/data/*.json
-google ai studio/app_1（國小）/AI自動板擦機器人/data/backups/
+apps/app1-whiteboard/data/*.json
+apps/app1-whiteboard/data/backups/
+apps/app2-campus-service/.demo-runtime/
+apps/app3-guardian/data/*.json
+apps/app3-guardian/data/backups/
+**/.demo-runtime/
 *-smoke.png
 demo-ready-report.json
 

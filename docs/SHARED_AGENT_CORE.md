@@ -27,15 +27,15 @@ This is the canonical project guidance shared by Claude Code and Codex for this 
 
 - PlatformIO is managed through Homebrew, not `pip`.
 - Keep per-project physical firmware separated by PlatformIO env; do not overwrite one team's firmware file with another team's sketch.
-- Shared command demo firmware: env `uno_r4_wifi`, files `src/main.cpp`, `src/commands.cpp`, `src/matrix_show.cpp`.
-- App 1 whiteboard dual-motor firmware: env `uno_r4_minima_app1_whiteboard_drive`, file `src/app1_whiteboard_drive/main.cpp`, L293D M3/M4.
-- App 2 sweeper robot firmware: envs `uno_r4_wifi_app2_sweeper` (R4 WiFi) and `uno_r4_minima_app2_sweeper` (R4 Minima, DFU upload), file `src/app2_sweeper_drive/main.cpp`, L293D M1+M2 wheels and M3+M4 sweeper rollers.
-- App 3 guardian sensor firmware: envs `uno_r4_wifi_sensor` (R4 WiFi) and `uno_r4_minima` (R4 Minima, DFU upload), file `src/app3_guardian_sensor/main.cpp`, HY-M302 / DHT11 / photoresistor / RGB LED.
-- App 3 guardian four-wheel firmware: envs `uno_r4_wifi_app3_guardian_drive` (R4 WiFi) and `uno_r4_minima_app3_guardian_drive` (R4 Minima, DFU upload), file `src/app3_guardian_drive/main.cpp`, L293D M1+M4 left side and M2+M3 right side.
+- Shared command demo firmware: env `uno_r4_wifi`, files `firmware/shared-command-demo/main.cpp`, `firmware/shared-command-demo/commands.cpp`, `firmware/shared-command-demo/matrix_show.cpp`.
+- App 1 whiteboard dual-motor firmware: env `uno_r4_minima_app1_whiteboard_drive`, file `firmware/app1-whiteboard-drive/main.cpp`, L293D M3/M4.
+- App 2 sweeper robot firmware: envs `uno_r4_wifi_app2_sweeper` (R4 WiFi) and `uno_r4_minima_app2_sweeper` (R4 Minima, DFU upload), file `firmware/app2-sweeper-drive/main.cpp`, L293D M1+M2 wheels and M3+M4 sweeper rollers.
+- App 3 guardian sensor firmware: envs `uno_r4_wifi_sensor` (R4 WiFi) and `uno_r4_minima` (R4 Minima, DFU upload), file `firmware/app3-guardian-sensor/main.cpp`, HY-M302 / DHT11 / photoresistor / RGB LED.
+- App 3 guardian four-wheel firmware: envs `uno_r4_wifi_app3_guardian_drive` (R4 WiFi) and `uno_r4_minima_app3_guardian_drive` (R4 Minima, DFU upload), file `firmware/app3-guardian-drive/main.cpp`, L293D M1+M4 left side and M2+M3 right side.
 - Full firmware reference lives in `docs/FIRMWARE_ENV_MAP.md`.
 - All serial commands stay in `UPPER_SNAKE_CASE`.
-- For shared command-demo changes, `src/main.cpp` is the serial entry point and `src/commands.cpp` is the single command dispatch surface.
-- If you add a shared command, update `src/commands.cpp`, the ready message list, and the App 1 bridge catalog.
+- For shared command-demo changes, `firmware/shared-command-demo/main.cpp` is the serial entry point and `firmware/shared-command-demo/commands.cpp` is the single command dispatch surface.
+- If you add a shared command, update `firmware/shared-command-demo/commands.cpp`, the ready message list, and the App 1 bridge catalog.
 
 ## High-Signal Commands
 

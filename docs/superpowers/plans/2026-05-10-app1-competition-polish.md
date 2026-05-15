@@ -351,7 +351,7 @@ export function matchTemplate(query: string): string {
 - [ ] **Step 2: 確認檔案建立，無 TS 錯誤**
 
 ```bash
-cd "google ai studio/app_1（國小）/AI自動板擦機器人"
+cd "apps/app1-whiteboard"
 npx tsc --noEmit 2>&1 | head -20
 ```
 Expected: 無 localChatTemplates 相關錯誤
@@ -359,7 +359,7 @@ Expected: 無 localChatTemplates 相關錯誤
 - [ ] **Step 3: Commit**
 
 ```bash
-git add "google ai studio/app_1（國小）/AI自動板擦機器人/src/services/localChatTemplates.ts"
+git add "apps/app1-whiteboard/src/services/localChatTemplates.ts"
 git commit -m "feat(app1): add 60 local chat templates with Jaccard matching"
 ```
 
@@ -402,7 +402,7 @@ Expected: 得到完整的、有意義的回答（來自 ROBOT_TEMPLATES），而
 - [ ] **Step 4: Commit**
 
 ```bash
-git add "google ai studio/app_1（國小）/AI自動板擦機器人/src/services/geminiService.ts"
+git add "apps/app1-whiteboard/src/services/geminiService.ts"
 git commit -m "feat(app1): upgrade chatWithAI fallback to use Jaccard template matching"
 ```
 
@@ -473,8 +473,8 @@ Expected: 無錯誤
 - [ ] **Step 4: Commit**
 
 ```bash
-git add "google ai studio/app_1（國小）/AI自動板擦機器人/src/services/apiClient.ts" \
-        "google ai studio/app_1（國小）/AI自動板擦機器人/src/App.tsx"
+git add "apps/app1-whiteboard/src/services/apiClient.ts" \
+        "apps/app1-whiteboard/src/App.tsx"
 git commit -m "fix(app1): replace hardcoded localhost:3201 with getBridgeBase() for cross-device support"
 ```
 
@@ -640,7 +640,7 @@ npx tsc --noEmit 2>&1 | grep "Home" | head -10
 - [ ] **Step 6: Commit**
 
 ```bash
-git add "google ai studio/app_1（國小）/AI自動板擦機器人/src/pages/Home.tsx"
+git add "apps/app1-whiteboard/src/pages/Home.tsx"
 git commit -m "feat(app1): persist Home state in sessionStorage + add practice checklist card"
 ```
 
@@ -762,7 +762,7 @@ npx tsc --noEmit 2>&1 | grep "SystemSettings" | head -10
 - [ ] **Step 6: Commit**
 
 ```bash
-git add "google ai studio/app_1（國小）/AI自動板擦機器人/src/components/SystemSettingsPanel.tsx"
+git add "apps/app1-whiteboard/src/components/SystemSettingsPanel.tsx"
 git commit -m "feat(app1): add demo reset button and bridge host configuration to settings panel"
 ```
 
@@ -860,8 +860,8 @@ npx tsc --noEmit 2>&1 | grep -i "teacher\|robot" | head -10
 - [ ] **Step 6: Commit**
 
 ```bash
-git add "google ai studio/app_1（國小）/AI自動板擦機器人/src/pages/TeacherDashboard.tsx" \
-        "google ai studio/app_1（國小）/AI自動板擦機器人/src/pages/RobotControl.tsx"
+git add "apps/app1-whiteboard/src/pages/TeacherDashboard.tsx" \
+        "apps/app1-whiteboard/src/pages/RobotControl.tsx"
 git commit -m "feat(app1): add virtual robot badge in fallback mode; fix D-pad feedback and speedTimer cleanup"
 ```
 
@@ -1027,8 +1027,8 @@ npx tsc --noEmit 2>&1 | grep -i "tour" | head -10
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "google ai studio/app_1（國小）/AI自動板擦機器人/src/components/tour/tourSteps.ts" \
-        "google ai studio/app_1（國小）/AI自動板擦機器人/src/components/tour/TourOverlay.tsx"
+git add "apps/app1-whiteboard/src/components/tour/tourSteps.ts" \
+        "apps/app1-whiteboard/src/components/tour/TourOverlay.tsx"
 git commit -m "feat(app1): add reviewerQ field to tour steps with examiner Q&A tips"
 ```
 
@@ -1039,7 +1039,7 @@ git commit -m "feat(app1): add reviewerQ field to tour steps with examiner Q&A t
 - [ ] **Step 1: 跑 npm run check**
 
 ```bash
-cd "google ai studio/app_1（國小）/AI自動板擦機器人"
+cd "apps/app1-whiteboard"
 npm run check 2>&1
 ```
 

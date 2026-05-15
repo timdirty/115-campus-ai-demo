@@ -6,13 +6,13 @@ Use this file when you need to open, maintain, build, or upload the correct Ardu
 
 | Project | PlatformIO env | Firmware file | Board | Hardware role |
 | --- | --- | --- | --- | --- |
-| App 1 白板機器人雙馬達 | `uno_r4_minima_app1_whiteboard_drive` | `src/app1_whiteboard_drive/main.cpp` | UNO R4 Minima | L293D Motor Shield v1, M3/M4 drive base |
-| App 2 掃地機器人 (R4 WiFi) | `uno_r4_wifi_app2_sweeper` | `src/app2_sweeper_drive/main.cpp` | UNO R4 WiFi | L293D shield, M1+M2 雙輪驅動，M3+M4 掃地滾筒 |
-| App 2 掃地機器人 (R4 Minima) | `uno_r4_minima_app2_sweeper` | `src/app2_sweeper_drive/main.cpp` | UNO R4 Minima | 同上，DFU 上傳 |
-| App 3 心靈守護者感測器 | `uno_r4_wifi_sensor` | `src/app3_guardian_sensor/main.cpp` | UNO R4 WiFi | HY-M302 / DHT11 / photoresistor / RGB LED sensor node |
-| App 3 心靈守護者四輪底盤 (R4 WiFi) | `uno_r4_wifi_app3_guardian_drive` | `src/app3_guardian_drive/main.cpp` | UNO R4 WiFi | L293D M1+M4 left side, M2+M3 right side |
-| App 3 心靈守護者四輪底盤 (R4 Minima) | `uno_r4_minima_app3_guardian_drive` | `src/app3_guardian_drive/main.cpp` | UNO R4 Minima | 同上，改用 DFU 上傳 |
-| Shared three-app command demo | `uno_r4_wifi` | `src/main.cpp`, `src/commands.cpp`, `src/matrix_show.cpp` | UNO R4 WiFi | Shared serial command catalog, LED matrix, servo, DHT |
+| App 1 白板機器人雙馬達 | `uno_r4_minima_app1_whiteboard_drive` | `firmware/app1-whiteboard-drive/main.cpp` | UNO R4 Minima | L293D Motor Shield v1, M3/M4 drive base |
+| App 2 掃地機器人 (R4 WiFi) | `uno_r4_wifi_app2_sweeper` | `firmware/app2-sweeper-drive/main.cpp` | UNO R4 WiFi | L293D shield, M1+M2 雙輪驅動，M3+M4 掃地滾筒 |
+| App 2 掃地機器人 (R4 Minima) | `uno_r4_minima_app2_sweeper` | `firmware/app2-sweeper-drive/main.cpp` | UNO R4 Minima | 同上，DFU 上傳 |
+| App 3 心靈守護者感測器 | `uno_r4_wifi_sensor` | `firmware/app3-guardian-sensor/main.cpp` | UNO R4 WiFi | HY-M302 / DHT11 / photoresistor / RGB LED sensor node |
+| App 3 心靈守護者四輪底盤 (R4 WiFi) | `uno_r4_wifi_app3_guardian_drive` | `firmware/app3-guardian-drive/main.cpp` | UNO R4 WiFi | L293D M1+M4 left side, M2+M3 right side |
+| App 3 心靈守護者四輪底盤 (R4 Minima) | `uno_r4_minima_app3_guardian_drive` | `firmware/app3-guardian-drive/main.cpp` | UNO R4 Minima | 同上，改用 DFU 上傳 |
+| Shared three-app command demo | `uno_r4_wifi` | `firmware/shared-command-demo/main.cpp`, `firmware/shared-command-demo/commands.cpp`, `firmware/shared-command-demo/matrix_show.cpp` | UNO R4 WiFi | Shared serial command catalog, LED matrix, servo, DHT |
 
 ## Upload Commands
 
@@ -68,10 +68,10 @@ App 2 sweeper 還支援 kick-start（靜止 → 移動瞬間用高 PWM 突破靜
 
 ## Maintenance Rules
 
-- Do not put App 1 motor code in `src/app3_guardian_sensor/main.cpp`; that file is now the App 3 sensor node.
-- Do not put App 3 drive code in `src/commands.cpp`; keep it in `src/app3_guardian_drive/main.cpp`.
+- Do not put App 1 motor code in `firmware/app3-guardian-sensor/main.cpp`; that file is now the App 3 sensor node.
+- Do not put App 3 drive code in `firmware/shared-command-demo/commands.cpp`; keep it in `firmware/app3-guardian-drive/main.cpp`.
 - Keep standalone firmware folders excluded from `uno_r4_wifi` in `platformio.ini`, or the shared build will compile multiple `setup()` / `loop()` functions.
-- If you add another physical robot firmware, create a new folder under `src/` and a new PlatformIO env instead of reusing an existing app env.
+- If you add another physical robot firmware, create a new folder under `firmware/` and a new PlatformIO env instead of reusing an existing app env.
 
 ## Current Verification
 

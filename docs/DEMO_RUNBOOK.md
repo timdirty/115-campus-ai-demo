@@ -1,6 +1,6 @@
 # 比賽示範展示手冊
 
-這份手冊把 `google ai studio` 內三隊作品拆成三條展示線。三隊共用本機工具鏈與 Arduino UNO R4 WiFi 韌體，但作品主題、App 資料與示範腳本彼此獨立。
+這份手冊把 `apps/` 內三隊作品拆成三條展示線。三隊共用本機工具鏈與 Arduino UNO R4 WiFi 韌體，但作品主題、App 資料與示範腳本彼此獨立。
 
 ## 共同驗收
 
@@ -60,7 +60,7 @@ App 2 與 App 3 可用 `VITE_ARDUINO_BRIDGE_URL` 指到其他橋接服務。未�
 啟動：
 
 ```zsh
-cd "google ai studio/app_1（國小）/AI自動板擦機器人"
+cd "apps/app1-whiteboard"
 npm install
 npm run build
 BRIDGE_PORT=3200 NODE_ENV=production npm run start
@@ -96,7 +96,7 @@ pio run -t upload
 啟動：
 
 ```zsh
-cd "google ai studio/app_2（國小）/校園服務機器人 app"
+cd "apps/app2-campus-service"
 npm install
 npm run dev
 ```
@@ -125,7 +125,7 @@ campus-service-robot:v1
 啟動：
 
 ```zsh
-cd "google ai studio/app_3（國中）/AI校園心靈守護者"
+cd "apps/app3-guardian"
 npm install
 npm run dev
 ```

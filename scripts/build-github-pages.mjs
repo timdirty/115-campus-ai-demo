@@ -128,11 +128,11 @@ function extractRoles(markdown) {
   let inSection = false;
   const roles = [];
   for (const line of lines) {
-    if (/^## 上台分工建議/.test(line)) { inSection = true; continue; }
+    if (/^## 上台分工/.test(line)) { inSection = true; continue; }
     if (inSection && /^## /.test(line)) break;
     if (inSection && line.startsWith('- ')) roles.push(line.slice(2).trim());
   }
-  return roles;
+  return roles.slice(0, 3);
 }
 
 async function writeGuidePage(app) {
@@ -145,16 +145,16 @@ async function writeGuidePage(app) {
     .map((a) => `<a href="./${a.id}-guide.html">${escapeHtml(a.shortName)} 教學</a>`)
     .join('\n');
 
-  // Role assignment from markdown "上台分工建議" section
-  const roles = extractRoles(markdown);
-  const roleIcons = ['🎤', '💻', '🤖', '🛡️'];
-  const roleLabels = ['說話的人', '操作 App 的人', '說明硬體的人', '回答問題的人'];
+  // Role assignment is fixed to three students per team.
+  const roles = (app.studentRoles?.length ? app.studentRoles : extractRoles(markdown)).slice(0, 3);
+  const roleIcons = ['🎤', '💻', '🤖'];
+  const roleLabels = ['說明的人', '操作的人', '收尾的人'];
   const rolesHtml = roles.length > 0
     ? roles.map((role, i) => `<div class="role-row">
         <div class="role-badge">${roleIcons[i] || '👤'} ${roleLabels[i] || `第 ${i + 1} 位`}</div>
         <div class="role-desc">${escapeHtml(role)}</div>
       </div>`).join('\n')
-    : `<p style="color:#64748b;font-size:.9rem">四個人分工：說話的 / 操作 App 的 / 說明硬體的 / 回答問題的</p>`;
+    : `<p style="color:#64748b;font-size:.9rem">三位同學分工：說明的人 / 操作的人 / 收尾與回答的人</p>`;
 
   // Use simpleSteps (kid-friendly) if available, fall back to checklistItems
   const demoSteps = app.simpleSteps || app.checklistItems;
@@ -205,6 +205,38 @@ async function writeGuidePage(app) {
         </a>
       </div>
     </div>`;
+  }).join('\n');
+
+  // Multi-loop demo routes from the shared catalog
+  const demoRoutes = app.demoRoutes || [];
+  const demoRoutesHtml = demoRoutes.map((route, i) => {
+    const routeId = `${app.id}-route-${i + 1}`;
+    const screenshots = (route.screenshots || []).map((shot, si) => `
+        <a class="route-shot js-lightbox" href="./screenshots/${escapeHtml(shot)}" title="放大 ${escapeHtml(route.title)} 截圖 ${si + 1}">
+          <img src="./screenshots/${escapeHtml(shot)}" alt="${escapeHtml(route.title)} 截圖 ${si + 1}" loading="lazy"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <span class="route-shot-empty">截圖 ${si + 1}</span>
+        </a>`).join('');
+    return `<article class="route-card" id="${routeId}">
+      <div class="route-head">
+        <span class="route-badge">${escapeHtml(route.badge || `路線 ${i + 1}`)}</span>
+        <h3>${escapeHtml(route.title)}</h3>
+      </div>
+      <p class="route-line">${escapeHtml(route.studentLine)}</p>
+      <ol class="route-steps">
+        ${(route.steps || []).map((step) => `<li>${escapeHtml(step)}</li>`).join('\n        ')}
+      </ol>
+      <div class="route-meta">
+        <p><strong>AI / 辨識：</strong>${escapeHtml(route.aiSource)}</p>
+        <p><strong>硬體：</strong>${(route.hardware || []).map((command) => `<code>${escapeHtml(command)}</code>`).join(' ')}</p>
+        <p><strong>完成證據：</strong>${(route.proof || []).map(escapeHtml).join('、')}</p>
+        <p><strong>卡關備案：</strong>${escapeHtml(route.fallback)}</p>
+      </div>
+      <div class="route-actions">
+        <a class="step-nav-chip" href="${escapeHtml(route.startUrl || `./${app.id}/`)}">打開這條路線 →</a>
+      </div>
+      <div class="route-shots">${screenshots}</div>
+    </article>`;
   }).join('\n');
 
   // Flow visualization
@@ -307,7 +339,9 @@ async function writeGuidePage(app) {
   <style>
     :root { --accent: ${app.accent}; color-scheme: light; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif; }
     * { box-sizing: border-box; min-width: 0; }
-    body { margin: 0; background: #f3f6fb; color: #172033; }
+    body { margin: 0; background: #f3f6fb; color: #172033; overflow-wrap: anywhere; word-break: break-word; line-break: anywhere; }
+    p, li, h1, h2, h3, span, strong, a { overflow-wrap: anywhere; word-break: break-all; line-break: anywhere; }
+    p a, li a, article a, .script-content a { min-height: 40px; display: inline-flex; align-items: center; max-width: 100%; }
     main { width: min(900px, calc(100% - 24px)); margin: 0 auto; padding: 20px 0 calc(96px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 16px; }
     /* Celebration modal */
     .cel-overlay { display: none; position: fixed; inset: 0; z-index: 500; background: rgb(0 0 0 / .55); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 20px; }
@@ -367,6 +401,27 @@ async function writeGuidePage(app) {
     .flow-circle { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: white; font-weight: 950; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .flow-label { font-weight: 900; color: #334155; font-size: 15px; }
     .flow-arrow { font-size: 18px; color: #94a3b8; font-weight: 900; }
+
+    /* Demo routes */
+    .route-band { background: white; border: 1px solid #dde4ef; border-radius: 12px; padding: clamp(16px, 3vw, 26px); box-shadow: 0 4px 20px rgb(27 35 52 / .05); scroll-margin-top: 60px; }
+    .route-grid { display: grid; gap: 12px; }
+    .route-card { border: 1px solid color-mix(in srgb, var(--accent), white 72%); border-radius: 10px; background: color-mix(in srgb, var(--accent), white 96%); padding: 14px; }
+    .route-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .route-badge { display: inline-flex; min-height: 30px; align-items: center; border-radius: 999px; background: var(--accent); color: white; padding: 0 10px; font-size: 11px; font-weight: 950; letter-spacing: .08em; }
+    .route-head h3 { margin: 0; font-size: 1.05rem; font-weight: 950; color: #111827; }
+    .route-line { margin: 0 0 10px; color: #334155; font-weight: 850; line-height: 1.7; }
+    .route-steps { margin: 0 0 10px; padding-left: 1.2rem; display: grid; gap: 4px; color: #475569; font-weight: 800; line-height: 1.6; }
+    .route-meta { display: grid; gap: 5px; border-top: 1px dashed color-mix(in srgb, var(--accent), transparent 72%); padding-top: 10px; }
+    .route-meta p { margin: 0; color: #475569; font-size: .88rem; font-weight: 750; line-height: 1.6; }
+    .route-meta strong { color: #1e293b; font-weight: 950; }
+    .route-meta code { border-radius: 5px; background: white; padding: 1px 5px; font-size: .82rem; font-family: monospace; color: var(--accent); font-weight: 900; }
+    .route-actions { margin-top: 10px; }
+    .route-shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+    .route-shot { display: block; min-height: 72px; overflow: hidden; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; text-decoration: none; }
+    .route-shot img { width: 100%; height: 100%; min-height: 72px; object-fit: cover; display: block; }
+    .route-shot-empty { display: none; min-height: 72px; align-items: center; justify-content: center; color: #94a3b8; font-size: 12px; font-weight: 900; }
+    @media (min-width: 820px) { .route-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .route-card { display: flex; flex-direction: column; } .route-actions { margin-top: auto; } }
+    @media (max-width: 560px) { .route-shots { grid-template-columns: 1fr; } }
 
     /* Hardware note */
     .hardware-note { margin-top: 12px; padding: 10px 14px; border-radius: 8px; background: color-mix(in srgb, var(--accent), white 90%); border: 1px solid color-mix(in srgb, var(--accent), white 62%); color: color-mix(in srgb, var(--accent), #1e293b 25%); font-weight: 800; font-size: .93rem; }
@@ -566,6 +621,7 @@ async function writeGuidePage(app) {
     <div class="prog-bar" id="prog-${app.id}" role="status" aria-label="步驟進度"></div>
 
     <nav class="jump-nav" aria-label="快速跳到">
+      ${demoRoutesHtml ? `<a href="#routes-${app.id}">🧭 路線</a>` : ''}
       <a href="#${app.id}-step1">📋 步驟</a>
       <a href="#must-card-${app.id}">✅ 確認清單</a>
       <a href="#qa-section-${app.id}">❓ Q&amp;A</a>
@@ -601,6 +657,18 @@ async function writeGuidePage(app) {
       </div>
     </div>
 
+    <div class="card">
+      <div class="section-title">公開展示網址</div>
+      <p style="margin:0;color:#465366;font-weight:800;line-height:1.7">
+        App：<a href="./${app.id}/">https://timdirty.github.io/115-campus-ai-demo/${app.id}/</a><br>
+        教學：<a href="./${guideUrl(app)}">https://timdirty.github.io/115-campus-ai-demo/${guideUrl(app)}</a>
+      </p>
+      <div class="section-title" style="margin:14px 0 8px">後續機器人連動計畫</div>
+      <p style="margin:0;color:#465366;font-weight:800;line-height:1.7">
+        公開網址只展示畫面與教學；真 Arduino / EV3 / robot 控制走本機或 LAN bridge。現場沒有硬體時使用模擬模式，接上實機後沿用同一套任務與指令紀錄。
+      </p>
+    </div>
+
     <details class="quick-review">
       <summary>⚡ 上台前快速複習（展開看全部步驟）</summary>
       <ol>
@@ -614,6 +682,14 @@ async function writeGuidePage(app) {
         <a href="#qa-section-${app.id}" style="display:inline-flex;align-items:center;min-height:40px;padding:4px 8px;border-radius:6px;font-size:.76rem;font-weight:950;color:color-mix(in srgb,var(--accent),#1e293b 20%);text-decoration:none">看全部問答 →</a>
       </div>` : ''}
     </details>
+
+    ${demoRoutesHtml ? `<section class="route-band" id="routes-${app.id}">
+      <div class="section-title">🧭 展示路線卡</div>
+      <p style="margin:0 0 12px;color:#64748b;font-weight:800;line-height:1.65">先跑主線，支線留給評審追問。每張卡都包含目的、操作、AI 來源、硬體指令、成功證據與備援說法。</p>
+      <div class="route-grid">
+        ${demoRoutesHtml}
+      </div>
+    </section>` : ''}
 
     <div class="card">
       <div class="section-title">展示順序</div>
@@ -1089,10 +1165,11 @@ function writeOpsGuidePage(app) {
   <style>
     :root { color-scheme: light; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif; }
     * { box-sizing: border-box; min-width: 0; }
-    body { margin: 0; background: #f5f7fb; color: #172033; }
+    body { margin: 0; background: #f5f7fb; color: #172033; overflow-wrap: anywhere; word-break: break-word; line-break: anywhere; }
     main { width: min(960px, calc(100% - 28px)); margin: 0 auto; padding: 22px 0 44px; }
     nav { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
     a { color: ${app.accent}; font-weight: 900; }
+    p a, li a, article a { min-height: 40px; display: inline-flex; align-items: center; max-width: 100%; }
     nav a { min-height: 42px; display: inline-flex; align-items: center; border: 1px solid #d7e0ec; border-radius: 8px; background: white; padding: 0 12px; text-decoration: none; }
     article { border: 1px solid #d9e2ee; border-radius: 8px; background: white; padding: clamp(18px, 4vw, 34px); box-shadow: 0 22px 70px rgb(27 35 52 / 0.08); }
     h1 { margin: 0 0 18px; font-size: clamp(1.9rem, 8vw, 3.4rem); line-height: 1.02; letter-spacing: 0; color: #111827; }
@@ -1103,7 +1180,7 @@ function writeOpsGuidePage(app) {
     code { border-radius: 6px; background: #eef3f8; padding: 2px 5px; font-size: .82em; word-break: break-all; overflow-wrap: anywhere; white-space: normal; }
     pre { overflow-x: auto; max-width: 100%; background: #eef3f8; border-radius: 8px; padding: 12px 14px; margin: 10px 0; font-size: .82em; line-height: 1.55; }
     pre code { background: none; padding: 0; font-size: 1em; white-space: pre; word-break: normal; }
-    p, li, h1, h2, h3 { overflow-wrap: anywhere; word-break: break-word; }
+    p, li, h1, h2, h3, span, strong, a { overflow-wrap: anywhere; word-break: break-all; line-break: anywhere; }
     table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: .9rem; overflow-x: auto; display: block; }
     th, td { border: 1px solid #d1dae8; padding: 8px 12px; text-align: left; }
     th { background: #f1f5f9; font-weight: 900; }
@@ -1230,11 +1307,12 @@ function writeAllGuidesPage() {
     :root { color-scheme: light; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif; }
     * { box-sizing: border-box; min-width: 0; }
     html { scroll-behavior: smooth; }
-    body { margin: 0; background: linear-gradient(180deg, #f7fafc 0%, #edf4fb 100%); color: #172033; }
+    body { margin: 0; background: linear-gradient(180deg, #f7fafc 0%, #edf4fb 100%); color: #172033; overflow-wrap: anywhere; word-break: break-word; line-break: anywhere; }
     main { width: min(1080px, calc(100% - 24px)); margin: 0 auto; padding: 24px 0 42px; }
     .topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
     .nav-links { display: flex; flex-wrap: wrap; gap: 10px; }
     a { color: #0f4c81; font-weight: 900; }
+    p a, li a, article a { min-height: 40px; display: inline-flex; align-items: center; max-width: 100%; }
     .nav-links a, .tab { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #d6e2f0; border-radius: 999px; background: rgb(255 255 255 / .82); padding: 0 14px; text-decoration: none; }
     header { display: grid; gap: 12px; margin-bottom: 18px; }
     .eyebrow { width: fit-content; border-radius: 999px; background: #dbeafe; color: #1d4ed8; padding: 8px 12px; font-size: 12px; font-weight: 950; letter-spacing: .14em; text-transform: uppercase; }
@@ -1248,6 +1326,7 @@ function writeAllGuidesPage() {
     .tag { display: inline-flex; margin-bottom: 10px; border-radius: 999px; background: color-mix(in srgb, var(--accent), white 86%); color: var(--accent); padding: 7px 10px; font-size: 12px; font-weight: 950; }
     h2 { margin: 0 0 8px; font-size: clamp(1.4rem, 3vw, 2rem); }
     p, li { color: #465366; font-weight: 650; line-height: 1.78; }
+    p, li, h1, h2, h3, span, strong, a { overflow-wrap: anywhere; word-break: break-all; line-break: anywhere; }
     .actions { display: flex; flex-wrap: wrap; gap: 10px; }
     .actions a { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; padding: 0 14px; text-decoration: none; }
     .primary { background: #111827; color: #fff; }

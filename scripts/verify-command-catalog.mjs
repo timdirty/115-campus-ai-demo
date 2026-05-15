@@ -7,9 +7,9 @@ import {fileURLToPath} from 'node:url';
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const bridgeDefaultsPath = path.join(
   rootDir,
-  'google ai studio/app_1（國小）/AI自動板擦機器人/server/defaults.ts',
+  'apps/app1-whiteboard/server/defaults.ts',
 );
-const firmwareCommandsPath = path.join(rootDir, 'src/commands.cpp');
+const firmwareCommandsPath = path.join(rootDir, 'firmware/shared-command-demo/commands.cpp');
 
 const bridgeDefaults = fs.readFileSync(bridgeDefaultsPath, 'utf8');
 const firmwareCommands = fs.readFileSync(firmwareCommandsPath, 'utf8');

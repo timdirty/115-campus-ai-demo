@@ -48,9 +48,9 @@ import {fileURLToPath} from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-const APP1 = path.join(root, 'google ai studio/app_1（國小）/AI自動板擦機器人');
-const APP2 = path.join(root, 'google ai studio/app_2（國小）/校園服務機器人 app');
-const APP3 = path.join(root, 'google ai studio/app_3（國中）/AI校園心靈守護者');
+const APP1 = path.join(root, 'apps/app1-whiteboard');
+const APP2 = path.join(root, 'apps/app2-campus-service');
+const APP3 = path.join(root, 'apps/app3-guardian');
 
 const {result} = concurrently(
   [
@@ -103,7 +103,7 @@ git commit -m "feat: add dev-all.mjs for concurrent app launch"
     "dev": "node scripts/dev-all.mjs",
     "preview": "node scripts/build-github-pages.mjs && npx serve pages-dist -p 11500",
     "build": "node scripts/build-github-pages.mjs",
-    "check": "npm run check --prefix \"google ai studio/app_1（國小）/AI自動板擦機器人\" && npm run check --prefix \"google ai studio/app_2（國小）/校園服務機器人 app\" && npm run check --prefix \"google ai studio/app_3（國中）/AI校園心靈守護者\""
+    "check": "npm run check --prefix \"apps/app1-whiteboard\" && npm run check --prefix \"apps/app2-campus-service\" && npm run check --prefix \"apps/app3-guardian\""
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
