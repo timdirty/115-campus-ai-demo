@@ -58,6 +58,7 @@ export const CapturePanel = memo(function CapturePanel({
   onCalibrationSave,
 }: CapturePanelProps) {
   const [showCalibration, setShowCalibration] = useState(false);
+  const showEngineerTools = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('engineerTools') === '1';
   const cameraBusy = mediaBusy === 'camera';
   const transcriptionBusy = mediaBusy === 'transcribe';
   const analyzing = busy === 'analyze' || busy === 'demo';
@@ -260,18 +261,19 @@ export const CapturePanel = memo(function CapturePanel({
         </div>
       </div>
 
+      {showEngineerTools && (
       <div className="mt-4 rounded-2xl border border-outline-variant/20 bg-surface-container p-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm font-extrabold">老師進階白板範圍</p>
-            <p className="mt-1 text-xs font-semibold leading-5 text-on-surface-variant">學生展示時可略過；接實機或照片歪斜時再打開調整。</p>
+            <p className="text-sm font-extrabold">工程模式：白板範圍</p>
+            <p className="mt-1 text-xs font-semibold leading-5 text-on-surface-variant">平常展示不需要調；只有現場照片歪斜或接實機時才使用。</p>
           </div>
           <button
             type="button"
             onClick={() => setShowCalibration((value) => !value)}
             className="min-h-10 rounded-xl bg-surface px-3 text-xs font-bold transition-colors hover:bg-primary hover:text-on-primary"
           >
-            {showCalibration ? '收合進階設定' : '打開進階設定'}
+            {showCalibration ? '收合工程工具' : '展開工程工具'}
           </button>
         </div>
         {showCalibration && (
@@ -320,6 +322,7 @@ export const CapturePanel = memo(function CapturePanel({
           </>
         )}
       </div>
+      )}
     </section>
   );
 });

@@ -394,7 +394,7 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
       setCalibrationDirty(true);
       setNotice(detected.confidence > 0
         ? '已抓到白板範圍，準備整理內容'
-        : '還沒抓到清楚白板範圍，老師可以打開進階調整。');
+        : '還沒抓到清楚白板範圍，仍可先用左區 / 右區完成展示流程。');
     } catch (error) {
       setNotice(error instanceof Error ? error.message : '無法自動偵測白板四角');
     } finally {
@@ -407,7 +407,7 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
     setCalibrationMode('default');
     setDetectionConfidence(0);
     setCalibrationDirty(true);
-    setNotice('白板範圍已重設，老師可以重新調整。');
+    setNotice('白板範圍已回到預設左區 / 右區。');
   };
 
   const resetWhiteboardDemoState = () => {

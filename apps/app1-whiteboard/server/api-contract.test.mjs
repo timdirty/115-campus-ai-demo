@@ -142,7 +142,7 @@ try {
       confusedPercent: 18,
       tiredPercent: 11,
       teacherPace: 'slow_down',
-      currentRecommendation: '建議先保留左側圖解區，清空右側練習區。',
+      currentRecommendation: '建議先保留左區，清空右區。',
       hardwareProfile: {
         servoAngles: {regionA: 25, regionB: 95, eraseAll: 178, standby: 88},
         cameraMounted: true,

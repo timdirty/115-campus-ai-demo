@@ -90,8 +90,8 @@ function localBoardAnalysis(transcript: string, subjectHint: string, imageBase64
   const subject = subjectHint.trim() || '國小數學';
   const transcriptLine = transcript.trim() || '尚未提供老師講解，系統先依白板快照建立國小課堂紀錄草稿。';
   const boardRegions = [
-    {id: 'A', label: '左側重點區', x: 8, y: 18, width: 40, height: 62, status: 'keep' as const, reason: '國小生需要保留圖像支架來說明想法'},
-    {id: 'B', label: '右側練習區', x: 54, y: 18, width: 38, height: 62, status: 'erasable' as const, reason: '練習內容已保存，可清出空間給下一題'},
+    {id: 'A', label: '左區', x: 5, y: 12, width: 43, height: 76, status: 'keep' as const, reason: '國小生需要保留圖像支架來說明想法'},
+    {id: 'B', label: '右區', x: 52, y: 12, width: 43, height: 76, status: 'erasable' as const, reason: '練習內容已保存，可清出空間給下一題'},
   ];
 
   return {
@@ -123,10 +123,10 @@ function localBoardAnalysis(transcript: string, subjectHint: string, imageBase64
       img: imageBase64,
       keywords: ['國小', subject, '白板快照', '學習單', '小測驗'],
       boardRegions,
-      aiRecommendation: '建議保留左側重點區，先清出右側練習區，給下一題或上台分享使用。',
+      aiRecommendation: '建議保留左區重點，先清出右區，給下一題或上台分享使用。',
     },
     boardRegions,
-    currentRecommendation: '建議保留左側重點區，先清出右側練習區，給下一題或上台分享使用。',
+    currentRecommendation: '建議保留左區重點，先清出右區，給下一題或上台分享使用。',
     teacherPace: 'slow_down',
     focusPercent: 80,
     confusedPercent: 14,
@@ -248,7 +248,7 @@ export async function analyzeBoardWithAI(imageBase64: string, transcript: string
       '欄位：noteDraft, boardRegions, currentRecommendation, teacherPace, focusPercent, confusedPercent, tiredPercent。',
       'noteDraft 必須包含 title, subject, period, desc, content, ocrText, transcript, keywords, aiRecommendation。',
       'noteDraft.content 請包含「今日學習目標」、「板書重點」、「小朋友練習」、「老師提醒」。',
-      'boardRegions 必須是 A、B 兩個區塊，每個區塊包含 id, label, x, y, width, height, status, reason；status 只能是 keep, erasable, erased。',
+      'boardRegions 必須是 A、B 兩個大區塊：A 代表左區，B 代表右區。每個區塊包含 id, label, x, y, width, height, status, reason；label 請用「左區」或「右區」；status 只能是 keep, erasable, erased。',
       `科目提示：${subjectHint || '未提供'}`,
       `教師逐字稿：${transcript || '未提供'}${ocrHint}`,
     ].join('\n');

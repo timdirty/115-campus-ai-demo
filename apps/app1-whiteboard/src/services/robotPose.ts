@@ -72,8 +72,8 @@ function findRegion(boardRegions: BoardRegion[], regionId?: string) {
 
 function nearestServoTarget(angle: number, servoAngles: ServoAngles) {
   const targets = [
-    {label: '區塊 A', regionId: 'A', angle: servoAngles.regionA},
-    {label: '區塊 B', regionId: 'B', angle: servoAngles.regionB},
+    {label: '左區', regionId: 'A', angle: servoAngles.regionA},
+    {label: '右區', regionId: 'B', angle: servoAngles.regionB},
     {label: '全板', regionId: 'ALL', angle: servoAngles.eraseAll},
     {label: '待命位置', regionId: undefined, angle: servoAngles.standby},
   ];
@@ -98,7 +98,7 @@ export function estimateRobotPose(command: string, context: PoseContext): RobotP
       y: point.y,
       heading: 180,
       stage: regionCommand[1] === 'ERASE' ? 'erasing' : 'moving',
-      label: `${regionCommand[1] === 'ERASE' ? '擦除' : '保留'}區塊 ${regionCommand[2]}`,
+      label: `${regionCommand[1] === 'ERASE' ? '擦除' : '保留'}${regionCommand[2] === 'A' ? '左區' : '右區'}`,
       targetRegion: regionCommand[2],
       command: normalized,
       updatedAt: now,

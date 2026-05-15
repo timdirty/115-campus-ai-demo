@@ -24,8 +24,8 @@ const paceLabel: Record<string, string> = {
 };
 
 const SERVO_ANGLE_FIELDS = [
-  ['regionA', '區塊 A'],
-  ['regionB', '區塊 B'],
+  ['regionA', '左區'],
+  ['regionB', '右區'],
   ['eraseAll', '全擦'],
   ['standby', '待命'],
 ] as const;
@@ -35,6 +35,12 @@ const HARDWARE_TOGGLES = [
   ['boardAnchored', '板擦機構已對齊白板軌道', Bot],
   ['visionReady', '白板辨識與區塊定位已可用', Sparkles],
 ] as const;
+
+function regionDisplayName(regionId?: string) {
+  if (regionId === 'A') return '左區';
+  if (regionId === 'B') return '右區';
+  return regionId ? `區塊 ${regionId}` : '全部';
+}
 
 export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: string) => void}) {
   const [session, setSession] = useState<ClassroomSession | null>(null);
@@ -51,6 +57,7 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
   const [sequenceProgress, setSequenceProgress] = useState<{region: string; status: 'sending' | 'ok' | 'timeout' | 'error'}[]>([]);
   const [sequenceBusy, setSequenceBusy] = useState(false);
   const cancelSequenceRef = useRef<(() => void) | null>(null);
+  const showEngineerTools = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('engineerTools') === '1';
 
   useEffect(() => {
     return () => {
@@ -130,7 +137,7 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
       : region);
     const next = await saveClassroomSession({
       boardRegions: nextRegions,
-      currentRecommendation: `板擦任務已完成：${regionIds.map((id) => `區塊 ${id}`).join('、')} 已清空，可以進入下一個教學活動。`,
+      currentRecommendation: `板擦任務已完成：${regionIds.map(regionDisplayName).join('、')} 已清空，可以進入下一個教學活動。`,
     });
     setSession(next);
     setHardwareProfileDraft(next.hardwareProfile);
@@ -151,7 +158,7 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
     const next = await saveClassroomSession({
       boardRegions: nextRegions,
       currentRecommendation: action === 'erase'
-        ? `${regionId ? `區塊 ${regionId}` : '可清空區塊'} 已完成板擦任務，下一步可到紀錄本或小老師延伸複習。`
+        ? `${regionId ? regionDisplayName(regionId) : '可清空區'} 已完成板擦任務，下一步可到紀錄本或小老師延伸複習。`
         : session.currentRecommendation,
       hardwareProfile: {
         ...currentProfile,
@@ -192,7 +199,7 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
     if (!session) return;
     const busyKey = `${action}-${regionId ?? 'all'}`;
     setBusyCommand(busyKey);
-    setNotice(`保存 ${regionId ? `區塊 ${regionId}` : '全部區塊'} 決策...`);
+    setNotice(`保存 ${regionId ? regionDisplayName(regionId) : '全部區域'} 決策...`);
     try {
       const nextRegions = session.boardRegions.map((region) => {
         if (action === 'keep_all') {
@@ -295,8 +302,8 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
   const pushServoProfileToRobot = async () => {
     if (!hardwareProfileDraft) return;
     const sequence = [
-      {command: `SET_REGION_A:${hardwareProfileDraft.servoAngles.regionA}`, label: '區塊 A'},
-      {command: `SET_REGION_B:${hardwareProfileDraft.servoAngles.regionB}`, label: '區塊 B'},
+      {command: `SET_REGION_A:${hardwareProfileDraft.servoAngles.regionA}`, label: '左區'},
+      {command: `SET_REGION_B:${hardwareProfileDraft.servoAngles.regionB}`, label: '右區'},
       {command: `SET_ERASE_ALL:${hardwareProfileDraft.servoAngles.eraseAll}`, label: '全擦'},
       {command: `SET_STANDBY:${hardwareProfileDraft.servoAngles.standby}`, label: '待命'},
     ];
@@ -306,7 +313,7 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
       for (const item of sequence) {
         await sendRobotCommand(item.command, 'teacher-calibration');
       }
-      setHardwareNotice('實體機器人已收到 A/B、全擦與待命角度，接著可以預覽各區域。');
+      setHardwareNotice('實體機器人已收到左區、右區、全擦與待命角度，接著可以預覽各區域。');
       setNotice('校正角度已推送到機器人');
     } catch (error) {
       setHardwareNotice(error instanceof Error ? error.message : '無法推送校正角度到機器人');
@@ -328,8 +335,8 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
     if (action === 'erase' && regionId) {
       const targetRegion = session.boardRegions.find((region) => region.id === regionId);
       if (!targetRegion || (targetRegion.status !== 'erasable' && targetRegion.status !== 'erased')) {
-        setHardwareNotice(`區塊 ${regionId} 目前不是可清空狀態，請先由老師確認後再送出。`);
-        setNotice(`請先把區塊 ${regionId} 標記成可清空，再送機器人。`);
+        setHardwareNotice(`${regionDisplayName(regionId)}目前不是可清空狀態，請先由老師確認後再送出。`);
+        setNotice(`請先把${regionDisplayName(regionId)}標記成可清空，再送機器人。`);
         return;
       }
     }
@@ -439,7 +446,7 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
           <div>
             <p className="text-xs font-bold text-primary mb-2">教師決策台</p>
             <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight">國小教師看板</h1>
-            <p className="text-on-surface-variant mt-3 max-w-2xl leading-relaxed">看狀態、選區塊、送機器人。沒有接實體機器人也會留下任務紀錄。</p>
+            <p className="text-on-surface-variant mt-3 max-w-2xl leading-relaxed">看狀態、選左區或右區、送機器人。沒有接實體機器人也會留下任務紀錄。</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={loadSession} className="h-11 px-4 rounded-full bg-surface-container-high hover:bg-primary hover:text-on-primary transition-all active:scale-95 flex items-center justify-center gap-2 font-bold">
@@ -485,8 +492,8 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
             <motion.section variants={itemVariants} className="xl:col-span-5 bg-surface-container-high rounded-3xl p-5 sm:p-7 border border-outline-variant/10" data-tour="board-regions">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-xl font-extrabold">白板區塊決策</h2>
-                  <p className="text-sm text-on-surface-variant mt-1">點區塊，送板擦機器人。</p>
+                  <h2 className="text-xl font-extrabold">白板左右區決策</h2>
+                  <p className="text-sm text-on-surface-variant mt-1">只分左區、右區，點一下就切換保留或可擦。</p>
                 </div>
                 <button
                   onClick={() => sendTaskToRobot('erase', undefined, '清空可擦區')}
@@ -504,7 +511,7 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
                   className="mb-3 flex items-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-on-primary text-xs font-black"
                 >
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  區塊 {robotTarget === 'ALL' ? '全板' : robotTarget} 板擦完成 · 老師確認後可繼續下一節課
+                  {robotTarget === 'ALL' ? '全板' : regionDisplayName(robotTarget)} 板擦完成 · 老師確認後可繼續下一節課
                   <button
                     onClick={(e) => { e.stopPropagation(); setCompletedRegions([]); }}
                     className="ml-auto shrink-0 rounded-xl bg-on-primary/15 px-2.5 py-1 text-[10px] font-black hover:bg-on-primary/25 transition-colors"
@@ -528,7 +535,7 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
                         ⚡ 虛擬執行
                       </span>
                     )}
-                    <span className="text-xs font-black tracking-widest">區塊 {region.id}</span>
+                    <span className="text-xs font-black tracking-widest">{regionDisplayName(region.id)}</span>
                     <span className="block text-sm font-extrabold mt-1">{region.label}</span>
                     {completedRegions.includes(region.id) && (
                       <span className="absolute inset-0 flex items-center justify-center rounded-2xl bg-primary/25 text-primary text-2xl font-black pointer-events-none">✓</span>
@@ -555,14 +562,14 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
                   <div key={region.id} className="bg-surface rounded-2xl p-4 border border-outline-variant/10">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="font-extrabold">區塊 {region.id} · {region.label}</p>
+                        <p className="font-extrabold">{regionDisplayName(region.id)} · {region.label}</p>
                         <p className="text-xs text-on-surface-variant mt-1">{region.reason}</p>
                       </div>
                       <div className="flex flex-wrap gap-2 justify-end">
                         <button onClick={() => updateRegionStatus(region.id, 'keep')} className="min-h-10 px-3 rounded-full bg-primary-container text-primary text-xs font-bold hover:bg-primary hover:text-on-primary transition-colors">保留</button>
-                        <button onClick={() => runTask(region.status === 'erasable' ? 'erase' : 'keep', region.id, region.status === 'erasable' ? `區塊 ${region.id} 已標記為可清空` : `區塊 ${region.id} 已標記保留`)} className="min-h-10 px-3 rounded-full bg-surface-container-high text-xs font-bold hover:bg-primary hover:text-on-primary transition-colors">保存</button>
+                        <button onClick={() => runTask(region.status === 'erasable' ? 'erase' : 'keep', region.id, region.status === 'erasable' ? `${regionDisplayName(region.id)}已標記為可清空` : `${regionDisplayName(region.id)}已標記保留`)} className="min-h-10 px-3 rounded-full bg-surface-container-high text-xs font-bold hover:bg-primary hover:text-on-primary transition-colors">保存</button>
                         <button
-                          onClick={() => sendTaskToRobot(region.status === 'erasable' || region.status === 'erased' ? 'erase' : 'keep', region.id, `${region.status === 'erasable' || region.status === 'erased' ? '擦除' : '保留'}區塊 ${region.id}`)}
+                          onClick={() => sendTaskToRobot(region.status === 'erasable' || region.status === 'erased' ? 'erase' : 'keep', region.id, `${region.status === 'erasable' || region.status === 'erased' ? '擦除' : '保留'}${regionDisplayName(region.id)}`)}
                           disabled={Boolean(hardwareBusy)}
                           className="min-h-10 px-3 rounded-full bg-surface-container-lowest text-xs font-bold border border-primary/20 hover:bg-primary hover:text-on-primary disabled:opacity-50 transition-colors"
                         >
@@ -591,7 +598,7 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
                   <div>
                     <p className="text-xs font-black text-primary">目前模式</p>
                     <h2 className="mt-1 text-xl font-extrabold text-primary">老師可控的半自動板擦</h2>
-                    <p className="mt-2 text-xs font-bold leading-5 text-on-surface-variant">先完成白板分析與老師確認，再送出區塊式任務；固定攝影機定位屬於下一階段升級。</p>
+                    <p className="mt-2 text-xs font-bold leading-5 text-on-surface-variant">先完成白板分析與老師確認，再送出左區或右區任務；實機角度設定已收進工程模式。</p>
                   </div>
                   <ShieldCheck className="h-5 w-5 shrink-0 text-primary" />
                 </div>
@@ -610,13 +617,13 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
                 </div>
               </div>
 
-              {hardwareProfileDraft && (
+              {showEngineerTools && hardwareProfileDraft && (
                 <details className="mb-5 rounded-2xl border border-outline-variant/10 bg-surface p-4">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
                     <div>
-                      <p className="text-xs font-black text-primary">老師用進階設定</p>
+                      <p className="text-xs font-black text-primary">工程模式</p>
                       <h3 className="mt-1 text-lg font-extrabold">實機校正，需要時再打開</h3>
-                      <p className="mt-1 text-xs font-bold leading-5 text-on-surface-variant">學生展示時可略過；接實體機器人前再調整攝影機與板擦角度。</p>
+                      <p className="mt-1 text-xs font-bold leading-5 text-on-surface-variant">只有工程模式顯示；學生展示不需要碰這些參數。</p>
                     </div>
                     <Settings2 className="h-5 w-5 shrink-0 text-primary" />
                   </summary>
@@ -685,18 +692,18 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
 
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     <button
-                      onClick={() => sendCalibrationPreview(`SERVO_SET:${hardwareProfileDraft.servoAngles.regionA}`, '預覽區塊 A')}
+                      onClick={() => sendCalibrationPreview(`SERVO_SET:${hardwareProfileDraft.servoAngles.regionA}`, '預覽左區')}
                       disabled={Boolean(hardwareBusy)}
                       className="min-h-10 rounded-xl border border-outline-variant/20 bg-surface-container-low px-3 text-xs font-bold"
                     >
-                      預覽 A
+                      預覽左區
                     </button>
                     <button
-                      onClick={() => sendCalibrationPreview(`SERVO_SET:${hardwareProfileDraft.servoAngles.regionB}`, '預覽區塊 B')}
+                      onClick={() => sendCalibrationPreview(`SERVO_SET:${hardwareProfileDraft.servoAngles.regionB}`, '預覽右區')}
                       disabled={Boolean(hardwareBusy)}
                       className="min-h-10 rounded-xl border border-outline-variant/20 bg-surface-container-low px-3 text-xs font-bold"
                     >
-                      預覽 B
+                      預覽右區
                     </button>
                     <button
                       onClick={() => sendCalibrationPreview(`SERVO_SET:${hardwareProfileDraft.servoAngles.standby}`, '待命位置')}
@@ -732,7 +739,7 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
               <div className="space-y-3">
                 <TaskButton icon={Eraser} label="全部標記清空" action="erase_all" busyCommand={busyCommand} onRun={runTask} doneText="全部區塊已標記為可清空" />
                 {session.boardRegions.map((region) => (
-                  <TaskButton key={region.id} icon={region.status === 'erasable' ? Eraser : CheckCircle2} label={`${region.status === 'erasable' ? '標記清空' : '保留'}區塊 ${region.id}`} action={region.status === 'erasable' ? 'erase' : 'keep'} regionId={region.id} busyCommand={busyCommand} onRun={runTask} doneText={`區塊 ${region.id} 決策已保存`} />
+                  <TaskButton key={region.id} icon={region.status === 'erasable' ? Eraser : CheckCircle2} label={`${region.status === 'erasable' ? '標記清空' : '保留'}${regionDisplayName(region.id)}`} action={region.status === 'erasable' ? 'erase' : 'keep'} regionId={region.id} busyCommand={busyCommand} onRun={runTask} doneText={`${regionDisplayName(region.id)}決策已保存`} />
                 ))}
                 <TaskButton icon={Pause} label="全部保留" action="keep_all" busyCommand={busyCommand} onRun={runTask} doneText="全部區塊已標記保留" />
               </div>
@@ -745,7 +752,7 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 text-sm font-extrabold text-primary">
                       <Radio className="w-4 h-4" />
-                      {robotTarget === 'ALL' ? '正在送出全板任務' : robotTarget ? `正在送出區塊 ${robotTarget}` : '板擦機器人待命'}
+                      {robotTarget === 'ALL' ? '正在送出全板任務' : robotTarget ? `正在送出${regionDisplayName(robotTarget)}` : '板擦機器人待命'}
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2">
                       <span className="rounded-full bg-primary-container px-2.5 py-1 text-[10px] font-black text-primary">{robotTaskId || '待命'}</span>
@@ -798,7 +805,7 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
                     className="min-h-11 rounded-xl bg-tertiary px-3 text-xs font-bold text-on-tertiary transition-colors hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {sequenceBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eraser className="w-4 h-4" />}
-                    {sequenceBusy ? '循序擦除中…' : '一鍵循序擦除可清空區塊'}
+                    {sequenceBusy ? '循序擦除中…' : '一鍵擦除可清空區'}
                   </button>
                   {sequenceBusy && (
                     <button
@@ -832,7 +839,7 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
                           }`}
                         >
                           {status === 'ok' ? '✓' : status === 'sending' ? '⋯' : status === 'timeout' ? '⚠' : '✗'}
-                          {' '}區塊 {region}
+                          {' '}{regionDisplayName(region)}
                         </span>
                       ))}
                     </div>

@@ -197,28 +197,28 @@ const SUBJECT_LEARNING_STATUS: Record<string, {focus: number; confused: number; 
 
 const SUBJECT_BOARD_REGIONS: Record<string, Array<{label: string; keep: boolean; reason: string}>> = {
   '數學': [
-    {label: '左側重點區', keep: true, reason: '解題步驟需要保留複習'},
-    {label: '右側練習區', keep: false, reason: '已完成，可擦除'},
+    {label: '左區', keep: true, reason: '解題重點需要保留複習'},
+    {label: '右區', keep: false, reason: '練習已完成，可擦除'},
   ],
   '語文': [
-    {label: '左側詞句區', keep: true, reason: '本課生字與重點需要繼續練習'},
-    {label: '右側練習區', keep: false, reason: '學生已抄寫完畢'},
+    {label: '左區', keep: true, reason: '本課生字與重點需要繼續練習'},
+    {label: '右區', keep: false, reason: '學生已抄寫完畢'},
   ],
   '自然': [
-    {label: '左側圖示區', keep: true, reason: '實驗方法需要對照'},
-    {label: '右側記錄區', keep: false, reason: '已記錄在課本'},
+    {label: '左區', keep: true, reason: '實驗方法需要對照'},
+    {label: '右區', keep: false, reason: '已記錄在課本'},
   ],
   '社會': [
-    {label: '左側重點圖表', keep: true, reason: '時序與位置關係需要對照'},
-    {label: '右側討論區', keep: false, reason: '已完成討論'},
+    {label: '左區', keep: true, reason: '時序與位置關係需要對照'},
+    {label: '右區', keep: false, reason: '已完成討論'},
   ],
   '英語': [
-    {label: '左側單字句型', keep: true, reason: '句型需要反覆練習'},
-    {label: '右側口說練習', keep: false, reason: '口語活動已結束'},
+    {label: '左區', keep: true, reason: '句型需要反覆練習'},
+    {label: '右區', keep: false, reason: '口語活動已結束'},
   ],
   default: [
-    {label: '左側重點區', keep: true, reason: '核心概念需保留'},
-    {label: '右側練習區', keep: false, reason: '練習已完成'},
+    {label: '左區', keep: true, reason: '核心概念需保留'},
+    {label: '右區', keep: false, reason: '練習已完成'},
   ],
 };
 
@@ -233,8 +233,8 @@ const SUBJECT_TRANSCRIPTS: Record<string, string> = {
 const SUBJECT_KEYS = ['數學', '語文', '國語', '自然', '社會', '英語', '體育', '藝術'] as const;
 
 const REGION_POSITIONS: Array<{id: string; x: number; y: number; width: number; height: number}> = [
-  {id: 'A', x: 8, y: 18, width: 40, height: 62},
-  {id: 'B', x: 54, y: 18, width: 38, height: 62},
+  {id: 'A', x: 5, y: 12, width: 43, height: 76},
+  {id: 'B', x: 52, y: 12, width: 43, height: 76},
 ];
 
 export const defaultHardwareCalibrationProfile: HardwareCalibrationProfile = {
@@ -251,7 +251,7 @@ export const defaultHardwareCalibrationProfile: HardwareCalibrationProfile = {
   boardCalibrationMode: 'default',
   boardDetectionConfidence: 0,
   robotPose: defaultRobotPose(),
-  notes: '待實機安裝：先固定白板前方攝影機，再校正 A/B 兩區板擦角度。',
+  notes: '預設展示只使用左區與右區；實機角度由工程模式維護。',
 };
 
 function resolveSubjectKey(subject: string) {
@@ -302,10 +302,10 @@ const fallbackCommands: RobotCommandInfo[] = [
   {command: 'SERVO_180', label: '伺服 180 度', group: 'hardware'},
   {command: 'CALIBRATION_STATUS', label: '校正狀態', group: 'hardware'},
   {command: 'ERASE_ALL', label: '一鍵全擦', group: 'task'},
-  {command: 'ERASE_REGION_A', label: '擦除區塊 A', group: 'task'},
-  {command: 'ERASE_REGION_B', label: '擦除區塊 B', group: 'task'},
-  {command: 'KEEP_REGION_A', label: '保留區塊 A', group: 'task'},
-  {command: 'KEEP_REGION_B', label: '保留區塊 B', group: 'task'},
+  {command: 'ERASE_REGION_A', label: '擦除左區', group: 'task'},
+  {command: 'ERASE_REGION_B', label: '擦除右區', group: 'task'},
+  {command: 'KEEP_REGION_A', label: '保留左區', group: 'task'},
+  {command: 'KEEP_REGION_B', label: '保留右區', group: 'task'},
   {command: 'PAUSE_TASK', label: '暫停任務', group: 'task'},
   {command: 'STOP', label: '停止', group: 'task'},
   {command: 'DELIVERY_START', label: '配送開始', group: 'task'},
@@ -535,7 +535,7 @@ function localBoardAnalysis(input: {imageBase64: string; transcript?: string; su
     '板書重點：',
     '1. 先看圖或例題，讓孩子說出自己的想法。',
     '2. 把老師講解整理成三個孩子聽得懂的句子。',
-    '3. 右側練習區已保存，可換下一題繼續教學。',
+    '3. 右區練習已保存，可換下一題繼續教學。',
     '',
     `老師講解：${resolvedTranscript}`,
   ].join('\n');
