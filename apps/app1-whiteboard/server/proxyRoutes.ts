@@ -2,7 +2,7 @@ import type {Express, Request, Response} from 'express';
 import {GoogleGenAI} from '@google/genai';
 import {z} from 'zod';
 import rateLimit from 'express-rate-limit';
-import {aiProxyKey, geminiApiKey} from './config';
+import {aiProxyKey, geminiApiKey, geminiModel} from './config';
 
 const ai = geminiApiKey ? new GoogleGenAI({apiKey: geminiApiKey}) : null;
 
@@ -24,7 +24,7 @@ async function callGemini(systemPrompt: string, userPrompt: string, req: Request
   req.on('close', () => ac.abort());
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: geminiModel,
       contents: [{role: 'user', parts: [{text: `${systemPrompt}\n\n${userPrompt}`}]}],
       config: {temperature: 0.5},
     });

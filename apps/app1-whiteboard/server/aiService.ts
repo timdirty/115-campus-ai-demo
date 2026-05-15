@@ -1,5 +1,5 @@
 import {GoogleGenAI, createPartFromBase64} from '@google/genai';
-import {geminiApiKey, notesFile} from './config';
+import {geminiApiKey, geminiModel, geminiVisionModel, notesFile} from './config';
 import {defaultClassroomSession, defaultNotes} from './defaults';
 import {readJsonFile} from './storage';
 import type {BoardAnalysisResult, BoardRegion, ChatMessage, QuizQuestion, TeacherPace, WhiteboardNote} from './types';
@@ -253,7 +253,7 @@ export async function analyzeBoardWithAI(imageBase64: string, transcript: string
       `教師逐字稿：${transcript || '未提供'}${ocrHint}`,
     ].join('\n');
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: geminiVisionModel,
       contents: [{role: 'user', parts: [{text: prompt}, createPartFromBase64(media.data, media.mimeType)]}],
       config: {temperature: 0.35},
     });
@@ -295,7 +295,7 @@ export async function transcribeWithAI(audioBase64: string, mimeType: string, op
   try {
     const media = stripDataUrl(audioBase64, mimeType || 'audio/webm');
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: geminiVisionModel,
       contents: [{
         role: 'user',
         parts: [
@@ -327,7 +327,7 @@ export async function chatWithAI(message: string, noteIds: number[], history: Ch
       `課堂紀錄：${note.content}`,
     ].join('\n')).join('\n\n---\n\n');
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: geminiModel,
       contents: [
         ...history.slice(-8).map((item) => ({
           role: item.role === 'ai' ? 'model' : 'user',
@@ -357,7 +357,7 @@ export async function reviewWithAI(note: WhiteboardNote, mode: 'quiz' | 'summary
   try {
     if (mode === 'summary') {
       const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: geminiModel,
         contents: `請將以下白板紀錄整理成國小生可讀的繁體中文 Markdown 學習單。句子短、步驟清楚，包含「今天我學到」、「畫一畫或說一說」、「小檢核」、「老師提醒」。\n\n${note.content}\n\n白板文字:${note.ocrText ?? ''}\n逐字稿:${note.transcript ?? ''}`,
         config: {temperature: 0.35},
       });
@@ -365,7 +365,7 @@ export async function reviewWithAI(note: WhiteboardNote, mode: 'quiz' | 'summary
     }
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: geminiModel,
       contents: `請根據以下白板紀錄產生 5 題適合國小生的繁體中文單選題。題幹要短，一題只測一個概念，解析要像老師鼓勵孩子的說明。題目必須優先引用「白板文字」中的實際內容。只輸出 JSON array，每題格式 {"q":"題目","options":["A","B","C","D"],"ans":0,"explanation":"解析"}。\n\n白板文字:${note.ocrText ?? ''}\n逐字稿:${note.transcript ?? ''}\n課堂紀錄:${note.content}`,
       config: {temperature: 0.35},
     });
