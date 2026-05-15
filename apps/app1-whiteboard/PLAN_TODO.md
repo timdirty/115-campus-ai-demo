@@ -8,7 +8,7 @@
 
 - 已完成本機 Node bridge、JSON 資料儲存、Gemini fallback、備份/還原、筆記庫、AI 小老師、學習單與教師看板。
 - 已把「機器人控制」接入 App 導覽，可從 App 內測試 Serial 指令。
-- 各 App 有獨立 bridge：App 1 用 localhost:3201（dev）/ 3200（prod），App 2 用 localhost:3202，App 3 用 localhost:3203；各自管理自己的 Serial 連線。
+- 各 App 有獨立 bridge：App 1 用 localhost:3201，App 2 用 localhost:3202，App 3 用 localhost:3203；各自管理自己的 Serial 連線。
 - 教師看板預設先保存決策，再可選擇送到 UNO R4 WiFi；無硬體時會顯示 fallback，不中斷展示。
 - 首頁已加入 3 分鐘評審展示模式，清楚串起拍白板、教師決策、機器人選配送出。
 - 全域搜尋可直接開啟對應課堂紀錄；Gemini/Serial fallback 文案改成正式展示狀態。
@@ -58,12 +58,12 @@
 8. 設定面板可看 `/api/ready`、匯出、備份與還原。
 9. 手機與平板版主要按鈕文字不爆版。
 10. `npm run check` 通過 TypeScript、build、API contract 與白板紀錄恢復測試。
-11. production bridge 可用 `BRIDGE_PORT=3200 NODE_ENV=production npm run start` 啟動。
+11. production bridge 可用 `BRIDGE_PORT=3201 NODE_ENV=production npm run start` 啟動。
 
 ## 驗收
 
 ```zsh
 npm run check
-BRIDGE_PORT=3200 NODE_ENV=production npm run start
+BRIDGE_PORT=3201 NODE_ENV=production npm run start
 pio run
 ```

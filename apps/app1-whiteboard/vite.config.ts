@@ -7,7 +7,7 @@ import {defineConfig} from 'vite';
 loadEnv({path: path.resolve(__dirname, '.env.local')});
 loadEnv({path: path.resolve(__dirname, '.env')});
 
-const bridgePort = process.env.BRIDGE_PORT ?? '3200';
+const bridgePort = process.env.BRIDGE_PORT ?? '3201';
 
 export default defineConfig(() => {
   return {

@@ -9,7 +9,7 @@ loadEnv({path: path.join(projectRoot, '.env.local')});
 loadEnv({path: path.join(projectRoot, '.env')});
 
 export const nodeEnv = process.env.NODE_ENV ?? 'development';
-export const bridgePort = Number(process.env.BRIDGE_PORT ?? 3200) || 3200;
+export const bridgePort = Number(process.env.BRIDGE_PORT ?? 3201) || 3201;
 export const baudRate = Number(process.env.ARDUINO_BAUD ?? 115200) || 115200;
 export const geminiApiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? '';
 export const aiProxyKey = process.env.AI_PROXY_KEY ?? '';

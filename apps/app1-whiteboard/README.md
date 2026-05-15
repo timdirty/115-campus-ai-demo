@@ -14,7 +14,7 @@ npm run start
 Open:
 
 ```text
-http://localhost:3200
+http://localhost:3201
 ```
 
 `GEMINI_API_KEY` 是選填。沒有 key 時 `/api/ai/*` 會使用本機 fallback，介面會清楚顯示 fallback 狀態。
@@ -25,7 +25,7 @@ http://localhost:3200
 npm run dev
 ```
 
-Vite 預設在 `http://localhost:3000`，bridge 在 `http://localhost:3200`。如果 3000 被占用，Vite 會自動提示下一個可用 port。
+Vite 預設在 `http://localhost:3000`，bridge 在 `http://localhost:3201`。如果 3000 被占用，Vite 會自動提示下一個可用 port。
 
 ## Production Operations
 
@@ -72,7 +72,7 @@ GET  /api/classroom/session
 POST /api/classroom/session
 ```
 
-Robot APIs are production bridge endpoints for App 1 and the shared Arduino gateway used by App 2/App 3. The classroom UI can store teacher decisions first, then explicitly send selected commands to the robot branch:
+Robot APIs are production bridge endpoints for App 1. The classroom UI can store teacher decisions first, then explicitly send selected commands to the robot branch:
 
 ```text
 GET  /api/robot/status
@@ -91,10 +91,10 @@ npm run demo:check
 For single-server smoke testing:
 
 ```zsh
-BRIDGE_PORT=3200 NODE_ENV=production npm run start
+BRIDGE_PORT=3201 NODE_ENV=production npm run start
 ```
 
-Then open `http://localhost:3200` and check `/api/ready`.
+Then open `http://localhost:3201` and check `/api/ready`.
 
 `npm run demo:check` 會自動啟動展示用 bridge 與前端，先重置展示資料，再用上方藍色主按鈕跑完「一鍵示範 → 教師看板 → 機器人 → 紀錄本 → 小老師 → 學習單」桌面流程；接著確認單按一次重置不會清空資料、手機寬度六個頁籤沒有水平溢出、學生畫面不顯示老師設定與回報工具，最後再測一次直接從教師看板冷啟動也能靠主按鈕承接任務。
 
