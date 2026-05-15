@@ -6,33 +6,35 @@ import {NoticeBar} from '../components/home/NoticeBar';
 import {RegionTaskPanel} from '../components/home/RegionTaskPanel';
 import {useBridgeStatus} from '../hooks/useBridgeStatus';
 import {useMediaCapture} from '../hooks/useMediaCapture';
-import {analyzeBoardCapture, analyzeBoardDemoSample, BoardAnalysisResponse, BoardRegion, ocrBoardLocal, OcrLocalResult, saveClassroomSession, transcribeAudio} from '../services/classroomApi';
+import {analyzeBoardCapture, analyzeBoardDemoSample, BoardAnalysisResponse, BoardRegion, OcrLocalResult, saveClassroomSession, transcribeAudio} from '../services/classroomApi';
 import {DemoProgress, resetDemoProgress, saveDemoProgress} from '../services/demoProgress';
 import {addNoteAsync, DEFAULT_NOTES, STAGE_DEMO_NOTE_ID} from '../services/notesStore';
 import {defaultRobotPose} from '../services/robotPose';
 import {BoardCalibration, BoardCalibrationMode, CalibrationCornerId, defaultBoardCalibration, detectBoardCalibrationFromImage, normalizeBoardCalibration} from '../services/whiteboardCalibration';
 
 const SS_PREFIX = 'app1:home:';
+const _ssMem = new Map<string, unknown>();
 
 function ssGet<T>(key: string, fallback: T): T {
   try {
     const raw = sessionStorage.getItem(SS_PREFIX + key);
-    if (raw === null) return fallback;
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
+    if (raw !== null) return JSON.parse(raw) as T;
+  } catch {}
+  const mem = _ssMem.get(key);
+  return mem !== undefined ? (mem as T) : fallback;
 }
 
 function ssSet(key: string, value: unknown): void {
+  if (value === null || value === undefined || value === '') {
+    try { sessionStorage.removeItem(SS_PREFIX + key); } catch {}
+    _ssMem.delete(key);
+    return;
+  }
   try {
-    if (value === null || value === undefined || value === '') {
-      sessionStorage.removeItem(SS_PREFIX + key);
-    } else {
-      sessionStorage.setItem(SS_PREFIX + key, JSON.stringify(value));
-    }
+    sessionStorage.setItem(SS_PREFIX + key, JSON.stringify(value));
+    _ssMem.delete(key);
   } catch {
-    // quota exceeded — silently ignore
+    _ssMem.set(key, value);
   }
 }
 
@@ -51,6 +53,9 @@ const itemVariants: any = {
   hidden: {opacity: 0, y: 18},
   show: {opacity: 1, y: 0, transition: {type: 'spring', bounce: 0.18, duration: 0.45}},
 };
+
+let _abortController: AbortController | null = null;
+let _actionGeneration = 0;
 
 export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: string) => void; demoProgress: DemoProgress}) {
   const {
@@ -73,7 +78,22 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
   const [calibrationDirty, setCalibrationDirty] = useState(false);
   const [busy, setBusy] = useState('');
   const [ocrResult, setOcrResult] = useState<OcrLocalResult | null>(() => ssGet<OcrLocalResult | null>('ocrResult', null));
-  const [ocrBusy, setOcrBusy] = useState(false);
+  const [ocrBusy] = useState(false);
+
+  const beginAction = (busyKey: string): {signal: AbortSignal; gen: number} => {
+    _abortController?.abort();
+    const controller = new AbortController();
+    _abortController = controller;
+    const gen = ++_actionGeneration;
+    setBusy(busyKey);
+    return {signal: controller.signal, gen};
+  };
+  const endAction = (gen: number) => {
+    if (_actionGeneration === gen) {
+      _abortController = null;
+      setBusy('');
+    }
+  };
   const [practiceCardOpen, setPracticeCardOpen] = useState(() => {
     try {
       return localStorage.getItem('app1:practiceCardCollapsed') !== 'true';
@@ -128,46 +148,41 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
     }
   };
 
-  const runOcr = async (imageBase64: string) => {
-    setOcrBusy(true);
-    const r = await ocrBoardLocal(imageBase64);
-    setOcrResult(r);
-    setOcrBusy(false);
-    return r;
-  };
-
   const captureAndAnalyze = async () => {
-    setBusy('analyze');
+    const {signal, gen} = beginAction('analyze');
     try {
       const imageBase64 = media.captureFrame();
       setPreviewImage(imageBase64);
       setOcrResult(null);
-      // OCR runs in parallel; result enriches ocrText in the note
-      const [result, ocr] = await Promise.all([
-        analyzeBoardCapture({imageBase64, transcript, subjectHint, boardCalibration}),
-        runOcr(imageBase64),
-      ]);
-      const enrichedResult = mergeOcrIntoAnalysis(result, ocr);
-      setAnalysis(enrichedResult);
+      const result = await analyzeBoardCapture({imageBase64, transcript, subjectHint, boardCalibration}, signal);
+      const serverOcrText = result.noteDraft?.ocrText?.trim() ?? '';
+      if (serverOcrText) {
+        setOcrResult({ok: true, text: serverOcrText, blocks: [], engine: 'server-embedded'});
+      }
+      setAnalysis(result);
       const mergedSession = {
-        ...enrichedResult.session,
-        boardOcrText: ocr.ok && ocr.text.trim() ? ocr.text.trim() : enrichedResult.session.boardOcrText,
+        ...result.session,
+        boardOcrText: serverOcrText || result.session.boardOcrText,
         hardwareProfile: {
-          ...enrichedResult.session.hardwareProfile,
+          ...result.session.hardwareProfile,
           boardCalibration,
           boardCalibrationMode: calibrationMode,
           boardDetectionConfidence: detectionConfidence,
-          cameraMounted: media.cameraReady || enrichedResult.session.hardwareProfile.cameraMounted,
+          cameraMounted: media.cameraReady || result.session.hardwareProfile.cameraMounted,
         },
       };
       setClassroom(mergedSession);
       saveDemoProgress({whiteboard: true});
       setNotice('白板整理完成，下一步請確認哪一區可以擦');
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        endAction(gen);
+        return;
+      }
       setPreviewImage('');
       setNotice(error instanceof Error ? error.message : '白板分析失敗');
     } finally {
-      setBusy('');
+      endAction(gen);
     }
   };
 
@@ -176,7 +191,7 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
       setNotice('請選擇圖片檔案（JPEG、PNG 等）');
       return;
     }
-    setBusy('analyze');
+    const {signal, gen} = beginAction('analyze');
     try {
       const reader = new FileReader();
       const imageBase64 = await new Promise<string>((resolve, reject) => {
@@ -186,17 +201,17 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
       });
       setPreviewImage(imageBase64);
       setOcrResult(null);
-      const [result, ocr] = await Promise.all([
-        analyzeBoardCapture({imageBase64, transcript, subjectHint, boardCalibration}),
-        runOcr(imageBase64),
-      ]);
-      const enrichedResult = mergeOcrIntoAnalysis(result, ocr);
-      setAnalysis(enrichedResult);
+      const result = await analyzeBoardCapture({imageBase64, transcript, subjectHint, boardCalibration}, signal);
+      const serverOcrText = result.noteDraft?.ocrText?.trim() ?? '';
+      if (serverOcrText) {
+        setOcrResult({ok: true, text: serverOcrText, blocks: [], engine: 'server-embedded'});
+      }
+      setAnalysis(result);
       const mergedSession = {
-        ...enrichedResult.session,
-        boardOcrText: ocr.ok && ocr.text.trim() ? ocr.text.trim() : enrichedResult.session.boardOcrText,
+        ...result.session,
+        boardOcrText: serverOcrText || result.session.boardOcrText,
         hardwareProfile: {
-          ...enrichedResult.session.hardwareProfile,
+          ...result.session.hardwareProfile,
           boardCalibration,
           boardCalibrationMode: calibrationMode,
           boardDetectionConfidence: detectionConfidence,
@@ -206,10 +221,14 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
       saveDemoProgress({whiteboard: true});
       setNotice('白板整理完成，下一步請確認哪一區可以擦');
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        endAction(gen);
+        return;
+      }
       setPreviewImage('');
       setNotice(error instanceof Error ? error.message : '圖片上傳分析失敗');
     } finally {
-      setBusy('');
+      endAction(gen);
     }
   };
 
@@ -305,32 +324,6 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
     } finally {
       setBusy('');
     }
-  };
-
-  const mergeOcrIntoAnalysis = (result: BoardAnalysisResponse, ocr: OcrLocalResult): BoardAnalysisResponse => {
-    const text = ocr.ok && ocr.text.trim() ? ocr.text.trim() : '';
-    if (!text) return result;
-    const content = result.noteDraft.content.includes(text)
-      ? result.noteDraft.content
-      : [
-        result.noteDraft.content,
-        '',
-        '白板實際辨識文字：',
-        text,
-      ].join('\n');
-    return {
-      ...result,
-      noteDraft: {
-        ...result.noteDraft,
-        ocrText: text,
-        content,
-        keywords: [...new Set([...(result.noteDraft.keywords ?? []), '白板OCR', ...text.split(/\s+/).slice(0, 6)])],
-      },
-      session: {
-        ...result.session,
-        boardOcrText: text,
-      },
-    };
   };
 
   const applyRegions = async (regions: BoardRegion[], recommendation: string) => {
