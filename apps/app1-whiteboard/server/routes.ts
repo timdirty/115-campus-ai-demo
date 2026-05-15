@@ -71,7 +71,6 @@ function normalizeHardwareProfile(input: unknown, fallback = defaultClassroomSes
     servoAngles: {
       regionA: normalizeServoAngle(servoAngles.regionA, fallback.servoAngles.regionA),
       regionB: normalizeServoAngle(servoAngles.regionB, fallback.servoAngles.regionB),
-      regionC: normalizeServoAngle(servoAngles.regionC, fallback.servoAngles.regionC),
       eraseAll: normalizeServoAngle(servoAngles.eraseAll, fallback.servoAngles.eraseAll),
       standby: normalizeServoAngle(servoAngles.standby, fallback.servoAngles.standby),
     },
@@ -116,7 +115,7 @@ function normalizeHardwareProfile(input: unknown, fallback = defaultClassroomSes
 }
 
 function isExtendedCalibrationCommand(command: string) {
-  return /^(SERVO_SET|SET_REGION_A|SET_REGION_B|SET_REGION_C|SET_ERASE_ALL|SET_STANDBY):\d{1,3}$/.test(command)
+  return /^(SERVO_SET|SET_REGION_A|SET_REGION_B|SET_ERASE_ALL|SET_STANDBY):\d{1,3}$/.test(command)
     || command === 'CALIBRATION_STATUS';
 }
 
@@ -681,10 +680,10 @@ export function registerRoutes(app: Express) {
     const regionIds = regionParam
       .split(',')
       .map((s) => s.trim().toUpperCase())
-      .filter((s) => /^[A-D]$/.test(s));
+      .filter((s) => /^[AB]$/.test(s));
 
     if (regionIds.length === 0) {
-      res.status(400).json({error: 'No valid region IDs (A–D) provided'});
+      res.status(400).json({error: 'No valid region IDs (A-B) provided'});
       return;
     }
 

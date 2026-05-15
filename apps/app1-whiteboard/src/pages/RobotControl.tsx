@@ -34,7 +34,6 @@ const itemVariants: any = {
 const QUICK_TASKS = [
   {label: '擦除 A 區', action: 'erase', regionId: 'A'},
   {label: '擦除 B 區', action: 'erase', regionId: 'B'},
-  {label: '擦除 C 區', action: 'erase', regionId: 'C'},
   {label: '保留重點 A', action: 'keep', regionId: 'A'},
   {label: '暫停等待抄寫', action: 'pause', regionId: undefined},
 ] as const;
@@ -45,7 +44,6 @@ const QUICK_COMMANDS: RobotCommandInfo[] = [
   {label: '全板擦除', command: 'ERASE_ALL', group: 'task'},
   {label: '擦除 A 區', command: 'ERASE_REGION_A', group: 'task'},
   {label: '擦除 B 區', command: 'ERASE_REGION_B', group: 'task'},
-  {label: '擦除 C 區', command: 'ERASE_REGION_C', group: 'task'},
   {label: '保留 A 區', command: 'KEEP_REGION_A', group: 'task'},
   {label: '保留 B 區', command: 'KEEP_REGION_B', group: 'task'},
   {label: '暫停等待', command: 'PAUSE_TASK', group: 'task'},

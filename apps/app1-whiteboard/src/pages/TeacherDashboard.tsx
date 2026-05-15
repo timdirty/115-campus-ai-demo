@@ -26,7 +26,6 @@ const paceLabel: Record<string, string> = {
 const SERVO_ANGLE_FIELDS = [
   ['regionA', '區塊 A'],
   ['regionB', '區塊 B'],
-  ['regionC', '區塊 C'],
   ['eraseAll', '全擦'],
   ['standby', '待命'],
 ] as const;
@@ -298,7 +297,6 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
     const sequence = [
       {command: `SET_REGION_A:${hardwareProfileDraft.servoAngles.regionA}`, label: '區塊 A'},
       {command: `SET_REGION_B:${hardwareProfileDraft.servoAngles.regionB}`, label: '區塊 B'},
-      {command: `SET_REGION_C:${hardwareProfileDraft.servoAngles.regionC}`, label: '區塊 C'},
       {command: `SET_ERASE_ALL:${hardwareProfileDraft.servoAngles.eraseAll}`, label: '全擦'},
       {command: `SET_STANDBY:${hardwareProfileDraft.servoAngles.standby}`, label: '待命'},
     ];
@@ -308,7 +306,7 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
       for (const item of sequence) {
         await sendRobotCommand(item.command, 'teacher-calibration');
       }
-      setHardwareNotice('實體機器人已收到 A/B/C、全擦與待命角度，接著可以預覽各區域。');
+      setHardwareNotice('實體機器人已收到 A/B、全擦與待命角度，接著可以預覽各區域。');
       setNotice('校正角度已推送到機器人');
     } catch (error) {
       setHardwareNotice(error instanceof Error ? error.message : '無法推送校正角度到機器人');
@@ -699,13 +697,6 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
                       className="min-h-10 rounded-xl border border-outline-variant/20 bg-surface-container-low px-3 text-xs font-bold"
                     >
                       預覽 B
-                    </button>
-                    <button
-                      onClick={() => sendCalibrationPreview(`SERVO_SET:${hardwareProfileDraft.servoAngles.regionC}`, '預覽區塊 C')}
-                      disabled={Boolean(hardwareBusy)}
-                      className="min-h-10 rounded-xl border border-outline-variant/20 bg-surface-container-low px-3 text-xs font-bold"
-                    >
-                      預覽 C
                     </button>
                     <button
                       onClick={() => sendCalibrationPreview(`SERVO_SET:${hardwareProfileDraft.servoAngles.standby}`, '待命位置')}

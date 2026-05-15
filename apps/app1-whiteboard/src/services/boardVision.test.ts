@@ -16,7 +16,7 @@ const result = analyzeWhiteboardPixels(40, 24, frame);
 assert.ok(result.metrics.inkDensity > 0);
 assert.ok(result.metrics.blankArea > 0);
 assert.notEqual(result.quality.level, 'poor');
-assert.equal(result.regions.length, 3);
+assert.equal(result.regions.length, 2);
 assert.match(result.recommendation, /白板照片判斷/);
 assert.ok(result.evidence.some((item) => item.includes('畫面品質')));
 assert.ok(result.evidence.some((item) => item.includes('筆跡密度')));
@@ -62,7 +62,7 @@ for (let round = 0; round < 500; round += 1) {
     synthetic[i + 3] = 255;
   }
   const sample = analyzeWhiteboardPixels(width, height, synthetic);
-  assert.equal(sample.regions.length, 3, `round ${round}: expected 3 board regions`);
+  assert.equal(sample.regions.length, 2, `round ${round}: expected 2 board regions`);
   assert.ok(sample.metrics.inkDensity >= 0 && sample.metrics.inkDensity <= 100, `round ${round}: inkDensity out of bounds`);
   assert.ok(sample.metrics.edgeDensity >= 0 && sample.metrics.edgeDensity <= 100, `round ${round}: edgeDensity out of bounds`);
   assert.ok(sample.metrics.blankArea >= 0 && sample.metrics.blankArea <= 100, `round ${round}: blankArea out of bounds`);

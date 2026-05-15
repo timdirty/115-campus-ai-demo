@@ -18,7 +18,6 @@ export type RobotPoseEstimate = {
 type ServoAngles = {
   regionA: number;
   regionB: number;
-  regionC: number;
   eraseAll: number;
   standby: number;
 };
@@ -75,7 +74,6 @@ function nearestServoTarget(angle: number, servoAngles: ServoAngles) {
   const targets = [
     {label: '區塊 A', regionId: 'A', angle: servoAngles.regionA},
     {label: '區塊 B', regionId: 'B', angle: servoAngles.regionB},
-    {label: '區塊 C', regionId: 'C', angle: servoAngles.regionC},
     {label: '全板', regionId: 'ALL', angle: servoAngles.eraseAll},
     {label: '待命位置', regionId: undefined, angle: servoAngles.standby},
   ];
@@ -91,7 +89,7 @@ export function estimateRobotPose(command: string, context: PoseContext): RobotP
   const center = boardCenter(context.boardCalibration);
   const previous = context.previousPose ?? defaultRobotPose();
 
-  const regionCommand = normalized.match(/^(ERASE|KEEP)_REGION_([A-Z])$/);
+  const regionCommand = normalized.match(/^(ERASE|KEEP)_REGION_([AB])$/);
   if (regionCommand) {
     const region = findRegion(context.boardRegions, regionCommand[2]);
     const point = region ? regionCenter(region) : previous;
@@ -144,7 +142,7 @@ export function estimateRobotPose(command: string, context: PoseContext): RobotP
     };
   }
 
-  const namedSetup = normalized.match(/^SET_REGION_([ABC])$/);
+  const namedSetup = normalized.match(/^SET_REGION_([AB])$/);
   if (namedSetup) {
     const region = findRegion(context.boardRegions, namedSetup[1]);
     const point = region ? regionCenter(region) : center;

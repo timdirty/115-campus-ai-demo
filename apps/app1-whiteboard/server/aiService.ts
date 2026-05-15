@@ -34,11 +34,15 @@ function normalizePercent(value: unknown, fallback: number, max = 100) {
 
 function normalizeRegionId(value: unknown, index: number, used: Set<string>) {
   const raw = String(value ?? '').trim().toUpperCase();
-  const matched = raw.match(/(?:REGION|區塊|AREA|ZONE)?[\s_-]*([A-D])\b/)?.[1] ?? raw.match(/\b([A-D])\b/)?.[1];
+  const matched = raw.match(/(?:REGION|區塊|AREA|ZONE)?[\s_-]*([AB])\b/)?.[1] ?? raw.match(/\b([AB])\b/)?.[1];
   let candidate = matched ?? String.fromCharCode(65 + index);
   let cursor = 0;
 
-  while (used.has(candidate)) {
+  if (!['A', 'B'].includes(candidate)) {
+    candidate = String.fromCharCode(65 + Math.min(index, 1));
+  }
+
+  while (used.has(candidate) && cursor < 2) {
     candidate = String.fromCharCode(65 + cursor);
     cursor += 1;
   }
@@ -73,9 +77,9 @@ export function normalizeBoardRegions(input: unknown): BoardRegion[] {
       status,
       reason: String(source.reason ?? '由白板分析產生'),
     };
-  }).slice(0, 4);
+  }).filter((region) => region.id === 'A' || region.id === 'B').slice(0, 2);
 
-  return regions.length >= 3 ? regions : fallback;
+  return regions.length >= 2 ? regions : fallback;
 }
 
 function normalizePace(value: unknown): TeacherPace {
@@ -86,9 +90,8 @@ function localBoardAnalysis(transcript: string, subjectHint: string, imageBase64
   const subject = subjectHint.trim() || '國小數學';
   const transcriptLine = transcript.trim() || '尚未提供老師講解，系統先依白板快照建立國小課堂紀錄草稿。';
   const boardRegions = [
-    {id: 'A', label: '圖解與例題', x: 8, y: 18, width: 36, height: 56, status: 'keep' as const, reason: '國小生需要保留圖像支架來說明想法'},
-    {id: 'B', label: '孩子練習區', x: 52, y: 20, width: 36, height: 48, status: 'erasable' as const, reason: '練習內容已保存，可清出空間給下一題'},
-    {id: 'C', label: '口訣提醒區', x: 18, y: 76, width: 64, height: 16, status: 'keep' as const, reason: '保留簡短口訣，方便孩子回頭檢查'},
+    {id: 'A', label: '左側重點區', x: 8, y: 18, width: 40, height: 62, status: 'keep' as const, reason: '國小生需要保留圖像支架來說明想法'},
+    {id: 'B', label: '右側練習區', x: 54, y: 18, width: 38, height: 62, status: 'erasable' as const, reason: '練習內容已保存，可清出空間給下一題'},
   ];
 
   return {
@@ -120,10 +123,10 @@ function localBoardAnalysis(transcript: string, subjectHint: string, imageBase64
       img: imageBase64,
       keywords: ['國小', subject, '白板快照', '學習單', '小測驗'],
       boardRegions,
-      aiRecommendation: '建議保留圖解與口訣，先清出孩子練習區，給下一題或上台分享使用。',
+      aiRecommendation: '建議保留左側重點區，先清出右側練習區，給下一題或上台分享使用。',
     },
     boardRegions,
-    currentRecommendation: '建議保留圖解與口訣，先清出孩子練習區，給下一題或上台分享使用。',
+    currentRecommendation: '建議保留左側重點區，先清出右側練習區，給下一題或上台分享使用。',
     teacherPace: 'slow_down',
     focusPercent: 80,
     confusedPercent: 14,
@@ -245,7 +248,7 @@ export async function analyzeBoardWithAI(imageBase64: string, transcript: string
       '欄位：noteDraft, boardRegions, currentRecommendation, teacherPace, focusPercent, confusedPercent, tiredPercent。',
       'noteDraft 必須包含 title, subject, period, desc, content, ocrText, transcript, keywords, aiRecommendation。',
       'noteDraft.content 請包含「今日學習目標」、「板書重點」、「小朋友練習」、「老師提醒」。',
-      'boardRegions 至少三個區塊，每個區塊包含 id, label, x, y, width, height, status, reason；status 只能是 keep, erasable, erased。',
+      'boardRegions 必須是 A、B 兩個區塊，每個區塊包含 id, label, x, y, width, height, status, reason；status 只能是 keep, erasable, erased。',
       `科目提示：${subjectHint || '未提供'}`,
       `教師逐字稿：${transcript || '未提供'}${ocrHint}`,
     ].join('\n');

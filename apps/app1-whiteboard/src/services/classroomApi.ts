@@ -22,7 +22,6 @@ export type HardwareCalibrationProfile = {
   servoAngles: {
     regionA: number;
     regionB: number;
-    regionC: number;
     eraseAll: number;
     standby: number;
   };
@@ -198,34 +197,28 @@ const SUBJECT_LEARNING_STATUS: Record<string, {focus: number; confused: number; 
 
 const SUBJECT_BOARD_REGIONS: Record<string, Array<{label: string; keep: boolean; reason: string}>> = {
   '數學': [
-    {label: '例題解析區', keep: true, reason: '解題步驟需要保留複習'},
-    {label: '公式總整理', keep: true, reason: '重要公式下課後仍需參考'},
-    {label: '練習題作答', keep: false, reason: '已完成，可擦除'},
+    {label: '左側重點區', keep: true, reason: '解題步驟需要保留複習'},
+    {label: '右側練習區', keep: false, reason: '已完成，可擦除'},
   ],
   '語文': [
-    {label: '生字詞彙區', keep: true, reason: '本課生字需要繼續練習'},
-    {label: '課文重點段落', keep: true, reason: '閱讀理解重點保留'},
-    {label: '造句練習', keep: false, reason: '學生已抄寫完畢'},
+    {label: '左側詞句區', keep: true, reason: '本課生字與重點需要繼續練習'},
+    {label: '右側練習區', keep: false, reason: '學生已抄寫完畢'},
   ],
   '自然': [
-    {label: '實驗步驟圖示', keep: true, reason: '實驗方法需要對照'},
-    {label: '觀察記錄表', keep: true, reason: '資料整理中'},
-    {label: '結論討論', keep: false, reason: '已記錄在課本'},
+    {label: '左側圖示區', keep: true, reason: '實驗方法需要對照'},
+    {label: '右側記錄區', keep: false, reason: '已記錄在課本'},
   ],
   '社會': [
-    {label: '歷史時間軸', keep: true, reason: '時序關係需要對照'},
-    {label: '地圖標示區', keep: true, reason: '地理位置重要'},
-    {label: '課堂討論紀錄', keep: false, reason: '已完成討論'},
+    {label: '左側重點圖表', keep: true, reason: '時序與位置關係需要對照'},
+    {label: '右側討論區', keep: false, reason: '已完成討論'},
   ],
   '英語': [
-    {label: '單字例句區', keep: true, reason: '句型需要反覆練習'},
-    {label: '文法重點', keep: true, reason: '文法規則本節重點'},
-    {label: '口語練習記錄', keep: false, reason: '口語活動已結束'},
+    {label: '左側單字句型', keep: true, reason: '句型需要反覆練習'},
+    {label: '右側口說練習', keep: false, reason: '口語活動已結束'},
   ],
   default: [
-    {label: '圖解與例題', keep: true, reason: '核心概念需保留'},
-    {label: '練習作答區', keep: false, reason: '練習已完成'},
-    {label: '口訣提醒區', keep: true, reason: '記憶口訣仍有用'},
+    {label: '左側重點區', keep: true, reason: '核心概念需保留'},
+    {label: '右側練習區', keep: false, reason: '練習已完成'},
   ],
 };
 
@@ -240,16 +233,14 @@ const SUBJECT_TRANSCRIPTS: Record<string, string> = {
 const SUBJECT_KEYS = ['數學', '語文', '國語', '自然', '社會', '英語', '體育', '藝術'] as const;
 
 const REGION_POSITIONS: Array<{id: string; x: number; y: number; width: number; height: number}> = [
-  {id: 'A', x: 8, y: 18, width: 38, height: 58},
-  {id: 'B', x: 54, y: 20, width: 34, height: 50},
-  {id: 'C', x: 22, y: 78, width: 58, height: 16},
+  {id: 'A', x: 8, y: 18, width: 40, height: 62},
+  {id: 'B', x: 54, y: 18, width: 38, height: 62},
 ];
 
 export const defaultHardwareCalibrationProfile: HardwareCalibrationProfile = {
   servoAngles: {
     regionA: 20,
     regionB: 92,
-    regionC: 160,
     eraseAll: 180,
     standby: 90,
   },
@@ -260,7 +251,7 @@ export const defaultHardwareCalibrationProfile: HardwareCalibrationProfile = {
   boardCalibrationMode: 'default',
   boardDetectionConfidence: 0,
   robotPose: defaultRobotPose(),
-  notes: '待實機安裝：先固定白板前方攝影機，再校正 A/B/C 板擦角度。',
+  notes: '待實機安裝：先固定白板前方攝影機，再校正 A/B 兩區板擦角度。',
 };
 
 function resolveSubjectKey(subject: string) {
@@ -313,10 +304,8 @@ const fallbackCommands: RobotCommandInfo[] = [
   {command: 'ERASE_ALL', label: '一鍵全擦', group: 'task'},
   {command: 'ERASE_REGION_A', label: '擦除區塊 A', group: 'task'},
   {command: 'ERASE_REGION_B', label: '擦除區塊 B', group: 'task'},
-  {command: 'ERASE_REGION_C', label: '擦除區塊 C', group: 'task'},
   {command: 'KEEP_REGION_A', label: '保留區塊 A', group: 'task'},
   {command: 'KEEP_REGION_B', label: '保留區塊 B', group: 'task'},
-  {command: 'KEEP_REGION_C', label: '保留區塊 C', group: 'task'},
   {command: 'PAUSE_TASK', label: '暫停任務', group: 'task'},
   {command: 'STOP', label: '停止', group: 'task'},
   {command: 'DELIVERY_START', label: '配送開始', group: 'task'},
@@ -325,8 +314,8 @@ const fallbackCommands: RobotCommandInfo[] = [
 ];
 
 const fallbackTaskActions = {
-  erase: {A: 'ERASE_REGION_A', B: 'ERASE_REGION_B', C: 'ERASE_REGION_C', ALL: 'ERASE_ALL'},
-  keep: {A: 'KEEP_REGION_A', B: 'KEEP_REGION_B', C: 'KEEP_REGION_C'},
+  erase: {A: 'ERASE_REGION_A', B: 'ERASE_REGION_B', ALL: 'ERASE_ALL'},
+  keep: {A: 'KEEP_REGION_A', B: 'KEEP_REGION_B'},
   pause: {DEFAULT: 'PAUSE_TASK'},
   clean_start: {DEFAULT: 'CLEAN_START'},
   clean_stop: {DEFAULT: 'CLEAN_STOP'},
@@ -372,7 +361,6 @@ function normalizeHardwareProfile(value: unknown): HardwareCalibrationProfile {
     servoAngles: {
       regionA: normalizeServoAngle(servoAngles.regionA, defaultHardwareCalibrationProfile.servoAngles.regionA),
       regionB: normalizeServoAngle(servoAngles.regionB, defaultHardwareCalibrationProfile.servoAngles.regionB),
-      regionC: normalizeServoAngle(servoAngles.regionC, defaultHardwareCalibrationProfile.servoAngles.regionC),
       eraseAll: normalizeServoAngle(servoAngles.eraseAll, defaultHardwareCalibrationProfile.servoAngles.eraseAll),
       standby: normalizeServoAngle(servoAngles.standby, defaultHardwareCalibrationProfile.servoAngles.standby),
     },
@@ -400,11 +388,38 @@ function normalizeHardwareProfile(value: unknown): HardwareCalibrationProfile {
   };
 }
 
+function normalizeLocalBoardRegions(value: unknown): BoardRegion[] {
+  const fallback = buildBoardRegions('綜合');
+  if (!Array.isArray(value)) {
+    return fallback;
+  }
+  const regions = value
+    .filter((item): item is Partial<BoardRegion> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+    .map((item, index) => {
+      const fallbackRegion = fallback[index] ?? fallback[Math.min(index, fallback.length - 1)];
+      const rawId = String(item.id ?? fallbackRegion.id).trim().toUpperCase();
+      const id = rawId === 'B' || /REGION[\s_-]*B|區塊[\s_-]*B/.test(rawId) ? 'B' : 'A';
+      return {
+        id,
+        label: String(item.label ?? fallbackRegion.label),
+        x: Math.max(0, Math.min(100, Number(item.x) || fallbackRegion.x)),
+        y: Math.max(0, Math.min(100, Number(item.y) || fallbackRegion.y)),
+        width: Math.max(1, Math.min(100, Number(item.width) || fallbackRegion.width)),
+        height: Math.max(1, Math.min(100, Number(item.height) || fallbackRegion.height)),
+        status: item.status === 'erasable' || item.status === 'erased' || item.status === 'keep' ? item.status : fallbackRegion.status,
+        reason: String(item.reason ?? fallbackRegion.reason),
+      };
+    })
+    .filter((region, index, list) => (region.id === 'A' || region.id === 'B') && list.findIndex((item) => item.id === region.id) === index)
+    .slice(0, 2);
+  return regions.length === 2 ? regions : fallback;
+}
+
 function normalizeSession(session: ClassroomSession): ClassroomSession {
   return {
     ...fallbackSession,
     ...session,
-    boardRegions: Array.isArray(session.boardRegions) ? session.boardRegions : fallbackSession.boardRegions,
+    boardRegions: normalizeLocalBoardRegions(session.boardRegions),
     hardwareProfile: normalizeHardwareProfile(session.hardwareProfile),
   };
 }
@@ -417,7 +432,7 @@ function saveLocalSession(update: Partial<ClassroomSession>): ClassroomSession {
   const session = {
     ...loadLocalSession(),
     ...update,
-    boardRegions: update.boardRegions ?? loadLocalSession().boardRegions,
+    boardRegions: normalizeLocalBoardRegions(update.boardRegions ?? loadLocalSession().boardRegions),
     hardwareProfile: normalizeHardwareProfile(update.hardwareProfile ?? loadLocalSession().hardwareProfile),
     updatedAt: new Date().toISOString(),
   };

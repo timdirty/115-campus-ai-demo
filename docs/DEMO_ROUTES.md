@@ -28,7 +28,7 @@
 
 **AI / 辨識來源**：瀏覽器 canvas 像素辨識；Gemini 只用來補充說明，沒有 key 也能完成。
 
-**硬體 / 模擬指令**：`ERASE_REGION_A`, `ERASE_REGION_B`, `ERASE_REGION_C`, `EV3_STATUS`, `EV3_STOP`
+**硬體 / 模擬指令**：`ERASE_REGION_A`, `ERASE_REGION_B`, `EV3_STATUS`, `EV3_STOP`
 
 **成功證據**：像素分析結果、老師決策紀錄、白板 ✓ 覆蓋層、任務 log / bridge ack
 

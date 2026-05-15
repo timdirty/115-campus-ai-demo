@@ -1,6 +1,6 @@
 # 國小 AI 白板助教
 
-本專案是「國小組課堂白板 AI 助教」的本機 production 版：React/Vite 前端由同一個 Node bridge 提供，資料寫入本機 JSON，Gemini API key 只在 server 端讀取。主要工作流聚焦國小課堂：白板快照、老師講解逐字稿、課堂紀錄本、AI 小老師、國小學習單、教師決策、備份與還原都能在現場真實使用；沒有 API key 時也保留清楚的本機 fallback 狀態。機器人控制定位為老師可控的半自動支線，現階段以 A/B/C 區塊任務展示為主，不宣稱已完成全自動視覺定位。
+本專案是「國小組課堂白板 AI 助教」的本機 production 版：React/Vite 前端由同一個 Node bridge 提供，資料寫入本機 JSON，Gemini API key 只在 server 端讀取。主要工作流聚焦國小課堂：白板快照、老師講解逐字稿、課堂紀錄本、AI 小老師、國小學習單、教師決策、備份與還原都能在現場真實使用；沒有 API key 時也保留清楚的本機 fallback 狀態。機器人控制定位為老師可控的半自動支線，現階段以 A/B 兩區任務展示為主，不宣稱已完成全自動視覺定位。
 
 ## Local Production Run
 

@@ -68,33 +68,23 @@ export function analyzeWhiteboardPixels(width: number, height: number, data: Uin
   const regions: BoardRegion[] = [
     {
       id: 'A',
-      label: denseInk ? '主要板書區' : '圖解保留區',
+      label: denseInk ? '左側重點區' : '左側保留區',
       x: Math.round(toBoardX(0.02) * 10) / 10,
       y: Math.round(toBoardY(0.06) * 10) / 10,
       width: Math.round(toBoardW(0.44) * 10) / 10,
-      height: Math.round(toBoardH(0.62) * 10) / 10,
+      height: Math.round(toBoardH(0.76) * 10) / 10,
       status: denseInk ? 'keep' : 'erasable',
       reason: denseInk ? '像素顯示此區筆跡與邊緣較多，先保留給學生回看。' : '筆跡密度較低，可先清出空間。',
     },
     {
       id: 'B',
-      label: mostlyBlank ? '可用留白區' : '練習與計算區',
+      label: mostlyBlank ? '右側可用留白區' : '右側練習區',
       x: Math.round(toBoardX(0.52) * 10) / 10,
-      y: Math.round(toBoardY(0.1) * 10) / 10,
+      y: Math.round(toBoardY(0.06) * 10) / 10,
       width: Math.round(toBoardW(0.42) * 10) / 10,
-      height: Math.round(toBoardH(0.56) * 10) / 10,
+      height: Math.round(toBoardH(0.76) * 10) / 10,
       status: mostlyBlank ? 'keep' : 'erasable',
       reason: mostlyBlank ? '留白比例高，適合作為下一題空間。' : '右側像素變化明顯，判定為可整理的練習內容。',
-    },
-    {
-      id: 'C',
-      label: '下方提醒區',
-      x: Math.round(toBoardX(0.12) * 10) / 10,
-      y: Math.round(toBoardY(0.78) * 10) / 10,
-      width: Math.round(toBoardW(0.72) * 10) / 10,
-      height: Math.round(toBoardH(0.16) * 10) / 10,
-      status: metrics.contrast >= 24 ? 'keep' : 'erasable',
-      reason: metrics.contrast >= 24 ? '下方可能有口訣或收束重點，建議保留。' : '低對比且資訊量較少，可清除。',
     },
   ];
   const keepLabels = regions.filter((region) => region.status === 'keep').map((region) => region.label).join('、') || '主要重點';

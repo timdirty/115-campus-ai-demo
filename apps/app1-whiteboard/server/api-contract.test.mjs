@@ -130,7 +130,7 @@ try {
   assert.equal(session.response.status, 200);
   assert.equal(typeof session.body.session.focusPercent, 'number');
   assert.ok(Array.isArray(session.body.session.boardRegions));
-  assert.ok(session.body.session.boardRegions.length >= 3);
+  assert.deepEqual(session.body.session.boardRegions.map((region) => region.id), ['A', 'B']);
   assert.equal(typeof session.body.session.hardwareProfile.servoAngles.regionA, 'number');
   assert.equal(typeof session.body.session.hardwareProfile.boardDetectionConfidence, 'number');
   assert.equal(typeof session.body.session.hardwareProfile.robotPose.x, 'number');
@@ -144,7 +144,7 @@ try {
       teacherPace: 'slow_down',
       currentRecommendation: '建議先保留左側圖解區，清空右側練習區。',
       hardwareProfile: {
-        servoAngles: {regionA: 25, regionB: 95, regionC: 155, eraseAll: 178, standby: 88},
+        servoAngles: {regionA: 25, regionB: 95, eraseAll: 178, standby: 88},
         cameraMounted: true,
         boardAnchored: true,
         visionReady: false,
@@ -168,12 +168,11 @@ try {
       boardRegions: [
         {id: 'Region A', label: '左側', x: 260, y: 0, width: 550, height: 1080, status: 'keep', reason: '超出百分比的座標應回到安全值'},
         {id: 'Region B', label: '右側', x: 54, y: 20, width: 34, height: 50, status: 'erasable', reason: '有效百分比座標保留'},
-        {id: 'Region C', label: '下方', x: 22, y: 78, width: 58, height: 16, status: 'keep', reason: '有效百分比座標保留'},
       ],
     }),
   });
   assert.equal(normalizedSession.response.status, 200);
-  assert.deepEqual(normalizedSession.body.session.boardRegions.map((region) => region.id), ['A', 'B', 'C']);
+  assert.deepEqual(normalizedSession.body.session.boardRegions.map((region) => region.id), ['A', 'B']);
   assert.ok(normalizedSession.body.session.boardRegions.every((region) => region.x >= 0 && region.x <= 100 && region.width > 0 && region.width <= 100));
 
   const robotStatusBefore = await request('/api/robot/status');
@@ -185,7 +184,9 @@ try {
   assert.equal(robotCommands.response.status, 200);
   assert.ok(Array.isArray(robotCommands.body.commands));
   assert.ok(robotCommands.body.commands.some((item) => item.command === 'ERASE_REGION_B'));
+  assert.ok(!robotCommands.body.commands.some((item) => item.command === 'ERASE_REGION_C'));
   assert.equal(robotCommands.body.taskActions.erase.B, 'ERASE_REGION_B');
+  assert.equal(robotCommands.body.taskActions.erase.C, undefined);
 
   const elementaryNotes = await request('/api/notes');
   assert.equal(elementaryNotes.response.status, 200);
@@ -251,7 +252,7 @@ try {
   assert.ok([200, 503].includes(calibrationCommand.response.status));
   assert.equal(calibrationCommand.body.status.lastCommand, 'SET_REGION_A:42');
 
-  for (const [regionId, expectedCommand] of [['A', 'ERASE_REGION_A'], ['B', 'ERASE_REGION_B'], ['C', 'ERASE_REGION_C']]) {
+  for (const [regionId, expectedCommand] of [['A', 'ERASE_REGION_A'], ['B', 'ERASE_REGION_B']]) {
     const robotTask = await request('/api/robot/task', {
       method: 'POST',
       body: JSON.stringify({action: 'erase', regionId, source: 'contract-test'}),
@@ -283,7 +284,7 @@ try {
   assert.equal(typeof aiBoard.body.noteDraft.title, 'string');
   assert.equal(aiBoard.body.noteDraft.subject, '國小數學');
   assert.ok(Array.isArray(aiBoard.body.boardRegions));
-  assert.ok(aiBoard.body.boardRegions.length >= 3);
+  assert.deepEqual(aiBoard.body.boardRegions.map((region) => region.id), ['A', 'B']);
   assert.equal(typeof aiBoard.body.currentRecommendation, 'string');
 
   const missingImage = await request('/api/ai/analyze-board', {

@@ -33,12 +33,12 @@
 ## Arduino R4 WiFi 對接
 
 - 目前使用 `/api/robot/task` 與 `/api/robot/command` 透過 USB Serial 呼叫 firmware `handleCommand()`。
-- 對應指令：`ERASE_REGION_A/B/C`、`KEEP_REGION_A/B/C`、`ERASE_ALL`、`PAUSE_TASK`、`SHOW_ON`、`FIREWORK`，以及 App 2/App 3 共用的 `DELIVERY_START`、`DELIVERY_DONE`、`CLEAN_SCHEDULE`、`BROADCAST_SCHEDULE`、`TEACH_SCAN`、`FOCUS_NUDGE`、`QUESTION_ACK`、`TEACH_REPLY`、`SAFETY_LOCKDOWN`、`SAFETY_CLEAR`、`BELL_REMIND_ON`、`BELL_REMIND_OFF`、`BROADCAST_START`、`PATROL_START`、`ROBOT_RESUME`、`ROBOT_PAUSE`、`SPEED_SET`、`NODE_HEARTBEAT`、`ALERT_SIGNAL`、`CARE_DEPLOYED`、`NODE_RESTART`。
+- 對應指令：`ERASE_REGION_A/B`、`KEEP_REGION_A/B`、`ERASE_ALL`、`PAUSE_TASK`、`SHOW_ON`、`FIREWORK`，以及 App 2/App 3 共用的 `DELIVERY_START`、`DELIVERY_DONE`、`CLEAN_SCHEDULE`、`BROADCAST_SCHEDULE`、`TEACH_SCAN`、`FOCUS_NUDGE`、`QUESTION_ACK`、`TEACH_REPLY`、`SAFETY_LOCKDOWN`、`SAFETY_CLEAR`、`BELL_REMIND_ON`、`BELL_REMIND_OFF`、`BROADCAST_START`、`PATROL_START`、`ROBOT_RESUME`、`ROBOT_PAUSE`、`SPEED_SET`、`NODE_HEARTBEAT`、`ALERT_SIGNAL`、`CARE_DEPLOYED`、`NODE_RESTART`。
 - 下一階段若接 Arduino Cloud，仍維持 Serial fallback，Cloud callback 只轉呼叫同一套 `handleCommand()`。
 
 ## 待辦
 
-- 實機上確認伺服角度與板擦機構區塊 A/B/C 的物理位置。
+- 實機上確認伺服角度與板擦機構區塊 A/B 的物理位置。
 - 用現場白板與攝影機測一次拍照、OCR fallback 與教師決策流程。
 - 在白板前方加固定攝影機，建立白板座標校正與區塊映射。
 - 規劃機器人位置確認或限位回報，讓後續版本能做閉環控制。

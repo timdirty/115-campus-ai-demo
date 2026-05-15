@@ -25,7 +25,6 @@ export type HardwareCalibrationProfile = {
   servoAngles: {
     regionA: number;
     regionB: number;
-    regionC: number;
     eraseAll: number;
     standby: number;
   };

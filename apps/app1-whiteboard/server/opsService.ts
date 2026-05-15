@@ -117,7 +117,6 @@ function sanitizeHardwareProfile(value: unknown) {
     servoAngles: {
       regionA: normalizeServoAngle(servoAngles.regionA, defaultHardwareCalibrationProfile.servoAngles.regionA),
       regionB: normalizeServoAngle(servoAngles.regionB, defaultHardwareCalibrationProfile.servoAngles.regionB),
-      regionC: normalizeServoAngle(servoAngles.regionC, defaultHardwareCalibrationProfile.servoAngles.regionC),
       eraseAll: normalizeServoAngle(servoAngles.eraseAll, defaultHardwareCalibrationProfile.servoAngles.eraseAll),
       standby: normalizeServoAngle(servoAngles.standby, defaultHardwareCalibrationProfile.servoAngles.standby),
     },
