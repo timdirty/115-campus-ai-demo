@@ -1296,7 +1296,7 @@ export default function App() {
   useEffect(() => {
     bcHandlerRef.current = (data) => {
     // =========================
-    // demo_reset — Reset 徹底化 client 消費
+    // demo_reset — Reset 徹底化 client 消費 (per codex-adv round 10+11)
     // =========================
     if (data.type === 'demo_reset') {
       // 立即清掉 movement timer / pending assignment / movement route / scanning state
@@ -1307,8 +1307,12 @@ export default function App() {
       setRobotAssignment(ROBOT_HOME_ASSIGNMENT);
       robotAssignmentRef.current = ROBOT_HOME_ASSIGNMENT;
       setScanning(false);
-      chooseEmotion('neutral');
+      // 用此檔實際的 state setters（不是 app2 的 chooseEmotion — 那不存在 in this file）
+      setEmotion('happy');  // 預設情緒，'happy' 是 useState(initial) 設定
       setHistory([]);
+      setBubble(null);
+      setLiveMetrics(null);
+      setLiveAdvice(null);
       return;
     }
     // =========================
