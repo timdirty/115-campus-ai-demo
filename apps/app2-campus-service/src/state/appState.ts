@@ -1,4 +1,5 @@
 export const STORAGE_KEY = 'campus-service-robot:v1';
+const _memoryFallback = new Map<string, AppState>();
 
 export type RobotStatus = '待命' | '充電' | '導診' | '清掃' | '配送' | '巡邏' | '疏導';
 export type OrderStatus = 'in_transit' | 'delivered';
@@ -1040,15 +1041,37 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
 export function loadPersistedState(): AppState {
   if (typeof window === 'undefined') return createInitialAppState();
+  let raw: string | null = null;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return createInitialAppState();
+    raw = window.localStorage.getItem(STORAGE_KEY);
+  } catch {
+    // Fall through to the in-memory fallback for browsers that deny storage access.
+  }
+
+  if (!raw) {
+    const fallback = _memoryFallback.get(STORAGE_KEY);
+    return fallback ? normalizePersistedState(fallback) : createInitialAppState();
+  }
+
+  try {
     const normalized = normalizePersistedState(JSON.parse(raw));
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+      _memoryFallback.delete(STORAGE_KEY);
+    } catch {
+      _memoryFallback.set(STORAGE_KEY, normalized);
+    }
     return normalized;
   } catch {
+    const fallback = _memoryFallback.get(STORAGE_KEY);
+    if (fallback) return normalizePersistedState(fallback);
     const initial = createInitialAppState();
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
+      _memoryFallback.delete(STORAGE_KEY);
+    } catch {
+      _memoryFallback.set(STORAGE_KEY, initial);
+    }
     return initial;
   }
 }
@@ -1057,15 +1080,19 @@ export function persistState(state: AppState) {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    _memoryFallback.delete(STORAGE_KEY);
   } catch (error) {
     if (error instanceof DOMException && (error.code === 22 || error.name === 'QuotaExceededError')) {
+      const trimmed = {...state, logs: state.logs.slice(0, 30), robotCommandLogs: state.robotCommandLogs.slice(0, 30)};
       try {
-        const trimmed = {...state, logs: state.logs.slice(0, 30), robotCommandLogs: state.robotCommandLogs.slice(0, 30)};
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+        _memoryFallback.delete(STORAGE_KEY);
+        return;
       } catch {
-        // give up gracefully — in-memory state is still correct
+        // Trimmed state can still fail in private browsing; keep the live state in memory.
       }
     }
+    _memoryFallback.set(STORAGE_KEY, state);
   }
 }
 
