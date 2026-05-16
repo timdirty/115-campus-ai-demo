@@ -14,6 +14,14 @@ export function getAiModelName(): string {
   return visionModel;
 }
 
+// 自動 strip data: URL prefix — 前端 / FileReader / Canvas 常送 data:image/png;base64,XXX，
+// Gemini inline_data.data 只認純 base64。沒 prefix 時保留原值（也支援純 base64）。
+function stripDataUrl(input: string): {data: string; mimeType: string} {
+  const match = /^data:([^;]+);base64,(.+)$/.exec(input.trim());
+  if (match) return {mimeType: match[1] || 'image/jpeg', data: match[2]};
+  return {mimeType: 'image/jpeg', data: input.trim()};
+}
+
 export function getAiErrorInfo(error: unknown): {message: string; code: string; statusCode: number} {
   const raw = error instanceof Error ? error.message : String(error);
   let status = '';
@@ -176,12 +184,13 @@ export async function classifyVisionScene(imageBase64: string): Promise<{scene: 
 
 {"scene":"<類別>","confidence":<0-100整數，反映你的確信度>,"zone":"<一個繁體中文地點，如「B棟走廊」>","summary":"<一句繁體中文，具體描述畫面情境和建議行動>"}`;
 
+    const media = stripDataUrl(imageBase64);
     const response = await withAiTimeout((signal) => ai.models.generateContent({
       model: visionModel,
       config: {systemInstruction: '你是台灣國小校園服務機器人的視覺 AI 模組。你必須保守判斷，不可以把非校園任務畫面硬分類成校園任務。只回傳 JSON。', abortSignal: signal},
       contents: [{role: 'user', parts: [
         {text: prompt},
-        {inlineData: {mimeType: 'image/jpeg', data: imageBase64}},
+        {inlineData: {mimeType: media.mimeType, data: media.data}},
       ]}],
     }));
     const rawText = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
@@ -281,12 +290,13 @@ export async function estimateClassroomAttendance(imageBase64: string): Promise<
 {"count":<整數，估算可見學生人數>,"rate":<0-100出席率百分比整數>,"confidence":<0-100你的確信度>,"summary":"<一句繁體中文描述教室狀況>"}
 規則：若不確定或看不到學生，count 填 0，confidence 填低於 40。`;
 
+  const media = stripDataUrl(imageBase64);
   const response = await withAiTimeout((signal) => ai.models.generateContent({
     model: visionModel,
     config: {systemInstruction: '你是教室出缺席估算 AI。只回傳 JSON。', abortSignal: signal},
     contents: [{role: 'user', parts: [
       {text: prompt},
-      {inlineData: {mimeType: 'image/jpeg', data: imageBase64}},
+      {inlineData: {mimeType: media.mimeType, data: media.data}},
     ]}],
   }));
 
