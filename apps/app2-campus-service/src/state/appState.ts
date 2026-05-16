@@ -1045,6 +1045,25 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
 export function loadPersistedState(): AppState {
   if (typeof window === 'undefined') return createInitialAppState();
+
+  // 一鍵啟動重置 handshake：?reset=1 query param 觸發瀏覽器端 storage 清空，
+  // 避免上一輪 demo state (3/3 closure / orders / tasks) 直接 hydrate
+  // 造成新 demo 起始狀態錯誤 (per codex-adv round 5)
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reset') === '1') {
+      try { window.localStorage.removeItem(STORAGE_KEY); } catch {}
+      _memoryFallback.delete(STORAGE_KEY);
+      params.delete('reset');
+      const clean = params.toString();
+      const url = window.location.pathname + (clean ? `?${clean}` : '') + window.location.hash;
+      window.history.replaceState(null, '', url);
+      const initial = createInitialAppState();
+      try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(initial)); } catch {}
+      return initial;
+    }
+  } catch {}
+
   let raw: string | null = null;
   try {
     raw = window.localStorage.getItem(STORAGE_KEY);

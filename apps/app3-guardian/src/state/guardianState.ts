@@ -571,6 +571,26 @@ const _memoryFallback = new Map<string, GuardianState>();
 
 export function loadGuardianState(): GuardianState {
   if (typeof window === 'undefined') return createInitialGuardianState();
+
+  // 一鍵啟動重置 handshake：?reset=1 query param 觸發瀏覽器端 storage 清空，
+  // 避免上一輪 demoClosureFlags.closed=true 等狀態被新 demo 直接 hydrate
+  // 造成假 5/5 閉環 (per codex-adv round 5)
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reset') === '1') {
+      try { window.localStorage.removeItem(GUARDIAN_STORAGE_KEY); } catch {}
+      _memoryFallback.delete(GUARDIAN_STORAGE_KEY);
+      // 清掉 reset query param，避免後續重新整理重複觸發
+      params.delete('reset');
+      const clean = params.toString();
+      const url = window.location.pathname + (clean ? `?${clean}` : '') + window.location.hash;
+      window.history.replaceState(null, '', url);
+      const initial = createInitialGuardianState();
+      try { window.localStorage.setItem(GUARDIAN_STORAGE_KEY, JSON.stringify(initial)); } catch {}
+      return initial;
+    }
+  } catch {}
+
   try {
     const raw = window.localStorage.getItem(GUARDIAN_STORAGE_KEY);
     if (raw) {

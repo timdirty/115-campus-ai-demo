@@ -114,7 +114,7 @@ fi
 
 curl -fsS -X POST "http://127.0.0.1:3203/api/ops/reset" >/dev/null 2>&1 || true
 
-DEMO_URL="http://127.0.0.1:$PORT/"
+DEMO_URL="http://127.0.0.1:$PORT/?reset=1"
 LAN_IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)"
 ROBOT_URL=""
 if [ -n "$LAN_IP" ]; then

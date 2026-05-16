@@ -96,7 +96,7 @@ if [ "$BRIDGE_READY" != "true" ]; then
   exit 1
 fi
 
-MAIN_URL="http://localhost:$VITE_PORT"
+MAIN_URL="http://localhost:$VITE_PORT/?reset=1"
 BRIDGE_URL="http://localhost:$BRIDGE_PORT/api/health"
 DISPLAY_URL="http://localhost:$VITE_PORT/robot-display.html?bridge=localhost:$BRIDGE_PORT"
 
