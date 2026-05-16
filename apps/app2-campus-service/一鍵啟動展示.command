@@ -73,7 +73,7 @@ if [ "$WEB_READY" != "true" ]; then
   exit 1
 fi
 
-# 等 bridge 真的起來
+# 等 bridge 真的起來（fail-fast — bridge 未 ready 不宣告成功）
 echo "==> 等 bridge ready..."
 BRIDGE_READY="false"
 for _ in {1..60}; do
@@ -84,18 +84,26 @@ for _ in {1..60}; do
   sleep 0.25
 done
 
+if [ "$BRIDGE_READY" != "true" ]; then
+  echo ""
+  echo "❌ Bridge ($BRIDGE_PORT) 啟動失敗 — 不啟動 demo 避免現場崩潰。"
+  echo "Bridge log (最後 30 行):"
+  tail -30 "$RUNTIME_DIR/bridge.log" 2>/dev/null || true
+  echo ""
+  echo "可能原因：3202 port 被占、tsx 找不到、.env 缺 GEMINI_API_KEY 等。"
+  echo "請排除後重跑 一鍵啟動展示.command"
+  # cleanup 會自動 trap 觸發 kill web + bridge
+  exit 1
+fi
+
 MAIN_URL="http://localhost:$VITE_PORT"
 BRIDGE_URL="http://localhost:$BRIDGE_PORT/api/health"
 DISPLAY_URL="http://localhost:$VITE_PORT/robot-display.html?bridge=localhost:$BRIDGE_PORT"
 
 echo ""
-echo "✓ App2 已啟動"
+echo "✓ App2 已啟動（web + bridge 都已通過 health check）"
 echo "✓ 主畫面     : $MAIN_URL"
-if [ "$BRIDGE_READY" = "true" ]; then
-  echo "✓ Bridge API : $BRIDGE_URL"
-else
-  echo "⚠ Bridge 未就緒（前端可純展示，但機器人指令不會送到 Arduino）"
-fi
+echo "✓ Bridge API : $BRIDGE_URL"
 echo "✓ 第二螢幕   : $DISPLAY_URL"
 echo ""
 echo "按 Ctrl+C 停止，或執行 一鍵停止展示.command"

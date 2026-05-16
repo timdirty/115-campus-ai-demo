@@ -154,6 +154,14 @@ async function main() {
       console.log(`⚠ ${warnCount} 個 endpoint WARN — AI 未設定 GEMINI_API_KEY 或硬體 SIM 模式。比賽前確認真實 key 與 Arduino 已上傳對應韌體。`);
     }
 
+    // Cleanup probe data — 不污染現場 demo 的 alerts/missions/sensor data
+    try {
+      await fetch(`${base}/api/ops/reset`, {method: 'POST'});
+      console.log('✓ probe data cleaned (ops/reset)');
+    } catch {
+      // bridge 可能已關，忽略 cleanup error
+    }
+
     process.exitCode = hasFail ? 1 : 0;
   } catch (error) {
     console.error('[demo:check] crashed:', error instanceof Error ? error.stack : String(error));

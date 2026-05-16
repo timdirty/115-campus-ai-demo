@@ -260,16 +260,19 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
           {id: action.payload.id, content: action.payload.content, type: action.payload.type, likes: 0, createdAt: timeLabel(now)},
           ...state.forestPosts,
         ].slice(0, 50),
-        demoClosureFlags: {...state.demoClosureFlags, studentSupported: true},
+        // 學生單方面發文不算學生支持閉環完成；要等 SET_FOREST_POST_REPLY (AI/老師回覆) 或
+        // ADD_SUPPORT_MESSAGE role==='guardian' 或 COMPLETE_CARE_LOOP 才標 studentSupported。
         lastUpdated: now,
       };
 
     case 'SET_FOREST_POST_REPLY':
+      // AI/老師回覆貼文才算學生支持閉環完成（取代原本 ADD_FOREST_POST 旁路）
       return {
         ...state,
         forestPosts: state.forestPosts.map((post) =>
           post.id === action.payload.id ? {...post, botReply: action.payload.botReply} : post,
         ),
+        demoClosureFlags: {...state.demoClosureFlags, studentSupported: true},
         lastUpdated: now,
       };
 

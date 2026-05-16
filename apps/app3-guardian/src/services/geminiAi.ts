@@ -54,12 +54,13 @@ export async function askGemini(
   }
 
   try {
+    const proxyKey = getProxyKey();
+    // 空 key 時不送 X-Proxy-Key header，避免觸發 CORS preflight 被 bridge 拒絕
+    const headers: Record<string, string> = {'Content-Type': 'application/json'};
+    if (proxyKey) headers['X-Proxy-Key'] = proxyKey;
     const res = await fetch(`${getProxyUrl()}${route}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Proxy-Key': getProxyKey(),
-      },
+      headers,
       body: JSON.stringify(body),
       signal: controller.signal,
     });
