@@ -22,10 +22,27 @@ export function getBridgeHost(): string {
 
 const BRIDGE_URL = getBridgeBaseUrl();
 
-function withTimeout(ms: number): {signal: AbortSignal; clear: () => void} {
+function withTimeout(ms: number, externalSignal?: AbortSignal): {signal: AbortSignal; clear: () => void} {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), ms);
-  return {signal: controller.signal, clear: () => clearTimeout(id)};
+  let onExternalAbort: (() => void) | undefined;
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort();
+    } else {
+      onExternalAbort = () => controller.abort();
+      externalSignal.addEventListener('abort', onExternalAbort, {once: true});
+    }
+  }
+  return {
+    signal: controller.signal,
+    clear: () => {
+      clearTimeout(id);
+      if (externalSignal && onExternalAbort) {
+        externalSignal.removeEventListener('abort', onExternalAbort);
+      }
+    },
+  };
 }
 
 export async function fetchZoneSensors(): Promise<ZoneSensorReading[]> {
@@ -234,9 +251,9 @@ export interface RobotEmotionEvent {
   updatedAt: string;
 }
 
-export async function fetchZoneInsight(payload: ZoneInsightRequest): Promise<ZoneInsightResponse> {
+export async function fetchZoneInsight(payload: ZoneInsightRequest, externalSignal?: AbortSignal): Promise<ZoneInsightResponse> {
   const statusOnly = payload.mode === 'status';
-  const {signal, clear} = withTimeout(statusOnly ? 7000 : 16000);
+  const {signal, clear} = withTimeout(statusOnly ? 7000 : 16000, externalSignal);
   try {
     const response = await fetch(`${BRIDGE_URL}/api/ai/zone-advisor`, {
       method: 'POST',
@@ -279,8 +296,8 @@ export async function fetchZoneInsight(payload: ZoneInsightRequest): Promise<Zon
   }
 }
 
-export async function evaluateCampusEvent(payload: CampusEventAssessmentRequest): Promise<ZoneInsightResponse> {
-  const {signal, clear} = withTimeout(14000);
+export async function evaluateCampusEvent(payload: CampusEventAssessmentRequest, externalSignal?: AbortSignal): Promise<ZoneInsightResponse> {
+  const {signal, clear} = withTimeout(14000, externalSignal);
   try {
     const response = await fetch(`${BRIDGE_URL}/api/ai/zone-advisor`, {
       method: 'POST',
@@ -426,8 +443,8 @@ export interface EmotionScanResult {
   error?: string;
 }
 
-export async function triggerEmotionScan(imageBase64: string): Promise<EmotionScanResult> {
-  const {signal, clear} = withTimeout(45000);
+export async function triggerEmotionScan(imageBase64: string, externalSignal?: AbortSignal): Promise<EmotionScanResult> {
+  const {signal, clear} = withTimeout(45000, externalSignal);
   try {
     const response = await fetch(`${BRIDGE_URL}/api/robot/emotion-scan`, {
       method: 'POST',

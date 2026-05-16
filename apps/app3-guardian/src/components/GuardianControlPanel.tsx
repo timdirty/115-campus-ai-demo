@@ -29,6 +29,7 @@ import {
 import type {GuardianState, ZoneSensorReading} from '../types';
 import type {SchoolZoneStatus} from '../services/schoolSpaces';
 import {captureWebcamFrame, sendGuardianDriveCommand, sendGuardianHardwareCommand, triggerEmotionScan} from '../services/hardwareBridge';
+import {useActionAbort} from '../hooks/useActionAbort';
 import {ExternalRobotPanel} from './ExternalRobotPanel';
 
 const DRIVE_LABELS: Record<string, string> = {
@@ -159,6 +160,7 @@ export function GuardianControlPanel({bridgeOnline, zones, sensors, state, onDis
   });
   const [logOpen, setLogOpen] = useState(false);
   const [scanBusy, setScanBusy] = useState(false);
+  const scanAbort = useActionAbort();
   const speedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flashTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const driveActiveRef = useRef<string | null>(null);
@@ -251,20 +253,25 @@ export function GuardianControlPanel({bridgeOnline, zones, sensors, state, onDis
   const runEmotionScan = async () => {
     if (scanBusy) return;
     setScanBusy(true);
+    const {signal, token} = scanAbort.begin();
     setFeedback({ok: true, cmd: 'EMOTION_SCAN', title: '攝影機啟動中…', detail: '請允許相機權限，等待對焦。'});
     try {
       const imageBase64 = await captureWebcamFrame();
+      if (signal.aborted) return;
       setFeedback({ok: true, cmd: 'EMOTION_SCAN', title: 'AI 情緒分析中…', detail: 'Gemini 正在判讀畫面，約 5–15 秒。'});
-      const result = await triggerEmotionScan(imageBase64);
+      const result = await triggerEmotionScan(imageBase64, signal);
+      if (signal.aborted) return;
       if (result.ok) {
         setFeedback({ok: true, cmd: 'EMOTION_SCAN', title: `情緒掃描完成：${result.moodLabel || result.emotion}`, detail: result.response || result.advice || '掃描已完成，結果已更新到機器人顯示。'});
       } else {
         setFeedback({ok: false, cmd: 'EMOTION_SCAN', title: '情緒掃描失敗', detail: result.error || '請確認 GEMINI_API_KEY 已設定。'});
       }
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       setFeedback({ok: false, cmd: 'EMOTION_SCAN', title: '相機無法啟動', detail: err instanceof Error ? err.message : '請確認瀏覽器相機權限已開啟。'});
     } finally {
       setScanBusy(false);
+      scanAbort.end(token);
     }
   };
 

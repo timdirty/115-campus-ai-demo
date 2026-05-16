@@ -120,7 +120,8 @@ export async function generateSupportReply(
   text: string,
   mood?: string,
   location?: string,
-  alertSummary?: string
+  alertSummary?: string,
+  externalSignal?: AbortSignal,
 ): Promise<string> {
   const trimmed = text.trim();
 
@@ -130,13 +131,17 @@ export async function generateSupportReply(
       mood,
       location,
       alertSummary,
-    });
+    }, externalSignal);
     const reply = data.reply ?? data.text ?? data.message;
     if (reply && typeof reply === 'string' && reply.length > 0) {
       return reply;
     }
     throw new Error('empty proxy reply');
-  } catch {
+  } catch (error) {
+    // 對外的 AbortError 必須往外拋，handler 才能識別
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw error;
+    }
     // Proxy unavailable or returned empty — use local fallback
     return selectLocalFallback(trimmed, mood);
   }

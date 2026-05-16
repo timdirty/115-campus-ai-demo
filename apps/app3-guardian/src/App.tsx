@@ -33,6 +33,7 @@ import {AcousticSignal, DetectedPort, GuardianAlert, GuardianState, MoodType, Ri
 import {guardianReducer, loadGuardianState, normalizeGuardianState, persistGuardianState} from './state/guardianState';
 import {analyzeAcousticFrame, describeAcousticSignal} from './services/acousticGuardian';
 import {generateSupportReply} from './services/localGuardianAi';
+import {useActionAbort} from './hooks/useActionAbort';
 import {analyzeEmotionTypography} from './services/emotionTypography';
 import {analyzePrivacyFrame, VisualPrivacyResult} from './services/visualPrivacyGuardian';
 import {evaluateProactiveGuardianState, ProactiveInsight} from './services/proactiveGuardian';
@@ -350,6 +351,12 @@ function AppContent() {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
+  // Per-handler abort controllers — see hooks/useActionAbort.ts
+  const zoneInsightAbort = useActionAbort();
+  const manualEventAbort = useActionAbort();
+  const postAbort = useActionAbort();
+  const chatAbort = useActionAbort();
+
   const clearLiveDemoRuntime = useCallback(() => {
     autoDemoTimersRef.current.forEach(clearTimeout);
     autoDemoTimersRef.current = [];
@@ -614,8 +621,8 @@ function AppContent() {
     };
   }, []);
 
-  const requestZoneInsight = useCallback(async (zone: SchoolZoneStatus, mode: 'status' | 'detail' = 'detail') => {
-    const result = await fetchZoneInsight(buildZoneInsightPayload(zone, mode));
+  const requestZoneInsight = useCallback(async (zone: SchoolZoneStatus, mode: 'status' | 'detail' = 'detail', signal?: AbortSignal) => {
+    const result = await fetchZoneInsight(buildZoneInsightPayload(zone, mode), signal);
     if (mode === 'status') {
       setZoneAssessments((current) => ({
         ...current,
@@ -627,18 +634,23 @@ function AppContent() {
 
   const openZoneInsight = useCallback((zone: SchoolZoneStatus) => {
     if (!selectZoneForRobotDisplay(zone)) return;
+    const {signal, token} = zoneInsightAbort.begin();
     setZoneInsightDialog({zone, loading: true, result: null});
-    void requestZoneInsight(zone, 'detail').then((result) => {
+    void requestZoneInsight(zone, 'detail', signal).then((result) => {
+      if (signal.aborted) return;
       setZoneInsightDialog((current) => current?.zone.id === zone.id ? {...current, loading: false, result} : current);
     }).catch((error) => {
+      if (error instanceof Error && error.name === 'AbortError') return;
       setZoneInsightDialog((current) => current?.zone.id === zone.id ? {
         ...current,
         loading: false,
         result: null,
         error: error instanceof Error ? error.message : String(error),
       } : current);
+    }).finally(() => {
+      zoneInsightAbort.end(token);
     });
-  }, [requestZoneInsight, selectZoneForRobotDisplay]);
+  }, [requestZoneInsight, selectZoneForRobotDisplay, zoneInsightAbort]);
 
   const refreshAllZoneAssessments = useCallback(async (zones: SchoolZoneStatus[], silent = false) => {
     if (zones.length === 0) return;
@@ -781,38 +793,47 @@ function AppContent() {
     const zone = viewModel.zones.find((item) => item.id === manualEventZoneId) ?? selectedZone;
     if (!eventText || !zone || manualEventBusy) return;
     setManualEventBusy(true);
-    const result = await evaluateCampusEvent({
-      zoneId: zone.id,
-      zoneName: zone.name,
-      location: zone.location,
-      eventText,
-      source: 'manual',
-    });
-    const riskLevel: Exclude<RiskLevel, 'low'> = result.riskLevel === 'high' ? 'high' : 'medium';
-    const normalizedResult: ZoneInsightResponse = {
-      ...result,
-      riskLevel,
-      statusLabel: riskLevel === 'high' ? '高風險' : '注意',
-      summary: result.summary || eventText,
-    };
-    dispatch({
-      type: 'CREATE_CONTEXT_ALERT',
-      payload: {
+    const {signal, token} = manualEventAbort.begin();
+    try {
+      const result = await evaluateCampusEvent({
+        zoneId: zone.id,
+        zoneName: zone.name,
         location: zone.location,
-        type: '手動輸入事件',
-        description: `${normalizedResult.summary} 原始紀錄：${eventText}`,
+        eventText,
+        source: 'manual',
+      }, signal);
+      if (signal.aborted) return;
+      const riskLevel: Exclude<RiskLevel, 'low'> = result.riskLevel === 'high' ? 'high' : 'medium';
+      const normalizedResult: ZoneInsightResponse = {
+        ...result,
         riskLevel,
-        category: '手動事件',
-        studentAlias: '值勤老師回報',
-      },
-    });
-    recordZoneAssessment(zone, normalizedResult);
-    queueAutoDispatch(zone, `手動事件：${normalizedResult.statusLabel}`, riskLevel);
-    setManualEventText('');
-    setActivePanel('alerts');
-    setManualEventBusy(false);
-    showToast(`已加入${zone.name}事件：${normalizedResult.statusLabel}`);
-  }, [manualEventText, manualEventZoneId, manualEventBusy, viewModel.zones, selectedZone, recordZoneAssessment, queueAutoDispatch, showToast]);
+        statusLabel: riskLevel === 'high' ? '高風險' : '注意',
+        summary: result.summary || eventText,
+      };
+      dispatch({
+        type: 'CREATE_CONTEXT_ALERT',
+        payload: {
+          location: zone.location,
+          type: '手動輸入事件',
+          description: `${normalizedResult.summary} 原始紀錄：${eventText}`,
+          riskLevel,
+          category: '手動事件',
+          studentAlias: '值勤老師回報',
+        },
+      });
+      recordZoneAssessment(zone, normalizedResult);
+      queueAutoDispatch(zone, `手動事件：${normalizedResult.statusLabel}`, riskLevel);
+      setManualEventText('');
+      setActivePanel('alerts');
+      showToast(`已加入${zone.name}事件：${normalizedResult.statusLabel}`);
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return;
+      throw error;
+    } finally {
+      setManualEventBusy(false);
+      manualEventAbort.end(token);
+    }
+  }, [manualEventText, manualEventZoneId, manualEventBusy, viewModel.zones, selectedZone, recordZoneAssessment, queueAutoDispatch, showToast, manualEventAbort]);
 
   const handleRobotEmotionEvent = useCallback((event: RobotEmotionEvent) => {
     if (robotEmotionSeenRef.current.has(event.id)) return;
@@ -954,13 +975,17 @@ function AppContent() {
     dispatch({type: 'ADD_FOREST_POST', payload: {id: postId, content, type: postType}});
     setPostContent('');
     showToast('匿名支持已加入心靈森林');
+    const {signal, token} = postAbort.begin();
     try {
-      const reply = await generateSupportReply(content, selectedMood, undefined, undefined);
+      const reply = await generateSupportReply(content, selectedMood, undefined, undefined, signal);
+      if (signal.aborted) return;
       dispatch({type: 'SET_FOREST_POST_REPLY', payload: {id: postId, botReply: reply}});
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return;
       // silent — bot reply is a bonus, not critical
     } finally {
       setPostBusy(false);
+      postAbort.end(token);
     }
   };
 
@@ -970,17 +995,21 @@ function AppContent() {
     setMessage('');
     dispatch({type: 'ADD_SUPPORT_MESSAGE', payload: {role: 'student', content: text}});
     setChatBusy(true);
+    const {signal, token} = chatAbort.begin();
     try {
       const alertSummary = viewModel.openAlerts?.length > 0
         ? `${viewModel.openAlerts.length} 則待處理警報`
         : undefined;
-      const reply = await generateSupportReply(text, selectedMood, acousticLocation, alertSummary);
+      const reply = await generateSupportReply(text, selectedMood, acousticLocation, alertSummary, signal);
+      if (signal.aborted) return;
       dispatch({type: 'ADD_SUPPORT_MESSAGE', payload: {role: 'guardian', content: reply}});
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return;
       dispatch({type: 'ADD_SUPPORT_MESSAGE', payload: {role: 'guardian', content: '暫時無法回應，請稍後再試。'}});
       showToast('守護者暫時無法回應，請稍後再試');
     } finally {
       setChatBusy(false);
+      chatAbort.end(token);
     }
   };
 
