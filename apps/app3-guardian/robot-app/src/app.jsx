@@ -328,17 +328,23 @@ const matchEmotion = (text) => {
   if (/(難過|不開心|低落|傷心|哭|沮喪|不好|想哭)/.test(t))
     return { emotion: 'sad', response: '聽起來你今天心情有點低落。沒關係，把感受說出來就好，我會陪著你。需要我幫你聯絡輔導老師嗎？' };
   if (/(緊張|壓力|焦慮|害怕|擔心|煩|焦躁|不安)/.test(t))
-    return { emotion: 'anxious', response: '感覺到你壓力很大。試試和我一起深呼吸？吸氣四秒，吐氣六秒，做三次看看。' };
+    return { emotion: 'anxious', response: '感覺到你有點緊張。試試和我一起深呼吸？吸氣四秒，吐氣六秒，做三次看看。' };
   if (/(生氣|氣|火大|討厭|憤怒|煩死)/.test(t))
-    return { emotion: 'stressed', response: '你看起來有些生氣。先深呼吸，告訴我發生了什麼事？我會聽你說。' };
+    return { emotion: 'stressed', response: '你看起來有些不舒服。先深呼吸，告訴我發生了什麼事？我會聽你說。' };
   if (/(開心|快樂|好棒|高興|讚|爽|喜歡|愛)/.test(t))
     return { emotion: 'happy', response: '聽到你心情這麼好，我也很開心！要繼續保持喔。' };
+  if (/(很好|不錯|還不錯|還好啦|好好)/.test(t))
+    return { emotion: 'happy', response: '太好了！狀態不錯就是最好的學習時機，繼續保持。' };
   if (/(專心|認真|讀書|考試)/.test(t))
     return { emotion: 'focused', response: '感覺得到你正在認真學習，加油！記得每二十五分鐘休息一下眼睛。' };
   if (/(平靜|平常|還好|普通|放鬆)/.test(t))
     return { emotion: 'calm', response: '平靜也是很棒的狀態，這是學習與思考的好時機。' };
   if (/(累|疲倦|困|想睡)/.test(t))
     return { emotion: 'sad', response: '聽起來你很累了。記得適時休息，要不要喝口水或閉眼休息一下？' };
+  if (/(需要幫助|需要幫忙|幫助我|救我|不知道怎麼辦)/.test(t))
+    return { emotion: 'anxious', response: '我在這裡，你不孤單。我會把情況回報給老師，他們會低壓確認來找你。' };
+  if (/(想說話|想聊|說說話|聊聊|說話)/.test(t))
+    return { emotion: 'calm', response: '我在聽，可以說說你現在的心情嗎？不管什麼都可以說。' };
   if (/(你好|嗨|哈囉|hello|hi)/i.test(t))
     return { emotion: 'happy', response: '哈囉，我是 AI 校園心靈守護者的機器人前端，會協助老師低壓確認現場。' };
   if (/(謝謝|感謝|thanks)/.test(t))
@@ -347,7 +353,7 @@ const matchEmotion = (text) => {
     return { emotion: 'happy', response: '再見！記得我隨時都在這裡，有需要就回來找我。' };
   if (/(你是誰|介紹|你是什麼|介紹你)/.test(t))
     return { emotion: 'happy', response: '__INTRO__' };
-  return { emotion: null, response: `我聽到你說「${text}」了。可以告訴我更多現在的心情嗎？` };
+  return { emotion: 'calm', response: `我聽到你說「${text}」了。可以告訴我更多現在的心情嗎？` };
 };
 
 /* ════════════════════════════════════════════════════════════════
@@ -786,13 +792,11 @@ const useSpeech = () => {
       };
 
       try {
-        const wasActive = window.speechSynthesis.speaking || window.speechSynthesis.pending;
-        if (wasActive) {
+        // 不用 setTimeout — iOS/mobile 要求 speechSynthesis.speak 在 user gesture 同步 callstack
+        if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
           window.speechSynthesis.cancel();
-          setTimeout(startSpeak, 80);
-        } else {
-          startSpeak();
         }
+        startSpeak();
       } catch {
         finish();
       }
@@ -931,6 +935,8 @@ export default function App() {
   const [introStep, setIntroStep] = useState(0);
   const introCancelRef = useRef(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true); // 使用者可關閉
+  const [sttFallbackOpen, setSttFallbackOpen] = useState(false);
+  const [sttDraft, setSttDraft] = useState('');
 
   const stageRef = useRef(null);
   const bubbleTimerRef = useRef(null);
@@ -1104,14 +1110,17 @@ export default function App() {
     return () => clearTimeout(t1);
   }, [_setBubble]);
 
-  /* 顯示泡泡並（可選）發聲 */
+  /* 顯示泡泡並（可選）發聲
+     ⚠ deps 用 tts.speak / tts.supported（stable useCallback refs），不用 tts 物件
+     避免 tts object ref 每次 render 都新建導致 showBubble 在每次 render 後失效，
+     進而讓依賴 showBubble 的 useEffect 不斷重跑。 */
   const showBubble = useCallback((text, duration = 6000, withSpeech = true) => {
     _setBubble(text, duration);
     if (withSpeech && voiceEnabled && tts.supported) {
       audio.play('speak');
       tts.speak(text);
     }
-  }, [_setBubble, tts, voiceEnabled]);
+  }, [_setBubble, tts.supported, tts.speak, voiceEnabled]);
 
   const startCameraStream = useCallback(async () => {
     if (cameraStreamRef.current) {
@@ -1246,7 +1255,7 @@ export default function App() {
   const startScan = async () => {
     if (scanning || introPlaying || isMoving) return;
 
-    setBubble(null);
+    _setBubble(null, 0);
 
     tts.stop();
     stt.stop();
@@ -1259,11 +1268,45 @@ export default function App() {
     audio.play('scanStart');
 
     setScanning(true);
-    await startCameraStream();
+    const cameraOk = await startCameraStream();
+    if (!cameraOk) { setScanning(false); return; }
+
+    // Capture frame — ImageCapture API (primary), canvas fallback
+    let imageBase64 = null;
+    const stream = cameraStreamRef.current;
+    if (stream) {
+      const track = stream.getVideoTracks()[0];
+      if (track && typeof ImageCapture !== 'undefined') {
+        try {
+          const blob = await new ImageCapture(track).takePhoto();
+          imageBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(/** @type {string} */ (reader.result).split(',')[1]);
+            reader.readAsDataURL(blob);
+          });
+        } catch { /* fall through */ }
+      }
+      if (!imageBase64) {
+        const video = cameraVideoRef.current;
+        if (video && video.readyState >= 2) {
+          try {
+            const w = video.videoWidth || 960;
+            const h = video.videoHeight || 540;
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            if (dataUrl.length > 200) imageBase64 = dataUrl.split(',')[1];
+          } catch { /* ignore */ }
+        }
+      }
+    }
 
     try {
       const res = await fetch('/api/scan-emotion', {
         method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({image: imageBase64}),
       });
 
       const data = await res.json();
@@ -1499,7 +1542,7 @@ export default function App() {
           setMovementRoute(null);
           pendingAssignmentRef.current = null;
           movementTimerRef.current = null;
-          _setBubble(`已抵達：${arrivedAssignment.zoneName}\n${arrivedAssignment.stage} · ${arrivedAssignment.statusLabel}`, 4200);
+          showBubble(`已抵達：${arrivedAssignment.zoneName}。${arrivedAssignment.stage}，${arrivedAssignment.statusLabel}。`, 4200);
         }, travelMs);
       } else {
         pendingAssignmentRef.current = null;
@@ -1507,7 +1550,7 @@ export default function App() {
         robotAssignmentRef.current = nextAssignment;
         setRobotAssignment(nextAssignment);
         if (!previous || previous.missionId !== nextAssignment.missionId || previous.stage !== nextAssignment.stage) {
-          _setBubble(`位置更新：${nextAssignment.zoneName}\n${nextAssignment.stage} · ${statusLabel}`, 4200);
+          showBubble(`位置更新：${nextAssignment.zoneName}。${nextAssignment.stage}，${statusLabel}。`, 4200);
         }
       }
       return;
@@ -1517,7 +1560,7 @@ export default function App() {
     // guardian snapshot
     // =========================
     if (data.type === 'guardian_snapshot') {
-      if (EMOTIONS[data.emotion]) {
+      if (data.emotion && EMOTIONS[data.emotion]) {
         setEmotion(data.emotion);
       }
 
@@ -1609,21 +1652,48 @@ export default function App() {
   };
 
   /* ─────── 語音對話 ─────── */
-  const handleUserSpeech = useCallback((text) => {
+  const handleUserSpeech = useCallback(async (text) => {
     if (!text) return;
+
     const matched = matchEmotion(text);
-    if (matched.response === '__INTRO__') {
-      playIntro();
-      return;
-    }
+    if (matched.response === '__INTRO__') { playIntro(); return; }
+
+    // 情緒立即更新
     if (matched.emotion) {
       setEmotion(matched.emotion);
       const t = new Date();
       const tStr = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
       setHistory(h => [{ e: matched.emotion, t: tStr }, ...h.slice(0, 4)]);
     }
-    setTimeout(() => showBubble(matched.response, 8000), 400);
-  }, [playIntro, showBubble]);
+
+    // 先顯示 keyword 回應讓使用者立刻看到反饋
+    showBubble(matched.response, 6000, true);
+
+    // 背景呼叫 AI，回來後用更好的回應替換
+    try {
+      const res = await fetch(`${getBridgeHttpUrl(bridgeInput)}/api/ai/guardian-chat`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          text,
+          mood: matched.emotion || undefined,
+          location: robotAssignmentRef.current?.zoneName || undefined,
+        }),
+        signal: AbortSignal.timeout(8000),
+      });
+      const data = await res.json();
+      if (data.ok && data.reply) showBubble(data.reply, 9000, true);
+    } catch { /* 維持 keyword 回應即可 */ }
+  }, [playIntro, showBubble, bridgeInput]);
+
+  const handleSttTextSubmit = useCallback(() => {
+    const text = sttDraft.trim();
+    if (!text) return;
+    setSttDraft('');
+    setSttFallbackOpen(false);
+    audio.unlock();
+    handleUserSpeech(text);
+  }, [sttDraft, handleUserSpeech]);
 
   const toggleListen = () => {
     if (introPlaying || isMoving) return;
@@ -1631,33 +1701,46 @@ export default function App() {
     if (stt.listening) {
       audio.play('listenStop');
       stt.stop();
-    } else {
-      tts.stop();
-      _setBubble(null, 0);
-      audio.play('listenStart');
-      stt.start(handleUserSpeech);
+      return;
     }
+    if (sttFallbackOpen) setSttFallbackOpen(false); // 關面板後繼續重試語音
+    if (!stt.supported) {
+      setSttFallbackOpen(true);
+      showBubble('瀏覽器不支援語音辨識，請改用下方鍵盤輸入。', 4000, false);
+      return;
+    }
+    tts.stop();
+    _setBubble(null, 0);
+    audio.play('listenStart');
+    stt.start(handleUserSpeech);
   };
 
-  /* 處理語音錯誤 */
+  /* 處理語音錯誤
+     ⚠ 直接用 _setBubble（stable，空 deps）而非 showBubble，
+     避免 showBubble ref 每 render 變動導致此 effect 不斷重跑、
+     audio.play('error') 被反覆觸發（"亂彈" 根因）。 */
   useEffect(() => {
     if (!stt.error) return;
+    // 先開鍵盤面板（在 null 判斷之前，確保面板一定出現）
+    if (stt.error === 'network' || stt.error === 'unsupported' || stt.error === 'not-allowed') {
+      setSttFallbackOpen(true);
+    }
     const map = {
-      'not-allowed': '請允許瀏覽器使用麥克風才能語音對話喔！',
+      'not-allowed': '請先允許麥克風權限，或改用下方鍵盤輸入。',
       'no-speech': '我沒聽到你說話，再試一次？',
       'aborted': null,
       'audio-capture': '麥克風好像沒接好，檢查一下？',
-      'network': '網路連線問題，請稍後再試。',
-      'unsupported': '你的瀏覽器不支援語音辨識，建議使用 Chrome 或 Edge。',
+      'network': null,      // 鍵盤面板已開啟，不需要 bubble 解釋
+      'unsupported': null,  // 同上
     };
-    const msg = map[stt.error] || `語音辨識發生問題：${stt.error}`;
+    const msg = stt.error in map ? map[stt.error] : `語音辨識發生問題：${stt.error}`;
     if (!msg) return;
     const id = setTimeout(() => {
       audio.play('error');
-      showBubble(msg, 5000);
+      _setBubble(msg, 5000);
     }, 0);
     return () => clearTimeout(id);
-  }, [stt.error, showBubble]);
+  }, [stt.error, _setBubble]); // _setBubble 是空 deps useCallback，永遠 stable
 
   const timeStr = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`;
   const anyDrawerOpen = leftOpen || rightOpen || bottomOpen;
@@ -1942,8 +2025,8 @@ export default function App() {
           )}
         </div>
 
-        <div className="pointer-events-auto flex items-center gap-2">
-          {/* 語音 + 音效開關 */}
+        {/* 右側控制 pill — 單一背景消除 badge 重疊 */}
+        <div className="pointer-events-auto flex items-center bg-white/85 backdrop-blur-xl rounded-full shadow-md border border-white/60 divide-x divide-stone-200/50">
           <button
             onClick={() => {
               const next = !voiceEnabled;
@@ -1952,43 +2035,28 @@ export default function App() {
               if (!next) tts.stop();
               else { audio.unlock(); audio.play('tap'); }
             }}
-            className="w-11 h-11 bg-white/85 backdrop-blur-xl rounded-full shadow-md border border-white/60 flex items-center justify-center text-stone-700 hover:scale-105 active:scale-95 transition-transform"
+            className="w-10 h-10 flex items-center justify-center text-stone-600 hover:text-stone-900 hover:bg-white/60 active:scale-95 transition-all rounded-l-full"
             title={voiceEnabled ? '關閉聲音' : '開啟聲音'}
           >
-            {voiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5 text-stone-400" />}
+            {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-stone-400" />}
           </button>
           <button
             onClick={toggleCamera}
             disabled={cameraBusy}
-            className={`w-11 h-11 backdrop-blur-xl rounded-full shadow-md border flex items-center justify-center hover:scale-105 active:scale-95 transition-transform disabled:opacity-60 ${
-              cameraReady ? 'bg-cyan-500 text-white border-cyan-300' : 'bg-white/85 text-stone-700 border-white/60'
+            className={`w-10 h-10 flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 ${
+              cameraReady ? 'text-cyan-500 hover:bg-cyan-50' : 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
             }`}
             title={cameraReady ? '關閉手機相機' : '啟用手機相機'}
           >
-            {cameraBusy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
+            {cameraBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
           </button>
-          <div className="flex items-center gap-2 px-3 py-2 bg-white/85 backdrop-blur-xl rounded-full shadow-md border border-white/60 font-mono-tight text-xs text-stone-700 tabular-nums">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            {timeStr}
-          </div>
-          <div
-            className="flex items-center gap-1.5 px-3 py-2 backdrop-blur-xl rounded-full shadow-md border font-mono-tight text-[10px] font-bold transition-all duration-500"
-            style={{
-              background: bcConnected ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.7)',
-              borderColor: bcConnected ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.6)',
-              color: bcConnected ? '#059669' : '#94a3b8',
-            }}
-            title={bcConnected ? '已與主控 App3 連線同步 (LAN WiFi)' : '等待主控端 WiFi 橋接'}
-          >
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: bcConnected ? '#10b981' : '#cbd5e1', animation: bcConnected ? 'pulse 1.5s infinite' : 'none' }} />
-            {bcConnected ? 'SYNCED' : 'SOLO'}
-          </div>
           <button
             onClick={() => { audio.unlock(); audio.play('drawerOpen'); setRightOpen(true); }}
-            className="w-11 h-11 bg-white/85 backdrop-blur-xl rounded-full shadow-md border border-white/60 flex items-center justify-center text-stone-700 hover:scale-105 active:scale-95 transition-transform"
-            aria-label="設定"
+            className="w-10 h-10 flex items-center justify-center text-stone-600 hover:text-stone-900 hover:bg-white/60 active:scale-95 transition-all rounded-r-full gap-1.5"
+            title={bcConnected ? '已與主控 App3 連線同步' : '等待主控端 WiFi 橋接'}
           >
-            <Settings className="w-5 h-5" />
+            <span className="w-2 h-2 rounded-full shrink-0 transition-colors duration-500" style={{ background: bcConnected ? '#10b981' : '#cbd5e1' }} />
+            <Settings className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -2024,7 +2092,7 @@ export default function App() {
         )}
         <div className="w-full max-w-[420px] px-6" style={{ pointerEvents: 'auto' }}>
           <Robot
-            emotion={emotion}
+            emotion={scanning ? 'focused' : emotion}
             scanning={scanning}
             eyeOffset={eyeOffset}
             blinking={blinking}
@@ -2118,25 +2186,67 @@ export default function App() {
         </div>
       )}
 
+      {/* ═══════════════ 語音文字備用輸入面板 ═══════════════ */}
+      {sttFallbackOpen && !stt.listening && (
+        <div className="absolute bottom-44 inset-x-0 flex justify-center z-20 px-6 slide-up">
+          <div className="w-full max-w-md bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-purple-200/60 px-4 pt-3 pb-2.5 flex flex-col gap-2">
+            {/* 快速回覆 chips */}
+            <div className="flex flex-wrap gap-1.5 px-0.5">
+              {['我很好，謝謝', '我有點累了', '我有點緊張', '我需要幫助', '我想說話'].map(chip => (
+                <button
+                  key={chip}
+                  onClick={() => { audio.unlock(); setSttFallbackOpen(false); handleUserSpeech(chip); }}
+                  className="text-xs text-purple-700 bg-purple-50 border border-purple-200 rounded-full px-3 py-1.5 active:scale-95 transition-all hover:bg-purple-100 shrink-0"
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+            {/* 文字輸入列 */}
+            <div className="flex items-center gap-3 border-t border-purple-100/60 pt-2">
+              <MessageCircle className="w-5 h-5 text-purple-400 shrink-0" />
+              <input
+                type="text"
+                value={sttDraft}
+                onChange={ev => setSttDraft(ev.target.value)}
+                onKeyDown={ev => { if (ev.key === 'Enter') handleSttTextSubmit(); }}
+                placeholder="或直接輸入，按 Enter 送出"
+                autoFocus
+                className="flex-1 text-sm text-stone-800 bg-transparent outline-none placeholder:text-stone-400"
+              />
+              <button
+                onClick={handleSttTextSubmit}
+                disabled={!sttDraft.trim()}
+                className="w-9 h-9 rounded-full bg-purple-500 text-white flex items-center justify-center disabled:opacity-40 active:scale-95 transition-all shrink-0"
+              >
+                <ChevronUp className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ═══════════════ 三按鈕底部列 ═══════════════ */}
       <div className="absolute bottom-24 inset-x-0 flex justify-center items-end gap-3 z-20 pointer-events-none">
         {/* 麥克風 */}
         <div className="pointer-events-auto flex flex-col items-center gap-1.5">
           <button
             onClick={toggleListen}
-            disabled={scanning || introPlaying || !stt.supported}
+            disabled={scanning || introPlaying}
             className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-lg transition-all duration-300 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${stt.listening ? 'mic-pulse' : ''}`}
             style={{
               background: stt.listening
                 ? 'linear-gradient(135deg, #06B6D4, #0891B2)'
-                : (stt.supported ? 'linear-gradient(135deg, #475569, #334155)' : 'linear-gradient(135deg, #9CA3AF, #6B7280)')
+                : sttFallbackOpen
+                  ? 'linear-gradient(135deg, #8B5CF6, #7C3AED)'
+                  : 'linear-gradient(135deg, #475569, #334155)'
             }}
-            title={stt.listening ? '停止聆聽' : '語音對話'}
+            title={stt.listening ? '停止聆聽' : sttFallbackOpen ? '重試語音' : '語音對話'}
           >
             {stt.listening ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
           </button>
           <span className="text-[10px] font-bold tracking-widest text-stone-700">
-            {stt.listening ? '聆聽中' : '語音對話'}
+            {stt.listening ? '聆聽中' : sttFallbackOpen ? '重試語音' : '語音對話'}
           </span>
         </div>
 

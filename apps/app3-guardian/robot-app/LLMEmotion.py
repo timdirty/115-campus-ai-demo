@@ -2,22 +2,30 @@ import argparse
 import asyncio
 import base64
 import json
+import os
 import sys
 import threading
 import time
+from pathlib import Path
 
 import cv2
 import websockets
+from dotenv import load_dotenv
 from openai import OpenAI
 from ultralytics import YOLO
 
+# Load .env from parent directory (apps/app3-guardian/.env)
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 # =====================
-# LLM
+# LLM — Gemini via OpenAI-compatible endpoint
 # =====================
+_api_key = os.environ.get("GEMINI_API_KEY", "")
+_model = os.environ.get("GEMINI_VISION_MODEL", "gemini-2.5-flash")
+
 client = OpenAI(
-    base_url="http://localhost:11434/v1",
-    api_key="your_key"
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    api_key=_api_key,
 )
 
 
@@ -293,7 +301,7 @@ def analyze(frame, should_broadcast=True, verbose=True):
 
     try:
         res = client.chat.completions.create(
-            model="gemma4:31b-cloud",
+            model=_model,
             messages=[{
                 "role": "user",
                 "content": [
