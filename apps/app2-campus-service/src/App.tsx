@@ -4,6 +4,8 @@ import { TourOverlay } from './components/tour/TourOverlay';
 import { useTour } from './components/tour/useTour';
 import { IssueReporter } from './components/IssueReporter';
 import {useHardwareSocket} from './hooks/useHardwareSocket';
+import {useProxyHealth} from './hooks/useProxyHealth';
+import {useWakeLock} from './hooks/useWakeLock';
 import {BRIDGE_URL} from './services/hardwareBridge';
 import {HardwareStatusBanner} from './components/HardwareStatusBanner';
 import {CommandFeedbackToast} from './components/CommandFeedbackToast';
@@ -72,6 +74,21 @@ export default function App() {
   const [subView, setSubView] = useState<{ id: string; props?: any } | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const hwStatus = useHardwareSocket(BRIDGE_URL);
+  const proxyOnline = useProxyHealth();
+
+  // Demo fail-safe: keep iPad screen awake during demo
+  useWakeLock(true);
+
+  // Demo fail-safe: disable Safari swipe-back (avoid losing demo state)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.history.pushState(null, '', window.location.href);
+    const handler = () => {
+      window.history.pushState(null, '', window.location.href);
+    };
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
+  }, []);
 
   const showToast = useCallback((message: string) => {
     setToastMessage({ id: Date.now(), message });
@@ -144,6 +161,28 @@ export default function App() {
   return (
     <TourProvider onTabChange={setActiveTab}>
     <div className="app2-shell min-h-screen overflow-x-hidden text-on-surface md:bg-surface-container-low">
+      {/* Demo fail-safe: offline banner (Wi-Fi 整網壞時明顯提示) */}
+      {proxyOnline === false && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="fixed top-0 inset-x-0 z-200 bg-amber-500 text-white text-sm font-bold px-4 py-2 text-center shadow-lg"
+        >
+          離線備援模式 — 影像辨識用本機分析
+          <button
+            onClick={() => window.location.reload()}
+            className="ml-2 underline font-black"
+          >
+            重試
+          </button>
+        </div>
+      )}
+      {/* Demo fail-safe: projection URL chip (給投影螢幕觀眾看的) */}
+      {typeof window !== 'undefined' && (window.location.search.includes('show-cast') || import.meta.env.PROD) && (
+        <div className="fixed bottom-2 right-2 z-40 bg-black/70 text-white text-[10px] px-2 py-1 rounded pointer-events-none font-mono">
+          投影 URL: {window.location.origin}/#robot
+        </div>
+      )}
       <HardwareStatusBanner status={hwStatus} />
       <CommandFeedbackToast lastCommandAck={hwStatus.lastCommandAck} />
       {/* Toast Notification */}
