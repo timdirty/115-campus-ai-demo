@@ -45,7 +45,7 @@ export type GuardianAction =
   | {type: 'ADD_FOREST_POST'; payload: {id: string; content: string; type: ForestPost['type']}}
   | {type: 'LIKE_FOREST_POST'; payload: {id: string}}
   | {type: 'SET_FOREST_POST_REPLY'; payload: {id: string; botReply: string}}
-  | {type: 'ADD_SUPPORT_MESSAGE'; payload: Omit<SupportMessage, 'id' | 'createdAt'>}
+  | {type: 'ADD_SUPPORT_MESSAGE'; payload: Omit<SupportMessage, 'id' | 'createdAt'> & {isFallback?: boolean}}
   | {type: 'DEPLOY_INTERVENTION'; payload: {area: string}}
   | {type: 'RESTART_NODE'; payload: {id: string}}
   | {type: 'RECORD_HARDWARE_EVENT'; payload: Omit<HardwareEvent, 'id' | 'createdAt'>}
@@ -292,8 +292,9 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
           ...state.supportMessages,
           {id: uid('msg'), role: action.payload.role, content: action.payload.content, createdAt: now},
         ].slice(-30),
-        // 只有 guardian (AI/老師) 回覆才算學生支持閉環完成，學生單方面輸入不算。
-        demoClosureFlags: action.payload.role === 'guardian'
+        // 只有 guardian (AI/老師) **真實**回覆才算學生支持閉環完成。
+        // AI 失敗 fallback 訊息（"暫時無法回應"）必須帶 isFallback: true，不能算閉環完成。
+        demoClosureFlags: action.payload.role === 'guardian' && !action.payload.isFallback
           ? {...state.demoClosureFlags, studentSupported: true}
           : state.demoClosureFlags,
         lastUpdated: now,

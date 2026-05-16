@@ -99,9 +99,20 @@ for _ in {1..120}; do
   sleep 0.25
 done
 
-if [ "$BRIDGE_READY" = "true" ]; then
-  curl -fsS -X POST "http://127.0.0.1:3203/api/ops/reset" >/dev/null 2>&1 || true
+# Fail-fast: bridge 必須 ready，否則 cleanup + exit 1（per codex-adv round 4）
+if [ "$BRIDGE_READY" != "true" ]; then
+  echo ""
+  echo "❌ Bridge (:3203) 健康檢查超時 — 不開啟 demo 避免現場假啟動。"
+  echo "Bridge log (最後 30 行):"
+  tail -30 "$RUNTIME_DIR/bridge.log" 2>/dev/null || true
+  echo ""
+  echo "可能原因：3203 port 被占、tsx 找不到、.env 缺 GEMINI_API_KEY、firmware 未上傳。"
+  echo "排除後重跑 一鍵啟動展示.command"
+  # cleanup trap 會 kill web/bridge
+  exit 1
 fi
+
+curl -fsS -X POST "http://127.0.0.1:3203/api/ops/reset" >/dev/null 2>&1 || true
 
 DEMO_URL="http://127.0.0.1:$PORT/"
 LAN_IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)"
@@ -132,13 +143,7 @@ else
   echo "iPad 第二螢幕：主控台按「機器人幕」即可開啟或掃 QR。"
 fi
 echo ""
-if [ "$BRIDGE_READY" = "true" ]; then
-  echo "Bridge 已啟動，舞台資料已重置。"
-else
-  echo "Bridge 尚未回應；主控台仍可跑純前端備援示範。"
-  echo "若需要第二螢幕，請把下面這段給老師或工程同學看："
-  tail -20 "$RUNTIME_DIR/bridge.log" 2>/dev/null || true
-fi
+echo "✓ Bridge 已啟動，舞台資料已重置。"
 echo ""
 echo "學生上台只做四件事："
 echo "1. 先按「重置舞台」"

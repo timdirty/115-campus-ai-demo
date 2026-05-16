@@ -1017,7 +1017,8 @@ function AppContent() {
       dispatch({type: 'ADD_SUPPORT_MESSAGE', payload: {role: 'guardian', content: reply}});
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') return;
-      dispatch({type: 'ADD_SUPPORT_MESSAGE', payload: {role: 'guardian', content: '暫時無法回應，請稍後再試。'}});
+      // AI 失敗 fallback — 標 isFallback 避免閉環假完成（per codex-adv round 4）
+      dispatch({type: 'ADD_SUPPORT_MESSAGE', payload: {role: 'guardian', content: '暫時無法回應，請稍後再試。', isFallback: true}});
       showToast('守護者暫時無法回應，請稍後再試');
     } finally {
       setChatBusy(false);
