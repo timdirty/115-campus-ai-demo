@@ -19,7 +19,8 @@ function isProxyDisabled(): boolean {
 
 export async function askGemini(
   route: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
+  externalSignal?: AbortSignal,
 ): Promise<Record<string, string>> {
   if (isProxyDisabled()) {
     throw new Error('proxy disabled');
@@ -31,6 +32,17 @@ export async function askGemini(
   const PROXY_KEY = getEnv('VITE_AI_PROXY_KEY', '');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
+
+  // Compose external signal: 任一 abort 即觸發 controller.abort
+  let externalAbortHandler: (() => void) | null = null;
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort();
+    } else {
+      externalAbortHandler = () => controller.abort();
+      externalSignal.addEventListener('abort', externalAbortHandler, {once: true});
+    }
+  }
 
   try {
     const res = await fetch(`${PROXY_URL}${route}`, {
@@ -51,5 +63,8 @@ export async function askGemini(
     return data as Record<string, string>;
   } finally {
     clearTimeout(timeout);
+    if (externalSignal && externalAbortHandler) {
+      externalSignal.removeEventListener('abort', externalAbortHandler);
+    }
   }
 }

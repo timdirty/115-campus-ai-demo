@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Bot, CheckCircle2, Navigation, ShieldAlert, Zap, Target, Users, MapPin } from 'lucide-react';
 import { useAppActions } from '../state/AppStateProvider';
 import { generateDispatchRecommendation } from '../services/localAi';
+import { useActionAbort } from '../hooks/useActionAbort';
 import type { DispatchTaskType } from '../state/appState';
 
 const ZONE_META = {
@@ -30,6 +31,7 @@ export function DispatchMapView({ goBack, showToast }: {goBack: () => void; show
   const [missionLog, setMissionLog] = useState<string[]>(['S-01 待命，選擇區域後開始服務。']);
 
   const pendingTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const dispatchAbort = useActionAbort();
 
   useEffect(() => {
     return () => {
@@ -43,6 +45,7 @@ export function DispatchMapView({ goBack, showToast }: {goBack: () => void; show
   const handleDispatch = async () => {
     if (selectedZone === 'none' || dispatchingZone) return;
     const dispatchType: DispatchTaskType = taskType === 'broadcast' ? 'broadcast' : 'patrol';
+    const {signal, token} = dispatchAbort.begin();
     setDispatchingZone(selectedZone);
     setDispatchComplete(false);
     const nextMissionId = `S-${Date.now().toString().slice(-4)}`;
@@ -59,13 +62,18 @@ export function DispatchMapView({ goBack, showToast }: {goBack: () => void; show
     }, 1350);
     pendingTimers.current.push(t1, t2);
     try {
-      const message = await generateDispatchRecommendation(selectedZone, dispatchType);
+      const message = await generateDispatchRecommendation(selectedZone, dispatchType, signal);
+      if (signal.aborted) return;
       setRecommendation(message);
       setRecommendationError(false);
-    } catch {
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       setRecommendation('AI 暫時無法回應，請稍後再試。');
       setRecommendationError(true);
+    } finally {
+      dispatchAbort.end(token);
     }
+    if (signal.aborted) return;
     actions.addDispatchTask({ zone: selectedZone, taskType: dispatchType });
     showToast(`機器人已出發前往區域 ${selectedZone} 執行任務`);
     const t3 = setTimeout(() => {

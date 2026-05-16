@@ -9,6 +9,7 @@ import { openPrintableReport } from '../services/reports';
 import {scanClassroom, type ClassroomScanApiResult} from '../services/hardwareBridge';
 import {useCameraSelection} from '../hooks/useCameraSelection';
 import {useGeminiVision} from '../hooks/useGeminiVision';
+import {useActionAbort} from '../hooks/useActionAbort';
 import {CameraPicker} from '../components/CameraPicker';
 
 const SCENE_LABELS: Record<string, string> = {
@@ -36,6 +37,8 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
   const [scanError, setScanError] = useState<string | null>(null);
   const [attendanceScanning, setAttendanceScanning] = useState(false);
   const autoScanDoneRef = useRef(false);
+  const chatAbort = useActionAbort();
+  const scanAbort = useActionAbort();
 
   const attendanceCam = useCameraSelection(modal === 'attendance_scan');
   const attendanceVideoRef = attendanceCam.videoRef;
@@ -88,16 +91,21 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
     const question = chatInput;
     setChatInput('');
     setIsTyping(true);
+    const {signal, token} = chatAbort.begin();
     try {
-      const reply = await generateTeacherReply(question, currentSubject || undefined);
+      const reply = await generateTeacherReply(question, currentSubject || undefined, signal);
+      if (signal.aborted) return;
       setIsTyping(false);
       setChatReply(reply);
       actions.addTeacherReply({ signalId: activeStudent.id, reply });
       showToast('本地 AI 已產生並發送回覆');
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       setIsTyping(false);
       // show user-visible error in the chat
       setChatReply('AI 暫時無法回應，請稍後再試。');
+    } finally {
+      chatAbort.end(token);
     }
   };
 
@@ -132,6 +140,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
     setAttendanceScanning(true);
     setScanResult(null);
     setScanError(null);
+    const {signal, token} = scanAbort.begin();
     try {
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth || 640;
@@ -140,17 +149,21 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const base64 = canvas.toDataURL('image/jpeg', 0.65).replace(/^data:image\/jpeg;base64,/, '');
-        const result = await scanClassroom(base64);
+        const result = await scanClassroom(base64, signal);
+        if (signal.aborted) return;
         if (result.ok) {
           setScanResult(result);
         } else {
           setScanError(result.error ?? 'AI 辨識失敗，請重試或手動完成');
         }
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       setScanError('無法連接 AI 服務，請手動完成點名');
+    } finally {
+      scanAbort.end(token);
+      setAttendanceScanning(false);
     }
-    setAttendanceScanning(false);
   };
 
   const handleAttendanceComplete = () => {

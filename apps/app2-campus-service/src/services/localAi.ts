@@ -544,13 +544,15 @@ function formatReport(template: string, name: string): string {
 // Exported functions
 // ---------------------------------------------------------------------------
 
-export async function generateTeacherReply(question: string, subject?: string): Promise<string> {
+export async function generateTeacherReply(question: string, subject?: string, signal?: AbortSignal): Promise<string> {
   try {
-    const result = await askGemini('/api/ai/teacher-reply', { question, subject });
+    const result = await askGemini('/api/ai/teacher-reply', { question, subject }, signal);
     if (typeof result.reply === 'string' && result.reply.trim()) return result.reply;
     if (typeof result.text === 'string' && result.text.trim()) return result.text;
-  } catch {
-    // fall through to local templates
+  } catch (error) {
+    // re-throw AbortError so caller can short-circuit
+    if (error instanceof Error && error.name === 'AbortError') throw error;
+    // fall through to local templates for non-abort failures
   }
 
   // Direct keyword overrides for specific well-known topics
@@ -564,13 +566,15 @@ export async function generateTeacherReply(question: string, subject?: string): 
   return pickTemplate(templates);
 }
 
-export async function generateDispatchRecommendation(zone: string, taskType: DispatchTaskType | string): Promise<string> {
+export async function generateDispatchRecommendation(zone: string, taskType: DispatchTaskType | string, signal?: AbortSignal): Promise<string> {
   try {
-    const result = await askGemini('/api/ai/dispatch-recommend', { zone, taskType });
+    const result = await askGemini('/api/ai/dispatch-recommend', { zone, taskType }, signal);
     if (typeof result.recommendation === 'string' && result.recommendation.trim()) return result.recommendation;
     if (typeof result.text === 'string' && result.text.trim()) return result.text;
-  } catch {
-    // fall through to local templates
+  } catch (error) {
+    // re-throw AbortError so caller can short-circuit
+    if (error instanceof Error && error.name === 'AbortError') throw error;
+    // fall through to local templates for non-abort failures
   }
 
   const zoneKey = detectZone(zone);

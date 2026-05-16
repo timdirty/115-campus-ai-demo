@@ -54,9 +54,18 @@ async function checkArduinoReady(): Promise<boolean> {
   }
 }
 
-export async function scanClassroom(imageBase64: string): Promise<ClassroomScanApiResult> {
+export async function scanClassroom(imageBase64: string, externalSignal?: AbortSignal): Promise<ClassroomScanApiResult> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
+  let externalAbortHandler: (() => void) | null = null;
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort();
+    } else {
+      externalAbortHandler = () => controller.abort();
+      externalSignal.addEventListener('abort', externalAbortHandler, {once: true});
+    }
+  }
   try {
     const response = await fetch(`${BRIDGE_URL}/api/ai/classroom-scan`, {
       method: 'POST',
@@ -66,10 +75,23 @@ export async function scanClassroom(imageBase64: string): Promise<ClassroomScanA
     });
     const payload = await response.json().catch(() => ({ok: false})) as ClassroomScanApiResult;
     return {ok: response.ok, ...payload};
-  } catch {
+  } catch (error) {
+    if (externalSignal?.aborted) {
+      // caller cancelled — propagate so handler short-circuits
+      const abortError = new Error('aborted');
+      abortError.name = 'AbortError';
+      throw abortError;
+    }
+    if (error instanceof Error && error.name === 'AbortError') {
+      // internal timeout reached
+      return {ok: false, error: '影像辨識逾時，請重試'};
+    }
     return {ok: false, error: '無法連接 AI 服務'};
   } finally {
     clearTimeout(timeoutId);
+    if (externalSignal && externalAbortHandler) {
+      externalSignal.removeEventListener('abort', externalAbortHandler);
+    }
   }
 }
 
