@@ -537,28 +537,55 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
   }
 }
 
+const _memoryFallback = new Map<string, GuardianState>();
+
 export function loadGuardianState(): GuardianState {
   if (typeof window === 'undefined') return createInitialGuardianState();
   try {
     const raw = window.localStorage.getItem(GUARDIAN_STORAGE_KEY);
-    if (!raw) return createInitialGuardianState();
-    const normalized = normalizeGuardianState(JSON.parse(raw));
-    window.localStorage.setItem(GUARDIAN_STORAGE_KEY, JSON.stringify(normalized));
-    return normalized;
+    if (raw) {
+      const normalized = normalizeGuardianState(JSON.parse(raw));
+      try { window.localStorage.setItem(GUARDIAN_STORAGE_KEY, JSON.stringify(normalized)); } catch {}
+      _memoryFallback.delete(GUARDIAN_STORAGE_KEY);
+      return normalized;
+    }
   } catch {
-    const initial = createInitialGuardianState();
-    window.localStorage.setItem(GUARDIAN_STORAGE_KEY, JSON.stringify(initial));
-    return initial;
+    // localStorage 讀取失敗（私密模式 / parse error）→ 走 memory fallback
   }
+  // 沒有 raw 或讀取失敗 → 試 memory，否則初始
+  const mem = _memoryFallback.get(GUARDIAN_STORAGE_KEY);
+  if (mem) return mem;
+  const initial = createInitialGuardianState();
+  try { window.localStorage.setItem(GUARDIAN_STORAGE_KEY, JSON.stringify(initial)); } catch {}
+  return initial;
 }
 
 export function persistGuardianState(state: GuardianState) {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(GUARDIAN_STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // QuotaExceededError or storage disabled — state lives in memory only
+    _memoryFallback.delete(GUARDIAN_STORAGE_KEY);
+    return;
+  } catch (error) {
+    if (error instanceof DOMException && (error.code === 22 || error.name === 'QuotaExceededError')) {
+      const trimmed = {
+        ...state,
+        moodLogs: state.moodLogs.slice(0, 50),
+        acousticSignals: state.acousticSignals.slice(0, 50),
+        robotMissions: state.robotMissions.slice(0, 50),
+        alerts: state.alerts.slice(0, 50),
+      };
+      try {
+        window.localStorage.setItem(GUARDIAN_STORAGE_KEY, JSON.stringify(trimmed));
+        _memoryFallback.delete(GUARDIAN_STORAGE_KEY);
+        return;
+      } catch {
+        // trim 仍超 quota → 走 memory
+      }
+    }
   }
+  // localStorage 整個不可用（iOS Safari 私密模式）→ memory fallback
+  _memoryFallback.set(GUARDIAN_STORAGE_KEY, state);
 }
 
 export function normalizeGuardianState(input: unknown): GuardianState {
