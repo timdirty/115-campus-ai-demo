@@ -1296,19 +1296,27 @@ export default function App() {
   useEffect(() => {
     bcHandlerRef.current = (data) => {
     // =========================
-    // demo_reset — Reset 徹底化 client 消費 (per codex-adv round 10+11)
+    // demo_reset — Reset 徹底化 client 消費 (per codex-adv round 10+11+12)
     // =========================
     if (data.type === 'demo_reset') {
-      // 立即清掉 movement timer / pending assignment / movement route / scanning state
+      // 取消進行中的 intro async flow（per codex-adv round 12 — 否則 reset 後仍會
+      // 繼續 narration + 最後 bubble 覆寫剛清空的畫面）
+      introCancelRef.current = true;
+      try { tts.stop(); } catch { /* tts stop optional */ }
+      try { stt.stop(); } catch { /* stt stop optional */ }
+      setIntroPlaying(false);
+      setIntroStep(0);
+      // 清掉 movement timer / pending assignment / movement route / scanning state
       if (movementTimerRef.current) clearTimeout(movementTimerRef.current);
       movementTimerRef.current = null;
       pendingAssignmentRef.current = null;
+      // 清掉 bubble timer 避免延遲 bubble 重新出現
+      if (bubbleTimerRef.current) { clearTimeout(bubbleTimerRef.current); bubbleTimerRef.current = null; }
       setMovementRoute(null);
       setRobotAssignment(ROBOT_HOME_ASSIGNMENT);
       robotAssignmentRef.current = ROBOT_HOME_ASSIGNMENT;
       setScanning(false);
-      // 用此檔實際的 state setters（不是 app2 的 chooseEmotion — 那不存在 in this file）
-      setEmotion('happy');  // 預設情緒，'happy' 是 useState(initial) 設定
+      setEmotion('happy');
       setHistory([]);
       setBubble(null);
       setLiveMetrics(null);
