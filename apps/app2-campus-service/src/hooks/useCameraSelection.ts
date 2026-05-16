@@ -166,11 +166,20 @@ export function useCameraSelection(active: boolean): UseCameraSelectionResult {
         }
       }
 
-      const video = videoRef.current;
-      if (video) {
+      // Portal rendering may commit the video element after getUserMedia resolves;
+      // poll briefly until the ref is available.
+      let video = videoRef.current;
+      if (!video) {
+        for (let i = 0; i < 20 && !cancelled; i++) {
+          await new Promise(r => setTimeout(r, 50));
+          video = videoRef.current;
+          if (video) break;
+        }
+      }
+      if (video && !cancelled) {
         video.srcObject = stream;
         video.onloadedmetadata = () => {
-          if (!cancelled && video.srcObject === stream) setReady(true);
+          if (!cancelled && video!.srcObject === stream) setReady(true);
         };
         try {
           await video.play();

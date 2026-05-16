@@ -9,15 +9,12 @@ import {useWakeLock} from './hooks/useWakeLock';
 import {BRIDGE_URL} from './services/hardwareBridge';
 import {HardwareStatusBanner} from './components/HardwareStatusBanner';
 import {CommandFeedbackToast} from './components/CommandFeedbackToast';
-import {DemoTimer} from './components/DemoTimer';
-import {DemoClosureRail} from './components/DemoClosureRail';
 
 const AVATAR_SVG = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#1d4ed8"/><circle cx="50" cy="36" r="16" fill="#BFDBFE"/><ellipse cx="50" cy="80" rx="28" ry="22" fill="#BFDBFE"/></svg>')}`;
 import { motion, AnimatePresence } from 'motion/react';
 import { Bot, GraduationCap, Truck, Building2, CheckCircle2, Download, Upload } from 'lucide-react';
 import { BottomSheet } from './components/ui';
-import { RemoteControlLauncher, RemoteControlSidebarButton } from './components/RemoteControlPanel';
-import { RobotDisplaySync } from './components/RobotDisplaySync';
+import { RemoteControlLauncher } from './components/RemoteControlPanel';
 import { useAppActions, useAppState } from './state/AppStateProvider';
 
 const TeachView = React.lazy(() => import('./views/TeachView').then((module) => ({default: module.TeachView})));
@@ -239,39 +236,22 @@ export default function App() {
         </nav>
 
         <div className="mt-auto rounded-2xl border border-outline-variant/20 bg-surface-container-low p-4">
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-on-surface-variant">展示狀態</p>
-          <p className="mt-2 text-sm font-bold">{state.tasks.filter((task) => task.status === 'in_progress').length} 個任務進行中</p>
+          <div className="flex items-center gap-2">
+            <span className={`h-2 w-2 rounded-full shrink-0 ${hwStatus.connected ? 'bg-emerald-500' : 'bg-outline-variant'}`} />
+            <p className="text-xs font-bold text-on-surface-variant">
+              {hwStatus.connected ? `機器人已連線 · ${hwStatus.port ?? ''}` : '機器人未連線'}
+            </p>
+          </div>
           <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+            <div className="rounded-xl bg-surface-container-lowest px-2 py-2">
+              <p className="text-lg font-black text-primary">{state.tasks.filter((task) => task.status === 'in_progress').length}</p>
+              <p className="text-[10px] font-bold text-on-surface-variant">進行中</p>
+            </div>
             <div className="rounded-xl bg-surface-container-lowest px-2 py-2">
               <p className="text-lg font-black text-primary">{state.tasks.filter((task) => task.status === 'completed').length}</p>
               <p className="text-[10px] font-bold text-on-surface-variant">已完成</p>
             </div>
-            <div className="rounded-xl bg-surface-container-lowest px-2 py-2">
-              <p className="text-lg font-black text-tertiary">{state.robotCommandLogs.length}</p>
-              <p className="text-[10px] font-bold text-on-surface-variant">指令紀錄</p>
-            </div>
           </div>
-          <button
-            onClick={async () => {
-              actions.resetDemo();
-              // Reset 徹底化：通知 server 清資料 + broadcast 給第二螢幕
-              try {
-                const {BRIDGE_URL} = await import('./services/hardwareBridge');
-                await fetch(`${BRIDGE_URL}/api/ops/reset`, {method: 'POST'});
-              } catch {
-                // bridge 未連，state 重置仍生效
-              }
-              showToast('展示資料已重置');
-            }}
-            className="mt-4 min-h-11 w-full rounded-xl bg-surface-container-lowest px-4 py-2 text-sm font-bold text-primary shadow-sm transition-all hover:bg-primary/10 active:scale-95"
-          >
-            重置展示資料
-          </button>
-        </div>
-
-        {/* 機器人顯示面板同步 */}
-        <div className="mt-4">
-          <RobotDisplaySync />
         </div>
       </aside>
 
@@ -291,19 +271,19 @@ export default function App() {
         {/* Student-friendly readiness indicators */}
         <div className="hidden items-center gap-1.5 sm:flex">
           <div
-            title="展示流程已準備好"
             className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-black text-emerald-700"
           >
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span>展示就緒</span>
+            <span>系統就緒</span>
           </div>
-          <div
-            title="任務可以建立、記錄與展示派遣流程"
-            className="flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-black text-primary"
-          >
-            <span className="h-2 w-2 rounded-full bg-primary" />
-            <span>{hwStatus.connected ? '機器人同步' : '任務展示'}</span>
-          </div>
+          {hwStatus.connected && (
+            <div
+              className="flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-black text-primary"
+            >
+              <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+              <span>機器人同步</span>
+            </div>
+          )}
         </div>
         <button
           onClick={() => setShowSettings(true)}
@@ -320,7 +300,6 @@ export default function App() {
 
       {/* Dynamic Content Views */}
       <main className="mx-auto min-h-screen max-w-6xl px-4 pb-36 pt-24 sm:px-5 md:px-8 md:pb-12 md:pt-28">
-        <DemoClosureRail activeTab={activeTab} state={state} onTabChange={setActiveTab} />
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -443,8 +422,6 @@ export default function App() {
     </div>
     <RemoteControlLauncher />
     <TourOverlay />
-    <IssueReporter storageKey="issues-app2:v1" accentColor="#6366f1" />
-    <DemoTimer />
     </TourProvider>
   );
 }

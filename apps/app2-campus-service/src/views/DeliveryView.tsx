@@ -124,10 +124,9 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
       <section className="rounded-3xl border border-primary/15 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-[10px] font-black tracking-[0.22em] text-primary">配送閉環</p>
-            <h3 className="mt-1 text-lg font-black text-on-surface">選品 → 扣庫存 → 派機器人 → 追蹤送達</h3>
+            <h3 className="text-lg font-black text-on-surface">快速配送</h3>
             <p className="mt-1 text-xs font-bold leading-5 text-on-surface-variant">
-              適合學生上台快速示範：一鍵建立教室配送，再到追蹤頁說明路線與完成紀錄。
+              選品後即時扣庫存、派遣機器人出發，並追蹤送達狀態。
             </p>
           </div>
           <button
@@ -135,7 +134,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
             onClick={runDeliveryClosure}
             className="min-h-12 rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white shadow-lg shadow-primary/20 active:scale-[0.98]"
           >
-            一鍵配送示範
+            立即配送
           </button>
         </div>
       </section>

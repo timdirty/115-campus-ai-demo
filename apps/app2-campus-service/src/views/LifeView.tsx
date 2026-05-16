@@ -111,26 +111,25 @@ export function LifeView({
       <section className="rounded-3xl border border-primary/15 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-[10px] font-black tracking-[0.22em] text-primary">生活閉環</p>
-            <h3 className="mt-1 text-lg font-black text-on-surface">看見事件 → 判斷任務 → 派遣 → 日誌回報</h3>
+            <h3 className="text-lg font-black text-on-surface">校園生活服務</h3>
             <p className="mt-1 text-xs font-bold leading-5 text-on-surface-variant">
-              生活服務不是看板而已，影像、廣播、鐘聲與安全狀態都會變成任務紀錄。
+              影像辨識、廣播通知、環境監測，整合為自動派遣任務。
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-2 lg:w-80">
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setModal('mapcam')}
               className="rounded-2xl bg-primary px-4 py-3 text-xs font-black text-white active:scale-[0.98]"
             >
-              開影像任務
+              影像辨識
             </button>
             <button
               type="button"
               onClick={runLifeClosure}
               className="rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-xs font-black text-primary active:scale-[0.98]"
             >
-              一鍵派遣
+              派遣任務
             </button>
           </div>
         </div>

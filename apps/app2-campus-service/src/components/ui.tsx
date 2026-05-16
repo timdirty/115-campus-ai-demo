@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 
@@ -25,6 +26,7 @@ interface BottomSheetProps {
 
 export function BottomSheet({ isOpen, onClose, title, children, fullScreen = false }: BottomSheetProps) {
   const isTablet = useIsTablet();
+  const portalTarget = typeof document !== 'undefined' ? document.body : null;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -45,7 +47,8 @@ export function BottomSheet({ isOpen, onClose, title, children, fullScreen = fal
       ? 'top-0 right-0 bottom-0 h-full w-[min(480px,60vw)]  rounded-l-2xl'
       : 'bottom-0 left-0 right-0 max-h-[92vh] rounded-t-[1.75rem] pb-safe sm:rounded-t-[2.5rem] w-full max-w-[min(42rem,calc(100vw-1rem))] mx-auto';
 
-  return (
+  if (!portalTarget) return null;
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -77,7 +80,7 @@ export function BottomSheet({ isOpen, onClose, title, children, fullScreen = fal
                 </button>
               </div>
             )}
-            <div className="overflow-y-auto flex-1 relative">
+            <div className={fullScreen ? "flex-1 flex flex-col overflow-hidden" : "overflow-y-auto flex-1 relative"}>
               {!title && fullScreen && (
                 <button
                   onClick={onClose}
@@ -92,6 +95,7 @@ export function BottomSheet({ isOpen, onClose, title, children, fullScreen = fal
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

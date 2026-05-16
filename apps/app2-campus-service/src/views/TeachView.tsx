@@ -182,34 +182,6 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
         </div>
       </div>
 
-      <section className="rounded-3xl border border-primary/15 bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-[10px] font-black tracking-[0.22em] text-primary">教學閉環</p>
-            <h3 className="mt-1 text-lg font-black text-on-surface">環場確認 → 處理訊號 → 產出報告</h3>
-            <p className="mt-1 text-xs font-bold leading-5 text-on-surface-variant">
-              上台同學先按點名，再處理一則提問或提醒，最後打開學習狀態報告給評審看。
-            </p>
-          </div>
-          <div className="grid grid-cols-3 gap-2 lg:w-[28rem]">
-            <button onClick={handleRollCall} className="rounded-2xl bg-primary px-3 py-3 text-xs font-black text-white active:scale-[0.98]">
-              1 點名
-            </button>
-            <button
-              onClick={() => firstSignal ? openStudent(firstSignal) : showToast('目前沒有待處理訊號')}
-              className="rounded-2xl border border-primary/20 bg-primary/10 px-3 py-3 text-xs font-black text-primary active:scale-[0.98]"
-            >
-              2 互動
-            </button>
-            <button
-              onClick={() => navigateTo('student-report')}
-              className="rounded-2xl border border-outline-variant/20 bg-surface-container-low px-3 py-3 text-xs font-black text-on-surface active:scale-[0.98]"
-            >
-              3 報告
-            </button>
-          </div>
-        </div>
-      </section>
 
       {/* Attendance + Focus — side by side on tablet */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -454,10 +426,10 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       </BottomSheet>
 
       {/* Attendance Modal */}
-      <BottomSheet isOpen={modal === 'attendance_scan'} onClose={() => setModal(null)} title="AI 場域點名">
-        <div className="flex flex-col items-center gap-5 p-4 pb-10">
+      <BottomSheet isOpen={modal === 'attendance_scan'} onClose={() => setModal(null)} title="AI 場域點名" fullScreen>
+        <div className="flex flex-col h-full p-4 gap-4">
           {/* Live camera feed */}
-          <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black">
+          <div className="relative flex-1 min-h-0 rounded-2xl overflow-hidden bg-black">
             <video
               ref={attendanceVideoRef}
               autoPlay
@@ -532,7 +504,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
 
           {/* Action area */}
           {!scanResult?.ok ? (
-            <div className="w-full space-y-3">
+            <div className="shrink-0 w-full space-y-3 pb-4">
               {scanError && (
                 <div className="rounded-xl border border-error/30 bg-error/8 px-4 py-2.5 text-sm font-bold text-error">
                   {scanError}
@@ -554,7 +526,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
               </button>
             </div>
           ) : (
-            <div className="w-full space-y-4">
+            <div className="shrink-0 w-full space-y-4 pb-4">
               <div className="rounded-2xl border border-primary/20 bg-primary/5 px-5 py-4">
                 <p className="text-lg font-bold text-primary">
                   約 {scanResult.count} 人・出席率 {scanResult.rate}%
