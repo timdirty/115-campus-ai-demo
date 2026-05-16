@@ -124,6 +124,12 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
             ...s,
             lastCommandAck: {command: event.command ?? '', ok: Boolean(event.ok), ts: Date.now()},
           }));
+        } else if (event.type === 'demo_reset') {
+          // Reset 徹底化 client 消費 — 清掉 lastCommandAck stale 紀錄，狀態回 idle
+          setStatus((s) => ({
+            ...s,
+            lastCommandAck: null,
+          }));
         }
       } catch { /* ignore malformed */ }
     };

@@ -1296,6 +1296,22 @@ export default function App() {
   useEffect(() => {
     bcHandlerRef.current = (data) => {
     // =========================
+    // demo_reset — Reset 徹底化 client 消費
+    // =========================
+    if (data.type === 'demo_reset') {
+      // 立即清掉 movement timer / pending assignment / movement route / scanning state
+      if (movementTimerRef.current) clearTimeout(movementTimerRef.current);
+      movementTimerRef.current = null;
+      pendingAssignmentRef.current = null;
+      setMovementRoute(null);
+      setRobotAssignment(ROBOT_HOME_ASSIGNMENT);
+      robotAssignmentRef.current = ROBOT_HOME_ASSIGNMENT;
+      setScanning(false);
+      chooseEmotion('neutral');
+      setHistory([]);
+      return;
+    }
+    // =========================
     // emotion result
     // =========================
     if (data.type === 'emotion') {

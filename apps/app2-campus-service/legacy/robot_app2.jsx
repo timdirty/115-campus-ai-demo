@@ -2020,6 +2020,13 @@ export default function App() {
       sfx(cue.emotion);
       setDynamicSpeech(cue.message, cue.emotion);
       bumpRobot();
+      return;
+    }
+    // Reset 徹底化 client 消費 — server /api/ops/reset 觸發 demo_reset broadcast
+    if (data.type === 'demo_reset') {
+      chooseEmotion('neutral');
+      setDisplayCue(normalizeDisplayCue({emotion: 'neutral', message: '展示已重置'}));
+      bumpRobot();
     }
   };
 
