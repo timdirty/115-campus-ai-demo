@@ -4,7 +4,8 @@ import { BRIDGE_URL } from '../services/hardwareBridge';
 export function useProxyHealth() {
   // When proxy is explicitly disabled (e.g. GitHub Pages static deploy),
   // treat as online so the offline banner never appears and no polling runs.
-  const proxyDisabled = (import.meta as unknown as {env?: Record<string,string>}).env?.VITE_AI_PROXY_DISABLED === '1';
+  // Use direct import.meta.env access (no casts) so Vite static-replaces at build time.
+  const proxyDisabled = import.meta.env.VITE_AI_PROXY_DISABLED === '1';
   const [proxyOnline, setProxyOnline] = useState<boolean | null>(proxyDisabled ? true : null);
 
   useEffect(() => {
