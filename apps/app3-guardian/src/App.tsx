@@ -34,6 +34,7 @@ import {guardianReducer, loadGuardianState, normalizeGuardianState, persistGuard
 import {analyzeAcousticFrame, describeAcousticSignal} from './services/acousticGuardian';
 import {generateSupportReply} from './services/localGuardianAi';
 import {useActionAbort} from './hooks/useActionAbort';
+import {useWakeLock} from './hooks/useWakeLock';
 import {analyzeEmotionTypography} from './services/emotionTypography';
 import {analyzePrivacyFrame, VisualPrivacyResult} from './services/visualPrivacyGuardian';
 import {evaluateProactiveGuardianState, ProactiveInsight} from './services/proactiveGuardian';
@@ -300,6 +301,17 @@ export default function App() {
 }
 
 function AppContent() {
+  // 現場災難 fail-safe (L1)
+  useWakeLock(true);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.history.pushState(null, '', window.location.href);
+    const handler = () => {
+      window.history.pushState(null, '', window.location.href);
+    };
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
+  }, []);
   const {restartTour} = useTour();
   const [state, dispatch] = useReducer(guardianReducer, undefined, loadGuardianState);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
@@ -1272,6 +1284,21 @@ function AppContent() {
     <div className="guardian-shell min-h-screen overflow-x-hidden bg-[linear-gradient(160deg,#f5f9fc_0%,#eef3f8_60%,#e8f0f7_100%)] text-slate-950">
       <input ref={importInputRef} type="file" accept="application/json,.json" className="hidden" onChange={(event) => void importDemoData(event.target.files?.[0])} />
       <Toast message={toastMessage} />
+
+      {/* 現場災難 fail-safe: 離線備援 banner */}
+      {!bridgeOnline && (
+        <div className="fixed top-0 inset-x-0 z-[200] bg-amber-500 text-white text-sm font-bold px-4 py-2 text-center shadow-lg">
+          離線備援模式 — 守護判讀走本機分析 ·
+          <button onClick={() => window.location.reload()} className="ml-2 underline">重試</button>
+        </div>
+      )}
+
+      {/* 現場災難 fail-safe: 投影 URL chip */}
+      {typeof window !== 'undefined' && (window.location.search.includes('show-cast') || import.meta.env.PROD) && (
+        <div className="fixed bottom-2 right-2 z-40 bg-black/70 text-white text-xs px-2 py-1 rounded pointer-events-none">
+          第二螢幕：{window.location.origin}/?screen=robot
+        </div>
+      )}
 
       <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/95 shadow-[0_1px_12px_rgba(15,23,42,0.06)] backdrop-blur-xl">
 
