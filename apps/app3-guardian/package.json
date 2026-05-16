@@ -14,7 +14,7 @@
     "demo:check": "node scripts/demo-readiness-check.mjs",
     "lint": "tsc --noEmit",
     "test": "VITE_AI_PROXY_DISABLED=1 tsx src/state/guardianState.test.ts && VITE_AI_PROXY_DISABLED=1 tsx src/__tests__/localGuardianAi.test.ts && VITE_AI_PROXY_DISABLED=1 tsx src/__tests__/emotionTypography.test.ts && VITE_AI_PROXY_DISABLED=1 tsx src/__tests__/visualPrivacyGuardian.test.ts",
-    "check": "npm run test && tsx server/api-contract.test.mjs && npm run lint && npm run build"
+    "check": "npm run test && DEMO_SIMULATE_HARDWARE=1 tsx server/hardwareSimulation.test.ts && tsx server/api-contract.test.mjs && npm run lint && npm run build"
   },
   "dependencies": {
     "@google/genai": "^1.50.1",
