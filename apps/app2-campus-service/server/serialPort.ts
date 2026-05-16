@@ -223,11 +223,16 @@ export async function sendCommand(command: string): Promise<{ok: boolean; messag
   try {
     const port = await openPort();
     if (!port) {
-      return {ok: false, message: telemetry.lastError ?? 'No Arduino available. Plug in the UNO R4 (WiFi or Minima) or set ARDUINO_PORT.'};
+      return {ok: false, message: telemetry.lastError ?? 'No Arduino available. 請插 UNO R4 並上傳 app2-sweeper-drive 韌體（pio run -e uno_r4_minima_app2_sweeper -t upload）'};
     }
-    await new Promise<void>((resolve, reject) => {
-      port.write(`${command}\n`, (error) => (error ? reject(error) : resolve()));
-    });
+    await Promise.race([
+      new Promise<void>((resolve, reject) => {
+        port.write(`${command}\n`, (error) => (error ? reject(error) : resolve()));
+      }),
+      new Promise<void>((_, reject) =>
+        setTimeout(() => reject(new Error('serial write timeout 1s')), 1000)
+      ),
+    ]);
     return {ok: true, message: `Sent ${command}`};
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
