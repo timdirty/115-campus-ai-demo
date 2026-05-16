@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "NODE_ENV=production tsx server/serialBridge.ts",
+    "demo:check": "node scripts/demo-readiness-check.mjs",
     "dev": "concurrently -n web,bridge -c blue,cyan \"npm:dev:web\" \"npm:dev:bridge\"",
     "student": "concurrently -n app,robot -c green,cyan \"vite --port=3000 --host=0.0.0.0 --open /#student\" \"npm:dev:bridge\"",
     "dev:web": "vite --port=3000 --host=0.0.0.0",
