@@ -122,6 +122,14 @@ export interface RobotMission {
   createdAt: string;
 }
 
+export interface DemoClosureFlags {
+  signalFused: boolean;
+  alertCreated: boolean;
+  robotDispatched: boolean;
+  studentSupported: boolean;
+  closed: boolean;
+}
+
 export interface GuardianState {
   stabilityScore: number;
   teacherWellbeingScore: number;
@@ -135,5 +143,6 @@ export interface GuardianState {
   hardwareEvents: HardwareEvent[];
   acousticSignals: AcousticSignal[];
   robotMissions: RobotMission[];
+  demoClosureFlags: DemoClosureFlags;
   lastUpdated: string;
 }

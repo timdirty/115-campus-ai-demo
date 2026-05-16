@@ -1553,6 +1553,7 @@ function applyZoneAssessments(viewModel: CommandCenterViewModel, assessments: Re
 }
 
 function buildDemoClosureSteps(state: GuardianState, viewModel: CommandCenterViewModel): DemoClosureStep[] {
+  const flags = state.demoClosureFlags;
   const hasFusedSignal = state.moodLogs.some((log) => log.note.includes('示範')) ||
     state.acousticSignals.some((signal) => signal.summary.includes('示範')) ||
     viewModel.proactiveInsight.reasons.some((reason) => reason.includes('示範'));
@@ -1563,17 +1564,18 @@ function buildDemoClosureSteps(state: GuardianState, viewModel: CommandCenterVie
     state.supportMessages.some((message) => message.content.includes('示範回覆') || message.content.includes('關懷流程已完成'));
   const hasClosure = state.interventions.some((item) => item.title.includes('示範閉環完成') && item.status === 'completed') ||
     state.alerts.some((alert) => alert.status === 'resolved' && (alert.type.includes('國中壓力事件') || alert.category.includes('多來源融合')));
-  const signalDone = hasFusedSignal || hasAlert || hasIntervention || hasMission || hasSupport || hasClosure;
-  const alertDone = hasAlert || hasIntervention || hasMission || hasSupport || hasClosure;
-  const dispatchDone = hasIntervention || hasMission || hasSupport || hasClosure;
-  const supportDone = hasSupport || hasClosure;
+  const signalDone = hasFusedSignal || hasAlert || hasIntervention || hasMission || hasSupport || hasClosure || flags.signalFused;
+  const alertDone = hasAlert || hasIntervention || hasMission || hasSupport || hasClosure || flags.alertCreated;
+  const dispatchDone = hasIntervention || hasMission || hasSupport || hasClosure || flags.robotDispatched;
+  const supportDone = hasSupport || hasClosure || flags.studentSupported;
+  const closureDone = hasClosure || flags.closed;
 
   return [
     {label: '訊號融合', detail: '心情、聲量、節點進入判讀', done: signalDone, panel: 'sensing'},
     {label: '預警成案', detail: '匿名提醒與處置清單建立', done: alertDone, panel: 'alerts'},
     {label: '派遣處置', detail: '機器人或老師到場確認', done: dispatchDone, panel: 'robot'},
     {label: '學生支持', detail: '照護回覆與自我調節紀錄', done: supportDone, panel: 'care'},
-    {label: '回報結案', detail: '完成追蹤並保留證據', done: hasClosure, panel: 'robot'},
+    {label: '回報結案', detail: '完成追蹤並保留證據', done: closureDone, panel: 'robot'},
   ];
 }
 

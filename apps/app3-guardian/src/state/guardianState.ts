@@ -2,6 +2,7 @@ import {
   AcousticSignal,
   AcousticLevel,
   AlertStatus,
+  DemoClosureFlags,
   ForestPost,
   GuardianAlert,
   HardwareEvent,
@@ -15,6 +16,14 @@ import {
 } from '../types';
 
 export const GUARDIAN_STORAGE_KEY = 'mindful-guardian:v1';
+
+export const INITIAL_DEMO_CLOSURE_FLAGS: DemoClosureFlags = {
+  signalFused: false,
+  alertCreated: false,
+  robotDispatched: false,
+  studentSupported: false,
+  closed: false,
+};
 
 const nowIso = () => new Date().toISOString();
 const uid = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${Math.floor(Math.random() * 900 + 100)}`;
@@ -192,6 +201,7 @@ export function createInitialGuardianState(): GuardianState {
     ],
     acousticSignals,
     robotMissions,
+    demoClosureFlags: {...INITIAL_DEMO_CLOSURE_FLAGS},
     lastUpdated: createdAt,
   };
 }
@@ -208,6 +218,9 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
         alerts: state.alerts.map((alert) =>
           alert.id === action.payload.id ? {...alert, status: action.payload.status} : alert,
         ),
+        demoClosureFlags: action.payload.status === 'resolved'
+          ? {...state.demoClosureFlags, closed: true}
+          : state.demoClosureFlags,
         lastUpdated: now,
       };
 
@@ -236,6 +249,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
           ...state.moodLogs,
         ].slice(0, 20),
         stabilityScore: Math.max(52, Math.min(96, state.stabilityScore + (action.payload.mood === 'happy' ? 2 : action.payload.mood === 'worried' ? -2 : 1))),
+        demoClosureFlags: {...state.demoClosureFlags, signalFused: true},
         lastUpdated: now,
       };
 
@@ -246,6 +260,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
           {id: action.payload.id, content: action.payload.content, type: action.payload.type, likes: 0, createdAt: timeLabel(now)},
           ...state.forestPosts,
         ].slice(0, 50),
+        demoClosureFlags: {...state.demoClosureFlags, studentSupported: true},
         lastUpdated: now,
       };
 
@@ -274,6 +289,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
           ...state.supportMessages,
           {id: uid('msg'), role: action.payload.role, content: action.payload.content, createdAt: now},
         ].slice(-30),
+        demoClosureFlags: {...state.demoClosureFlags, studentSupported: true},
         lastUpdated: now,
       };
 
@@ -296,6 +312,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
             ? {...alert, status: alert.status === 'new' ? 'processing' : alert.status}
             : alert,
         ),
+        demoClosureFlags: {...state.demoClosureFlags, studentSupported: true},
         lastUpdated: now,
       };
 
@@ -354,6 +371,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
               }
             : node,
         ),
+        demoClosureFlags: {...state.demoClosureFlags, signalFused: true},
         lastUpdated: now,
       };
     }
@@ -381,6 +399,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
           },
           ...state.alerts,
         ].slice(0, 50),
+        demoClosureFlags: {...state.demoClosureFlags, alertCreated: true},
         lastUpdated: now,
       };
 
@@ -407,6 +426,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
           },
           ...state.alerts,
         ].slice(0, 50),
+        demoClosureFlags: {...state.demoClosureFlags, alertCreated: true},
         lastUpdated: now,
       };
 
@@ -433,6 +453,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
           },
           ...state.alerts,
         ].slice(0, 50),
+        demoClosureFlags: {...state.demoClosureFlags, alertCreated: true},
         lastUpdated: now,
       };
 
@@ -461,6 +482,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
           },
           ...state.interventions,
         ].slice(0, 50),
+        demoClosureFlags: {...state.demoClosureFlags, robotDispatched: true},
         lastUpdated: now,
       };
 
@@ -519,6 +541,7 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
             createdAt: now,
           },
         ].slice(-30),
+        demoClosureFlags: {...state.demoClosureFlags, closed: true},
         lastUpdated: now,
       };
     }
@@ -731,6 +754,18 @@ export function normalizeGuardianState(input: unknown): GuardianState {
     };
   };
 
+  const normalizeDemoClosureFlags = (value: unknown, fallbackFlags: DemoClosureFlags): DemoClosureFlags => {
+    if (!isRecord(value)) return {...fallbackFlags};
+    const bool = (entry: unknown, fallbackBool: boolean) => (typeof entry === 'boolean' ? entry : fallbackBool);
+    return {
+      signalFused: bool(value.signalFused, fallbackFlags.signalFused),
+      alertCreated: bool(value.alertCreated, fallbackFlags.alertCreated),
+      robotDispatched: bool(value.robotDispatched, fallbackFlags.robotDispatched),
+      studentSupported: bool(value.studentSupported, fallbackFlags.studentSupported),
+      closed: bool(value.closed, fallbackFlags.closed),
+    };
+  };
+
   const normalizedAlerts = Array.isArray(parsed.alerts)
     ? parsed.alerts
         .map((item, index) => normalizeAlert(item, alerts[index % alerts.length] ?? alerts[0]))
@@ -752,6 +787,7 @@ export function normalizeGuardianState(input: unknown): GuardianState {
     hardwareEvents: normalizeList(parsed.hardwareEvents, fallback.hardwareEvents, normalizeHardwareEvent).slice(0, 20),
     acousticSignals: normalizeList(parsed.acousticSignals, fallback.acousticSignals, normalizeAcousticSignal).slice(0, 20),
     robotMissions: normalizeList(parsed.robotMissions, fallback.robotMissions, normalizeRobotMission).slice(0, 20),
+    demoClosureFlags: normalizeDemoClosureFlags(parsed.demoClosureFlags, fallback.demoClosureFlags),
     lastUpdated: typeof parsed.lastUpdated === 'string' ? parsed.lastUpdated : fallback.lastUpdated,
   };
 }
