@@ -153,18 +153,17 @@ export function useCameraSelection(active: boolean): UseCameraSelectionResult {
       }
 
       streamRef.current = stream;
-      // Now we have permission; enumerate to populate labels
+      // Enumerate to populate device labels (permission now granted)
       const cams = await enumerate();
-      // If selected one wasn't actually used (fallback), update selection to current track's deviceId
-      const trackSettings = stream.getVideoTracks()[0]?.getSettings();
-      const actualId = trackSettings?.deviceId;
-      if (actualId && actualId !== selectedDeviceId) {
-        // Persist whatever the browser actually granted (helps next time)
-        if (!selectedDeviceId && cams.some(c => c.deviceId === actualId)) {
-          saveDeviceId(actualId);
-          setSelectedDeviceId(actualId);
-        }
+      // Persist the actual device to localStorage for next page load.
+      // Do NOT call setSelectedDeviceId here — that triggers a cleanup/re-run
+      // cycle which stops the stream and causes NotReadableError on the retry.
+      const actualId = stream.getVideoTracks()[0]?.getSettings().deviceId;
+      if (actualId && cams.some(c => c.deviceId === actualId)) {
+        saveDeviceId(actualId);
       }
+
+      if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
 
       // Portal rendering may commit the video element after getUserMedia resolves;
       // poll briefly until the ref is available.
@@ -177,14 +176,19 @@ export function useCameraSelection(active: boolean): UseCameraSelectionResult {
         }
       }
       if (video && !cancelled) {
-        video.srcObject = stream;
+        // Set handler before srcObject to avoid missing fast-firing events
         video.onloadedmetadata = () => {
           if (!cancelled && video!.srcObject === stream) setReady(true);
         };
+        video.srcObject = stream;
+        // Belt-and-suspenders: if readyState already has metadata, set ready now
+        if (video.readyState >= 1 && !cancelled) setReady(true);
         try {
           await video.play();
+          // play() resolving also confirms video is live
+          if (!cancelled && video.srcObject === stream) setReady(true);
         } catch {
-          // autoplay may fail; loadedmetadata still sets ready
+          // autoplay may fail silently; onloadedmetadata will set ready
         }
       }
     }

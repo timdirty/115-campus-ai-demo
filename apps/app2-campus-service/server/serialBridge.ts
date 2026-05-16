@@ -85,7 +85,8 @@ wss.on('connection', (ws, req) => {
     ws.send(JSON.stringify({type: 'display_ready'}));
     ws.on('close', () => displayClients.delete(ws));
   } else {
-    ws.send(JSON.stringify({type: 'arduino_status', connected: isConnected(), port: getActivePath() ?? '', simulated: false}));
+    const isSim = process.env.DEMO_SIMULATE_HARDWARE === '1';
+    ws.send(JSON.stringify({type: 'arduino_status', connected: isConnected() || isSim, port: getActivePath() ?? (isSim ? 'SIM' : ''), simulated: isSim}));
   }
 });
 httpServer.on('close', () => clearInterval(wsKeepalive));
@@ -128,7 +129,8 @@ function getDisplayWebPort(origin: string): number {
 }
 
 onConnectionChange((connected, path) => {
-  broadcast({type: 'arduino_status', connected, port: path ?? '', simulated: false});
+  const isSim = process.env.DEMO_SIMULATE_HARDWARE === '1';
+  broadcast({type: 'arduino_status', connected: connected || isSim, port: path ?? (isSim ? 'SIM' : ''), simulated: isSim});
 });
 
 const ALLOWED_ORIGINS_ENV = process.env.ALLOWED_ORIGINS ?? '';
@@ -164,11 +166,13 @@ app.options('*', (_req, res) => res.sendStatus(204));
 app.use(express.json({limit: '4mb'})); // vision-classify sends base64 JPEG; 320px @ q0.6 ≈ 40-120 kb but allow headroom
 
 app.get('/api/health', (_req, res) => {
+  const isSim = process.env.DEMO_SIMULATE_HARDWARE === '1';
   res.json({
     ok: true,
     bridgePort,
-    arduinoConnected: isConnected(),
-    activePath: getActivePath(),
+    arduinoConnected: isConnected() || isSim,
+    activePath: getActivePath() ?? (isSim ? 'SIM' : null),
+    simulated: isSim,
     uptimeSeconds: Math.round(process.uptime()),
     telemetry: getTelemetry(),
   });

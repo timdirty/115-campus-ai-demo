@@ -239,7 +239,11 @@ export default function App() {
           <div className="flex items-center gap-2">
             <span className={`h-2 w-2 rounded-full shrink-0 ${hwStatus.connected ? 'bg-emerald-500' : 'bg-outline-variant'}`} />
             <p className="text-xs font-bold text-on-surface-variant">
-              {hwStatus.connected ? `機器人已連線 · ${hwStatus.port ?? ''}` : '機器人未連線'}
+              {hwStatus.connected
+                ? hwStatus.simulated
+                  ? '機器人已連線（模擬模式）'
+                  : `機器人已連線 · ${hwStatus.port ?? ''}`
+                : '機器人未連線'}
             </p>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 text-center">
