@@ -1587,8 +1587,10 @@ function buildDemoClosureSteps(state: GuardianState, viewModel: CommandCenterVie
   const hasAlert = state.alerts.some((alert) => alert.type.includes('國中壓力事件') || alert.category.includes('多來源融合'));
   const hasIntervention = state.interventions.some((item) => item.title.includes('示範閉環') || item.description.includes('示範'));
   const hasMission = state.robotMissions.some((mission) => mission.command === 'ROBOT_DISPATCH' || mission.command === 'CARE_DEPLOYED' && mission.createdAt.includes('剛剛'));
-  const hasSupport = state.forestPosts.some((post) => post.content.includes('壓力拆成一件一件')) ||
-    state.supportMessages.some((message) => message.content.includes('示範回覆') || message.content.includes('關懷流程已完成'));
+  // 學生支持完成證據：必須有 botReply（AI/老師回覆）或 guardian-role support message，
+  // 不再用「學生 post 含特定字串」當證據（避免 student-only post 偽完成閉環）。
+  const hasSupport = state.forestPosts.some((post) => Boolean(post.botReply)) ||
+    state.supportMessages.some((message) => message.role === 'guardian' && (message.content.includes('示範回覆') || message.content.includes('關懷流程已完成')));
   const hasClosure = state.interventions.some((item) => item.title.includes('示範閉環完成') && item.status === 'completed') ||
     state.alerts.some((alert) => alert.status === 'resolved' && (alert.type.includes('國中壓力事件') || alert.category.includes('多來源融合')));
   const signalDone = hasFusedSignal || hasAlert || hasIntervention || hasMission || hasSupport || hasClosure || flags.signalFused;
