@@ -40,7 +40,8 @@ app.disable('x-powered-by');
 
 type WsEvent =
   | {type: 'arduino_status'; connected: boolean; port: string; simulated: boolean}
-  | {type: 'command_ack'; command: string; ok: boolean; response?: string};
+  | {type: 'command_ack'; command: string; ok: boolean; response?: string}
+  | {type: 'demo_reset'; timestamp: number};
 
 type DisplayEmotion =
   | 'neutral' | 'happy' | 'sad' | 'angry' | 'surprised'
@@ -339,6 +340,10 @@ app.get('/api/logs', async (_req, res) => {
 app.post('/api/ops/reset', async (_req, res) => {
   try {
     await resetDemoData();
+    // Reset 徹底化：broadcast 給所有 WS client（含第二螢幕 RobotDisplaySync 跟 robot-app）
+    const resetMsg = {type: 'demo_reset' as const, timestamp: Date.now()};
+    broadcast(resetMsg);
+    sendToDisplayClients(resetMsg);
     res.json({ok: true, message: 'Demo data reset'});
   } catch (error) {
     res.status(500).json({ok: false, error: error instanceof Error ? error.message : String(error)});

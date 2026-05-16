@@ -229,7 +229,8 @@ type WsEvent =
   | {type: 'sensor_snapshot'; temp: number | null; hum: number | null; light: number | null}
   | ({type: 'guardian_snapshot'} & GuardianSnapshot)
   | ({type: 'robot_assignment'} & RobotAssignmentSnapshot)
-  | ({type: 'robot_emotion_event'} & RobotEmotionEvent);
+  | ({type: 'robot_emotion_event'} & RobotEmotionEvent)
+  | {type: 'demo_reset'; timestamp: number};
 
 const app = express();
 const httpServer = createServer(app);
@@ -622,6 +623,12 @@ app.post('/api/ops/reset', async (_req, res) => {
     guardianSnapshotLockedUntil = 0;
     broadcast({type: 'guardian_snapshot', ...latestGuardianSnapshot});
     broadcast({type: 'robot_assignment', ...latestRobotAssignment});
+    // Reset 徹底化：broadcast demo_reset 給 wss.clients + displayClients (robot-app)
+    const resetMsg = {type: 'demo_reset' as const, timestamp: Date.now()};
+    broadcast(resetMsg);
+    for (const client of displayClients) {
+      if (client.readyState === WebSocket.OPEN) client.send(JSON.stringify(resetMsg), () => {});
+    }
     res.json({ok: true, message: 'Demo data reset'});
   } catch (error) {
     res.status(500).json({ok: false, error: error instanceof Error ? error.message : String(error)});

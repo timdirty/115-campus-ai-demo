@@ -252,8 +252,15 @@ export default function App() {
             </div>
           </div>
           <button
-            onClick={() => {
+            onClick={async () => {
               actions.resetDemo();
+              // Reset 徹底化：通知 server 清資料 + broadcast 給第二螢幕
+              try {
+                const {BRIDGE_URL} = await import('./services/hardwareBridge');
+                await fetch(`${BRIDGE_URL}/api/ops/reset`, {method: 'POST'});
+              } catch {
+                // bridge 未連，state 重置仍生效
+              }
               showToast('展示資料已重置');
             }}
             className="mt-4 min-h-11 w-full rounded-xl bg-surface-container-lowest px-4 py-2 text-sm font-bold text-primary shadow-sm transition-all hover:bg-primary/10 active:scale-95"
