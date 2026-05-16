@@ -47,7 +47,7 @@ WIP **沒有可丟掉**的東西。lint 跟 4 個 test 已綠（含 500-round pi
 
 ### A. `withAiTimeout` helper + 2 個 generateContent 真正可取消 + 新增 guardian-chat endpoint
 
-**Rigor review 1-2 修正**: `abortSignal` 是 `generateContent` 的 **top-level 參數**，不是放在 `config` 內。`@google/genai` 的 `GenerateContentParameters` 介面 abortSignal 在最外層。
+**Rigor review 1-2 修正**: `abortSignal` 是 `GenerateContentConfig` 的 field（per SDK `genai.d.ts:4423-4432`）— 在 `config` 內跟 `temperature` 同級，**不是** top-level `GenerateContentParameters`。
 
 在 file 開頭、`isGeminiConfigured` 之前加：
 
@@ -62,26 +62,27 @@ function withAiTimeout<T>(
 }
 ```
 
-**修 line 51 (`analyzeGuardianAlert`)**:
+**修 line 51 (`analyzeGuardianAlert`)** — **保留既有 hardcode model `'gemini-2.0-flash'`**（非 mechanical 改成 visionModel）：
 ```ts
 const response = await withAiTimeout((signal) =>
   ai.models.generateContent({
-    model: visionModel,
-    contents: [...],
-    config: {...},
-    abortSignal: signal,
+    model: 'gemini-2.0-flash',  // 既有 hardcode，保留
+    contents: [{role: 'user', parts: [{text: prompt}]}],
+    config: {abortSignal: signal},  // 既有沒 config，新加
   })
 );
 ```
 
-**修 line 139 (`analyzeEmotionWithAI`)**: WIP 既有 controller + 30s setTimeout，但 signal **沒傳到 generateContent**。改用 `withAiTimeout`，signal 在 top-level（不是 config）：
+**修 line 139 (`analyzeEmotionWithAI`)**: WIP 既有 controller + 30s setTimeout，但 signal **沒傳到 generateContent**。改用 `withAiTimeout`，signal 放 `config` 內（與 temperature 同級）：
 ```ts
 const response = await withAiTimeout((signal) =>
   ai.models.generateContent({
     model: visionModel,
     contents: [...],
-    config: {temperature: 0.4},  // signal 不在這裡
-    abortSignal: signal,         // top-level
+    config: {
+      temperature: 0.4,
+      abortSignal: signal,  // 在 config 內
+    },
   }), 30_000  // emotion 用 30s（影像分析較長）
 );
 ```
@@ -109,8 +110,10 @@ const response = await withAiTimeout((signal) =>
          ai.models.generateContent({
            model: textModel,
            contents: [{role: 'user', parts: [{text: prompt}]}],
-           config: {temperature: 0.7},
-           abortSignal: signal,
+           config: {
+             temperature: 0.7,
+             abortSignal: signal,  // 在 config 內
+           },
          })
        );
        const text = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';

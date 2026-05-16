@@ -50,7 +50,7 @@ WIP 中**沒有可丟掉**的東西。lint 跟 test 已綠，可直接 commit �
 
 **設計修正**（rigor review 1, 2）：純 `Promise.race` 只讓**呼叫端** timeout，**底層 Gemini request 仍會跑到完**，浪費 quota 跟記憶體。改用 AbortController 真正取消請求。
 
-`@google/genai` SDK 的 `generateContent` 接受 top-level `abortSignal`（不是放在 `config` 內）。
+**SDK 型別已驗**（`apps/app2-campus-service/node_modules/@google/genai/dist/genai.d.ts:4423-4432`）：`abortSignal` 是 **`GenerateContentConfig` 的 field**，跟 `temperature` / `systemInstruction` 同級。**不是** top-level `GenerateContentParameters`。寫成 top-level 會 TypeScript red。
 
 在 `getAiErrorInfo` 之後插入：
 
@@ -65,7 +65,7 @@ function withAiTimeout<T>(
 }
 ```
 
-7 個 callsite 改（注意 signal 是傳到 `ai.models.generateContent` 的 top-level，**不要放 config**）：
+7 個 callsite 改（注意 signal 是放在 `config` 內，與 `temperature` 同級）：
 
 ```ts
 // 原
@@ -80,8 +80,10 @@ const response = await withAiTimeout((signal) =>
   ai.models.generateContent({
     model: visionModel,
     contents: [...],
-    config: {temperature: 0.35},
-    abortSignal: signal,  // top-level，不是放 config 內
+    config: {
+      temperature: 0.35,
+      abortSignal: signal,  // 在 config 內
+    },
   })
 );
 ```
