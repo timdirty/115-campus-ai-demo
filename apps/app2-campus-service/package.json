@@ -15,7 +15,7 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "test": "VITE_AI_PROXY_DISABLED=1 node_modules/.bin/tsx src/state/appState.test.ts && VITE_AI_PROXY_DISABLED=1 node_modules/.bin/tsx src/__tests__/localAi.test.ts && VITE_AI_PROXY_DISABLED=1 node_modules/.bin/tsx src/__tests__/localVision.test.ts",
-    "check": "npm run test && tsx server/api-contract.test.mjs && npm run lint && npm run build"
+    "check": "npm run test && DEMO_SIMULATE_HARDWARE=1 tsx server/hardwareSimulation.test.ts && tsx server/api-contract.test.mjs && npm run lint && npm run build"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
