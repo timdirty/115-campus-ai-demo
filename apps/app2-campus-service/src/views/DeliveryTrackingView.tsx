@@ -93,6 +93,32 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: {goBack
               {displayStatus || '系統待命'}
             </span>
 
+            {/* SVG 路線動畫：運送中時顯示一個小點沿路徑移動，視覺呼應「移動中」狀態 */}
+            {displayStatus && phase !== 'delivered' && (
+              <svg
+                className="mt-6 mx-auto w-full max-w-xs h-16 pointer-events-none"
+                viewBox="0 0 100 30"
+                role="presentation"
+                aria-hidden="true"
+              >
+                <path
+                  id="delivery-route"
+                  d="M 10 25 Q 50 5 90 25"
+                  fill="none"
+                  stroke="rgba(59,130,246,0.35)"
+                  strokeWidth="1.5"
+                  strokeDasharray="4 2"
+                />
+                <circle r="2.5" fill="#3b82f6">
+                  <animateMotion dur="3s" repeatCount="indefinite">
+                    <mpath href="#delivery-route" />
+                  </animateMotion>
+                </circle>
+                <circle cx="10" cy="25" r="2" fill="#3b82f6" opacity="0.55" />
+                <circle cx="90" cy="25" r="2" fill="#22c55e" opacity="0.55" />
+              </svg>
+            )}
+
             <AnimatePresence>
               {displayStatus && phase !== 'delivered' && (
                  <motion.div

@@ -1,5 +1,6 @@
 import {CheckCircle2, GraduationCap, Route, Truck} from 'lucide-react';
 import type {AppState} from '../state/appState';
+import {INITIAL_ORDERS_COUNT} from '../state/appState';
 
 const STEPS = [
   {id: 'teach', label: '教學', detail: '點名與互動有紀錄', icon: GraduationCap},
@@ -19,8 +20,8 @@ export function DemoClosureRail({
   const doneById: Record<string, boolean> = {
     // 教學：必須完成 AI 場域點名才算 done（解訊號不算）
     teach: state.attendance.scanned,
-    // 配送：初始有 2 筆預載訂單，要超過才算 demo 真的跑過配送
-    delivery: state.orders.length > 2,
+    // 配送：超過預載示範訂單數量才算 demo 真的跑過配送（避免 hardcode 數字）
+    delivery: state.orders.length > INITIAL_ORDERS_COUNT,
     // 生活：必須真的派遣任務（切緊急 toggle 不算）
     life: state.tasks.some((task) => task.source === 'dispatch'),
   };

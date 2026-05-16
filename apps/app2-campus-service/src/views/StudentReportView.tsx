@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
+import QRCode from 'qrcode';
 import { ArrowLeft, User, BarChart3, Clock, AlertTriangle, Lightbulb, CheckCircle2 } from 'lucide-react';
 import { useAppState } from '../state/AppStateProvider';
 import { openPrintableReport } from '../services/reports';
@@ -8,6 +9,7 @@ import type { StudentReport } from '../state/appState';
 export function StudentReportView({ goBack, showToast, name = "學習訊號 A", studentId }: {goBack: () => void; showToast: (msg: string) => void; name?: string; studentId?: string}) {
   const state = useAppState();
   const [reportLoading, setReportLoading] = React.useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState('');
   const report = useMemo(
     () =>
       (studentId ? state.studentReports[studentId] : undefined) ??
@@ -16,6 +18,25 @@ export function StudentReportView({ goBack, showToast, name = "學習訊號 A", 
     [state.studentReports, studentId, name],
   );
   const displayName = report?.name ?? name;
+
+  // QR code 內嵌：展示時掃描即可帶到此報告（含學生 id 的 hash deeplink）
+  useEffect(() => {
+    if (typeof window === 'undefined' || !report) return;
+    const target = report.studentId ?? studentId ?? '';
+    const baseUrl = window.location.href.split('#')[0];
+    const shareUrl = target ? `${baseUrl}#student=${encodeURIComponent(target)}` : baseUrl;
+    let cancelled = false;
+    QRCode.toDataURL(shareUrl, { margin: 1, width: 192 })
+      .then((dataUrl) => {
+        if (!cancelled) setQrDataUrl(dataUrl);
+      })
+      .catch(() => {
+        // QR 生成失敗時保持空字串，UI 自動隱藏（不阻斷報告主流程）
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [report, studentId]);
 
   const handleSendReport = async () => {
     if (reportLoading) return;
@@ -112,6 +133,23 @@ export function StudentReportView({ goBack, showToast, name = "學習訊號 A", 
                   ))}
                 </div>
              </div>
+
+             {qrDataUrl && (
+               <div className="relative z-10 flex items-center gap-4 rounded-[1.5rem] bg-surface-container-lowest p-5 border border-outline-variant/20">
+                 <img
+                   src={qrDataUrl}
+                   alt="掃我看報告"
+                   className="h-32 w-32 rounded-2xl border border-outline-variant/20 bg-white p-2 shadow-sm"
+                 />
+                 <div className="flex-1 min-w-0">
+                   <p className="text-[10px] font-black tracking-[0.22em] text-primary">分享報告</p>
+                   <h4 className="mt-1 font-bold text-base leading-tight">掃 QR 帶入這份報告</h4>
+                   <p className="mt-2 text-[12px] leading-relaxed text-on-surface-variant">
+                     家長或導師掃一下，就能在自己的裝置上開啟對應學生的學習狀態頁。
+                   </p>
+                 </div>
+               </div>
+             )}
           </div>
         </section>
       </main>

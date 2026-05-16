@@ -3,6 +3,20 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Megaphone, Radio } from 'lucide-react';
 import { sendHardwareCommand } from '../../services/hardwareBridge';
 
+// Tone.js 廣播提示音：do-mi-sol 三音上升，符合「校園廣播鐘聲」直覺
+async function playBroadcastChime() {
+  try {
+    const Tone = await import('tone');
+    await Tone.start();
+    const synth = new Tone.Synth().toDestination();
+    synth.triggerAttackRelease('C5', '0.3');
+    synth.triggerAttackRelease('E5', '0.3', '+0.3');
+    synth.triggerAttackRelease('G5', '0.3', '+0.6');
+  } catch {
+    // 靜音降級：瀏覽器拒授權 AudioContext 時不阻斷廣播流程
+  }
+}
+
 interface BroadcastCardProps {
   showToast: (msg: string) => void;
   onDispatch: (zones: string) => void;
@@ -47,6 +61,8 @@ export function BroadcastCard({ showToast, onDispatch }: BroadcastCardProps) {
     onDispatch(zones);
     // Fire hardware command (non-blocking, best-effort)
     sendHardwareCommand('BROADCAST_EMERGENCY', 'life').catch(() => {});
+    // 播放廣播提示音（best-effort，無聲音也不影響流程）
+    void playBroadcastChime();
     setBroadcastSent(true);
     showToast('緊急廣播已發送至：' + zones);
     if (broadcastSentTimerRef.current) clearTimeout(broadcastSentTimerRef.current);

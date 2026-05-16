@@ -1,6 +1,10 @@
 export const STORAGE_KEY = 'campus-service-robot:v1';
 const _memoryFallback = new Map<string, AppState>();
 
+// 預載示範訂單數量。DemoClosureRail 判斷 delivery done 條件用這個 baseline，
+// 確保展示流程必須新建訂單才會算完成（而非把 hardcode 數字埋在元件裡）。
+export const INITIAL_ORDERS_COUNT = 2;
+
 export type RobotStatus = '待命' | '充電' | '導診' | '清掃' | '配送' | '巡邏' | '疏導';
 export type OrderStatus = 'in_transit' | 'delivered';
 export type TaskStatus = 'pending' | 'in_progress' | 'completed';
