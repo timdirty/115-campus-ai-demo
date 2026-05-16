@@ -1,7 +1,8 @@
 import React from 'react';
 import {Camera, Users, ShieldAlert, Sparkles, Package, Eye, CheckCircle2, RotateCcw} from 'lucide-react';
-import {useCamera} from '../../hooks/useCamera';
+import {useCameraSelection} from '../../hooks/useCameraSelection';
 import {useGeminiVision} from '../../hooks/useGeminiVision';
+import {CameraPicker} from '../CameraPicker';
 import {analyzeCampusImageClosedLoop, createScriptedVisionResult, type VisionDemoScript} from '../../services/localVision';
 import {BRIDGE_URL} from '../../services/hardwareBridge';
 import type {CampusVisionResult, VisionScene} from '../../services/localVision';
@@ -80,7 +81,8 @@ export function VisionCameraCard({
   scriptTotal = 1,
   onNextScript,
 }: VisionCameraCardProps) {
-  const {videoRef, canvasRef, ready, error} = useCamera(isOpen);
+  const cam = useCameraSelection(isOpen);
+  const {videoRef, canvasRef, ready, error} = cam;
   const liveVision = useGeminiVision(!studentMode && isOpen && ready, videoRef, canvasRef, 4000);
   const [demoStep, setDemoStep] = React.useState<DemoStep>('idle');
   const [scriptResult, setScriptResult] = React.useState<CampusVisionResult | null>(null);
@@ -267,6 +269,17 @@ export function VisionCameraCard({
               <p className="text-white/50 text-sm font-mono">開啟攝影機中…</p>
             </>
           )}
+        </div>
+      )}
+      {/* Camera picker — bottom-right corner, doesn't conflict with status bar */}
+      {!studentMode && cam.devices.length > 1 && (
+        <div className="absolute bottom-24 right-4 z-30">
+          <CameraPicker
+            devices={cam.devices}
+            selectedDeviceId={cam.selectedDeviceId}
+            onSelect={cam.selectDevice}
+            variant="inline"
+          />
         </div>
       )}
       <div className="absolute top-4 left-4 right-4 z-20">

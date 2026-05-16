@@ -92,15 +92,15 @@ export function TourProvider({
     setIsActive(false);
   }, [disabled]);
 
-  // Show tour welcome card after a short delay on first visit (1.8s gives judges time to see the UI first)
+  // 導覽改為「手動觸發」— 不再自動 pop（會擋住小孩按 demo 按鈕）
+  // 學生需要看導覽時，從右上角設定面板按「重新導覽」即可。
+  // 同時把第一次造訪的 storage flag 直接寫為 done，避免任何殘餘 auto-trigger。
   useEffect(() => {
     if (disabled) return;
-    const seen = localStorage.getItem(TOUR_STORAGE_KEY);
-    if (!seen) {
-      const timer = setTimeout(() => startTour(), 1800);
-      return () => clearTimeout(timer);
+    if (!localStorage.getItem(TOUR_STORAGE_KEY)) {
+      localStorage.setItem(TOUR_STORAGE_KEY, 'done');
     }
-  }, [disabled, startTour]);
+  }, [disabled]);
 
   return (
     <TourContext.Provider

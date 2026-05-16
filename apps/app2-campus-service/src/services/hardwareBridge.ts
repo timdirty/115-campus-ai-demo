@@ -2,6 +2,15 @@ export const BRIDGE_URL =
   ((import.meta as unknown as {env?: Record<string, string>}).env?.VITE_ARDUINO_BRIDGE_URL) ||
   'http://localhost:3202';
 
+export type ClassroomScanApiResult = {
+  ok: boolean;
+  count?: number;
+  rate?: number;
+  confidence?: number;
+  summary?: string;
+  error?: string;
+};
+
 export type HardwareBridgeResult = {
   ok: boolean;
   statusCode: number;
@@ -40,6 +49,25 @@ async function checkArduinoReady(): Promise<boolean> {
     return response.ok && payload.arduinoConnected === true;
   } catch {
     return false;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+export async function scanClassroom(imageBase64: string): Promise<ClassroomScanApiResult> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  try {
+    const response = await fetch(`${BRIDGE_URL}/api/ai/classroom-scan`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({imageBase64}),
+      signal: controller.signal,
+    });
+    const payload = await response.json().catch(() => ({ok: false})) as ClassroomScanApiResult;
+    return {ok: response.ok, ...payload};
+  } catch {
+    return {ok: false, error: '無法連接 AI 服務'};
   } finally {
     clearTimeout(timeoutId);
   }

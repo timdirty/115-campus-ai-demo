@@ -1,6 +1,6 @@
 # 校園服務機器人 App
 
-本專案是校園服務機器人的本機比賽展示版。手機寬度用來展示現場操作，平板以上寬度用來展示校園中控台。資料以共享 state 和 `localStorage` 串起完整 demo 流程；生活影像辨識會透過本機 bridge 使用 `GEMINI_API_KEY` 呼叫 Gemini API 上的 Gemma 模型。
+本專案是校園服務機器人的本機比賽展示版。手機寬度用來展示現場操作，平板以上寬度用來展示校園中控台。資料以共享 state 和 `localStorage` 串起完整 demo 流程；生活影像辨識會透過本機 bridge 使用 `GEMINI_API_KEY` 呼叫 hosted Gemini 模型，預設 `gemini-2.5-flash`。
 
 硬體路徑使用 App 2 專屬本機 bridge，預設 `http://localhost:3202/api/robot/command`，可用 `VITE_ARDUINO_BRIDGE_URL` 改成其他 bridge URL；沒有插 Arduino 時，App 會顯示未連線但保留任務紀錄，插上並上傳韌體後同一批指令會走 Serial。
 
@@ -13,14 +13,15 @@ npm run dev
 
 開啟 Vite 顯示的網址。若 `3000` 被占用，Vite 會提示下一個可用 port。
 
-## Gemma Vision Setup
+## Gemini Vision Setup
 
 生活頁的影像辨識是真實 bridge 呼叫，不會假裝雲端成功。請在 `.env` 設定：
 
 ```zsh
 GEMINI_API_KEY="你的 Google AI Studio API key"
-GEMMA_VISION_MODEL="gemma-4-26b-a4b-it"
-GEMMA_TEXT_MODEL="gemma-4-26b-a4b-it"
+GEMINI_MODEL="gemini-2.5-flash"
+GEMINI_VISION_MODEL="gemini-2.5-flash"
+GEMINI_TEXT_MODEL="gemini-2.5-flash"
 ```
 
 啟動後可用以下指令確認模型權限：
@@ -29,7 +30,7 @@ GEMMA_TEXT_MODEL="gemma-4-26b-a4b-it"
 curl http://localhost:3202/api/ai/status
 ```
 
-若回 `GEMMA_PERMISSION_DENIED`，代表這把 key/project 沒有該 Gemma 模型權限；前端會明確標示 Gemma 未就緒，並只把本地影像分析當作降級結果。
+若回 `AI_MODEL_PERMISSION_DENIED`，代表這把 key/project 沒有該 hosted 模型權限；前端會明確標示雲端 AI 未就緒，並只把本地影像分析當作降級結果。若要測 Gemma 4，請把 `GEMINI_*` model 變數改成 `gemma-4-26b-a4b-it`，並先確認 key/project 有權限。
 
 ## Verification
 

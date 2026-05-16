@@ -8,7 +8,7 @@ import {networkInterfaces} from 'node:os';
 import express from 'express';
 import {WebSocketServer, WebSocket} from 'ws';
 import {getActivePath, getTelemetry, isConnected, onConnectionChange, sendCommand, tryAutoOpen} from './serialPort';
-import {analyzeDeliveryTask, checkGemmaAccess, classifyVisionScene, getAiErrorInfo, getAiModelName, isGeminiConfigured} from './aiService';
+import {analyzeDeliveryTask, checkAiAccess, classifyVisionScene, estimateClassroomAttendance, generateDispatchRecommendation, generateStudentReport, generateTeacherReply, getAiErrorInfo, getAiModelName, isGeminiConfigured} from './aiService';
 import {appendDeliveryLog, appendTaskLog, getRecentDeliveryLogs, getRecentTaskLogs, resetDemoData} from './storage';
 import {getEV3Status, sendEV3Command, startEV3Manager} from './ev3Manager';
 import {getSpikeStatus, sendSpikeCommand, startSpikeManager} from './spikeManager';
@@ -115,6 +115,17 @@ function cleanDisplayText(input: unknown, fallback: string, maxLength: number): 
   return (text || fallback).slice(0, maxLength);
 }
 
+function getDisplayWebPort(origin: string): number {
+  try {
+    const parsed = new URL(origin);
+    const port = Number(parsed.port);
+    if (port) return port;
+  } catch {
+    // Fall back to env/default below.
+  }
+  return Number(process.env.VITE_PORT ?? 3000) || 3000;
+}
+
 onConnectionChange((connected, path) => {
   broadcast({type: 'arduino_status', connected, port: path ?? '', simulated: false});
 });
@@ -190,7 +201,7 @@ app.get('/api/ready', (_req, res) => {
 });
 
 app.get('/api/ai/status', async (_req, res) => {
-  const status = await checkGemmaAccess();
+  const status = await checkAiAccess();
   res.status(status.ok ? 200 : 503).json(status);
 });
 
@@ -259,6 +270,63 @@ app.post('/api/ai/vision-classify', async (req, res) => {
   }
 });
 
+app.post('/api/ai/teacher-reply', async (req, res) => {
+  const {question, subject} = req.body ?? {};
+  if (typeof question !== 'string' || !question.trim()) {
+    return res.status(400).json({ok: false, error: 'question required'});
+  }
+  try {
+    const result = await generateTeacherReply(question, typeof subject === 'string' ? subject : undefined);
+    if (!result.reply) return res.status(503).json({ok: false, error: 'AI 暫時不可用', fallback: true});
+    res.json({ok: true, reply: result.reply, source: result.source});
+  } catch (error) {
+    res.status(500).json({ok: false, error: error instanceof Error ? error.message : String(error)});
+  }
+});
+
+app.post('/api/ai/dispatch-recommend', async (req, res) => {
+  const {zone, taskType} = req.body ?? {};
+  if (typeof zone !== 'string' || !zone.trim()) {
+    return res.status(400).json({ok: false, error: 'zone required'});
+  }
+  try {
+    const result = await generateDispatchRecommendation(zone, typeof taskType === 'string' ? taskType : 'patrol');
+    if (!result.recommendation) return res.status(503).json({ok: false, error: 'AI 暫時不可用', fallback: true});
+    res.json({ok: true, recommendation: result.recommendation, source: result.source});
+  } catch (error) {
+    res.status(500).json({ok: false, error: error instanceof Error ? error.message : String(error)});
+  }
+});
+
+app.post('/api/ai/student-report', async (req, res) => {
+  const {name, data} = req.body ?? {};
+  if (typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ok: false, error: 'name required'});
+  }
+  try {
+    const result = await generateStudentReport(name, typeof data === 'object' && data ? data : {});
+    if (!result.report) return res.status(503).json({ok: false, error: 'AI 暫時不可用', fallback: true});
+    res.json({ok: true, report: result.report, source: result.source});
+  } catch (error) {
+    res.status(500).json({ok: false, error: error instanceof Error ? error.message : String(error)});
+  }
+});
+
+app.post('/api/ai/classroom-scan', async (req, res) => {
+  const {imageBase64} = req.body ?? {};
+  if (typeof imageBase64 !== 'string' || imageBase64.length < 100) {
+    res.status(400).json({ok: false, error: 'imageBase64 required'});
+    return;
+  }
+  try {
+    const result = await estimateClassroomAttendance(imageBase64);
+    res.json({ok: true, ...result});
+  } catch (error) {
+    const info = getAiErrorInfo(error);
+    res.status(info.statusCode).json({ok: false, error: info.message, errorCode: info.code, model: getAiModelName()});
+  }
+});
+
 app.get('/api/logs', async (_req, res) => {
   try {
     const [deliveryLogs, taskLogs] = await Promise.all([getRecentDeliveryLogs(), getRecentTaskLogs()]);
@@ -296,9 +364,9 @@ app.post('/api/spike/command', async (req, res) => {
 });
 
 // Robot face display info — returns LAN IP + full robot-display URL for QR generation
-app.get('/api/display/info', (_req, res) => {
+app.get('/api/display/info', (req, res) => {
   const ip = getLanIp();
-  const vitePort = Number(process.env.VITE_PORT ?? 3000);
+  const vitePort = getDisplayWebPort(req.get('origin') ?? '');
   res.json({
     ok: true,
     ip,

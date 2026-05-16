@@ -4,44 +4,11 @@ import {BottomSheet} from '../components/ui';
 import {AlertOctagon, Calendar, ChevronRight, Terminal} from 'lucide-react';
 import {useAppActions, useAppState} from '../state/AppStateProvider';
 import type {DispatchTaskType} from '../state/appState';
-import type {VisionScene} from '../services/localVision';
 import {BellScheduleCard} from '../components/life/BellScheduleCard';
 import {EnvMonitorCard} from '../components/life/EnvMonitorCard';
 import {ScanMapCard} from '../components/life/ScanMapCard';
 import {BroadcastCard} from '../components/life/BroadcastCard';
 import {VisionCameraCard} from '../components/life/VisionCameraCard';
-
-let _eventId = 100;
-
-const HERO_SCENES: VisionScene[] = ['crowd', 'safety', 'cleaning', 'delivery', 'patrol'];
-const HERO_SCENE_LABELS: Record<VisionScene, string> = {
-  crowd: '人流',
-  safety: '安全',
-  cleaning: '清潔',
-  delivery: '配送',
-  patrol: '巡邏',
-  other: '重拍',
-};
-
-const EVENT_ZONES: Array<{
-  label: string;
-  level: 'ok' | 'warn' | 'error';
-  messages: string[];
-}> = [
-  {label: 'B-4 走廊', level: 'warn', messages: ['人流密度偏高', '走廊壅塞', '需要疏導']},
-  {label: 'A-2 入口', level: 'ok', messages: ['人員正常流動', '場域正常', '無異常狀況']},
-  {label: '操場出口', level: 'error', messages: ['偵測到異常聚集', '緊急狀況', '需立即處置']},
-];
-
-function formatTime(date = new Date()) {
-  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-}
-
-function eventTone(level: 'ok' | 'warn' | 'error') {
-  if (level === 'error') return 'bg-error/10 border-error/25 text-error';
-  if (level === 'warn') return 'bg-amber-400/10 border-amber-400/25 text-amber-400';
-  return 'bg-[#87d46c]/10 border-[#87d46c]/25 text-[#87d46c]';
-}
 
 export function LifeView({
   showToast,
@@ -57,40 +24,9 @@ export function LifeView({
   const [editingSchedule, setEditingSchedule] = useState('');
   const [editTime, setEditTime] = useState('');
   const [editArea, setEditArea] = useState('');
-  const [heroSceneIdx, setHeroSceneIdx] = useState(0);
-  const [aiEvents, setAiEvents] = useState<
-    {id: number; zone: string; msg: string; level: 'ok' | 'warn' | 'error'; time: string}[]
-  >(() => [
-    {id: 1, zone: 'B-4 走廊', msg: '人流密度偏高', level: 'warn', time: formatTime()},
-    {id: 2, zone: 'A-2 入口', msg: '人員正常流動', level: 'ok', time: formatTime()},
-    {id: 3, zone: '操場出口', msg: '偵測到異常聚集', level: 'error', time: formatTime()},
-  ]);
 
   const isEmergency = state.campusStatus.isEmergency;
   const logsEndRef = useRef<HTMLDivElement>(null);
-  const eventZoneIdxRef = useRef(0);
-
-  useEffect(() => {
-    const intv = setInterval(() => {
-      const nextIdx = (eventZoneIdxRef.current + 1) % EVENT_ZONES.length;
-      eventZoneIdxRef.current = nextIdx;
-      const zone = EVENT_ZONES[nextIdx];
-      const msg = zone.messages[Math.floor(Math.random() * zone.messages.length)];
-      setAiEvents(prev => [
-        {id: ++_eventId, zone: zone.label, msg, level: zone.level, time: formatTime()},
-        ...prev.slice(0, 4),
-      ]);
-    }, 3000);
-    return () => clearInterval(intv);
-  }, []);
-
-  useEffect(() => {
-    if (modal === 'mapcam') return;
-    const intv = setInterval(() => {
-      setHeroSceneIdx(prev => (prev + 1) % HERO_SCENES.length);
-    }, 5000);
-    return () => clearInterval(intv);
-  }, [modal]);
 
   useEffect(() => {
     if (modal === 'logs' && logsEndRef.current) {
@@ -188,28 +124,6 @@ export function LifeView({
 
       <section className="px-1" onClick={() => setModal('mapcam')}>
         <ScanMapCard />
-      </section>
-
-      <section className="px-1">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] text-on-surface-variant/50 font-mono font-bold tracking-[0.2em] uppercase">
-            校園事件 · {HERO_SCENE_LABELS[HERO_SCENES[heroSceneIdx]]}
-          </p>
-          <button onClick={() => navigateTo('dispatch-map')} className="text-[10px] text-primary font-bold hover:underline">
-            前往派遣
-          </button>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          {aiEvents.slice(0, 3).map(ev => (
-            <div key={ev.id} className={`rounded-xl border px-3 py-2 text-[10px] font-mono font-bold ${eventTone(ev.level)}`}>
-              <div className="flex justify-between gap-2">
-                <span className="truncate">{ev.zone}</span>
-                <span className="opacity-60">{ev.time}</span>
-              </div>
-              <p className="mt-1 truncate">{ev.msg}</p>
-            </div>
-          ))}
-        </div>
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4 px-1">

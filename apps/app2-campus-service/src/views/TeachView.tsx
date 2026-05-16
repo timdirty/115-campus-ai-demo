@@ -6,8 +6,10 @@ import { useAppActions, useAppState } from '../state/AppStateProvider';
 import type { TeachingSignal } from '../state/appState';
 import { generateTeacherReply } from '../services/localAi';
 import { openPrintableReport } from '../services/reports';
-import {useCamera} from '../hooks/useCamera';
+import {scanClassroom, type ClassroomScanApiResult} from '../services/hardwareBridge';
+import {useCameraSelection} from '../hooks/useCameraSelection';
 import {useGeminiVision} from '../hooks/useGeminiVision';
+import {CameraPicker} from '../components/CameraPicker';
 
 const SCENE_LABELS: Record<string, string> = {
   crowd: '人流偵測',
@@ -30,12 +32,21 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [currentSubject, setCurrentSubject] = useState<string>('');
-  const [focusScore, setFocusScore] = useState(87);
-  const [waveData, setWaveData] = useState([40, 60, 85, 70, 90, 55, 45, 30]);
+  const [scanResult, setScanResult] = useState<ClassroomScanApiResult | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [attendanceScanning, setAttendanceScanning] = useState(false);
+  const autoScanDoneRef = useRef(false);
 
-  const attendanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const attendanceCam = useCameraSelection(modal === 'attendance_scan');
+  const attendanceVideoRef = attendanceCam.videoRef;
+  const attendanceCamReady = attendanceCam.ready;
+  const attendanceCamError = attendanceCam.error;
 
-  const {videoRef, canvasRef, ready: camReady, error: camError} = useCamera(modal === 'video');
+  const videoModalCam = useCameraSelection(modal === 'video');
+  const videoRef = videoModalCam.videoRef;
+  const canvasRef = videoModalCam.canvasRef;
+  const camReady = videoModalCam.ready;
+  const camError = videoModalCam.error;
   const {result: camResult, analyzing: camAnalyzing, source: camSource} = useGeminiVision(
     modal === 'video' && camReady,
     videoRef,
@@ -48,21 +59,21 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
   const camSummary = camResult?.summary ?? '';
   const firstSignal = state.teachingSignals[0] ?? null;
 
+  // Reset scanning state when modal closes
   useEffect(() => {
-    return () => {
-      if (attendanceTimerRef.current) clearTimeout(attendanceTimerRef.current);
-    };
-  }, []);
+    if (modal !== 'attendance_scan') {
+      setAttendanceScanning(false);
+    }
+  }, [modal]);
 
+  // Auto-scan once camera is ready
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Fluctuating score
-      setFocusScore(prev => Math.min(100, Math.max(0, prev + (Math.random() > 0.5 ? 1 : -1))));
-      // Fluctuating wave
-      setWaveData(prev => prev.map(v => Math.min(100, Math.max(20, v + (Math.random() * 20 - 10)))));
-    }, 2500);
-    return () => clearInterval(interval);
-  }, []);
+    if (attendanceCamReady && modal === 'attendance_scan' && !autoScanDoneRef.current) {
+      autoScanDoneRef.current = true;
+      void handleAttendanceScan();
+    }
+  }, [attendanceCamReady]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   const openStudent = (signal: TeachingSignal) => {
     setChatReply(null);
@@ -108,14 +119,44 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
   };
 
   const handleRollCall = () => {
+    setScanResult(null);
+    setScanError(null);
+    autoScanDoneRef.current = false;
     setModal('attendance_scan');
-    if (attendanceTimerRef.current) clearTimeout(attendanceTimerRef.current);
-    attendanceTimerRef.current = setTimeout(() => {
-      attendanceTimerRef.current = null;
-      actions.scanAttendance();
-      setModal(null);
-      showToast('AI 場域點名已完成：2 個座位待確認');
-    }, 2500);
+  };
+
+  const handleAttendanceScan = async () => {
+    if (attendanceScanning) return;
+    const video = attendanceVideoRef.current;
+    if (!video) return;
+    setAttendanceScanning(true);
+    setScanResult(null);
+    setScanError(null);
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const base64 = canvas.toDataURL('image/jpeg', 0.65).replace(/^data:image\/jpeg;base64,/, '');
+        const result = await scanClassroom(base64);
+        if (result.ok) {
+          setScanResult(result);
+        } else {
+          setScanError(result.error ?? 'AI 辨識失敗，請重試或手動完成');
+        }
+      }
+    } catch {
+      setScanError('無法連接 AI 服務，請手動完成點名');
+    }
+    setAttendanceScanning(false);
+  };
+
+  const handleAttendanceComplete = () => {
+    actions.scanAttendance();
+    setModal(null);
+    showToast('AI 場域點名已完成：2 個座位待確認');
   };
 
   return (
@@ -178,6 +219,16 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
                 <div className="mt-1 text-[10px] text-primary/70 animate-pulse flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span> 場域掃描待命</div>
              </div>
            )}
+           {scanResult?.ok && (
+             <div className="mt-2 flex items-start gap-1.5 rounded-xl border border-primary/20 bg-primary/5 px-2.5 py-1.5">
+               <span className="shrink-0 text-[9px] font-black tracking-widest text-primary mt-px">AI</span>
+               <p className="text-[10px] font-bold text-primary leading-snug">
+                 約 {scanResult.count} 人・出席率 {scanResult.rate}%
+                 {scanResult.confidence !== undefined && scanResult.confidence < 60 && <span className="text-on-surface-variant font-normal">（估算）</span>}
+                 {scanResult.summary && <span className="block text-on-surface-variant font-normal mt-0.5">{scanResult.summary}</span>}
+               </p>
+             </div>
+           )}
         </div>
         <button
           onClick={handleRollCall}
@@ -188,38 +239,18 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
         </button>
       </section>
 
-      <div role="button" tabIndex={0} aria-label="開啟班級專注度分析報表" onKeyDown={(e) => e.key === 'Enter' && setModal('chart')} className="bg-surface-container-lowest rounded-2xl p-5 relative overflow-hidden shadow-md border border-outline-variant/30 cursor-pointer hover:bg-surface-container transition-all group active:scale-[0.98]" onClick={() => setModal('chart')}>
-          <div className="flex justify-between items-start mb-4 relative z-10">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-on-surface-variant font-mono">班級專注度評分</p>
-              <div className="flex items-baseline gap-1.5 mt-1">
-                <motion.h2
-                  key={focusScore}
-                  initial={{ opacity: 0.5, y: -5 }} animate={{ opacity: 1, y: 0 }}
-                  className="font-headline font-bold text-4xl text-primary tracking-tighter"
-                >
-                  {focusScore}
-                </motion.h2>
-                <span className="text-xl text-on-surface-variant font-headline font-bold">%</span>
-              </div>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-secondary-container text-primary flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-12 transition-all shadow-inner">
-              <Activity size={20} />
-            </div>
+      <div role="button" tabIndex={0} aria-label="開啟班級互動概況" onKeyDown={(e) => e.key === 'Enter' && setModal('chart')} className="bg-surface-container-lowest rounded-2xl p-5 border border-outline-variant/30 shadow-md cursor-pointer hover:bg-surface-container transition-colors active:scale-[0.98] flex items-center gap-4" onClick={() => setModal('chart')}>
+          <div className="w-12 h-12 rounded-xl bg-secondary-container text-primary flex items-center justify-center shrink-0">
+            <Activity size={22} />
           </div>
-          <div className="h-14 flex items-end gap-1.5 px-1 relative z-10">
-            {waveData.map((h, i) => (
-              <motion.div
-                key={i}
-                animate={{ height: `${h}%` }}
-                transition={{ type: "spring", bounce: 0.2, duration: 0.8 }}
-                className={`flex-1 rounded-t-md mx-[1px] ${i === waveData.length - 1 ? 'bg-primary shadow-[0_0_15px_rgba(var(--color-primary),0.6)]' : 'bg-primary/50'}`}
-                style={{ opacity: 0.4 + (h/100)*0.6 }}
-              />
-            ))}
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant font-mono">班級互動概況</p>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="font-headline font-bold text-2xl text-on-surface">{state.teachingSignals.length}</span>
+              <span className="text-xs font-bold text-on-surface-variant">則訊號待處理</span>
+            </div>
+            <p className="text-[10px] text-on-surface-variant/70 mt-0.5">點此匯出完整報表</p>
           </div>
-          {/* Decorative Graph Grid */}
-          <div className="absolute inset-0 top-auto h-28 opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(to top, var(--color-primary) 1.5px, transparent 1.5px)', backgroundSize: '100% 24px' }}></div>
         </div>
       </div>{/* end attendance+focus grid */}
 
@@ -263,28 +294,27 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
         )}
       </section>
 
-      {/* Video Feed */}
-      <section role="button" tabIndex={0} aria-label="開啟攝影機即時影像" onKeyDown={(e) => e.key === 'Enter' && setModal('video')} onClick={() => setModal('video')} className="bg-inverse-surface rounded-2xl h-52 relative overflow-hidden shadow-2xl cursor-pointer group mt-4">
-        <div className="w-full h-full group-hover:scale-105 transition-transform duration-1000" style={{background: 'linear-gradient(135deg, #0d2137 0%, #1e3a5f 50%, #0a1a2e 100%)'}} />
-        <div className="absolute inset-0 bg-linear-to-t from-black via-black/20 to-transparent"></div>
-        {/* Simulating Bounding Boxes */}
-        <div className="absolute top-[20%] left-[30%] w-14 h-14 border-2 border-primary/50 rounded-xl pointer-events-none group-hover:border-primary transition-colors shadow-[0_0_12px_rgba(var(--color-primary),0.3)]">
-          <div className="absolute -top-5 left-0 bg-primary/90 backdrop-blur-md text-white text-[9px] px-2 py-0.5 rounded-md font-bold tracking-widest shadow-sm">區域 A 專注</div>
-        </div>
-        <div className="absolute top-[35%] right-[25%] w-16 h-16 border-2 border-tertiary/50 rounded-xl pointer-events-none group-hover:border-tertiary transition-colors animate-pulse shadow-[0_0_12px_rgba(var(--color-tertiary),0.3)]">
-          <div className="absolute -top-5 left-0 bg-tertiary/90 backdrop-blur-md text-white text-[9px] px-2 py-0.5 rounded-md font-bold tracking-widest shadow-sm">區域 B 需確認</div>
-        </div>
-
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
-          <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center border-2 border-white/20 text-white shadow-[0_0_24px_rgba(255,255,255,0.2)]"><Video size={28} className="opacity-90 ml-1" /></div>
-        </div>
-        <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
-           <div className="bg-black/60 backdrop-blur-xl px-4 py-3 rounded-2xl border border-white/10 shadow-lg">
-             <p className="text-[9px] text-white/50 font-bold uppercase tracking-[0.3em] mb-1 font-mono">氛圍即時估測</p>
-             <p className="text-sm text-white font-bold tracking-wide flex items-center gap-2">
-               <span className="w-2 h-2 rounded-full bg-[#87d46c] animate-pulse shadow-[0_0_10px_#87d46c]"></span> 和諧積極
-             </p>
-           </div>
+      {/* 開啟即時影像 — 點此進入真實 Gemini Vision 鏡頭，不再顯示假掃描動畫 */}
+      <section
+        role="button"
+        tabIndex={0}
+        aria-label="開啟攝影機即時影像"
+        onKeyDown={(e) => e.key === 'Enter' && setModal('video')}
+        onClick={() => setModal('video')}
+        className="mt-4 rounded-2xl border border-primary/15 bg-white shadow-sm cursor-pointer transition-colors hover:border-primary/35 active:scale-[0.99]"
+      >
+        <div className="flex items-stretch">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center bg-primary/8 border-r border-primary/15">
+            <Video className="h-9 w-9 text-primary" strokeWidth={1.5} />
+          </div>
+          <div className="flex-1 p-4 min-w-0">
+            <p className="text-[10px] font-black tracking-[0.2em] uppercase text-primary">教室即時影像</p>
+            <h3 className="text-base font-black text-on-surface leading-tight mt-0.5">點此開啟鏡頭辨識</h3>
+            <p className="mt-0.5 text-xs font-medium text-on-surface-variant/70">Gemini 2.5 Flash 即時觀察教室情境</p>
+          </div>
+          <div className="flex items-center pr-4">
+            <span className="rounded-full bg-primary text-white text-[10px] font-black tracking-widest px-3 py-1.5 shadow-sm">開啟 →</span>
+          </div>
         </div>
       </section>
 
@@ -412,21 +442,133 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
 
       {/* Attendance Modal */}
       <BottomSheet isOpen={modal === 'attendance_scan'} onClose={() => setModal(null)} title="AI 場域點名">
-        <div className="p-10 flex flex-col items-center justify-center space-y-12 pb-16">
-           <div className="relative w-48 h-48 flex items-center justify-center my-4">
-             <div className="absolute inset-0 border-[4px] border-primary/20 rounded-full animate-ping [animation-duration:2.5s] shadow-[0_0_30px_rgba(var(--color-primary),0.3)]"></div>
-             <div className="absolute inset-4 border-2 border-primary/40 rounded-full animate-spin [animation-duration:4s] border-dashed"></div>
-             <div className="w-full h-full bg-surface-container rounded-full flex items-center justify-center overflow-hidden relative shadow-inner">
-                <motion.div animate={{ y: ['-100%', '100%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }} className="absolute w-full h-2 bg-primary/60 blur-sm shadow-[0_0_20px_rgba(var(--color-primary),1)]"></motion.div>
-                <div className="grid grid-cols-2 gap-3 opacity-50 p-8">
-                  {[...Array(4)].map((_, i) => <div key={i} className="w-12 h-12 rounded-full border-[3px] border-primary/40 border-dashed"></div>)}
+        <div className="flex flex-col items-center gap-5 p-4 pb-10">
+          {/* Live camera feed */}
+          <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black">
+            <video
+              ref={attendanceVideoRef}
+              autoPlay
+              playsInline
+              muted
+              className={`w-full h-full object-cover transition-opacity duration-500 ${attendanceCamReady ? 'opacity-100' : 'opacity-0'}`}
+            />
+            {!attendanceCamReady && !attendanceCamError && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3"
+                style={{background: 'linear-gradient(160deg, #0d2137 0%, #1e3a5f 60%, #0a1a2e 100%)'}}>
+                <div className="w-10 h-10 rounded-full border-2 border-primary/40 border-t-primary animate-spin" />
+                <p className="text-white/60 text-sm font-mono">攝影機啟動中…</p>
+                <p className="text-white/40 text-[10px] font-mono">第一次使用請允許瀏覽器使用相機</p>
+              </div>
+            )}
+            {attendanceCamError && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center"
+                style={{background: 'linear-gradient(160deg, #3a1414 0%, #1a0a0a 100%)'}}>
+                <Camera className="h-8 w-8 text-red-300" />
+                <p className="text-red-100 text-sm font-bold leading-relaxed max-w-sm">{attendanceCamError}</p>
+              </div>
+            )}
+            {attendanceCamReady && attendanceScanning && (
+              <div className="absolute inset-0 pointer-events-none">
+                <motion.div
+                  animate={{y: ['0%', '100%', '0%']}}
+                  transition={{duration: 1.5, repeat: Infinity, ease: 'linear'}}
+                  className="w-full h-0.5 bg-primary/60 shadow-[0_0_8px_rgba(var(--color-primary),0.8)]"
+                />
+                <div className="absolute inset-0 border-2 border-primary/30 animate-pulse" />
+              </div>
+            )}
+            {/* Inline camera picker (top-right) — only when we have multiple devices */}
+            {attendanceCam.devices.length > 1 && (
+              <div className="absolute top-3 right-3">
+                <CameraPicker
+                  devices={attendanceCam.devices}
+                  selectedDeviceId={attendanceCam.selectedDeviceId}
+                  onSelect={(id) => {
+                    autoScanDoneRef.current = false;
+                    setScanResult(null);
+                    setScanError(null);
+                    attendanceCam.selectDevice(id);
+                  }}
+                  variant="inline"
+                />
+              </div>
+            )}
+            <div className="absolute bottom-3 left-0 right-0 flex justify-center pointer-events-none">
+              <span className="bg-black/60 backdrop-blur-sm text-white/70 text-[10px] font-bold px-3 py-1 rounded-full tracking-widest">
+                不辨識身分，只統計場域
+              </span>
+            </div>
+          </div>
+
+          {/* Stacked picker when there's an error (helps user switch / retry) */}
+          {attendanceCamError && (
+            <CameraPicker
+              devices={attendanceCam.devices}
+              selectedDeviceId={attendanceCam.selectedDeviceId}
+              onSelect={(id) => {
+                autoScanDoneRef.current = false;
+                setScanResult(null);
+                setScanError(null);
+                attendanceCam.selectDevice(id);
+              }}
+              onRefresh={() => { void attendanceCam.refresh(); }}
+              variant="stacked"
+              hint="若清單為空，請先到瀏覽器網址列旁的攝影機圖示允許權限，然後按「重新偵測」。"
+            />
+          )}
+
+          {/* Action area */}
+          {!scanResult?.ok ? (
+            <div className="w-full space-y-3">
+              {scanError && (
+                <div className="rounded-xl border border-error/30 bg-error/8 px-4 py-2.5 text-sm font-bold text-error">
+                  {scanError}
                 </div>
-             </div>
-           </div>
-           <div className="text-center space-y-3">
-             <p className="font-headline font-bold text-3xl text-primary animate-pulse tracking-widest drop-shadow-sm">確認座位狀態中...</p>
-             <p className="text-[12px] font-bold text-on-surface-variant tracking-[0.4em]">不辨識身分，只統計場域</p>
-           </div>
+              )}
+              <button
+                onClick={() => void handleAttendanceScan()}
+                disabled={attendanceScanning || (!attendanceCamReady && !scanError)}
+                className="w-full py-4 rounded-2xl font-bold text-base tracking-widest transition-all active:scale-[0.98] disabled:opacity-40 bg-primary text-white shadow-[0_4px_20px_rgba(var(--color-primary),0.35)]"
+              >
+                {attendanceScanning ? 'AI 辨識中…' : scanError ? '重新辨識' : !attendanceCamReady ? '等待攝影機…' : 'AI 辨識中…'}
+              </button>
+              <button
+                onClick={handleAttendanceComplete}
+                disabled={attendanceScanning}
+                className="w-full py-3 rounded-2xl font-bold text-sm text-on-surface-variant border border-outline-variant/30 active:scale-[0.98] transition-all disabled:opacity-40"
+              >
+                略過鏡頭，手動完成點名
+              </button>
+            </div>
+          ) : (
+            <div className="w-full space-y-4">
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 px-5 py-4">
+                <p className="text-lg font-bold text-primary">
+                  約 {scanResult.count} 人・出席率 {scanResult.rate}%
+                  {scanResult.confidence !== undefined && scanResult.confidence < 60 && (
+                    <span className="text-on-surface-variant font-normal text-sm ml-1">（估算）</span>
+                  )}
+                </p>
+                {scanResult.summary && (
+                  <p className="text-sm text-on-surface-variant mt-1">{scanResult.summary}</p>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setScanResult(null)}
+                  className="flex-1 py-4 rounded-2xl font-bold text-sm border border-outline-variant/30 text-on-surface-variant active:scale-[0.98] transition-all"
+                >
+                  重新辨識
+                </button>
+                <button
+                  onClick={handleAttendanceComplete}
+                  className="flex-1 py-4 rounded-2xl font-bold text-sm bg-primary text-white shadow-[0_4px_15px_rgba(var(--color-primary),0.3)] active:scale-[0.98] transition-all"
+                >
+                  完成點名
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </BottomSheet>
 
@@ -460,6 +602,18 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
           )}
 
           <div className="absolute top-0 inset-x-0 h-32 bg-linear-to-b from-black/70 to-transparent z-10 pointer-events-none"></div>
+
+          {/* Camera picker (top-left, away from BottomSheet close button) */}
+          {videoModalCam.devices.length > 1 && (
+            <div className="absolute top-4 left-4 z-30">
+              <CameraPicker
+                devices={videoModalCam.devices}
+                selectedDeviceId={videoModalCam.selectedDeviceId}
+                onSelect={videoModalCam.selectDevice}
+                variant="inline"
+              />
+            </div>
+          )}
 
           {/* AI Scanning overlay */}
           {camReady && (
@@ -530,12 +684,12 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       <BottomSheet isOpen={modal === 'chart'} onClose={() => setModal(null)} title="即時專注度分析報表">
          <div className="p-6 flex flex-col items-center py-10">
            <div className="w-28 h-28 rounded-full bg-primary/10 flex items-center justify-center mb-8 relative shadow-inner">
-              <motion.div animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }} className="absolute inset-0 border-[4px] border-dashed border-primary/40 rounded-full"></motion.div>
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }} className="absolute inset-0 border-4 border-dashed border-primary/40 rounded-full"></motion.div>
               <Focus size={52} className="text-primary opacity-90 drop-shadow-md" />
            </div>
            <p className="text-2xl font-headline font-bold mb-3 tracking-wide text-on-surface">分析數據匯總中...</p>
-           <p className="text-[15px] text-on-surface-variant font-medium text-center max-w-[280px] leading-relaxed">系統正在統整本堂歷史課的所有互動訊號與視覺追蹤歷程。</p>
-           <button onClick={downloadReport} className="mt-10 bg-primary hover:bg-primary/95 text-white py-5 px-8 rounded-[1.5rem] font-bold text-[17px] tracking-widest active:scale-[0.98] shadow-[0_0_20px_rgba(var(--color-primary),0.4)] w-full transition-all flex items-center justify-center gap-2 border border-primary/20">
+           <p className="text-[15px] text-on-surface-variant font-medium text-center max-w-70 leading-relaxed">系統正在統整本堂歷史課的所有互動訊號與視覺追蹤歷程。</p>
+           <button onClick={downloadReport} className="mt-10 bg-primary hover:bg-primary/95 text-white py-5 px-8 rounded-3xl font-bold text-[17px] tracking-widest active:scale-[0.98] shadow-[0_0_20px_rgba(var(--color-primary),0.4)] w-full transition-all flex items-center justify-center gap-2 border border-primary/20">
              匯出完整 PDF 報告
            </button>
          </div>

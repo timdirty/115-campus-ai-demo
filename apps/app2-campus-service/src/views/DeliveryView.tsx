@@ -64,6 +64,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
   const openProduct = (p: Product) => {
     setSelectedProduct(p);
     setQty(1);
+    setDest('101 教室');
     setModal('product');
   };
 
@@ -78,7 +79,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
       const t2 = setTimeout(() => {
         actions.autoCompleteInTransit();
         showToast('✅ 配送完成！機器人已送達目的地');
-      }, 35000);
+      }, 12000);
       const t3 = setTimeout(() => navigateTo('delivery-tracking'), 600);
       pendingTimers.current.push(t2, t3);
     }, 1200);
@@ -92,6 +93,11 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
     }
     actions.createDeliveryOrder({ productId: demoProduct.id, quantity: 1, destination: dest });
     showToast(`配送閉環啟動：${demoProduct.name} 前往 ${dest}`);
+    const t = setTimeout(() => {
+      actions.autoCompleteInTransit();
+      showToast('✅ 配送完成！機器人已送達目的地');
+    }, 12000);
+    pendingTimers.current.push(t);
     navigateTo('delivery-tracking');
   };
 

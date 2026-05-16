@@ -1,8 +1,7 @@
-import {CheckCircle2, GraduationCap, Home, Route, Truck} from 'lucide-react';
+import {CheckCircle2, GraduationCap, Route, Truck} from 'lucide-react';
 import type {AppState} from '../state/appState';
 
 const STEPS = [
-  {id: 'student', label: '開始', detail: '學生照三步驟上台', icon: Home},
   {id: 'teach', label: '教學', detail: '點名與互動有紀錄', icon: GraduationCap},
   {id: 'delivery', label: '配送', detail: '下單到送達可追蹤', icon: Truck},
   {id: 'life', label: '生活', detail: '影像派遣進任務', icon: Route},
@@ -18,10 +17,12 @@ export function DemoClosureRail({
   onTabChange: (tab: string) => void;
 }) {
   const doneById: Record<string, boolean> = {
-    student: state.tasks.length > 0 || state.orders.length > 0 || state.attendance.scanned,
-    teach: state.attendance.scanned || Object.values(state.studentReports).some((report) => report.events.length > 1),
-    delivery: state.orders.length > 0,
-    life: state.tasks.some((task) => task.source === 'dispatch') || state.campusStatus.isEmergency,
+    // 教學：必須完成 AI 場域點名才算 done（解訊號不算）
+    teach: state.attendance.scanned,
+    // 配送：初始有 2 筆預載訂單，要超過才算 demo 真的跑過配送
+    delivery: state.orders.length > 2,
+    // 生活：必須真的派遣任務（切緊急 toggle 不算）
+    life: state.tasks.some((task) => task.source === 'dispatch'),
   };
   const completed = STEPS.filter((step) => doneById[step.id]).length;
   const next = STEPS.find((step) => !doneById[step.id]) ?? STEPS[STEPS.length - 1];
@@ -33,10 +34,10 @@ export function DemoClosureRail({
         <div className="min-w-0">
           <p className="text-[10px] font-black tracking-[0.22em] text-primary">展示閉環</p>
           <h2 className="mt-1 text-lg font-black text-on-surface">
-            {allDone ? '4/4 完成 · 可以收尾報告' : `${completed}/4 完成 · 下一步：${next.label}`}
+            {allDone ? '3/3 完成 · 可以收尾報告' : `${completed}/3 完成 · 下一步：${next.label}`}
           </h2>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[34rem]">
+        <div className="grid grid-cols-3 gap-2 lg:min-w-104">
           {STEPS.map((step, index) => {
             const Icon = step.icon;
             const done = doneById[step.id];

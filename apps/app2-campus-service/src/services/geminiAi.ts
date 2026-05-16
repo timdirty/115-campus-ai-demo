@@ -25,17 +25,19 @@ export async function askGemini(
     throw new Error('proxy disabled');
   }
 
-  const PROXY_URL = getEnv('VITE_AI_PROXY_URL', 'http://localhost:3200');
+  // 預設走 bridge（同一台 server），不再依賴額外的 proxy。
+  // 如環境變數 VITE_AI_PROXY_URL 有設，仍可指向不同位置。
+  const PROXY_URL = getEnv('VITE_AI_PROXY_URL', getEnv('VITE_ARDUINO_BRIDGE_URL', 'http://localhost:3202'));
   const PROXY_KEY = getEnv('VITE_AI_PROXY_KEY', '');
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 6000);
+  const timeout = setTimeout(() => controller.abort(), 15000);
 
   try {
     const res = await fetch(`${PROXY_URL}${route}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Proxy-Key': PROXY_KEY,
+        ...(PROXY_KEY ? {'X-Proxy-Key': PROXY_KEY} : {}),
       },
       body: JSON.stringify(body),
       signal: controller.signal,

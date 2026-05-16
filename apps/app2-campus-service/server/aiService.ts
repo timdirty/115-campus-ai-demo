@@ -2,15 +2,16 @@ import {GoogleGenAI} from '@google/genai';
 
 const geminiApiKey = process.env.GEMINI_API_KEY?.trim() || process.env.VITE_GEMINI_API_KEY?.trim() || '';
 const ai = geminiApiKey ? new GoogleGenAI({apiKey: geminiApiKey}) : null;
-const gemmaVisionModel = process.env.GEMMA_VISION_MODEL?.trim() || process.env.GEMINI_VISION_MODEL?.trim() || 'gemma-4-26b-a4b-it';
-const gemmaTextModel = process.env.GEMMA_TEXT_MODEL?.trim() || process.env.GEMINI_TEXT_MODEL?.trim() || gemmaVisionModel;
+const defaultHostedModel = 'gemini-2.5-flash';
+const visionModel = process.env.GEMINI_VISION_MODEL?.trim() || process.env.GEMINI_MODEL?.trim() || defaultHostedModel;
+const textModel = process.env.GEMINI_TEXT_MODEL?.trim() || process.env.GEMINI_MODEL?.trim() || visionModel;
 
 export function isGeminiConfigured(): boolean {
   return Boolean(ai);
 }
 
 export function getAiModelName(): string {
-  return gemmaVisionModel;
+  return visionModel;
 }
 
 export function getAiErrorInfo(error: unknown): {message: string; code: string; statusCode: number} {
@@ -26,38 +27,38 @@ export function getAiErrorInfo(error: unknown): {message: string; code: string; 
   }
   if (/PERMISSION_DENIED|denied access|403/i.test(`${status} ${message}`)) {
     return {
-      message: `Gemma model access denied for ${gemmaVisionModel}. Check this API key/project access or set GEMMA_VISION_MODEL to an allowed Gemma model.`,
-      code: 'GEMMA_PERMISSION_DENIED',
+      message: `Hosted AI model access denied for ${visionModel}. Check this API key/project access or set GEMINI_VISION_MODEL to an allowed model.`,
+      code: 'AI_MODEL_PERMISSION_DENIED',
       statusCode: 403,
     };
   }
   if (/NOT_FOUND|not found|404/i.test(`${status} ${message}`)) {
     return {
-      message: `Gemma model ${gemmaVisionModel} is not available to this API key/API version.`,
-      code: 'GEMMA_MODEL_NOT_FOUND',
+      message: `Hosted AI model ${visionModel} is not available to this API key/API version.`,
+      code: 'AI_MODEL_NOT_FOUND',
       statusCode: 404,
     };
   }
   return {
-    message: `Gemma vision request failed for ${gemmaVisionModel}.`,
-    code: 'GEMMA_REQUEST_FAILED',
+    message: `Hosted vision request failed for ${visionModel}.`,
+    code: 'AI_REQUEST_FAILED',
     statusCode: 502,
   };
 }
 
-export async function checkGemmaAccess(): Promise<{ok: boolean; model: string; error?: string; errorCode?: string}> {
+export async function checkAiAccess(): Promise<{ok: boolean; model: string; error?: string; errorCode?: string}> {
   if (!ai) {
-    return {ok: false, model: gemmaVisionModel, error: 'GEMINI_API_KEY is missing', errorCode: 'GEMINI_KEY_MISSING'};
+    return {ok: false, model: visionModel, error: 'GEMINI_API_KEY is missing', errorCode: 'GEMINI_KEY_MISSING'};
   }
   try {
     await ai.models.generateContent({
-      model: gemmaVisionModel,
+      model: visionModel,
       contents: 'Return exactly OK.',
     });
-    return {ok: true, model: gemmaVisionModel};
+    return {ok: true, model: visionModel};
   } catch (error) {
     const info = getAiErrorInfo(error);
-    return {ok: false, model: gemmaVisionModel, error: info.message, errorCode: info.code};
+    return {ok: false, model: visionModel, error: info.message, errorCode: info.code};
   }
 }
 
@@ -133,7 +134,7 @@ function parseVisionResponse(rawText: string, zonePool: string[]): {scene: Visio
         summary: typeof parsed.summary === 'string' && parsed.summary ? parsed.summary : VISION_SUMMARIES[scene],
       };
     } catch {
-      // Gemma may describe the requested schema before its answer; fall through to text parsing.
+      // Hosted models may describe the requested schema before answering; fall through to text parsing.
     }
   }
   const scene = inferSceneFromVisionText(raw);
@@ -169,7 +170,7 @@ export async function classifyVisionScene(imageBase64: string): Promise<{scene: 
 {"scene":"<類別>","confidence":<0-100整數，反映你的確信度>,"zone":"<一個繁體中文地點，如「B棟走廊」>","summary":"<一句繁體中文，具體描述畫面情境和建議行動>"}`;
 
     const response = await ai.models.generateContent({
-      model: gemmaVisionModel,
+      model: visionModel,
       config: {systemInstruction: '你是台灣國小校園服務機器人的視覺 AI 模組。你必須保守判斷，不可以把非校園任務畫面硬分類成校園任務。只回傳 JSON。'},
       contents: [{role: 'user', parts: [
         {text: prompt},
@@ -179,9 +180,9 @@ export async function classifyVisionScene(imageBase64: string): Promise<{scene: 
     const rawText = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
     if (!rawText) throw new Error('empty response');
     const {scene, confidence, zone, summary} = parseVisionResponse(rawText, zonePool);
-    return {scene, confidence, zone, summary, source: 'gemini', model: gemmaVisionModel};
+    return {scene, confidence, zone, summary, source: 'gemini', model: visionModel};
   } catch (error) {
-    console.warn('[ai] Gemma vision failed:', error instanceof Error ? error.message : String(error));
+    console.warn('[ai] Hosted vision failed:', error instanceof Error ? error.message : String(error));
     throw error;
   }
 }
@@ -200,7 +201,7 @@ export async function analyzeDeliveryTask(context: DeliveryContext): Promise<{re
     ].filter(Boolean).join('\n');
 
     const response = await ai.models.generateContent({
-      model: gemmaTextModel,
+      model: textModel,
       contents: [{role: 'user', parts: [{text: prompt}]}],
     });
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
@@ -209,4 +210,83 @@ export async function analyzeDeliveryTask(context: DeliveryContext): Promise<{re
   } catch {
     return {reply: localDeliveryReply(), source: 'local'};
   }
+}
+
+export async function generateTeacherReply(question: string, subject?: string): Promise<{reply: string; source: 'gemini' | 'local'}> {
+  if (!ai) return {reply: '', source: 'local'};
+  try {
+    const prompt = `你是台灣國小老師的 AI 助教。學生提問：「${question}」${subject ? `\n科目：${subject}` : ''}\n用 2-3 句繁體中文回答，語氣親切但專業，可以鼓勵學生思考。`;
+    const response = await ai.models.generateContent({model: textModel, contents: [{role: 'user', parts: [{text: prompt}]}]});
+    const text = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
+    if (!text) throw new Error('empty response');
+    return {reply: text, source: 'gemini'};
+  } catch {
+    return {reply: '', source: 'local'};
+  }
+}
+
+export async function generateDispatchRecommendation(zone: string, taskType: string): Promise<{recommendation: string; source: 'gemini' | 'local'}> {
+  if (!ai) return {recommendation: '', source: 'local'};
+  try {
+    const prompt = `你是校園服務機器人派遣 AI。請給出派遣建議。\n區域：${zone}\n任務類型：${taskType}\n用 1-2 句繁體中文回答，提示風險、優先順序或注意事項。`;
+    const response = await ai.models.generateContent({model: textModel, contents: [{role: 'user', parts: [{text: prompt}]}]});
+    const text = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
+    if (!text) throw new Error('empty response');
+    return {recommendation: text, source: 'gemini'};
+  } catch {
+    return {recommendation: '', source: 'local'};
+  }
+}
+
+export async function generateStudentReport(name: string, data: Record<string, unknown>): Promise<{report: string; source: 'gemini' | 'local'}> {
+  if (!ai) return {report: '', source: 'local'};
+  try {
+    const prompt = `你是台灣國小導師的 AI 助手，幫忙撰寫學生學習狀態報告。\n學生：${name}\n數據：${JSON.stringify(data).slice(0, 800)}\n用 3-4 句繁體中文總結，重點放在學習表現、互動狀況、建議方向。`;
+    const response = await ai.models.generateContent({model: textModel, contents: [{role: 'user', parts: [{text: prompt}]}]});
+    const text = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
+    if (!text) throw new Error('empty response');
+    return {report: text, source: 'gemini'};
+  } catch {
+    return {report: '', source: 'local'};
+  }
+}
+
+export type ClassroomScanResult = {count: number; rate: number; confidence: number; summary: string};
+
+export async function estimateClassroomAttendance(imageBase64: string): Promise<ClassroomScanResult> {
+  if (!ai) throw new Error('GEMINI_API_KEY is missing');
+
+  const prompt = `你是台灣國小教室出缺席 AI 助手。請估算這張教室照片中可見的學生人數。假設全班 30 人，根據可見人數計算出席率。
+只回傳純 JSON，不含任何說明文字：
+{"count":<整數，估算可見學生人數>,"rate":<0-100出席率百分比整數>,"confidence":<0-100你的確信度>,"summary":"<一句繁體中文描述教室狀況>"}
+規則：若不確定或看不到學生，count 填 0，confidence 填低於 40。`;
+
+  const response = await ai.models.generateContent({
+    model: visionModel,
+    config: {systemInstruction: '你是教室出缺席估算 AI。只回傳 JSON。'},
+    contents: [{role: 'user', parts: [
+      {text: prompt},
+      {inlineData: {mimeType: 'image/jpeg', data: imageBase64}},
+    ]}],
+  });
+
+  const rawText = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
+  if (!rawText) throw new Error('empty response');
+
+  const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('no JSON in response');
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(jsonMatch[0]);
+  } catch {
+    throw new Error('invalid JSON response');
+  }
+
+  return {
+    count: typeof parsed.count === 'number' ? Math.max(0, Math.round(parsed.count)) : 0,
+    rate: typeof parsed.rate === 'number' ? Math.min(100, Math.max(0, Math.round(parsed.rate))) : 0,
+    confidence: typeof parsed.confidence === 'number' ? Math.min(100, Math.max(0, Math.round(parsed.confidence))) : 0,
+    summary: typeof parsed.summary === 'string' && parsed.summary ? parsed.summary : '無法判斷',
+  };
 }
