@@ -1418,6 +1418,16 @@ export default function App() {
       }
       const changedZone = Boolean(previous?.zoneId && nextAssignment.zoneId && previous.zoneId !== nextAssignment.zoneId);
       if (movementTimerRef.current) clearTimeout(movementTimerRef.current);
+      // Reset/standby short-circuit：standby assignment (robot-home + active:false + no missionId)
+      // 不跑移動動畫，直接歸位 (per codex-adv round 7：避免上一輪派遣後 reset 殘留 5 秒移動動畫)
+      const isStandbyReset = nextAssignment.zoneId === 'robot-home' && !nextAssignment.active && !nextAssignment.missionId;
+      if (isStandbyReset) {
+        movementTimerRef.current = null;
+        pendingAssignmentRef.current = null;
+        setMovementRoute(null);
+        setRobotAssignment(nextAssignment);
+        return;
+      }
       if (data.moving === true || changedZone) {
         const fromName = typeof data.fromZoneName === 'string' && data.fromZoneName.trim() ? data.fromZoneName.trim() : previous.zoneName;
         const fromLocation = typeof data.fromLocation === 'string' && data.fromLocation.trim() ? data.fromLocation.trim() : previous.location;
