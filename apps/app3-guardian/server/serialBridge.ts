@@ -618,6 +618,8 @@ app.post('/api/ops/reset', async (_req, res) => {
     latestGuardianSnapshot = createStandbyGuardianSnapshot();
     latestRobotAssignment = createStandbyRobotAssignment();
     latestRobotEmotionEvents.length = 0;
+    // 清掉情緒掃描 lock，避免 reset 後 30 秒內第二螢幕同步被拒 (per codex-adv round 6)
+    guardianSnapshotLockedUntil = 0;
     broadcast({type: 'guardian_snapshot', ...latestGuardianSnapshot});
     broadcast({type: 'robot_assignment', ...latestRobotAssignment});
     res.json({ok: true, message: 'Demo data reset'});
