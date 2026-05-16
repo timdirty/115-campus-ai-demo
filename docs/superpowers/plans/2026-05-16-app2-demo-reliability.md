@@ -356,28 +356,21 @@ export async function askGemini(path: string, body: unknown, signal?: AbortSigna
 
 注意：component-local controller（VisionCameraCard line 119）只負責 cleanup 不需 signal 傳遞 — 保留不動。
 
-- [ ] **Step 3: DeliveryView 套用（同 pattern）**
+- [ ] **Step 5: 對 Step 2 audit 出的每個 view 逐一改（**僅有問題的 handler**，非 retro 全 5 view）**
 
-需處理的 handler：派遣配送、查詢配送狀態、AI 任務建議。
+針對每個 view + 每個確認有問題的 handler 套用 Step 3 pattern。每改一個 handler 跑 `npm run lint`。
 
-```ts
-const dispatchAbort = useActionAbort();
-const queryAbort = useActionAbort();
+預期 view 範圍（per Step 2 audit）：通常 2-3 個 view（如 TeachView capture/AI、DeliveryView dispatch、LifeView broadcast），非全 5 view。**WIP 已綠的 component-local controller 保留不動**。
+
+- [ ] **Step 6: 跑 rollback tag 標記點（高風險 task 前置）**
+
+在 commit 前打 tag：
+```bash
+git tag rollback-pre-task3-app2
 ```
+若後續發現 view abort 改壞，可 `git reset --hard rollback-pre-task3-app2` 回退。
 
-- [ ] **Step 4: LifeView 套用（同 pattern）**
-
-handler：廣播觸發、scene 分類、派遣任務。
-
-- [ ] **Step 5: DispatchMapView 套用（同 pattern）**
-
-handler：派遣指令、區域查詢。
-
-- [ ] **Step 6: DashboardView 套用（同 pattern）**
-
-handler：dashboard data fetch、AI 分析。
-
-- [ ] **Step 7: 驗證每個 view 改完都 lint 過**
+- [ ] **Step 7: 全套 lint 驗證**
 
 ```bash
 cd apps/app2-campus-service && npm run lint
@@ -391,14 +384,19 @@ cd apps/app2-campus-service && npm run lint
 cd apps/app2-campus-service && npm run dev
 ```
 
-在瀏覽器：教學 view 快速連點「拍攝」3 次，busy state 應重置不卡；切到配送 view 立刻點派遣，舊 capture 應 abort，新 dispatch 進行。
+在瀏覽器：問題 view 快速連點 3 次，busy state 重置不卡；切到他 view 立刻派遣，舊 in-flight 應 abort。
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 9: Commit（依實際改的檔案 stage）**
 
 ```bash
-git add apps/app2-campus-service/src/hooks/useActionAbort.ts apps/app2-campus-service/src/views/TeachView.tsx apps/app2-campus-service/src/views/DeliveryView.tsx apps/app2-campus-service/src/views/LifeView.tsx apps/app2-campus-service/src/views/DispatchMapView.tsx apps/app2-campus-service/src/views/DashboardView.tsx
-git commit -m "feat(app2): add useActionAbort hook + per-handler abort in 5 views (no cross-handler cancellation)"
+# 範例：實際 view 依 audit 結果調整
+git add apps/app2-campus-service/src/hooks/useActionAbort.ts apps/app2-campus-service/src/services/localAi.ts
+# 加 audit 後實際改的 view（不一定是 5 個）
+git add apps/app2-campus-service/src/views/TeachView.tsx  # 例
+git commit -m "feat(app2): per-handler useActionAbort hook + signal propagation to service layer"
 ```
+
+備註：若全 5 view 都檢驗後實際只改 2-3 個，commit message 反映實際範圍。預估時間從原 90 min 可降到 **60 min**（audit narrow scope 後）。
 
 ---
 
@@ -953,24 +951,87 @@ git commit -m "feat(app2): on-site disaster fail-safe — wakeLock + swipe-back 
 
 ---
 
+### Task 8.5: Demo Rehearsal Script + 連續驗收（45 min — per adversarial review 5）
+
+**Files:**
+- Create: `apps/app2-campus-service/docs/DEMO_REHEARSAL.md`
+
+per adversarial review 5：spec 解工程可靠性多於「學生手忙腳亂仍能展示」。需要固定的學生 demo script + iPad+投影+robot-app+實體 Arduino 連續走完的驗收。
+
+- [ ] **Step 1: 寫 DEMO_REHEARSAL.md（學生視角逐句操作）**
+
+```markdown
+# App2 Demo Rehearsal Script — 學生 7 分鐘逐句腳本
+
+## 開場（30 秒）
+1. 按下「教學陪跑」 → 等 closure rail 顯示 1/3
+2. 念：「我們現在示範教學陪跑機器人會做的事」
+
+## 教學流程（2 分鐘）
+1. 按「拍攝白板」→ 等 AI 圖框出現
+2. 念：「AI 即時辨識出白板的字，這是真實的 Gemini Vision 不是假的」
+3. 按「點名」逐項勾選 → counter 跳 1/3 ✓
+4. 念：「教學完成，可以看到 X 個學生有來」
+
+## 配送流程（2 分鐘）
+1. 切到「配送」tab
+2. 按「派遣配送」 → 看 SVG 動畫機器人移動
+3. 念：「機器人沿路徑移動，這也是真實送指令給 Arduino」
+4. 等抵達 toast → counter 跳 2/3 ✓
+
+## 生活流程（2 分鐘）
+1. 切到「生活」tab
+2. 按「開啟視覺」→ 看真實校園影像辨識
+3. 念：「scene 分類為 X，廣播系統會自動觸發」
+4. 觀察 Tone.js 廣播音效真的響
+5. counter 跳 3/3 ✓
+
+## 結尾（30 秒）
+1. closure rail 3/3 完成
+2. 念：「整個 demo 三個流程都閉環了，請評審看右下角投影 URL 可以掃 QR」
+```
+
+- [ ] **Step 2: 連續走完一次（含硬體）**
+
+開 iPad mirror 到投影機 + bridge + 接上 Arduino + 另一台裝置開 robot-display 第二螢幕。
+
+照 script 從頭到尾走一次，記錄每段花的時間 + 卡住的地方。
+
+預期問題：
+- 投影鏡像比例（→ 用 L 段加的投影 chip 校正）
+- 鏡像 + Tone.js 廣播音量是否到喇叭
+- 廣播 tone 跟機器人馬達聲衝不衝突
+- 7 分鐘是否合適（demo 範圍可調）
+
+- [ ] **Step 3: 把驗收結果加進 rehearsal md 底部 + commit**
+
+```bash
+git add apps/app2-campus-service/docs/DEMO_REHEARSAL.md
+git commit -m "docs(app2): demo rehearsal script + first dry run results"
+```
+
+---
+
 ### Phase MUST 收尾
 
-- [ ] **Final Check**
+- [ ] **Final Check + rollback tag**
 
 ```bash
 cd apps/app2-campus-service && npm run check
+git tag must-app2-done
 ```
 
 預期：全綠。如紅燈不進 SHOULD。
 
-- [ ] **手動驗收 checklist（MUST 6 項）**
+- [ ] **手動驗收 checklist（MUST 7 項）**
 
 1. 拔網 (Chrome devtool Offline) → 點 capture → 20s 內 fallback 不 hang
 2. 拔線 → 點 robot/command → 503 顯示拔線提示（不假裝成功）
-3. 快速連點 capture 3 次 → busy 不卡 / 舊 abort
+3. 快速連點 capture 3 次 → busy 不卡 / 舊 abort（且 abort 真的傳到 service 層）
 4. iOS Safari 私密模式 → state 走 memory fallback
 5. 跑 demo 3 個 view → DemoClosureRail 顯示 3/3 完成
 6. iPad swipe back → 不退出 demo
+7. 跑完 DEMO_REHEARSAL.md 整套 7 分鐘 — 學生腳本順、評審看得懂亮點
 
 ---
 
@@ -1243,15 +1304,33 @@ cd apps/app2-campus-service && npm run check
 
 ---
 
-## 估計總時長
+## 估計總時長（per dual review 校準）
 
-- MUST (Task 0-8): ~5 hrs
-- SHOULD (Task 9-12): ~2.75 hrs
-- NICE 必做 (Task 13-14): ~1.25 hrs
-- NICE 條件式 (Task 15-16): +2.5 hrs
+| Task | Est | Notes |
+|---|---|---|
+| 0 WIP commit baseline | 5 min | mechanical |
+| 1 withAiTimeout × 7 callsite | 30 min | mechanical |
+| 2 ACK 503 polish | 15 min | small |
+| 3 Per-handler abort (narrow + service signal) | 60 min | 90→60 narrow scope |
+| 4 state Map fallback | 20 min | |
+| 5 demo:check script | 30 min | mechanical |
+| 6 一鍵啟停.command | 20 min | |
+| 7 Closure 3-step + 亮點 audit | 60 min | 跨檔 audit |
+| 8 現場災難 fail-safe (L) | 45 min | UX 整合 |
+| **8.5 Demo rehearsal + 連續驗收** | 45 min | **new per adv review** |
+| **MUST 小計** | **5.5 hrs** | + 20% buffer = **6.5 hrs** |
+| SHOULD 9-12 | 2.75 hrs | + buffer = 3.5 hrs |
+| NICE 必做 (13-14) | 1.25 hrs | + buffer = 1.5 hrs |
+| NICE 條件式 (15-16) | +2.5 hrs | optional |
 
-Solo: ~9-12 hrs
-Codex 平行：~6-8 hrs
+**Solo 合計**: ~11.5 hrs MUST+SHOULD+NICE 必做（不含 NICE 條件式）
+**平行派 codex**: ~7-8 hrs
+**比賽現場準備**: 完成到 SHOULD 即可 demo，NICE 可後做
+
+**Adversarial review 1 提醒**: 不是 8 hr，是無緩衝 11.5 hr 起跳。每個高風險 task 前打 rollback tag（Task 3, 7, 8, 11）：
+```bash
+git tag rollback-pre-task<N>-app2
+```
 
 ---
 

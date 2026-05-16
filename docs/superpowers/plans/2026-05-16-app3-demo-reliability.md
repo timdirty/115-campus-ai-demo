@@ -1107,21 +1107,96 @@ git commit -m "feat(app3): on-site disaster fail-safe — wakeLock + swipe-back 
 
 ---
 
+### Task 10.5: Demo Rehearsal Script + 連續驗收（45 min — per adversarial review 5）
+
+**Files:**
+- Create: `apps/app3-guardian/docs/DEMO_REHEARSAL.md`
+
+per adversarial：spec 解工程多於「學生手忙腳亂仍能展示」。要固定 demo script + iPad+投影+robot-app+Arduino 連續驗收。
+
+- [ ] **Step 1: 寫 DEMO_REHEARSAL.md（學生 5 段閉環逐句腳本）**
+
+```markdown
+# App3 Demo Rehearsal Script — 學生 7 分鐘逐句腳本
+
+## 開場（30 秒）
+1. 雙擊「一鍵啟動展示.command」→ 自動開瀏覽器到主畫面
+2. 看到 closure rail 0/5、第二螢幕 robot-app 顯示 calm 表情
+3. 念：「我們示範校園心靈守護者，會跑五段閉環從訊號融合到結案」
+
+## 訊號融合（90 秒）
+1. 點「感知中心」tab → 啟動麥克風
+2. 念：「啟動聲量感知，這是真實麥克風，只算指標不存原音」
+3. 觀察 waveform 即時變化 + 風險指數
+4. counter 跳 1/5 ✓
+
+## 預警成案（90 秒）
+1. 點「判讀＋派遣」按鈕 → AI 影像辨識
+2. 念：「Gemini Vision 判讀情緒並建立預警」
+3. 觀察校園地圖紅點脈衝
+4. counter 跳 2/5 ✓
+
+## 派遣處置（90 秒）
+1. 點「派遣機器人」→ 看第二螢幕 robot-app 換臉
+2. 念：「機器人收到指令，第二螢幕情緒切換是 emotion-event WS 即時同步」
+3. 等老師確認 → counter 跳 3/5 ✓
+
+## 學生支持（90 秒）
+1. 切到「照護」tab → 輸入學生訊息
+2. 念：「真實 Gemini 回覆 — guardian-chat endpoint」
+3. 觀察 AI reply（不是樣板）
+4. counter 跳 4/5 ✓
+
+## 回報結案（60 秒）
+1. 標記預警為「已處理」→ Arduino LED_CONFIRM
+2. 觀察 RGB LED 收尾動作
+3. counter 跳 5/5 ✓
+4. 念：「五段閉環完成，可以看完整紀錄與第二螢幕回到平穩狀態」
+
+## 結尾（30 秒）
+1. 念：「整套 demo 都是真實 AI 跟硬體，請評審看右下角投影 URL」
+```
+
+- [ ] **Step 2: 連續走完一次（含 robot-app + Arduino）**
+
+開：iPad mirror 投影 + main bridge + 接 Arduino + 另一裝置開 robot-display。
+
+從頭到尾跑一次，記每段時間 + 卡住點。
+
+**預期問題**:
+- robot-app 第二螢幕 emotion 切換動畫流暢度
+- 麥克風授權對話（iPad 需手動允許）
+- AI 影像辨識耗時（從 click 到 result < 30 秒？）
+- 5/5 counter 是否每段都正確跳
+
+- [ ] **Step 3: 結果加進 rehearsal md + commit**
+
+```bash
+git add apps/app3-guardian/docs/DEMO_REHEARSAL.md
+git commit -m "docs(app3): demo rehearsal script + first dry run results"
+```
+
+---
+
 ### Phase MUST 收尾
+
+- [ ] **Final Check + rollback tag**
 
 ```bash
 cd apps/app3-guardian && npm run check && cd robot-app && npm run build && cd ..
+git tag must-app3-done
 ```
 
 預期：全綠 + robot-app build 綠。
 
-**手動驗收 6 項**:
+**手動驗收 7 項**:
 1. 拔網 → emotion-scan 20s 內 fallback
-2. 拔線 → robot/command 503 + 明確訊息
-3. 快速連點各 panel 不互相干擾
+2. 拔線 → robot/command 503 + 明確訊息（含韌體燒錄提示）
+3. 快速連點各 panel 不互相干擾（per-handler abort + service-layer signal）
 4. iOS 私密模式 demo 不崩
-5. 5/5 counter 完整跑完
+5. 5/5 counter 完整跑完（含 explicit flag 補強）
 6. iPad swipe back 不退 demo
+7. DEMO_REHEARSAL.md 整套 7 分鐘 — 學生腳本順、第二螢幕 sync、Arduino 動
 
 ---
 
@@ -1359,15 +1434,35 @@ cd apps/app3-guardian && npm run check && cd robot-app && npm run build && cd ..
 
 ---
 
-## 估計總時長
+## 估計總時長（per dual review 校準）
 
-- MUST (Task 0-10): ~6.5 hrs
-- SHOULD (Task 11-14): ~3.2 hrs
-- NICE 必做 (Task 15-17): ~1.5 hrs
-- NICE 條件式 (Task 18-19): +3 hrs
+| Task | Est | Notes |
+|---|---|---|
+| 0 WIP commit + robot-app build | 10 min | |
+| 1 withAiTimeout × 2 callsite | 30 min | mechanical |
+| 2 新增 /api/ai/guardian-chat | 25 min | 真實 bug fix |
+| 3 ACK 503 polish | 15 min | small |
+| 4 Per-handler abort (5 handler) + askGemini signal | 90 min | 跨檔，含 service signature |
+| 5 state Map fallback | 20 min | |
+| 6 demo:check (14 endpoints) | 35 min | mechanical |
+| 7 一鍵啟動.command 強化 | 25 min | |
+| 8 5 段 explicit flag (types.ts + reducer) | 45 min | 跨檔 |
+| 9 5 段亮點 audit + fix | 45 min | 跨 panel + robot-app |
+| 10 現場災難 fail-safe (L1) | 45 min | UX |
+| **10.5 Demo rehearsal + 連續驗收** | 45 min | **new per adv review** |
+| **MUST 小計** | **7 hrs** | + 20% buffer = **8.5 hrs** |
+| SHOULD 11-14 | 3.2 hrs | + buffer = 4 hrs |
+| NICE 必做 (15-17) | 1.5 hrs | + buffer = 2 hrs |
+| NICE 條件式 (18-19) | +3 hrs | optional |
 
-Solo: ~11-14 hrs
-Codex 平行：~8-10 hrs
+**Solo 合計**: ~14.5 hrs MUST+SHOULD+NICE 必做
+**平行派 codex**: ~10 hrs
+**比賽現場準備**: 完成到 SHOULD 即可 demo
+
+**Adversarial review 1 提醒**: 真實 11.5h+ 起跳。每個高風險 task 前打 rollback tag（Task 4, 8, 9, 10, 11）：
+```bash
+git tag rollback-pre-task<N>-app3
+```
 
 ---
 
