@@ -34,6 +34,12 @@ jobs:
         env:
           # Passed to vite build so VITE_ vars are baked into Pages bundle
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # Baked into App1 bundle so the public Pages site (no local bridge)
+          # can still call Gemini directly. SECURITY: the key MUST be HTTP-
+          # referrer restricted in Google Cloud Console to the Pages origin
+          # (https://timdirty.github.io/*) because anyone can read it from
+          # browser view-source.
+          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
           # On GitHub Pages there is no local bridge — disable proxy so app
           # starts cleanly in demo/offline mode without console errors
           VITE_AI_PROXY_DISABLED: '1'

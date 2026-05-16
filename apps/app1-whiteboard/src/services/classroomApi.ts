@@ -1,4 +1,5 @@
 import {apiRequest} from './apiClient';
+import {directAnalyzeBoard, directChat, directTranscribe, isDirectGeminiAvailable} from './directGemini';
 import {analyzeWhiteboardImage, WhiteboardVisionResult} from './boardVision';
 import {loadNotes, normalizeNotes, saveNotes} from './notesStore';
 import {defaultRobotPose, RobotPoseEstimate} from './robotPose';
@@ -711,10 +712,18 @@ export async function analyzeBoardCapture(input: {imageBase64: string; transcrip
     return await apiRequest<BoardAnalysisResponse>('/api/ai/analyze-board', {
       method: 'POST',
       body: JSON.stringify(input),
-      timeoutMs: 30000,
+      timeoutMs: 60000,
       signal,
     });
   } catch {
+    // Bridge unreachable. If a direct Gemini key is baked into the bundle (deploy mode), use it.
+    if (isDirectGeminiAvailable()) {
+      try {
+        return await directAnalyzeBoard(input);
+      } catch {
+        // fall through to local
+      }
+    }
     try {
       return localBoardAnalysis(input, await analyzeWhiteboardImage(input.imageBase64, input.boardCalibration));
     } catch {
@@ -799,12 +808,15 @@ export async function transcribeAudio(input: {audioBase64: string; mimeType: str
     return await apiRequest<{transcript: string; aiMode: 'gemini' | 'local-fallback'}>('/api/ai/transcribe', {
       method: 'POST',
       body: JSON.stringify(input),
-      timeoutMs: 30000,
+      timeoutMs: 60000,
       signal,
     });
   } catch {
+    if (isDirectGeminiAvailable()) {
+      try { return await directTranscribe(input); } catch { /* fall through */ }
+    }
     return {
-      transcript: `展示逐字稿：已收到 ${input.mimeType} 錄音，系統會先使用範例文字。`,
+      transcript: `展示模式：未連接 AI，請改用文字輸入老師講解。`,
       aiMode: 'local-fallback',
     };
   }

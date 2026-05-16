@@ -9,10 +9,18 @@ loadEnv({path: path.resolve(__dirname, '.env')});
 
 const bridgePort = process.env.BRIDGE_PORT ?? '3201';
 
+// Bake VITE_GEMINI_API_KEY into bundle so the deployed (no-bridge) Pages site
+// can call Gemini REST directly. Key must be HTTP-referrer restricted in
+// Google Cloud Console to the Pages origin only.
+const directGeminiKey = process.env.VITE_GEMINI_API_KEY ?? '';
+
 export default defineConfig(() => {
   return {
     base: './',
     plugins: [react(), tailwindcss()],
+    define: {
+      'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(directGeminiKey),
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

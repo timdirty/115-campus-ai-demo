@@ -97,7 +97,6 @@ function localQuiz(content: string): QuizQuestion[] {
 }
 
 export async function chatWithAI(message: string, history: ChatHistoryItem[], noteIds: number[] = []) {
-  void noteIds;
   try {
     const result = await apiRequest<{reply?: string}>('/api/ai/chat', {
       method: 'POST',
@@ -106,6 +105,17 @@ export async function chatWithAI(message: string, history: ChatHistoryItem[], no
     });
     return result.reply || '目前沒有取得 AI 回覆。';
   } catch {
+    // Bridge unreachable. Try direct Gemini (deploy mode) before falling back to local templates.
+    try {
+      const {directChat, isDirectGeminiAvailable} = await import('./directGemini');
+      if (isDirectGeminiAvailable()) {
+        const {loadNotes} = await import('./notesStore');
+        const allNotes = loadNotes();
+        const notes = noteIds.length ? allNotes.filter((n) => noteIds.includes(n.id)) : allNotes.slice(0, 1);
+        const result = await directChat({message, notes, history});
+        if (result.reply) return result.reply;
+      }
+    } catch { /* fall through */ }
     return matchTemplate(message);
   }
 }
