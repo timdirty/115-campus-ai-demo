@@ -22,7 +22,7 @@ import {
   tryAutoOpen,
 } from './serialPort';
 import {appendAlertLog, getAlertLogs, loadPortZoneAssignments, resetDemoData, savePortZoneAssignments} from './storage';
-import {analyzeEmotionFromImage, analyzeGuardianAlert, isGeminiConfigured} from './aiService';
+import {analyzeEmotionFromImage, analyzeGuardianAlert, generateGuardianChatReply, isGeminiConfigured} from './aiService';
 import {getEV3Status, sendEV3Command, startEV3Manager} from './ev3Manager';
 import {getSpikeStatus, sendSpikeCommand, startSpikeManager} from './spikeManager';
 
@@ -542,6 +542,27 @@ app.post('/api/ai/guardian', async (req, res) => {
       return;
     }
     res.json({ok: true, reply: result.summary, source: result.source, model: result.model});
+  } catch (error) {
+    res.status(500).json({ok: false, error: error instanceof Error ? error.message : String(error)});
+  }
+});
+
+app.post('/api/ai/guardian-chat', async (req, res) => {
+  const {text, mood, location, alertSummary} = req.body ?? {};
+  if (typeof text !== 'string' || !text.trim()) {
+    return res.status(400).json({ok: false, error: 'text required'});
+  }
+  try {
+    const result = await generateGuardianChatReply({
+      text: text.trim(),
+      mood: typeof mood === 'string' ? mood : undefined,
+      location: typeof location === 'string' ? location : undefined,
+      alertSummary: typeof alertSummary === 'string' ? alertSummary : undefined,
+    });
+    if (!result.reply) {
+      return res.status(503).json({ok: false, error: 'AI 暫時不可用', fallback: true});
+    }
+    res.json({ok: true, reply: result.reply, source: result.source});
   } catch (error) {
     res.status(500).json({ok: false, error: error instanceof Error ? error.message : String(error)});
   }

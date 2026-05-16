@@ -175,3 +175,38 @@ export async function analyzeEmotionFromImage(imageBase64: string): Promise<Emot
     return {...localEmotionFallback(), error: err instanceof Error ? err.message : String(err)};
   }
 }
+
+export interface GuardianChatContext {
+  text: string;
+  mood?: string;
+  location?: string;
+  alertSummary?: string;
+}
+
+export async function generateGuardianChatReply(
+  ctx: GuardianChatContext
+): Promise<{reply: string; source: 'gemini' | 'local'}> {
+  if (!ai) return {reply: '', source: 'local'};
+  try {
+    const prompt = `你是國中校園心靈守護者 AI。學生說：「${ctx.text}」。
+心情：${ctx.mood ?? '未指定'}。地點：${ctx.location ?? '未指定'}。
+當前預警：${ctx.alertSummary ?? '無'}。
+請用繁體中文 2-3 句回覆。語氣溫暖、不評判、提供具體下一步建議（例如建議找誰、做什麼）。不要說『我是 AI』之類。`;
+
+    const response = await withAiTimeout((signal) =>
+      ai.models.generateContent({
+        model: textModel,
+        contents: [{role: 'user', parts: [{text: prompt}]}],
+        config: {
+          temperature: 0.7,
+          abortSignal: signal,
+        },
+      })
+    );
+    const text = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
+    return text ? {reply: text, source: 'gemini'} : {reply: '', source: 'local'};
+  } catch (error) {
+    console.warn('[ai] guardian-chat failed:', error instanceof Error ? error.message : String(error));
+    return {reply: '', source: 'local'};
+  }
+}
