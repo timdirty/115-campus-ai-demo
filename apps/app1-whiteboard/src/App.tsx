@@ -292,7 +292,7 @@ export default function App() {
 
   const getPage = () => {
     switch (currentTab) {
-      case 'whiteboard': return <Home key={`whiteboard-${resetNonce}`} onNavigate={navigateTo} demoProgress={demoProgress} />;
+      case 'whiteboard': return <Home key={`whiteboard-${resetNonce}`} onNavigate={navigateTo} />;
       case 'teacher': return <TeacherDashboard key={`teacher-${resetNonce}`} onNavigate={navigateTo} />;
       case 'robot': return <RobotControl key={`robot-${resetNonce}`} />;
       case 'library': return <Library key={`library-${resetNonce}`} onNavigate={navigateTo} />;
@@ -374,8 +374,6 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <DemoFlowRail currentTab={currentTab} whiteboardHasContent={whiteboardHasContent} demoProgress={demoProgress} onNavigate={setCurrentTab} />
-      <DemoRouteCards currentTab={currentTab} onNavigate={setCurrentTab} />
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col w-full relative pb-44 md:pb-10">

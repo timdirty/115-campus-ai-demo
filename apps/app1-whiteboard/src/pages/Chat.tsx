@@ -18,15 +18,19 @@ const INITIAL_MESSAGES: Message[] = [
 ];
 const CHAT_KEY = 'whiteboard-chat:elementary:v1';
 const QUICK_PROMPTS = [
-  '改成孩子聽得懂',
-  '做 3 題小測驗',
-  '設計分組活動',
+  '這是什麼？',
+  '舉個例子',
+  '怎麼算？',
+  '再簡單一點',
+  '出一題給我',
 ] as const;
 
 const QUICK_PROMPT_MESSAGES: Record<(typeof QUICK_PROMPTS)[number], string> = {
-  '改成孩子聽得懂': '請把最新紀錄改成三年級會懂的說法',
-  '做 3 題小測驗': '請設計 3 題國小生小測驗，題目要短',
-  '設計分組活動': '請設計一個 5 分鐘分組活動',
+  '這是什麼？': '白板上的內容是什麼意思？',
+  '舉個例子': '可以舉一個生活中的例子嗎？',
+  '怎麼算？': '怎麼算出來的？一步一步告訴我',
+  '再簡單一點': '剛剛的說法我聽不懂，可以再簡單一點嗎？',
+  '出一題給我': '出一題讓我練習',
 };
 
 export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void }) {
@@ -295,7 +299,7 @@ export default function Chat({ onNavigate }: { onNavigate: (tab: string) => void
                 }
               }}
               className="w-full bg-transparent border-none py-2.5 sm:py-3 pl-3 sm:pl-4 pr-12 sm:pr-14 text-[14px] sm:text-[15px] font-medium text-on-surface outline-none resize-none hide-scrollbar placeholder:text-on-surface-variant/50"
-              placeholder="輸入課堂問題，例如：改成孩子聽得懂的說法"
+              placeholder="問小老師任何問題，例如：這是什麼意思？"
             />
             {inputValue.length > 400 && (
               <p className="absolute bottom-1 left-3 text-[10px] text-tertiary font-bold">{inputValue.length} / 500</p>

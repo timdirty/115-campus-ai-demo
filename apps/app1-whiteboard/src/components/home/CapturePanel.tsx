@@ -29,6 +29,9 @@ type CapturePanelProps = {
   onAutoDetectCalibration: () => void;
   onCalibrationReset: () => void;
   onCalibrationSave: () => void;
+  cameras?: MediaDeviceInfo[];
+  activeCameraId?: string;
+  onSwitchCamera?: (deviceId: string) => void;
 };
 
 export const CapturePanel = memo(function CapturePanel({
@@ -56,6 +59,9 @@ export const CapturePanel = memo(function CapturePanel({
   onAutoDetectCalibration,
   onCalibrationReset,
   onCalibrationSave,
+  cameras = [],
+  activeCameraId,
+  onSwitchCamera,
 }: CapturePanelProps) {
   const [showCalibration, setShowCalibration] = useState(false);
   const showEngineerTools = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('engineerTools') === '1';
@@ -80,6 +86,21 @@ export const CapturePanel = memo(function CapturePanel({
           <p className="text-sm text-on-surface-variant mt-1">拍下國小課堂板書，整理成孩子看得懂的紀錄。</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {cameraReady && cameras.length > 1 && onSwitchCamera && (
+            <select
+              value={activeCameraId ?? ''}
+              onChange={(event) => onSwitchCamera(event.target.value)}
+              disabled={cameraBusy}
+              aria-label="切換攝影機"
+              className="min-h-11 max-w-[10rem] sm:max-w-[14rem] px-3 rounded-md bg-surface-container-high hover:bg-primary hover:text-on-primary disabled:opacity-50 transition-all font-bold text-sm cursor-pointer truncate"
+            >
+              {cameras.map((cam, index) => (
+                <option key={cam.deviceId || index} value={cam.deviceId}>
+                  {cam.label || `攝影機 ${index + 1}`}
+                </option>
+              ))}
+            </select>
+          )}
           <button
             type="button"
             onClick={onToggleCamera}
@@ -208,6 +229,13 @@ export const CapturePanel = memo(function CapturePanel({
         {previewImage && (
           <div className="absolute right-3 bottom-3 w-32 sm:w-44 aspect-video rounded-md overflow-hidden border-2 border-white shadow-lg">
             <img src={previewImage} alt="最近拍下的課堂白板" className="w-full h-full object-cover" />
+          </div>
+        )}
+        {analyzing && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-on-surface/55 backdrop-blur-sm text-white" aria-live="polite">
+            <Loader2 className="w-12 h-12 animate-spin" aria-hidden="true" />
+            <p className="text-base font-extrabold">AI 正在整理白板…</p>
+            <p className="text-xs opacity-80">約需 10–30 秒，請稍候</p>
           </div>
         )}
       </div>

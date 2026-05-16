@@ -1,5 +1,5 @@
 import {GoogleGenAI, createPartFromBase64} from '@google/genai';
-import {geminiApiKey, geminiModel, geminiVisionModel, notesFile} from './config';
+import {geminiApiKey, geminiChatFallbacks, geminiModel, geminiVisionFallbacks, geminiVisionModel, notesFile} from './config';
 import {defaultClassroomSession, defaultNotes} from './defaults';
 import {readJsonFile} from './storage';
 import type {BoardAnalysisResult, BoardRegion, ChatMessage, QuizQuestion, TeacherPace, WhiteboardNote} from './types';
@@ -24,6 +24,81 @@ function parseJsonFromText<T>(text: string): T {
   return JSON.parse(jsonText) as T;
 }
 
+const META_PREFIX_PATTERNS = [
+  /^好的[,，]?\s*/,
+  /^沒問題[,，]?\s*/,
+  /^以下是.*?[:：]\s*/,
+  /^這是.*?(逐字稿|整理).*?[:：]\s*/,
+  /^根據您提供的.*?[:：]\s*/,
+];
+
+function cleanTranscriptionOutput(raw: string): string {
+  let text = (raw ?? '').trim();
+  // strip markdown fences
+  text = text.replace(/^```[a-zA-Z]*\n?|\n?```$/g, '').trim();
+  // strip meta-intro prefixes Gemini sometimes adds
+  for (const pattern of META_PREFIX_PATTERNS) {
+    text = text.replace(pattern, '').trim();
+  }
+  // remove leading section headers like "**逐字稿**" "**老師：**"
+  text = text.replace(/^\*+[^*\n]+\*+\s*[\n:：]?/gm, '').trim();
+  // strip leading list markers and turn-by-turn labels
+  text = text.split('\n').map((line) => line.replace(/^[\s\-*•·]+|^老師[:：]\s*|^學生[:：]\s*/g, '').trim()).filter(Boolean).join('\n');
+  // collapse paragraph breaks introduced by markdown
+  text = text.replace(/\n{2,}/g, '\n').trim();
+  // if result still starts with meta-shape, give up and return empty
+  if (/^好的|^這是|^以下|範例文字|^展示逐字稿/.test(text)) return '';
+  return text;
+}
+
+// Returns true if we should try the next model in the chain.
+// Only abort the chain for fatal config errors (auth) — everything else can be retried with a different model.
+function isRetriableError(err: unknown): boolean {
+  const status = (err as {status?: number})?.status;
+  const message = (err as Error)?.message ?? '';
+  // Hard stop: auth / billing config issue
+  if (status === 401) return false;
+  if (/UNAUTHENTICATED|API key not valid|invalid api key/i.test(message)) return false;
+  // Everything else: try next (quota / model-not-found / bad-request / 5xx / network)
+  return true;
+}
+
+type GenArgs = Parameters<NonNullable<typeof ai>['models']['generateContent']>[0];
+
+async function callWithFallback(models: string[], baseArgs: Omit<GenArgs, 'model'>, label = 'gen', timeoutMs?: number) {
+  if (!ai) throw new Error('Gemini not configured');
+  let lastError: unknown = new Error('No models tried');
+  for (const model of models) {
+    try {
+      const args: GenArgs = {...baseArgs, model};
+      return await withAiTimeout(ai.models.generateContent(args), timeoutMs);
+    } catch (error) {
+      lastError = error;
+      const retriable = isRetriableError(error);
+      console.warn(`[${label}] model ${model} failed (retriable=${retriable}): ${(error as Error).message?.slice(0, 160)}`);
+      if (!retriable) {
+        throw error;
+      }
+      // try next model
+    }
+  }
+  throw lastError;
+}
+
+function coerceMultilineString(value: unknown, fallback: string): string {
+  if (value == null) return fallback;
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) {
+    return value.map((item) => coerceMultilineString(item, '')).filter(Boolean).join('\n');
+  }
+  if (typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([key, val]) => `${key}：\n${coerceMultilineString(val, '')}`)
+      .join('\n\n');
+  }
+  return String(value);
+}
+
 function normalizePercent(value: unknown, fallback: number, max = 100) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric) || numeric < 0 || numeric > max) {
@@ -32,7 +107,8 @@ function normalizePercent(value: unknown, fallback: number, max = 100) {
   return numeric;
 }
 
-function withAiTimeout<T>(promise: Promise<T>, ms = 20_000): Promise<T> {
+const AI_TIMEOUT_MS = Number(process.env.AI_TIMEOUT_MS) || 60_000;
+function withAiTimeout<T>(promise: Promise<T>, ms = AI_TIMEOUT_MS): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error(`AI call timed out after ${ms}ms`)), ms);
@@ -66,22 +142,22 @@ export function normalizeBoardRegions(input: unknown): BoardRegion[] {
   }
 
   const usedIds = new Set<string>();
+  const FIXED_LAYOUT: Record<'A' | 'B', {x: number; y: number; width: number; height: number; label: string}> = {
+    A: {x: 5, y: 12, width: 43, height: 76, label: '左區'},
+    B: {x: 52, y: 12, width: 43, height: 76, label: '右區'},
+  };
   const regions = input.map((item, index) => {
     const source = item as Partial<BoardRegion>;
-    const id = normalizeRegionId(source.id, index, usedIds);
+    const id = normalizeRegionId(source.id, index, usedIds) as 'A' | 'B';
     const status = source.status === 'erased' || source.status === 'erasable' || source.status === 'keep' ? source.status : 'keep';
-    const fallbackRegion = fallback[index] ?? {x: 8 + index * 28, y: 18, width: 28, height: 48};
-    const x = normalizePercent(source.x, fallbackRegion.x);
-    const y = normalizePercent(source.y, fallbackRegion.y);
-    const width = normalizePercent(source.width, fallbackRegion.width, 100 - x);
-    const height = normalizePercent(source.height, fallbackRegion.height, 100 - y);
+    const layout = FIXED_LAYOUT[id] ?? FIXED_LAYOUT.A;
     return {
       id,
-      label: String(source.label ?? `白板區塊 ${id}`),
-      x,
-      y,
-      width,
-      height,
+      label: layout.label,
+      x: layout.x,
+      y: layout.y,
+      width: layout.width,
+      height: layout.height,
       status,
       reason: String(source.reason ?? '由白板分析產生'),
     };
@@ -260,11 +336,10 @@ export async function analyzeBoardWithAI(imageBase64: string, transcript: string
       `科目提示：${subjectHint || '未提供'}`,
       `教師逐字稿：${transcript || '未提供'}${ocrHint}`,
     ].join('\n');
-    const response = await withAiTimeout(ai.models.generateContent({
-      model: geminiVisionModel,
+    const response = await callWithFallback([geminiVisionModel, ...geminiVisionFallbacks.filter((m) => m !== geminiVisionModel)], {
       contents: [{role: 'user', parts: [{text: prompt}, createPartFromBase64(media.data, media.mimeType)]}],
       config: {temperature: 0.35},
-    }));
+    }, 'analyze');
     const parsed = parseJsonFromText<Partial<BoardAnalysisResult>>(response.text ?? '');
     const fallback = localBoardAnalysis(transcript, subjectHint, imageBase64, options.realOcrText);
     const noteDraft = {
@@ -272,7 +347,7 @@ export async function analyzeBoardWithAI(imageBase64: string, transcript: string
       ...parsed.noteDraft,
       subject: String(parsed.noteDraft?.subject ?? (subjectHint || fallback.noteDraft.subject)),
       title: String(parsed.noteDraft?.title ?? fallback.noteDraft.title),
-      content: String(parsed.noteDraft?.content ?? fallback.noteDraft.content),
+      content: coerceMultilineString(parsed.noteDraft?.content, fallback.noteDraft.content),
       transcript: String(parsed.noteDraft?.transcript ?? (transcript || fallback.noteDraft.transcript)),
       captureSource: 'camera' as const,
       imageUrl: imageBase64,
@@ -302,18 +377,21 @@ export async function transcribeWithAI(audioBase64: string, mimeType: string, op
 
   try {
     const media = stripDataUrl(audioBase64, mimeType || 'audio/webm');
-    const response = await withAiTimeout(ai.models.generateContent({
-      model: geminiVisionModel,
+    const response = await callWithFallback([geminiVisionModel, ...geminiVisionFallbacks.filter((m) => m !== geminiVisionModel)], {
       contents: [{
         role: 'user',
         parts: [
-          {text: '請將這段國小課堂錄音整理成繁體中文逐字稿，保留老師講解重點、孩子可能卡住的地方，以及可直接拿來做學習單的句子。'},
+          {text: '直接將這段錄音的中文逐字稿輸出，只輸出老師講的原話本身，不要加任何前言、解釋、markdown、清單、標題或結語。如果聽不清楚就回覆「（聽不清楚）」三個字，不要加其他文字。逐字稿請用繁體中文。'},
           createPartFromBase64(media.data, media.mimeType),
         ],
       }],
       config: {temperature: 0.2},
-    }));
-    return {transcript: response.text || localTranscript(mimeType), aiMode: 'gemini' as const};
+    }, 'transcribe');
+    const cleaned = cleanTranscriptionOutput(response.text ?? '');
+    if (!cleaned) {
+      return {transcript: '（沒聽到清楚的講解，請再講一次）', aiMode: 'gemini' as const};
+    }
+    return {transcript: cleaned, aiMode: 'gemini' as const};
   } catch (error) {
     console.warn('Gemini transcription failed, using local fallback:', error);
     return {transcript: localTranscript(mimeType), aiMode: 'local-fallback' as const};
@@ -334,20 +412,15 @@ export async function chatWithAI(message: string, noteIds: number[], history: Ch
       `逐字稿：${note.transcript ?? ''}`,
       `課堂紀錄：${note.content}`,
     ].join('\n')).join('\n\n---\n\n');
-    const response = await withAiTimeout(ai.models.generateContent({
-      model: geminiModel,
-      contents: [
-        ...history.slice(-8).map((item) => ({
-          role: item.role === 'ai' ? 'model' : 'user',
-          parts: [{text: item.text}],
-        })),
-        {
-          role: 'user',
-          parts: [{text: `請根據以下課堂紀錄本內容回答。使用繁體中文，語氣像國小課堂小老師，句子短，提供老師能直接使用的說法、活動或小檢核；避免高中以上術語。\n\n${notesContext}\n\n問題：${message}`}],
-        },
-      ],
+    // Chat is text-only — route to Gemma first (unmetered quota), fall back to Gemini lite.
+    // Note: Gemma models don't support multi-turn role-based history; collapse into one user turn.
+    const historyText = history.slice(-6).map((item) => `${item.role === 'ai' ? 'AI' : '學生'}：${item.text}`).join('\n');
+    const userPrompt = `你是國小課堂 AI 小老師，對象是國小學生。\n\n回答規則（嚴格遵守）：\n1. 繁體中文，1–3 句話，總共不超過 60 個字。\n2. 像跟小朋友聊天，不要 markdown、不要清單、不要標題、不要前言「好的」「沒問題」。\n3. 用生活例子，避免術語。\n4. 答完後可以反問一句引導學生繼續，例如「你想試試看嗎？」「猜猜看是哪個？」，但反問只能 1 句。\n5. 如果學生問「出一題」就直接出題，不解釋。\n\n課堂內容：\n${notesContext}\n\n${historyText ? `對話到目前為止：\n${historyText}\n\n` : ''}學生問：${message}`;
+    // Chat must feel fast — cap each model at 12s, jump to next on stall.
+    const response = await callWithFallback(geminiChatFallbacks, {
+      contents: [{role: 'user', parts: [{text: userPrompt}]}],
       config: {temperature: 0.55},
-    }));
+    }, 'chat', 12_000);
     return {reply: response.text || localChatReply(message, notes), aiMode: 'gemini' as const};
   } catch (error) {
     console.warn('Gemini chat failed, using local fallback:', error);
@@ -364,19 +437,17 @@ export async function reviewWithAI(note: WhiteboardNote, mode: 'quiz' | 'summary
 
   try {
     if (mode === 'summary') {
-      const response = await withAiTimeout(ai.models.generateContent({
-        model: geminiModel,
+      const response = await callWithFallback(geminiChatFallbacks, {
         contents: `請將以下白板紀錄整理成國小生可讀的繁體中文 Markdown 學習單。句子短、步驟清楚，包含「今天我學到」、「畫一畫或說一說」、「小檢核」、「老師提醒」。\n\n${note.content}\n\n白板文字:${note.ocrText ?? ''}\n逐字稿:${note.transcript ?? ''}`,
         config: {temperature: 0.35},
-      }));
+      }, 'summary');
       return {summary: response.text || localSummary(note), aiMode: 'gemini' as const};
     }
 
-    const response = await withAiTimeout(ai.models.generateContent({
-      model: geminiModel,
+    const response = await callWithFallback(geminiChatFallbacks, {
       contents: `請根據以下白板紀錄產生 5 題適合國小生的繁體中文單選題。題幹要短，一題只測一個概念，解析要像老師鼓勵孩子的說明。題目必須優先引用「白板文字」中的實際內容。只輸出 JSON array，每題格式 {"q":"題目","options":["A","B","C","D"],"ans":0,"explanation":"解析"}。\n\n白板文字:${note.ocrText ?? ''}\n逐字稿:${note.transcript ?? ''}\n課堂紀錄:${note.content}`,
       config: {temperature: 0.35},
-    }));
+    }, 'quiz');
     const quiz = parseJsonFromText<QuizQuestion[]>(response.text ?? '[]')
       .slice(0, 8)
       .filter((item) => item.q && Array.isArray(item.options) && item.options.length === 4);

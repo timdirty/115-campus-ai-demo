@@ -1,13 +1,13 @@
 import {useEffect, useState} from 'react';
 import {motion} from 'motion/react';
-import {ArrowRight, CheckCircle2, Loader2, PlayCircle, RefreshCw} from 'lucide-react';
+import {ArrowRight, Loader2, PlayCircle, RefreshCw} from 'lucide-react';
+import {BoardTextPanel} from '../components/home/BoardTextPanel';
 import {CapturePanel} from '../components/home/CapturePanel';
 import {NoticeBar} from '../components/home/NoticeBar';
-import {RegionTaskPanel} from '../components/home/RegionTaskPanel';
 import {useBridgeStatus} from '../hooks/useBridgeStatus';
 import {useMediaCapture} from '../hooks/useMediaCapture';
 import {analyzeBoardCapture, analyzeBoardDemoSample, BoardAnalysisResponse, BoardRegion, OcrLocalResult, saveClassroomSession, transcribeAudio} from '../services/classroomApi';
-import {DemoProgress, resetDemoProgress, saveDemoProgress} from '../services/demoProgress';
+import {resetDemoProgress, saveDemoProgress} from '../services/demoProgress';
 import {addNoteAsync, DEFAULT_NOTES, STAGE_DEMO_NOTE_ID} from '../services/notesStore';
 import {defaultRobotPose} from '../services/robotPose';
 import {BoardCalibration, BoardCalibrationMode, CalibrationCornerId, defaultBoardCalibration, detectBoardCalibrationFromImage, normalizeBoardCalibration} from '../services/whiteboardCalibration';
@@ -57,7 +57,7 @@ const itemVariants: any = {
 let _abortController: AbortController | null = null;
 let _actionGeneration = 0;
 
-export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: string) => void; demoProgress: DemoProgress}) {
+export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) {
   const {
     classroom,
     notice,
@@ -69,7 +69,14 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
   } = useBridgeStatus();
   const media = useMediaCapture();
   const [subjectHint, setSubjectHint] = useState('國小數學');
-  const [transcript, setTranscript] = useState<string>(() => ssGet('transcript', ''));
+  const [transcript, setTranscript] = useState<string>(() => {
+    const stored = ssGet('transcript', '');
+    // Auto-purge stale fallback / meta-style transcripts from older bundles
+    if (/^好的[,，]?\s*這是一份|展示逐字稿|系統會先使用範例|根據您提供的錄音/.test(stored)) {
+      return '';
+    }
+    return stored;
+  });
   const [previewImage, setPreviewImage] = useState<string>(() => ssGet('previewImage', ''));
   const [analysis, setAnalysis] = useState<BoardAnalysisResponse | null>(() => ssGet<BoardAnalysisResponse | null>('analysis', null));
   const [boardCalibration, setBoardCalibration] = useState<BoardCalibration>(defaultBoardCalibration());
@@ -94,14 +101,6 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
       setBusy('');
     }
   };
-  const [practiceCardOpen, setPracticeCardOpen] = useState(() => {
-    try {
-      return localStorage.getItem('app1:practiceCardCollapsed') !== 'true';
-    } catch {
-      return true;
-    }
-  });
-
   useEffect(() => { ssSet('transcript', transcript); }, [transcript]);
   useEffect(() => { ssSet('previewImage', previewImage); }, [previewImage]);
   useEffect(() => { ssSet('analysis', analysis); }, [analysis]);
@@ -148,6 +147,25 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
     }
   };
 
+  const persistAnalysisAsNote = async (result: BoardAnalysisResponse, imageBase64: string, serverOcrText: string) => {
+    try {
+      const note = await addNoteAsync({
+        ...result.noteDraft,
+        subject: result.noteDraft.subject || subjectHint || '國小課堂紀錄',
+        title: result.noteDraft.title,
+        content: result.noteDraft.content,
+        ocrText: serverOcrText || result.noteDraft.ocrText,
+        boardRegions: result.boardRegions,
+        aiRecommendation: result.currentRecommendation,
+        img: result.noteDraft.img || result.noteDraft.imageUrl || imageBase64,
+        imageUrl: result.noteDraft.imageUrl || imageBase64,
+      });
+      setLatestNote(note);
+    } catch {
+      // notes save is best-effort; do not block UI
+    }
+  };
+
   const captureAndAnalyze = async () => {
     const {signal, gen} = beginAction('analyze');
     try {
@@ -172,8 +190,9 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
         },
       };
       setClassroom(mergedSession);
+      await persistAnalysisAsNote(result, imageBase64, serverOcrText);
       saveDemoProgress({whiteboard: true});
-      setNotice('白板整理完成，下一步請確認哪一區可以擦');
+      setNotice('白板整理完成，已自動存入紀錄本，可去問 AI 小老師');
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         endAction(gen);
@@ -218,8 +237,9 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
         },
       };
       setClassroom(mergedSession);
+      await persistAnalysisAsNote(result, imageBase64, serverOcrText);
       saveDemoProgress({whiteboard: true});
-      setNotice('白板整理完成，下一步請確認哪一區可以擦');
+      setNotice('白板整理完成，已自動存入紀錄本，可去問 AI 小老師');
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         endAction(gen);
@@ -439,14 +459,6 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
 
   const hasGeneratedBoard = Boolean(analysis || previewImage || classroom?.lastCaptureAt);
   const boardRegions = analysis?.boardRegions ?? (hasGeneratedBoard ? classroom?.boardRegions ?? [] : []);
-  const livePracticeSteps = [
-    ['1', '按「一鍵示範」建立白板故事', hasGeneratedBoard],
-    ['2', '到教師看板確認哪一區可以擦', demoProgress.teacher],
-    ['3', '送出機器人任務，看見任務回饋', demoProgress.robot || boardRegions.some((region) => region.status === 'erased')],
-    ['4', '到紀錄本、AI 小老師或學習單收尾', demoProgress.library || demoProgress.chat || demoProgress.review],
-  ] as const;
-  const allDone = livePracticeSteps.every(([, , done]) => done);
-
   useEffect(() => {
     notifyWhiteboardState(hasGeneratedBoard);
   }, [hasGeneratedBoard]);
@@ -530,20 +542,6 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
           <NoticeBar notice={notice} />
         </motion.div>
 
-        <motion.div variants={itemVariants} className="mb-5">
-          <StudentStageCard
-            hasBoard={hasGeneratedBoard}
-            hasTeacherDecision={demoProgress.teacher}
-            hasRobotTask={demoProgress.robot || boardRegions.some((region) => region.status === 'erased')}
-            hasWrapUp={demoProgress.library || demoProgress.chat || demoProgress.review}
-            busy={busy}
-            onDemo={runDemoSample}
-            onTeacher={() => onNavigate('teacher')}
-            onRobot={() => onNavigate('robot')}
-            onWrapUp={() => onNavigate('library')}
-          />
-        </motion.div>
-
         <motion.div variants={itemVariants} className="grid grid-cols-1 xl:grid-cols-12 gap-5">
           <CapturePanel
             videoRef={media.videoRef}
@@ -570,151 +568,21 @@ export default function Home({onNavigate, demoProgress}: {onNavigate: (tab: stri
             onAutoDetectCalibration={handleAutoDetectCalibration}
             onCalibrationReset={handleCalibrationReset}
             onCalibrationSave={handleCalibrationSave}
+            cameras={media.cameras}
+            activeCameraId={media.activeCameraId}
+            onSwitchCamera={media.switchCamera}
           />
-          <RegionTaskPanel
+          <BoardTextPanel
             analysis={analysis}
-            classroom={hasGeneratedBoard ? classroom : null}
-            boardRegions={boardRegions}
-            busy={busy}
-            onSaveAnalysis={saveAnalysisNote}
-            onRunRegionTask={runRegionTask}
-            onKeepAll={keepAllRegions}
+            ocrResult={ocrResult}
+            ocrBusy={ocrBusy}
+            onNavigate={onNavigate}
           />
         </motion.div>
 
-        {/* OCR result panel */}
-        {(ocrBusy || (ocrResult && ocrResult.ok)) && (
-          <motion.section
-            variants={itemVariants}
-            className="mt-5 rounded-3xl border border-primary/10 bg-surface-container-low p-5"
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-on-primary text-sm font-black">文</div>
-              <div>
-                <p className="text-sm font-extrabold">白板文字整理</p>
-                <p className="text-xs font-semibold text-on-surface-variant">
-                  {ocrBusy ? '正在讀白板文字…' : `已讀到 ${ocrResult?.blocks.length ?? 0} 個重點`}
-                </p>
-              </div>
-            </div>
-            {ocrBusy ? (
-              <div className="flex items-center gap-2 text-xs text-on-surface-variant">
-                <Loader2 className="w-3 h-3 animate-spin" />辨識中，請稍候…
-              </div>
-            ) : (
-              <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-on-surface-variant bg-surface rounded-xl p-4 max-h-48 overflow-y-auto">
-                {ocrResult?.text || '（未辨識到文字）'}
-              </pre>
-            )}
-          </motion.section>
-        )}
 
-        {/* 學生練習卡 */}
-        <motion.div variants={itemVariants} className="mt-5 rounded-lg border border-primary/20 bg-primary-container/20 overflow-hidden">
-          <button
-            onClick={() => {
-              const next = !practiceCardOpen;
-              setPracticeCardOpen(next);
-              try { localStorage.setItem('app1:practiceCardCollapsed', next ? 'false' : 'true'); } catch { /* ignore */ }
-            }}
-            className="w-full flex items-center justify-between px-4 py-3 text-left"
-          >
-            <span className="text-sm font-extrabold text-primary">學生練習卡</span>
-            <span className="text-xs text-on-surface-variant">{practiceCardOpen ? '收合' : '展開'}</span>
-          </button>
-          {practiceCardOpen && (
-            <div className="px-4 pb-4 space-y-2">
-              {livePracticeSteps.map(([index, step, done]) => (
-                <div
-                  key={index}
-                  className={`w-full flex items-center gap-3 rounded-md px-3 py-2.5 text-left ${done ? 'bg-primary/10 text-primary' : 'bg-surface text-on-surface'}`}
-                >
-                  <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-bold ${done ? 'border-primary bg-primary text-on-primary' : 'border-outline-variant'}`}>
-                    {done ? '✓' : index}
-                  </span>
-                  <span className="text-sm font-medium leading-snug">{step}</span>
-                </div>
-              ))}
-              {allDone && (
-                <div className="mt-3 rounded-md bg-primary px-4 py-3 text-center text-sm font-extrabold text-on-primary">
-                  完成完整流程，準備上台。
-                </div>
-              )}
-            </div>
-          )}
-        </motion.div>
       </div>
     </motion.div>
   );
 }
 
-function StudentStageCard({
-  hasBoard,
-  hasTeacherDecision,
-  hasRobotTask,
-  hasWrapUp,
-  busy,
-  onDemo,
-  onTeacher,
-  onRobot,
-  onWrapUp,
-}: {
-  hasBoard: boolean;
-  hasTeacherDecision: boolean;
-  hasRobotTask: boolean;
-  hasWrapUp: boolean;
-  busy: string;
-  onDemo: () => void;
-  onTeacher: () => void;
-  onRobot: () => void;
-  onWrapUp: () => void;
-}) {
-  const doneCount = [hasBoard, hasTeacherDecision, hasRobotTask, hasWrapUp].filter(Boolean).length;
-  const nextAction = !hasBoard
-    ? {label: '先按一鍵示範', onClick: onDemo}
-    : !hasTeacherDecision
-      ? {label: '去教師看板', onClick: onTeacher}
-      : !hasRobotTask
-        ? {label: '看機器人任務', onClick: onRobot}
-        : !hasWrapUp
-          ? {label: '到紀錄本收尾', onClick: onWrapUp}
-          : {label: '再看收尾紀錄', onClick: onWrapUp};
-
-  return (
-    <section className="rounded-lg border border-primary/15 bg-surface-container-lowest p-4 sm:p-5 shadow-sm" data-demo-stage-card="true">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="text-xs font-black text-primary">學生上台只記四步 · 完成 {doneCount}/4</p>
-          <h2 className="mt-1 text-xl font-extrabold">一鍵示範、老師確認、機器人執行、收尾展示</h2>
-          <p className="mt-1 text-sm font-bold text-on-surface-variant">
-            每完成一步就會變成勾勾；全部完成後，就是可以上台交付的完整閉環。
-          </p>
-        </div>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 lg:min-w-[42rem]">
-          {[
-            ['1', '建立白板', hasBoard],
-            ['2', '確認可擦區', hasTeacherDecision],
-            ['3', '送機器人', hasRobotTask],
-            ['4', '展示收尾', hasWrapUp],
-          ].map(([index, label, done]) => (
-            <div key={String(label)} className={`rounded-md border px-3 py-2.5 ${done ? 'border-primary/20 bg-primary-container/45 text-primary' : 'border-outline-variant/20 bg-surface text-on-surface-variant'}`}>
-              <div className="flex items-center gap-2">
-                {done ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-surface-container-high text-xs font-black">{index}</span>}
-                <span className="text-sm font-extrabold">{label}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-        <button
-          type="button"
-          data-demo-primary="whiteboard"
-          onClick={nextAction.onClick}
-          disabled={busy === 'demo'}
-          className="min-h-11 shrink-0 rounded-md bg-primary px-4 text-sm font-black text-on-primary transition-all hover:bg-primary-dim active:scale-95 disabled:opacity-50"
-        >
-          {busy === 'demo' ? '示範建立中…' : doneCount === 4 ? '看完成紀錄' : nextAction.label}
-        </button>
-      </div>
-    </section>
-  );
-}

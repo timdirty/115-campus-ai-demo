@@ -1,6 +1,6 @@
 import {ApiError} from './http';
 
-const DATA_URL_PATTERN = /^data:([^;]+);base64,(.*)$/s;
+const DATA_URL_PATTERN = /^data:([^;,]+)(?:;[^,]*?)*;base64,(.*)$/s;
 const BASE64_PATTERN = /^[A-Za-z0-9+/=\s]+$/;
 
 export type ParsedMedia = {
@@ -11,7 +11,8 @@ export type ParsedMedia = {
 
 export function stripDataUrl(value: string, fallbackMimeType: string): ParsedMedia {
   const match = value.match(DATA_URL_PATTERN);
-  const mimeType = match ? match[1].toLowerCase() : fallbackMimeType.toLowerCase();
+  const rawMime = match ? match[1] : fallbackMimeType;
+  const mimeType = rawMime.toLowerCase().split(';')[0].trim();
   const data = (match ? match[2] : value).replace(/\s/g, '');
   return {
     mimeType,

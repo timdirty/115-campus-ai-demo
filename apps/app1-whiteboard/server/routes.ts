@@ -559,7 +559,7 @@ export function registerRoutes(app: Express) {
         const timeoutMsg = `命令已送出但機器人未回應確認 (${command})`;
         const status = await updateRobotStatus({connected: false, activePort: result.port, lastCommand: command, lastResponse: timeoutMsg});
         const taskLog = await appendTaskLog({command, source, ok: false, message: timeoutMsg});
-        res.status(503).json({ok: false, error: 'ack_timeout', message: timeoutMsg, action, regionId, command, status, taskLog});
+        res.status(demoFallbackStatus(source)).json({ok: false, error: 'ack_timeout', message: timeoutMsg, action, regionId, command, status, taskLog});
         broadcast({type: 'command_ack', command, ok: false});
         return;
       }
@@ -618,7 +618,7 @@ export function registerRoutes(app: Express) {
         });
         const taskLog = await appendTaskLog({command, source, ok: result.ok, message});
         if (!result.ok) {
-          res.status(503).json({ok: false, command, error: result.response, status, taskLog});
+          res.status(demoFallbackStatus(source)).json({ok: false, command, error: result.response, status, taskLog});
           return;
         }
         res.json({ok: true, command, response: result.response, status, taskLog});

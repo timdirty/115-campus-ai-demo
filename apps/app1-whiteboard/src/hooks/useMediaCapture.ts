@@ -34,14 +34,35 @@ export function useMediaCapture() {
     setCameraReady(false);
   };
 
-  const enableCamera = async () => {
+  const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
+  const [activeCameraId, setActiveCameraId] = useState<string>('');
+
+  const refreshCameras = async (): Promise<MediaDeviceInfo[]> => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoInputs = devices.filter((d) => d.kind === 'videoinput');
+      setCameras(videoInputs);
+      return videoInputs;
+    } catch {
+      return [];
+    }
+  };
+
+  const enableCamera = async (deviceId?: string) => {
     setMediaBusy('camera');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {facingMode: 'environment', width: {ideal: 1280}, height: {ideal: 720}},
-        audio: false,
-      });
+      // Tear down existing stream before requesting a new one
+      cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
+      cameraStreamRef.current = null;
+
+      const videoConstraint: MediaTrackConstraints = deviceId
+        ? {deviceId: {exact: deviceId}, width: {ideal: 1280}, height: {ideal: 720}}
+        : {facingMode: 'environment', width: {ideal: 1280}, height: {ideal: 720}};
+      const stream = await navigator.mediaDevices.getUserMedia({video: videoConstraint, audio: false});
       cameraStreamRef.current = stream;
+      const activeTrack = stream.getVideoTracks()[0];
+      const settings = activeTrack?.getSettings?.();
+      if (settings?.deviceId) setActiveCameraId(settings.deviceId);
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         try {
@@ -52,6 +73,8 @@ export function useMediaCapture() {
           throw playError;
         }
         setCameraReady(true);
+        // Populate the device list once we have permission (labels need permission)
+        await refreshCameras();
       } else {
         stream.getTracks().forEach((t) => t.stop());
         cameraStreamRef.current = null;
@@ -60,6 +83,11 @@ export function useMediaCapture() {
     } finally {
       setMediaBusy('');
     }
+  };
+
+  const switchCamera = async (deviceId: string) => {
+    if (!deviceId || deviceId === activeCameraId) return;
+    await enableCamera(deviceId);
   };
 
   const captureFrame = () => {
@@ -137,5 +165,9 @@ export function useMediaCapture() {
     captureFrame,
     startRecording,
     stopRecording,
+    cameras,
+    activeCameraId,
+    refreshCameras,
+    switchCamera,
   };
 }
