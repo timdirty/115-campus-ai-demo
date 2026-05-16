@@ -3,6 +3,13 @@ import {GoogleGenAI, createPartFromBase64} from '@google/genai';
 const geminiApiKey = process.env.GEMINI_API_KEY?.trim() || process.env.VITE_GEMINI_API_KEY?.trim() || '';
 const ai = geminiApiKey ? new GoogleGenAI({apiKey: geminiApiKey}) : null;
 const visionModel = process.env.GEMINI_VISION_MODEL?.trim() || process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash';
+const textModel = process.env.GEMINI_TEXT_MODEL?.trim() || process.env.GEMINI_MODEL?.trim() || visionModel;
+
+function withAiTimeout<T>(fn: (signal: AbortSignal) => Promise<T>, ms = 20_000): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new Error(`AI call timed out after ${ms}ms`)), ms);
+  return fn(controller.signal).finally(() => clearTimeout(timer));
+}
 
 export function isGeminiConfigured(): boolean {
   return Boolean(ai);
@@ -48,10 +55,13 @@ export async function analyzeGuardianAlert(context: GuardianAlertContext): Promi
       '請給老師可執行的關懷建議，包含第一步怎麼接近、現場要確認什麼、何時需要轉介。避免診斷或貼標籤。',
     ].filter(Boolean).join('\n');
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: [{role: 'user', parts: [{text: prompt}]}],
-    });
+    const response = await withAiTimeout((signal) =>
+      ai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: [{role: 'user', parts: [{text: prompt}]}],
+        config: {abortSignal: signal},
+      })
+    );
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
     if (!text) throw new Error('empty response');
     return {reply: text, source: 'gemini'};
@@ -132,19 +142,14 @@ export async function analyzeEmotionFromImage(imageBase64: string): Promise<Emot
       '{"emotion":"...","stress":0-100,"stability":0-100,"focus":0-100,"moodLabel":"自然短標籤","riskLabel":"穩定/需留意/高關注","response":"機器人要說的一句話","advice":"給老師的一句建議"}',
     ].join('\n');
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30000);
-    let text = '';
-    try {
-      const response = await ai.models.generateContent({
+    const response = await withAiTimeout((signal) =>
+      ai.models.generateContent({
         model: visionModel,
         contents: [{role: 'user', parts: [{text: prompt}, createPartFromBase64(media.data, media.mimeType)]}],
-        config: {temperature: 0.3},
-      });
-      text = response.text?.trim() ?? response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
-    } finally {
-      clearTimeout(timer);
-    }
+        config: {temperature: 0.3, abortSignal: signal},
+      }), 30_000
+    );
+    const text = response.text?.trim() ?? response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
 
     const parsed = parseJsonLoose<Partial<EmotionAnalysis>>(text);
     if (!parsed) throw new Error('parse failed');
