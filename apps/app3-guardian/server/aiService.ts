@@ -1,7 +1,8 @@
-import {GoogleGenAI} from '@google/genai';
+import {GoogleGenAI, createPartFromBase64} from '@google/genai';
 
 const geminiApiKey = process.env.GEMINI_API_KEY?.trim() || process.env.VITE_GEMINI_API_KEY?.trim() || '';
 const ai = geminiApiKey ? new GoogleGenAI({apiKey: geminiApiKey}) : null;
+const visionModel = process.env.GEMINI_VISION_MODEL?.trim() || process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash';
 
 export function isGeminiConfigured(): boolean {
   return Boolean(ai);
@@ -56,5 +57,116 @@ export async function analyzeGuardianAlert(context: GuardianAlertContext): Promi
     return {reply: text, source: 'gemini'};
   } catch {
     return {reply: localGuardianReply(severity), source: 'local'};
+  }
+}
+
+const VALID_EMOTIONS = new Set(['happy', 'calm', 'focused', 'anxious', 'sad', 'stressed']);
+
+export interface EmotionAnalysis {
+  emotion: string;
+  response: string;
+  advice: string;
+  stress: number;
+  stability: number;
+  focus: number;
+  moodLabel: string;
+  riskLabel: string;
+  fusionScore: number;
+  source: 'gemini' | 'local';
+  error?: string;
+}
+
+function stripDataUrl(input: string): {data: string; mimeType: string} {
+  const match = /^data:([^;]+);base64,(.+)$/.exec(input.trim());
+  if (match) return {mimeType: match[1] || 'image/jpeg', data: match[2]};
+  return {mimeType: 'image/jpeg', data: input.trim()};
+}
+
+function parseJsonLoose<T>(text: string): T | null {
+  try { return JSON.parse(text) as T; } catch { /* noop */ }
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/)?.[1];
+  if (fenced) { try { return JSON.parse(fenced) as T; } catch { /* noop */ } }
+  const braced = text.match(/[\[{][\s\S]*[\]}]/)?.[0];
+  if (braced) { try { return JSON.parse(braced) as T; } catch { /* noop */ } }
+  return null;
+}
+
+function clampInt(value: unknown, fallback: number, min = 0, max = 100): number {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(num)));
+}
+
+function localEmotionFallback(): EmotionAnalysis {
+  return {
+    emotion: 'calm',
+    response: '目前狀態看起來平穩，保持自然觀察即可。',
+    advice: '繼續關注學生互動情況，必要時主動關懷。',
+    stress: 25,
+    stability: 80,
+    focus: 70,
+    moodLabel: '平穩',
+    riskLabel: '穩定',
+    fusionScore: 7.5,
+    source: 'local',
+  };
+}
+
+export async function analyzeEmotionFromImage(imageBase64: string): Promise<EmotionAnalysis> {
+  if (!ai) {
+    return {...localEmotionFallback(), error: 'GEMINI_API_KEY 未設定，使用本地預設值'};
+  }
+  try {
+    const media = stripDataUrl(imageBase64);
+    const prompt = [
+      '你是國中校園裡的「AI 心靈守護機器人」，正在用鏡頭做低壓、非診斷式的情緒觀察。',
+      '請觀察畫面中學生的狀態（姿勢、頭部方向、表情線索、專注程度）。',
+      '前端只支援這六種情緒，請務必選其中一種：',
+      '- happy：愉悅。表情明亮、放鬆、有互動意願。',
+      '- calm：平靜。狀態穩定、沒有明顯壓力。',
+      '- focused：專注。注意力集中、投入學習。',
+      '- anxious：焦慮。緊張、不安、注意力飄移。',
+      '- sad：低落。疲倦、沮喪、趴桌、退縮。',
+      '- stressed：緊張。高壓、明顯煩躁。',
+      '請只輸出 JSON，不要 markdown 不要說明。格式：',
+      '{"emotion":"...","stress":0-100,"stability":0-100,"focus":0-100,"moodLabel":"自然短標籤","riskLabel":"穩定/需留意/高關注","response":"機器人要說的一句話","advice":"給老師的一句建議"}',
+    ].join('\n');
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
+    let text = '';
+    try {
+      const response = await ai.models.generateContent({
+        model: visionModel,
+        contents: [{role: 'user', parts: [{text: prompt}, createPartFromBase64(media.data, media.mimeType)]}],
+        config: {temperature: 0.3},
+      });
+      text = response.text?.trim() ?? response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
+    } finally {
+      clearTimeout(timer);
+    }
+
+    const parsed = parseJsonLoose<Partial<EmotionAnalysis>>(text);
+    if (!parsed) throw new Error('parse failed');
+
+    const fallback = localEmotionFallback();
+    const emotion = typeof parsed.emotion === 'string' && VALID_EMOTIONS.has(parsed.emotion) ? parsed.emotion : fallback.emotion;
+    const stress = clampInt(parsed.stress, fallback.stress);
+    const stability = clampInt(parsed.stability, fallback.stability);
+    const focus = clampInt(parsed.focus, fallback.focus);
+    return {
+      emotion,
+      response: String(parsed.response ?? fallback.response).slice(0, 120),
+      advice: String(parsed.advice ?? fallback.advice).slice(0, 120),
+      stress,
+      stability,
+      focus,
+      moodLabel: String(parsed.moodLabel ?? fallback.moodLabel).slice(0, 30),
+      riskLabel: String(parsed.riskLabel ?? fallback.riskLabel).slice(0, 30),
+      fusionScore: Math.round((focus + stability + (100 - stress)) / 30 * 10) / 10,
+      source: 'gemini',
+    };
+  } catch (err) {
+    return {...localEmotionFallback(), error: err instanceof Error ? err.message : String(err)};
   }
 }

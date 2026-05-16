@@ -106,10 +106,10 @@ function mapToRobotEmotion(mood: MoodType | undefined, riskLevel: string, robotA
 }
 
 const moodOptions: Array<{mood: MoodType; label: string; note: string; tone: string}> = [
-  {mood: 'happy', label: '開心', note: '今天有一點亮亮的事', tone: 'border-emerald-300 bg-emerald-400/15 text-emerald-100'},
-  {mood: 'steady', label: '還可以', note: '狀態普通，能慢慢做', tone: 'border-sky-300 bg-sky-400/15 text-sky-100'},
-  {mood: 'tired', label: '有點累', note: '需要短暫休息一下', tone: 'border-amber-300 bg-amber-400/15 text-amber-100'},
-  {mood: 'worried', label: '有點擔心', note: '想找人一起想辦法', tone: 'border-rose-300 bg-rose-400/15 text-rose-100'},
+  {mood: 'happy', label: '開心', note: '今天有一點亮亮的事', tone: 'border-emerald-300 bg-emerald-400/15 text-emerald-800'},
+  {mood: 'steady', label: '還可以', note: '狀態普通，能慢慢做', tone: 'border-sky-300 bg-sky-400/15 text-sky-800'},
+  {mood: 'tired', label: '有點累', note: '需要短暫休息一下', tone: 'border-amber-300 bg-amber-400/15 text-amber-800'},
+  {mood: 'worried', label: '有點擔心', note: '想找人一起想辦法', tone: 'border-rose-300 bg-rose-400/15 text-rose-800'},
 ];
 
 const panelNav: Array<{id: Exclude<ActivePanel, null>; label: string; icon: LucideIcon}> = [
@@ -1291,18 +1291,15 @@ function AppContent() {
       </header>
 
       <main className="mx-auto grid max-w-7xl gap-4 px-4 py-4 pb-24 sm:px-6 lg:pb-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <StagePilotStrip
-            autoDemoRunning={autoDemoRunning}
-            bridgeOnline={bridgeOnline}
-            sensorCount={zoneSensors.filter((sensor) => sensor.connected).length}
-            doneCount={demoClosureSteps.filter((step) => step.done).length}
-            totalCount={demoClosureSteps.length}
-            onRunAutoDemo={runAutoDemo}
-            onOpenPrintableScenes={() => openStageWindow(PRINTABLE_SCENE_SHEET_URL)}
-            onOpenRobotDisplay={openRobotDisplayStage}
-            onReset={resetStageDemo}
-          />
-          <GuardianDemoRouteCards routes={guardianDemoRouteCards} />
+          <details className="lg:col-span-2">
+            <summary className="flex cursor-pointer select-none list-none items-center gap-2 text-xs font-black tracking-widest text-slate-400 hover:text-teal-600 [&::-webkit-details-marker]:hidden">
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-[10px]">▸</span>
+              展示路線說明（上台前參考）
+            </summary>
+            <div className="mt-3">
+              <GuardianDemoRouteCards routes={guardianDemoRouteCards} />
+            </div>
+          </details>
           <CommandCenterScreen
             viewModel={viewModel}
             selectedZone={selectedZone}
@@ -1423,6 +1420,7 @@ function AppContent() {
         proactiveInsight={viewModel.proactiveInsight}
         robotFeedback={robotFeedback}
         onClose={() => setActivePanel(null)}
+        onOpenPanel={setActivePanel}
         onMood={handleMood}
         onAddPost={addPost}
         onSendMessage={sendMessage}
@@ -1719,8 +1717,6 @@ function CommandCenterScreen({
           <div className={`h-1 w-full ${viewModel.highestZone.riskLevel === 'high' ? 'bg-linear-to-r from-rose-400 to-rose-600' : viewModel.highestZone.riskLevel === 'medium' ? 'bg-linear-to-r from-amber-300 to-amber-500' : 'bg-linear-to-r from-teal-300 to-teal-500'}`} />
         </div>
       </div>
-
-      <DemoClosureRail steps={demoClosureSteps} onOpenPanel={onOpenPanel} onRunAutoDemo={onRunAutoDemo} autoDemoRunning={autoDemoRunning} />
 
       <div data-tour="campus-map">
         <CampusMap2D zones={viewModel.zones} selectedZone={selectedZone} selectedZoneId={selectedZoneId} robotFeedback={robotFeedback} robotTravel={robotTravel} zoneAssessments={zoneAssessments} onSelectZone={onSelectZone} onOpenZoneInsight={onOpenZoneInsight} onDispatchRobot={onDispatchRobot} />
@@ -2501,6 +2497,7 @@ function DetailDrawer(props: {
   proactiveInsight: ProactiveInsight;
   robotFeedback: RobotDispatchFeedback;
   onClose: () => void;
+  onOpenPanel: (panel: ActivePanel) => void;
   onMood: (mood: MoodType, note?: string) => void;
   onAddPost: () => void;
   onSendMessage: () => void;
@@ -2538,7 +2535,7 @@ function DetailDrawer(props: {
             onKeyDown={(e) => e.key === 'Escape' && props.onClose()}
             className="fixed bottom-0 right-0 z-50 flex max-h-[88vh] w-full flex-col rounded-t-2xl border border-slate-200 bg-white p-4 text-slate-950 shadow-2xl shadow-slate-950/15 sm:max-w-xl lg:bottom-4 lg:right-4 lg:top-21 lg:max-h-none lg:rounded-2xl"
           >
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
+            <div className="flex items-center justify-between gap-3 pb-2">
               <div>
                 <p className="text-xs font-black text-teal-700">工作抽屜</p>
                 <h2 className="text-2xl font-black">{panelTitle(panel)}</h2>
@@ -2546,6 +2543,20 @@ function DetailDrawer(props: {
               <button onClick={props.onClose} aria-label="關閉工作面板" className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700">
                 <X className="h-5 w-5" />
               </button>
+            </div>
+            <div className="flex gap-1 border-b border-slate-200 pb-2">
+              {panelNav.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => props.onOpenPanel(item.id)}
+                  className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-black transition ${
+                    panel === item.id ? 'bg-teal-600 text-white' : 'text-slate-500 hover:bg-slate-100'
+                  }`}
+                >
+                  <item.icon className="h-3 w-3" />
+                  {item.label}
+                </button>
+              ))}
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto py-4 pb-safe">
               {panel === 'alerts' && <AlertsPanel {...props} />}

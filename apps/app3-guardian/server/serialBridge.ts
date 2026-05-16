@@ -2,6 +2,7 @@
 // Self-contained: no dependency on App 1 / App 2 or any sibling project.
 // Frontend (src/services/hardwareBridge.ts) talks to this on http://localhost:<BRIDGE_PORT>.
 
+import 'dotenv/config';
 import {execSync, spawn} from 'node:child_process';
 import {createServer} from 'node:http';
 import {networkInterfaces} from 'node:os';
@@ -21,7 +22,7 @@ import {
   tryAutoOpen,
 } from './serialPort';
 import {appendAlertLog, getAlertLogs, loadPortZoneAssignments, resetDemoData, savePortZoneAssignments} from './storage';
-import {analyzeGuardianAlert, isGeminiConfigured} from './aiService';
+import {analyzeEmotionFromImage, analyzeGuardianAlert, isGeminiConfigured} from './aiService';
 import {getEV3Status, sendEV3Command, startEV3Manager} from './ev3Manager';
 import {getSpikeStatus, sendSpikeCommand, startSpikeManager} from './spikeManager';
 
@@ -128,6 +129,9 @@ interface GuardianSnapshot {
 }
 
 let latestGuardianSnapshot: GuardianSnapshot | null = null;
+// 學生按情緒掃描後，鎖住 snapshot 30 秒，避免被前端的 viewModel debounce 推送蓋掉
+let guardianSnapshotLockedUntil = 0;
+const GUARDIAN_SNAPSHOT_LOCK_MS = 30_000;
 
 interface RobotAssignmentSnapshot {
   zoneId: string;
@@ -381,8 +385,10 @@ app.use((req, res, next) => {
 });
 
 // Timeout middleware: command endpoints must respond within 6s
+// emotion-scan 走 Gemini Vision，需要長時間，由 endpoint 自行管理逾時
 app.use('/api/robot', (req, res, next) => {
   if (req.method !== 'POST') { next(); return; }
+  if (req.path === '/emotion-scan') { next(); return; }
   const t = setTimeout(() => {
     if (!res.headersSent) res.status(503).json({ok: false, error: 'request timeout — bridge busy'});
   }, 6000);
@@ -391,7 +397,7 @@ app.use('/api/robot', (req, res, next) => {
 });
 
 app.options('*', (_req, res) => res.sendStatus(204));
-app.use(express.json({limit: '256kb'}));
+app.use(express.json({limit: '4mb'}));
 
 app.get('/api/health', (_req, res) => {
   const connectedSensors = Array.from(portZoneMap.keys()).filter(isSensorPortConnected).length;
@@ -624,6 +630,11 @@ app.post('/api/display/guardian-snapshot', (req, res) => {
     res.status(400).json({ok: false, error: 'invalid snapshot'});
     return;
   }
+  // emotion-scan 結果在 30 秒內不被覆蓋（除非請求帶 force=true）
+  if (guardianSnapshotLockedUntil > Date.now() && !(req.body as {force?: boolean})?.force) {
+    res.json({ok: true, pushed: 0, locked: true, lockedUntil: new Date(guardianSnapshotLockedUntil).toISOString()});
+    return;
+  }
   latestGuardianSnapshot = {
     emotion: snap.emotion,
     stress: typeof snap.stress === 'number' ? snap.stress : 0,
@@ -758,6 +769,63 @@ app.post('/api/display/emotion', (req, res) => {
 
 app.get('/api/display/status', (_req, res) => {
   res.json({ok: true, clients: displayClients.size});
+});
+
+app.post('/api/robot/emotion-scan', async (req, res) => {
+  const imageBase64 = typeof req.body?.imageBase64 === 'string' ? req.body.imageBase64 : '';
+  if (!imageBase64) {
+    res.status(400).json({ok: false, error: 'imageBase64 required'});
+    return;
+  }
+  const result = await analyzeEmotionFromImage(imageBase64);
+
+  const moodScore = result.emotion === 'stressed' ? 2 : (result.emotion === 'anxious' || result.emotion === 'sad') ? 1 : 0;
+  const soundScore = result.stability >= 70 ? 0 : result.stability >= 45 ? 1 : 2;
+  const nodeScore = result.focus >= 70 ? 0 : result.focus >= 45 ? 1 : 2;
+  const alertScore = result.stress < 55 ? 0 : result.stress < 75 ? 1 : 2;
+
+  const snapshot: GuardianSnapshot = {
+    emotion: result.emotion,
+    stress: result.stress,
+    stability: result.stability,
+    focus: result.focus,
+    fusionScore: result.fusionScore,
+    signals: {moodScore, soundScore, nodeScore, alertScore},
+    riskScore: result.stress,
+    riskLabel: result.riskLabel,
+    moodLabel: result.moodLabel,
+    robotActive: true,
+    updatedAt: new Date().toISOString(),
+  };
+  latestGuardianSnapshot = snapshot;
+  guardianSnapshotLockedUntil = Date.now() + GUARDIAN_SNAPSHOT_LOCK_MS;
+  const snapPayload = JSON.stringify({type: 'guardian_snapshot', ...snapshot});
+  for (const client of displayClients) {
+    if (client.readyState === WebSocket.OPEN) client.send(snapPayload, () => {});
+  }
+
+  if (result.emotion === 'anxious' || result.emotion === 'sad' || result.emotion === 'stressed') {
+    const event: RobotEmotionEvent = {
+      id: `robot-emotion-${Date.now().toString(36)}`,
+      zoneId: latestRobotAssignment?.zoneId ?? 'zone-field',
+      zoneName: latestRobotAssignment?.zoneName ?? '操場',
+      location: latestRobotAssignment?.location ?? '操場',
+      emotion: result.emotion,
+      emotionLabel: result.moodLabel || result.emotion,
+      riskLevel: result.emotion === 'stressed' ? 'high' : 'medium',
+      description: result.advice || result.response,
+      source: 'gemini-vision',
+      updatedAt: new Date().toISOString(),
+    };
+    latestRobotEmotionEvents.unshift(event);
+    latestRobotEmotionEvents.splice(50);
+    const evtPayload = JSON.stringify({type: 'robot_emotion_event', ...event});
+    for (const client of wss.clients) {
+      if (client.readyState === WebSocket.OPEN) client.send(evtPayload, () => {});
+    }
+  }
+
+  res.json({ok: !result.error, ...result});
 });
 
 app.use('/api', (_req, res) => {

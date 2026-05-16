@@ -37,7 +37,7 @@ frame_lock = threading.Lock()
 latest_frame = None
 
 BRIDGE_HOST = "0.0.0.0"
-BRIDGE_PORT = 3203
+BRIDGE_PORT = 3204
 PAYLOAD_MARKER = "__LLM_EMOTION_JSON__"
 
 

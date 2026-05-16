@@ -411,3 +411,62 @@ export async function resetBridgeDemoData(): Promise<boolean> {
     clear();
   }
 }
+
+export interface EmotionScanResult {
+  ok: boolean;
+  emotion: string;
+  response: string;
+  advice: string;
+  stress: number;
+  stability: number;
+  focus: number;
+  moodLabel: string;
+  riskLabel: string;
+  fusionScore: number;
+  error?: string;
+}
+
+export async function triggerEmotionScan(imageBase64: string): Promise<EmotionScanResult> {
+  const {signal, clear} = withTimeout(45000);
+  try {
+    const response = await fetch(`${BRIDGE_URL}/api/robot/emotion-scan`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({imageBase64}),
+      signal,
+    });
+    const data = await response.json().catch(() => ({}));
+    return data as EmotionScanResult;
+  } catch (err) {
+    return {ok: false, emotion: 'calm', response: '', advice: '', stress: 0, stability: 100, focus: 75, moodLabel: '', riskLabel: '', fusionScore: 0, error: String(err)};
+  } finally {
+    clear();
+  }
+}
+
+export async function captureWebcamFrame(): Promise<string> {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+    throw new Error('此瀏覽器不支援相機');
+  }
+  const stream = await navigator.mediaDevices.getUserMedia({video: {width: 640, height: 480}, audio: false});
+  try {
+    const video = document.createElement('video');
+    video.srcObject = stream;
+    video.muted = true;
+    await video.play();
+    await new Promise<void>((resolve) => {
+      if (video.readyState >= 2) resolve();
+      else video.onloadeddata = () => resolve();
+    });
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('canvas error');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.85);
+  } finally {
+    stream.getTracks().forEach((t) => t.stop());
+  }
+}

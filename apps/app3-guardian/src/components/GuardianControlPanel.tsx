@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import type {GuardianState, ZoneSensorReading} from '../types';
 import type {SchoolZoneStatus} from '../services/schoolSpaces';
-import {sendGuardianDriveCommand, sendGuardianHardwareCommand} from '../services/hardwareBridge';
+import {captureWebcamFrame, sendGuardianDriveCommand, sendGuardianHardwareCommand, triggerEmotionScan} from '../services/hardwareBridge';
 import {ExternalRobotPanel} from './ExternalRobotPanel';
 
 const DRIVE_LABELS: Record<string, string> = {
@@ -158,6 +158,7 @@ export function GuardianControlPanel({bridgeOnline, zones, sensors, state, onDis
     detail: '選擇指令或直接派遣到校園空間，結果會即時顯示。',
   });
   const [logOpen, setLogOpen] = useState(false);
+  const [scanBusy, setScanBusy] = useState(false);
   const speedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flashTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const driveActiveRef = useRef<string | null>(null);
@@ -245,6 +246,26 @@ export function GuardianControlPanel({bridgeOnline, zones, sensors, state, onDis
   const dispatchToZone = (zone: SchoolZoneStatus) => {
     onDispatchRobot(zone);
     // CARE_DEPLOYED hardware cue is sent by App.tsx dispatchRobotToZone to avoid duplicate sends
+  };
+
+  const runEmotionScan = async () => {
+    if (scanBusy) return;
+    setScanBusy(true);
+    setFeedback({ok: true, cmd: 'EMOTION_SCAN', title: '攝影機啟動中…', detail: '請允許相機權限，等待對焦。'});
+    try {
+      const imageBase64 = await captureWebcamFrame();
+      setFeedback({ok: true, cmd: 'EMOTION_SCAN', title: 'AI 情緒分析中…', detail: 'Gemini 正在判讀畫面，約 5–15 秒。'});
+      const result = await triggerEmotionScan(imageBase64);
+      if (result.ok) {
+        setFeedback({ok: true, cmd: 'EMOTION_SCAN', title: `情緒掃描完成：${result.moodLabel || result.emotion}`, detail: result.response || result.advice || '掃描已完成，結果已更新到機器人顯示。'});
+      } else {
+        setFeedback({ok: false, cmd: 'EMOTION_SCAN', title: '情緒掃描失敗', detail: result.error || '請確認 GEMINI_API_KEY 已設定。'});
+      }
+    } catch (err) {
+      setFeedback({ok: false, cmd: 'EMOTION_SCAN', title: '相機無法啟動', detail: err instanceof Error ? err.message : '請確認瀏覽器相機權限已開啟。'});
+    } finally {
+      setScanBusy(false);
+    }
   };
 
   return (
@@ -393,6 +414,23 @@ export function GuardianControlPanel({bridgeOnline, zones, sensors, state, onDis
             );
           })}
         </div>
+      </div>
+
+      {/* ── Emotion scan ── */}
+      <div>
+        <p className="mb-3 text-[11px] font-black uppercase tracking-widest text-slate-400">AI 情緒掃描</p>
+        <button
+          onClick={runEmotionScan}
+          disabled={scanBusy || !bridgeOnline}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-3.5 text-sm font-black text-white shadow-sm transition-all hover:bg-violet-700 active:scale-95 disabled:opacity-50"
+        >
+          {scanBusy ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4" />
+          )}
+          {scanBusy ? '掃描中…' : '情緒掃描'}
+        </button>
       </div>
 
       {/* ── Zone dispatch ── */}
