@@ -1,7 +1,7 @@
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 
 /**
- * Per-handler abort controller with race-guarded end().
+ * Per-handler abort controller with race-guarded end() + unmount cleanup.
  *
  * Usage:
  *   const captureAbort = useActionAbort();
@@ -12,12 +12,24 @@ import {useRef} from 'react';
  *     finally { captureAbort.end(token); }  // 只有 token 匹配才清
  *   }
  *
- * Why token guard: 舊 handler 的 finally end() 可能在新 controller 已經 begin 之後執行，
+ * Token guard: 舊 handler 的 finally end() 可能在新 controller 已經 begin 之後執行，
  * 不加 guard 會把新的 controller 也清掉。token 對齊才清才安全。
+ *
+ * Unmount cleanup: 組件 unmount 時 in-flight controller 自動 abort，避免 stale fetch
+ * 寫入已卸載組件的 state。Modal/tab close 但組件仍 mounted 的情境，呼叫端要自己 wire
+ * useEffect cleanup 呼叫 abort()。
  */
 export function useActionAbort() {
   const ref = useRef<{controller: AbortController; token: number} | null>(null);
   const tokenSeq = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      ref.current?.controller.abort();
+      ref.current = null;
+    };
+  }, []);
+
   return {
     begin(): {signal: AbortSignal; token: number} {
       ref.current?.controller.abort();

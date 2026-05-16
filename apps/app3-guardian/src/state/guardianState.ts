@@ -289,7 +289,10 @@ export function guardianReducer(state: GuardianState, action: GuardianAction): G
           ...state.supportMessages,
           {id: uid('msg'), role: action.payload.role, content: action.payload.content, createdAt: now},
         ].slice(-30),
-        demoClosureFlags: {...state.demoClosureFlags, studentSupported: true},
+        // 只有 guardian (AI/老師) 回覆才算學生支持閉環完成，學生單方面輸入不算。
+        demoClosureFlags: action.payload.role === 'guardian'
+          ? {...state.demoClosureFlags, studentSupported: true}
+          : state.demoClosureFlags,
         lastUpdated: now,
       };
 

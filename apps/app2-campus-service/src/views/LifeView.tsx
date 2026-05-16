@@ -51,7 +51,23 @@ export function LifeView({
     setModal(null);
   };
 
+  // 一鍵派遣 + 真實 Tone.js 廣播鐘聲（do-mi-sol） — demo 視聽亮點
+  const playClosureChime = async () => {
+    try {
+      const Tone = await import('tone');
+      await Tone.start();
+      const synth = new Tone.Synth().toDestination();
+      const now = Tone.now();
+      synth.triggerAttackRelease('C5', '0.3', now);
+      synth.triggerAttackRelease('E5', '0.3', now + 0.3);
+      synth.triggerAttackRelease('G5', '0.3', now + 0.6);
+    } catch {
+      // AudioContext 未授權或瀏覽器不支援 → 靜音降級不阻斷 demo
+    }
+  };
+
   const runLifeClosure = () => {
+    void playClosureChime();
     actions.addDispatchTask({
       zone: 'B 棟走廊',
       taskType: 'broadcast',

@@ -2,6 +2,14 @@
 
 > 評審展示版。每段 = 一段 closure rail step。學生照念照按。
 
+## ⚠ 私密模式 / 重新整理注意
+
+iPad Safari 私密模式或瀏覽器重新整理時：
+- localStorage 寫入會失敗 → 走 memory fallback（demo 進行中不會崩）
+- **但 memory fallback 是 module-scope Map，重新整理後 5/5 counter 會歸零**
+- demo 進行中**不要重新整理**，也不要切 app（wakeLock 已保活，正常情況不會自動切走）
+- 真要重置請按「重置舞台」按鈕（會 broadcast 同步第二螢幕 robot-app），不要 F5
+
 ## 環境準備（演示前 1 分鐘）
 
 - [ ] 雙擊 `一鍵啟動展示.command` → 等到「主控台已開啟」訊息

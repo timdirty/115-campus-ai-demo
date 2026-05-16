@@ -3,7 +3,11 @@ let _proxyKey: string | undefined;
 
 function getProxyUrl(): string {
   if (_proxyUrl === undefined) {
-    _proxyUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_AI_PROXY_URL) || 'http://localhost:3200';
+    // 優先序：VITE_AI_PROXY_URL (顯式 override) → VITE_ARDUINO_BRIDGE_URL (跟 hardwareBridge 共用) → 預設 app3 bridge 3203
+    _proxyUrl =
+      (typeof import.meta !== 'undefined' && import.meta.env?.VITE_AI_PROXY_URL) ||
+      (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ARDUINO_BRIDGE_URL) ||
+      'http://localhost:3203';
   }
   return _proxyUrl;
 }

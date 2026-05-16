@@ -4,7 +4,10 @@ import {setTimeout as delay} from 'node:timers/promises';
 
 const appDir = process.cwd();
 const npmBin = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const okStatuses = new Set([200, 202, 502, 503]);
+// 嚴格 vs 寬鬆狀態：核心 endpoint 必須真的活 + 回 200/202 才算 PASS；
+// AI/硬體 fallback (502/503) 列 WARN 但不阻塞 exit code。
+const strictOkStatuses = new Set([200, 202]);
+const warnStatuses = new Set([502, 503]);
 
 const TINY_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=';
 
@@ -54,23 +57,24 @@ async function waitForOk(url, label, timeoutMs = 20_000) {
   throw new Error(`${label} not ready at ${url}: ${lastError}`);
 }
 
-async function checkEndpoint(method, url, body, label) {
+async function checkEndpoint(method, url, body, label, options = {}) {
+  const allowWarn = options.allowWarn === true;
   const init = {method, headers: {'Content-Type': 'application/json'}};
   if (body !== undefined) init.body = JSON.stringify(body);
 
   try {
     const response = await fetch(url, init);
-    return {
-      label,
-      status: response.status,
-      ok: okStatuses.has(response.status),
-      url,
-    };
+    const status = response.status;
+    let level;
+    if (strictOkStatuses.has(status)) level = 'PASS';
+    else if (allowWarn && warnStatuses.has(status)) level = 'WARN';
+    else level = 'FAIL';
+    return {label, status, level, url};
   } catch (error) {
     return {
       label,
       status: 0,
-      ok: false,
+      level: 'FAIL',
       url,
       error: error instanceof Error ? error.message : String(error),
     };
@@ -107,6 +111,7 @@ async function main() {
     const base = `http://127.0.0.1:${bridgePort}`;
     await waitForOk(`${base}/api/health`, 'Bridge');
 
+    // 核心 endpoint 必須 200/202；AI/硬體 endpoint 允許 WARN (502/503) 表示 fallback
     const results = await Promise.all([
       checkEndpoint('GET', `${base}/api/health`, undefined, 'health'),
       checkEndpoint('GET', `${base}/api/ready`, undefined, 'ready'),
@@ -117,32 +122,39 @@ async function main() {
         riskLevel: 'medium',
         severity: 'medium',
         description: 'demo:check',
-      }, 'ai/guardian'),
+      }, 'ai/guardian', {allowWarn: true}),
       checkEndpoint('POST', `${base}/api/ai/guardian-chat`, {
         text: '測試',
         mood: 'calm',
-      }, 'ai/guardian-chat'),
+      }, 'ai/guardian-chat', {allowWarn: true}),
       checkEndpoint('POST', `${base}/api/ai/zone-advisor`, {
         zoneName: '圖書館',
         recentReadings: [],
-      }, 'ai/zone-advisor'),
-      checkEndpoint('POST', `${base}/api/robot/command`, {command: 'BEEP'}, 'robot/command'),
-      checkEndpoint('POST', `${base}/api/robot/drive`, {command: 'STOP'}, 'robot/drive'),
-      checkEndpoint('POST', `${base}/api/robot/emotion-scan`, {imageBase64: TINY_PNG}, 'robot/emotion-scan'),
+      }, 'ai/zone-advisor', {allowWarn: true}),
+      checkEndpoint('POST', `${base}/api/robot/command`, {command: 'BEEP'}, 'robot/command', {allowWarn: true}),
+      checkEndpoint('POST', `${base}/api/robot/drive`, {command: 'STOP'}, 'robot/drive', {allowWarn: true}),
+      checkEndpoint('POST', `${base}/api/robot/emotion-scan`, {imageBase64: TINY_PNG}, 'robot/emotion-scan', {allowWarn: true}),
       checkEndpoint('GET', `${base}/api/display/status`, undefined, 'display/status'),
       checkEndpoint('GET', `${base}/api/display/info`, undefined, 'display/info'),
       checkEndpoint('POST', `${base}/api/display/emotion`, {emotion: 'calm'}, 'display/emotion'),
       checkEndpoint('GET', `${base}/api/display/emotion-events`, undefined, 'display/emotion-events'),
     ]);
 
-    let allOk = true;
+    let hasFail = false;
+    let warnCount = 0;
     for (const result of results) {
-      const tag = result.ok ? 'PASS' : 'FAIL';
+      const tag = result.level;
       console.log(`[${tag}] ${result.label.padEnd(22)} ${String(result.status || '---').padEnd(3)} ${result.url}${result.error ? ` ${result.error}` : ''}`);
-      if (!result.ok) allOk = false;
+      if (result.level === 'FAIL') hasFail = true;
+      if (result.level === 'WARN') warnCount += 1;
     }
 
-    process.exitCode = allOk ? 0 : 1;
+    if (warnCount > 0) {
+      console.log('');
+      console.log(`⚠ ${warnCount} 個 endpoint WARN — AI 未設定 GEMINI_API_KEY 或硬體 SIM 模式。比賽前確認真實 key 與 Arduino 已上傳對應韌體。`);
+    }
+
+    process.exitCode = hasFail ? 1 : 0;
   } catch (error) {
     console.error('[demo:check] crashed:', error instanceof Error ? error.stack : String(error));
     if (bridgeLogs.length) console.error(bridgeLogs.join('\n'));
