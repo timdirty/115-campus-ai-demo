@@ -46,15 +46,22 @@ export function getAiErrorInfo(error: unknown): {message: string; code: string; 
   };
 }
 
+function withAiTimeout<T>(fn: (signal: AbortSignal) => Promise<T>, ms = 20_000): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new Error(`AI call timed out after ${ms}ms`)), ms);
+  return fn(controller.signal).finally(() => clearTimeout(timer));
+}
+
 export async function checkAiAccess(): Promise<{ok: boolean; model: string; error?: string; errorCode?: string}> {
   if (!ai) {
     return {ok: false, model: visionModel, error: 'GEMINI_API_KEY is missing', errorCode: 'GEMINI_KEY_MISSING'};
   }
   try {
-    await ai.models.generateContent({
+    await withAiTimeout((signal) => ai.models.generateContent({
       model: visionModel,
+      config: {abortSignal: signal},
       contents: 'Return exactly OK.',
-    });
+    }));
     return {ok: true, model: visionModel};
   } catch (error) {
     const info = getAiErrorInfo(error);
@@ -169,14 +176,14 @@ export async function classifyVisionScene(imageBase64: string): Promise<{scene: 
 
 {"scene":"<類別>","confidence":<0-100整數，反映你的確信度>,"zone":"<一個繁體中文地點，如「B棟走廊」>","summary":"<一句繁體中文，具體描述畫面情境和建議行動>"}`;
 
-    const response = await ai.models.generateContent({
+    const response = await withAiTimeout((signal) => ai.models.generateContent({
       model: visionModel,
-      config: {systemInstruction: '你是台灣國小校園服務機器人的視覺 AI 模組。你必須保守判斷，不可以把非校園任務畫面硬分類成校園任務。只回傳 JSON。'},
+      config: {systemInstruction: '你是台灣國小校園服務機器人的視覺 AI 模組。你必須保守判斷，不可以把非校園任務畫面硬分類成校園任務。只回傳 JSON。', abortSignal: signal},
       contents: [{role: 'user', parts: [
         {text: prompt},
         {inlineData: {mimeType: 'image/jpeg', data: imageBase64}},
       ]}],
-    });
+    }));
     const rawText = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
     if (!rawText) throw new Error('empty response');
     const {scene, confidence, zone, summary} = parseVisionResponse(rawText, zonePool);
@@ -200,10 +207,11 @@ export async function analyzeDeliveryTask(context: DeliveryContext): Promise<{re
       context.userMessage ? `老師詢問：${context.userMessage}` : '',
     ].filter(Boolean).join('\n');
 
-    const response = await ai.models.generateContent({
+    const response = await withAiTimeout((signal) => ai.models.generateContent({
       model: textModel,
+      config: {abortSignal: signal},
       contents: [{role: 'user', parts: [{text: prompt}]}],
-    });
+    }));
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
     if (!text) throw new Error('empty response');
     return {reply: text, source: 'gemini'};
@@ -216,7 +224,11 @@ export async function generateTeacherReply(question: string, subject?: string): 
   if (!ai) return {reply: '', source: 'local'};
   try {
     const prompt = `你是台灣國小老師的 AI 助教。學生提問：「${question}」${subject ? `\n科目：${subject}` : ''}\n用 2-3 句繁體中文回答，語氣親切但專業，可以鼓勵學生思考。`;
-    const response = await ai.models.generateContent({model: textModel, contents: [{role: 'user', parts: [{text: prompt}]}]});
+    const response = await withAiTimeout((signal) => ai.models.generateContent({
+      model: textModel,
+      config: {abortSignal: signal},
+      contents: [{role: 'user', parts: [{text: prompt}]}],
+    }));
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
     if (!text) throw new Error('empty response');
     return {reply: text, source: 'gemini'};
@@ -229,7 +241,11 @@ export async function generateDispatchRecommendation(zone: string, taskType: str
   if (!ai) return {recommendation: '', source: 'local'};
   try {
     const prompt = `你是校園服務機器人派遣 AI。請給出派遣建議。\n區域：${zone}\n任務類型：${taskType}\n用 1-2 句繁體中文回答，提示風險、優先順序或注意事項。`;
-    const response = await ai.models.generateContent({model: textModel, contents: [{role: 'user', parts: [{text: prompt}]}]});
+    const response = await withAiTimeout((signal) => ai.models.generateContent({
+      model: textModel,
+      config: {abortSignal: signal},
+      contents: [{role: 'user', parts: [{text: prompt}]}],
+    }));
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
     if (!text) throw new Error('empty response');
     return {recommendation: text, source: 'gemini'};
@@ -242,7 +258,11 @@ export async function generateStudentReport(name: string, data: Record<string, u
   if (!ai) return {report: '', source: 'local'};
   try {
     const prompt = `你是台灣國小導師的 AI 助手，幫忙撰寫學生學習狀態報告。\n學生：${name}\n數據：${JSON.stringify(data).slice(0, 800)}\n用 3-4 句繁體中文總結，重點放在學習表現、互動狀況、建議方向。`;
-    const response = await ai.models.generateContent({model: textModel, contents: [{role: 'user', parts: [{text: prompt}]}]});
+    const response = await withAiTimeout((signal) => ai.models.generateContent({
+      model: textModel,
+      config: {abortSignal: signal},
+      contents: [{role: 'user', parts: [{text: prompt}]}],
+    }));
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
     if (!text) throw new Error('empty response');
     return {report: text, source: 'gemini'};
@@ -261,14 +281,14 @@ export async function estimateClassroomAttendance(imageBase64: string): Promise<
 {"count":<整數，估算可見學生人數>,"rate":<0-100出席率百分比整數>,"confidence":<0-100你的確信度>,"summary":"<一句繁體中文描述教室狀況>"}
 規則：若不確定或看不到學生，count 填 0，confidence 填低於 40。`;
 
-  const response = await ai.models.generateContent({
+  const response = await withAiTimeout((signal) => ai.models.generateContent({
     model: visionModel,
-    config: {systemInstruction: '你是教室出缺席估算 AI。只回傳 JSON。'},
+    config: {systemInstruction: '你是教室出缺席估算 AI。只回傳 JSON。', abortSignal: signal},
     contents: [{role: 'user', parts: [
       {text: prompt},
       {inlineData: {mimeType: 'image/jpeg', data: imageBase64}},
     ]}],
-  });
+  }));
 
   const rawText = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
   if (!rawText) throw new Error('empty response');
