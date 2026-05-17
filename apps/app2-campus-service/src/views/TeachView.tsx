@@ -150,11 +150,19 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const base64 = canvas.toDataURL('image/jpeg', 0.65).replace(/^data:image\/jpeg;base64,/, '');
+        const snapshotDataUrl = canvas.toDataURL('image/jpeg', 0.5);
+        const capturedAt = new Date().toISOString();
         const result = await scanClassroom(base64, signal);
         if (signal.aborted) return;
         if (result.ok) {
           setScanResult(result);
-          setAiSignals(result.signals ?? []);
+          setAiSignals(
+            (result.signals ?? []).map(s => ({
+              ...s,
+              snapshot: snapshotDataUrl,
+              capturedAt,
+            }))
+          );
         } else {
           setScanError(result.error ?? 'AI 辨識失敗，請重試或手動完成');
         }
@@ -167,6 +175,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       setAttendanceScanning(false);
     }
   };
+
 
   const handleAttendanceComplete = () => {
     actions.scanAttendance();
