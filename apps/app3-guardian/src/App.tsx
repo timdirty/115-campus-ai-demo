@@ -3010,10 +3010,12 @@ function SensingPanel({
           </button>
         </div>
         {micError && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{micError}</p>}
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          <MiniMetric label="音量" value={currentAcoustic.volumeIndex} />
-          <MiniMetric label="波動" value={currentAcoustic.volatility} />
-          <MiniMetric label="狀態" value={currentAcoustic.level === 'elevated' ? '偏高' : currentAcoustic.level === 'active' ? '活動' : '平穩'} />
+        <div className="mt-4">
+          <SoundLevelGauge
+            volumeIndex={currentAcoustic.volumeIndex}
+            volatility={currentAcoustic.volatility}
+            level={currentAcoustic.level}
+          />
         </div>
         <p className="mt-4 text-sm font-semibold leading-6 text-slate-600">{currentAcoustic.summary}</p>
         <SoundSparkline trend={soundTrend} />
