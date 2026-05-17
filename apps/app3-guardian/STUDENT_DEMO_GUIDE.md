@@ -259,3 +259,9 @@ npm run dev      # 同時啟動前端 :3000 + 橋接 :3203
 - **教學：** `https://timdirty.github.io/115-campus-ai-demo/app3-guide.html`
 
 公開網址只展示畫面與教學；真 Arduino / robot 控制走本機或 LAN bridge。現場沒有硬體時使用模擬模式，接上實機後沿用同一套任務與指令紀錄。
+
+## 後續機器人連動計畫
+
+- 公開網址只展示畫面與教學，不開放外網控制真實硬體。
+- 真 Arduino 控制只走本機或同一個 LAN 的 bridge（port 3203）。
+- 現場沒有硬體時自動進入模擬模式；接上實體守護機器人後，沿用同一套感測數據、派遣指令與任務 log。

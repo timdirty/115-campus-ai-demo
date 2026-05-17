@@ -327,6 +327,17 @@ http://<主控機 LAN IP>:5174/robot-display.html
 
 ---
 
+## 公開展示網址
+
+- **App：** `https://timdirty.github.io/115-campus-ai-demo/app2/`
+- **教學：** `https://timdirty.github.io/115-campus-ai-demo/app2-guide.html`
+
+## 後續機器人連動計畫
+
+- 公開網址只展示畫面與教學，不開放外網控制真實硬體。
+- 真 Arduino 控制只走本機或同一個 LAN 的 bridge（port 3202）。
+- 現場沒有硬體時自動進入「展示模式」；接上實體掃地機器人後，沿用同一套派遣指令、庫存扣除與任務 log。
+
 ## 技術規格一覽
 
 ```
