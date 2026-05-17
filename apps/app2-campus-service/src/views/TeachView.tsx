@@ -290,6 +290,11 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
                     </span>
                   </div>
                   <p className="text-xs font-medium text-on-surface-variant/90 leading-relaxed truncate">{sig.description}</p>
+                  {sig.capturedAt && (
+                    <p className="text-[10px] text-on-surface-variant/50 mt-1 font-mono">
+                      {new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(sig.capturedAt))} 掃描 · 點開查看截圖
+                    </p>
+                  )}
                 </div>
               </motion.div>
               );
