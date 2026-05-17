@@ -371,7 +371,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
             </div>
 
             {/* Nav button to view report */}
-            <div className="pt-3 pb-3">
+            <div className="pt-3 pb-3 flex-shrink-0">
                <button
                  onClick={() => { setModal(null); navigateTo('student-report', { name: activeStudent.name, studentId: activeStudent.studentId }); }}
                  className="mt-2 text-[15px] font-bold text-primary flex items-center justify-center gap-2 w-full bg-primary/10 py-5 rounded-[1.5rem] hover:bg-primary/20 transition-all active:scale-[0.98] border border-primary/20 shadow-sm"
@@ -382,7 +382,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
 
             {/* AI Suggestions */}
             {!isTyping && !chatReply && (
-              <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-5 pt-3 -mx-4 px-4 snap-x">
+              <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-5 pt-3 -mx-4 px-4 snap-x flex-shrink-0">
                 {CHAT_SUGGESTIONS.map((sug, idx) => (
                   <button
                     key={idx}
@@ -395,7 +395,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
               </div>
             )}
 
-            <div className="flex flex-wrap gap-1 mb-2">
+            <div className="flex flex-wrap gap-1 mb-2 flex-shrink-0">
               {SUBJECTS.map(s => (
                 <button
                   key={s}
@@ -411,7 +411,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
               ))}
             </div>
 
-            <div className="flex gap-3 pt-4 border-t border-outline-variant/30 items-center">
+            <div className="flex gap-3 pt-4 border-t border-outline-variant/30 items-center flex-shrink-0">
               <input
                 type="text"
                 value={chatInput}
@@ -435,7 +435,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
           </div>
         )}
         {activeStudent?.type === 'alert' && (
-          <div className="p-5 space-y-8 pb-8">
+          <div className="overflow-y-auto p-5 space-y-4 pb-6">
             {/* Scan snapshot banner */}
             {activeAiSignal?.snapshot && (
               <div className="relative overflow-hidden rounded-2xl" style={{height: 130}}>
@@ -755,27 +755,31 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
                     ? new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(sig.capturedAt))
                     : '—';
                   return (
-                    <div key={idx} className="flex items-center gap-3">
+                    <div key={idx} className="flex items-start gap-3 bg-surface-container rounded-2xl p-3 border border-outline-variant/20">
                       {sig.snapshot ? (
                         <img
                           src={sig.snapshot}
                           alt="掃描截圖"
-                          className="w-14 h-11 object-cover rounded-xl flex-shrink-0 border border-outline-variant/30"
+                          className="w-24 h-18 object-cover rounded-xl flex-shrink-0 border border-outline-variant/30"
+                          style={{height: '5rem'}}
                         />
                       ) : (
-                        <div className="w-14 h-11 rounded-xl flex-shrink-0 bg-surface-container flex items-center justify-center border border-outline-variant/30">
-                          <span className="text-lg">📷</span>
+                        <div className="w-24 rounded-xl flex-shrink-0 bg-surface-container-high flex items-center justify-center border border-outline-variant/30" style={{height: '5rem'}}>
+                          <span className="text-2xl">📷</span>
                         </div>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-mono text-on-surface-variant/60">{timeLabel}</p>
-                        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${
+                      <div className="flex-1 min-w-0 pt-0.5">
+                        <p className="text-xs font-mono text-on-surface-variant/60 mb-1">{timeLabel}</p>
+                        <span className={`inline-block text-[11px] font-bold px-2.5 py-1 rounded-full ${
                           isAlert
                             ? 'bg-error/10 text-error'
                             : 'bg-primary/10 text-primary'
                         }`}>
                           {isAlert ? '⚠ 分心偵測' : '❓ 舉手偵測'}
                         </span>
+                        {sig.description && (
+                          <p className="text-[11px] text-on-surface-variant/70 mt-1.5 leading-snug line-clamp-2">{sig.description}</p>
+                        )}
                       </div>
                     </div>
                   );
