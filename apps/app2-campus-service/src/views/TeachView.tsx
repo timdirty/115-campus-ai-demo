@@ -29,6 +29,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
   const actions = useAppActions();
   const [modal, setModal] = useState<string | null>(null);
   const [activeStudent, setActiveStudent] = useState<TeachingSignal | null>(null);
+  const [activeAiSignal, setActiveAiSignal] = useState<ClassroomSignal | null>(null);
   const [chatReply, setChatReply] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -79,7 +80,8 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
   }, [attendanceCamReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
-  const openStudent = (signal: TeachingSignal) => {
+  const openStudent = (signal: TeachingSignal, aiSig?: ClassroomSignal) => {
+    setActiveAiSignal(aiSig ?? null);
     setChatReply(null);
     setChatInput('');
     setIsTyping(false);
@@ -274,7 +276,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
                 key={syntheticSig.id}
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => openStudent(syntheticSig)}
+                onClick={() => openStudent(syntheticSig, sig)}
                 className={`bg-surface-container-lowest border ${isAlert ? 'border-l-4 border-l-tertiary border-y-outline-variant/20 border-r-outline-variant/20 shadow-[0_2px_10px_rgba(var(--color-tertiary),0.08)]' : 'border-outline-variant/20 shadow-sm'} rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-surface-container transition-colors`}
               >
                 <div className={`w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 shadow-inner ${isAlert ? 'bg-tertiary text-white' : 'bg-primary/10 text-primary'}`}>
