@@ -86,15 +86,6 @@ export function AlertDetail({alert, dispatch, onHardwareCommand}: {alert: Guardi
         <p className="mt-3 text-sm font-semibold leading-7 text-teal-900">{careAdvice.reply}</p>
       </div>
 
-      <div className="space-y-2">
-        {alert.checklist.map((item) => (
-          <button key={item.id} onClick={() => dispatch({type: 'TOGGLE_CHECKLIST', payload: {alertId: alert.id, itemId: item.id}})} className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left text-sm font-bold transition-all active:scale-[0.98] ${item.completed ? 'border-emerald-100 bg-emerald-50 text-emerald-800' : 'border-slate-100 bg-white text-slate-700'}`}>
-            {item.completed ? <CheckCircle2 className="h-5 w-5 shrink-0" /> : <AlertCircle className="h-5 w-5 shrink-0 text-slate-400" />}
-            <span className={item.completed ? 'line-through opacity-70' : ''}>{item.text}</span>
-          </button>
-        ))}
-      </div>
-
       <div className="grid gap-3 sm:grid-cols-4">
         <button onClick={() => {
           dispatch({type: 'UPDATE_ALERT_STATUS', payload: {id: alert.id, status: 'processing'}});

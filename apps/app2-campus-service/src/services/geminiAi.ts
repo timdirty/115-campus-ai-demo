@@ -27,8 +27,11 @@ export async function askGemini(
   }
 
   // 預設走 bridge（同一台 server），不再依賴額外的 proxy。
-  // 如環境變數 VITE_AI_PROXY_URL 有設，仍可指向不同位置。
-  const PROXY_URL = getEnv('VITE_AI_PROXY_URL', getEnv('VITE_ARDUINO_BRIDGE_URL', 'http://localhost:3202'));
+  // LAN 存取時自動替換 localhost → 連線主機 IP，讓平板/手機也能呼叫。
+  const defaultBridge = (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+    ? `http://${window.location.hostname}:3202`
+    : 'http://localhost:3202';
+  const PROXY_URL = getEnv('VITE_AI_PROXY_URL', getEnv('VITE_ARDUINO_BRIDGE_URL', defaultBridge));
   const PROXY_KEY = getEnv('VITE_AI_PROXY_KEY', '');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
