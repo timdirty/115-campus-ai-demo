@@ -62,8 +62,6 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
   const camConfidence = camResult?.confidence ?? 0;
   const camZone = camResult?.zone ?? '';
   const camSummary = camResult?.summary ?? '';
-  const firstSignal = state.teachingSignals[0] ?? null;
-
   // Reset scanning state when modal closes
   useEffect(() => {
     if (modal !== 'attendance_scan') {
@@ -235,10 +233,16 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant font-mono">班級互動概況</p>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="font-headline font-bold text-2xl text-on-surface">{aiSignals.length}</span>
-              <span className="text-xs font-bold text-on-surface-variant">則訊號待處理</span>
+              {aiSignals.length === 0 ? (
+                <span className="text-sm font-bold text-on-surface-variant/60">尚未掃描</span>
+              ) : (
+                <>
+                  <span className="font-headline font-bold text-2xl text-on-surface">{aiSignals.length}</span>
+                  <span className="text-xs font-bold text-on-surface-variant">則訊號待處理</span>
+                </>
+              )}
             </div>
-            <p className="text-[10px] text-on-surface-variant/70 mt-0.5">點此匯出完整報表</p>
+            <p className="text-[10px] text-on-surface-variant/70 mt-0.5">{aiSignals.length > 0 ? '點此匯出完整報表' : '掃描後自動統計'}</p>
           </div>
         </div>
       </div>{/* end attendance+focus grid */}
@@ -255,9 +259,16 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
             )}
         </div>
         {aiSignals.length === 0 ? (
-           <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 text-center shadow-sm space-y-1.5">
-             <p className="text-on-surface-variant font-medium text-sm">尚未進行 AI 掃描</p>
-             <p className="text-on-surface-variant/60 text-xs">舉起圖卡對準攝影機，按「AI 掃描」即可自動偵測學習狀態</p>
+           <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-5 shadow-sm">
+             <p className="text-on-surface-variant font-bold text-sm mb-1">尚未進行 AI 掃描</p>
+             <p className="text-on-surface-variant/60 text-xs leading-relaxed mb-4">舉起學生圖卡對準鏡頭，或直接對著教室拍照，AI 將自動偵測分心與提問訊號。</p>
+             <button
+               onClick={handleRollCall}
+               className="w-full flex items-center justify-center gap-2 bg-primary text-white font-bold text-sm py-3 rounded-xl active:scale-[0.98] shadow-sm"
+             >
+               <Camera size={16} />
+               立即開始 AI 掃描
+             </button>
            </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">

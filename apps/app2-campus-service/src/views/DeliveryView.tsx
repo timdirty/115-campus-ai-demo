@@ -284,8 +284,8 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
                          庫存 {product.stock}
                        </span>
                     </div>
-                    <button className="bg-surface-container-high group-hover:bg-primary group-hover:text-white text-on-surface w-11 h-11 shrink-0 rounded-xl transition-all flex items-center justify-center shadow-sm active:scale-90 overflow-hidden relative">
-                      <span className="text-base font-bold relative z-10">+</span>
+                    <button className="bg-primary text-white w-11 h-11 shrink-0 rounded-xl transition-all flex items-center justify-center shadow-sm shadow-primary/20 active:scale-90 overflow-hidden relative">
+                      <span className="text-xl font-bold relative z-10">+</span>
                     </button>
                   </div>
                 </div>
