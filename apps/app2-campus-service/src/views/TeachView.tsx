@@ -326,6 +326,25 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       <BottomSheet isOpen={modal === 'student'} onClose={() => setModal(null)} title={`${activeStudent?.name} 即時互動`}>
         {activeStudent?.type === 'question' && (
           <div className="p-4 flex flex-col h-[65vh] min-h-[450px]">
+            {/* Scan snapshot banner */}
+            {activeAiSignal?.snapshot && (
+              <div className="relative overflow-hidden rounded-2xl mb-3 flex-shrink-0" style={{height: 120}}>
+                <img
+                  src={activeAiSignal.snapshot}
+                  alt="掃描當下畫面"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+                <span className="absolute top-2 right-2 bg-black/55 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
+                  {activeAiSignal.capturedAt
+                    ? new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(activeAiSignal.capturedAt))
+                    : ''} 掃描
+                </span>
+                <span className="absolute bottom-2 left-2 bg-[#2563eb]/80 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
+                  掃描當下畫面
+                </span>
+              </div>
+            )}
             <div className="flex-1 overflow-y-auto space-y-6 pt-3 custom-scrollbar pr-2 mb-2">
               <div className="bg-surface-container p-6 rounded-[1.75rem] rounded-tl-[4px] text-[16px] w-[90%] text-on-surface shadow-sm leading-relaxed border border-outline-variant/30">
                 <span className="text-[11px] text-on-surface-variant font-bold block mb-2 tracking-widest font-mono">{new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(activeStudent.createdAt))}</span>
@@ -412,6 +431,30 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
         )}
         {activeStudent?.type === 'alert' && (
           <div className="p-5 space-y-8 pb-8">
+            {/* Scan snapshot banner */}
+            {activeAiSignal?.snapshot && (
+              <div className="relative overflow-hidden rounded-2xl" style={{height: 130}}>
+                <img
+                  src={activeAiSignal.snapshot}
+                  alt="掃描當下畫面"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+                <span className="absolute top-2 right-2 bg-black/55 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
+                  {activeAiSignal.capturedAt
+                    ? new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(activeAiSignal.capturedAt))
+                    : ''} 掃描
+                </span>
+                <span className="absolute bottom-2 left-2 bg-black/55 text-white text-[10px] font-medium px-2.5 py-1 rounded-full">
+                  掃描當下畫面
+                </span>
+              </div>
+            )}
+            {!activeAiSignal?.snapshot && (
+              <div className="flex items-center justify-center rounded-2xl bg-surface-container-high border border-outline-variant/30" style={{height: 80}}>
+                <span className="text-on-surface-variant/50 text-xs">📷 截圖未保存（舊版掃描）</span>
+              </div>
+            )}
             <div className="bg-error/10 p-6 rounded-[1.75rem] border border-error/20 flex gap-5 shadow-inner">
                <AlertCircle className="text-error shrink-0 mt-1" size={32} />
                <div>
