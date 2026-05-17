@@ -26,10 +26,10 @@ export function useBridgeStatus() {
       setClassroom(nextClassroom);
       setLatestNote(notes[0] ?? null);
       setNotice(nextHealth.hardwareSimulation
-        ? '展示模式已就緒，機器人任務會留下完成紀錄'
-        : nextHealth.geminiConfigured ? 'AI 助教已就緒，可以開始示範' : 'AI 助教已切到展示模式，可以完整走完流程');
+        ? '示範模式：所有功能均可完整體驗，機器人任務會留下紀錄'
+        : nextHealth.geminiConfigured ? 'AI 助教已就緒，按「一鍵示範」開始流程' : '示範模式：AI 助教已啟動，可以完整走完示範流程');
     } catch (error) {
-      setNotice('展示模式已就緒，可以完整走完流程');
+      setNotice('示範模式：所有功能均可完整體驗');
     } finally {
       setStatusBusy(false);
     }

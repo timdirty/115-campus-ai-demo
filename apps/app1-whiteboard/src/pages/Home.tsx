@@ -522,18 +522,19 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
             <button
               type="button"
               onClick={resetWhiteboardDemoState}
-              className="min-h-11 px-4 rounded-md bg-surface-container-high hover:bg-error hover:text-on-error transition-all active:scale-95 flex items-center justify-center gap-2 font-bold text-sm"
+              className="min-h-11 px-3 rounded-md text-on-surface-variant hover:bg-error/10 hover:text-error transition-all active:scale-95 flex items-center justify-center gap-2 text-sm opacity-60 hover:opacity-100"
+              title="清除所有展示資料，重新開始"
             >
-              重置展示資料
+              重置
             </button>
             <button
               type="button"
               onClick={refreshStatus}
               disabled={statusBusy}
-              className="min-h-11 px-4 rounded-md bg-surface-container-high hover:bg-primary hover:text-on-primary transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 font-bold"
+              className="min-h-11 px-3 rounded-md text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 opacity-60 hover:opacity-100"
+              title="重新確認系統連線狀態"
             >
               {statusBusy ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="w-4 h-4" aria-hidden="true" />}
-              重新同步
             </button>
           </div>
         </motion.section>

@@ -40,9 +40,7 @@ const TEXT_STYLE: React.CSSProperties = {
 
 export const HardwareStatusBanner = memo(function HardwareStatusBanner({status}: Props) {
   const {connected, simulated, mode, reconnecting} = status;
-  const demoMessage = reconnecting
-    ? '展示模式 · 正在確認機器人狀態，流程可繼續'
-    : '展示模式 · 所有功能皆可完整體驗';
+  const demoMessage = '示範模式 · 所有功能均可完整體驗';
 
   if (connected && !simulated) {
     return (
