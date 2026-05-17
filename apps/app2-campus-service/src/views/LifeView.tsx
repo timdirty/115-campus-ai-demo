@@ -98,6 +98,8 @@ export function LifeView({
             actions.setEmergency(!isEmergency);
             showToast(isEmergency ? '已解除緊急狀態，系統恢復正常' : '【警告】全校進入緊急安全封控模式！');
           }}
+          aria-label={isEmergency ? '解除緊急狀態' : '啟動緊急安全應變'}
+          aria-pressed={isEmergency}
           className={`shrink-0 relative w-14 h-7 rounded-full transition-all duration-500 border-2 ${isEmergency ? 'bg-white border-white' : 'bg-surface-container-high border-outline-variant/30'}`}
         >
           <motion.div

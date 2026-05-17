@@ -304,6 +304,7 @@ export default function App() {
 
       {/* Dynamic Content Views */}
       <main className="mx-auto min-h-screen max-w-6xl px-4 pb-36 pt-24 sm:px-5 md:px-8 md:pb-12 md:pt-28">
+        <h1 className="sr-only">{TABS.find(t => t.id === activeTab)?.label ?? '校園服務機器人'}</h1>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

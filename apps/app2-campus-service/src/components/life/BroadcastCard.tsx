@@ -85,7 +85,7 @@ export function BroadcastCard({ showToast, onDispatch }: BroadcastCardProps) {
           <button
             key={zone}
             onClick={() => toggleBroadcastZone(zone)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all active:scale-95 ${broadcastZones.has(zone) ? 'bg-primary/15 border-primary/40 text-primary' : 'bg-surface-container-lowest border-outline-variant/20 text-on-surface-variant hover:border-primary/20'}`}
+            className={`min-h-[40px] px-3.5 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${broadcastZones.has(zone) ? 'bg-primary/15 border-primary/40 text-primary' : 'bg-surface-container-lowest border-outline-variant/20 text-on-surface-variant hover:border-primary/20'}`}
           >
             {zone}
           </button>
