@@ -496,11 +496,30 @@ function smartDemoResult(imageDataUrl: string): CampusVisionResult & {aiSource: 
   };
 }
 
-/** Analyze a camera frame with the LLM through the local bridge. */
+/** Analyze a camera frame with the LLM through the local bridge (or direct Gemini on GH Pages). */
 export async function analyzeCampusImageWithGemini(
   imageDataUrl: string,
   cancelSignal?: AbortSignal,
 ): Promise<CampusVisionResult & {aiSource: 'gemini'}> {
+  const proxyDisabled = (import.meta as {env?: {VITE_AI_PROXY_DISABLED?: string}}).env?.VITE_AI_PROXY_DISABLED === '1';
+  if (proxyDisabled) {
+    const {isDirectGeminiAvailable, directClassifyVisionScene} = await import('./directGemini');
+    if (!isDirectGeminiAvailable()) throw new Error('VITE_GEMINI_API_KEY not configured');
+    const result = await directClassifyVisionScene(imageDataUrl);
+    const scene: VisionScene = result.scene as VisionScene;
+    const profile = sceneProfiles[scene] ?? sceneProfiles['patrol'];
+    return {
+      ...profile,
+      scene,
+      confidence: result.confidence,
+      zone: result.zone,
+      isReliable: scene !== 'other' && result.confidence >= 72,
+      summary: result.summary || profile.summary,
+      evidence: ['直接 Gemini 影像辨識', `信心度 ${result.confidence}%`],
+      aiSource: 'gemini',
+    };
+  }
+
   const imageBase64 = dataUrlToBase64(imageDataUrl);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);

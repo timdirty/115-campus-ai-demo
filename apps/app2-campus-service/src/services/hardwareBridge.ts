@@ -2,6 +2,10 @@ export const BRIDGE_URL =
   (import.meta as {env?: {VITE_ARDUINO_BRIDGE_URL?: string}}).env?.VITE_ARDUINO_BRIDGE_URL ||
   'http://localhost:3202';
 
+function isProxyDisabled(): boolean {
+  return (import.meta as {env?: {VITE_AI_PROXY_DISABLED?: string}}).env?.VITE_AI_PROXY_DISABLED === '1';
+}
+
 export type ClassroomScanApiResult = {
   ok: boolean;
   count?: number;
@@ -55,6 +59,18 @@ async function checkArduinoReady(): Promise<boolean> {
 }
 
 export async function scanClassroom(imageBase64: string, externalSignal?: AbortSignal): Promise<ClassroomScanApiResult> {
+  if (isProxyDisabled()) {
+    const {isDirectGeminiAvailable, directScanClassroom} = await import('./directGemini');
+    if (isDirectGeminiAvailable()) {
+      try {
+        const result = await directScanClassroom(imageBase64);
+        return {ok: true, ...result};
+      } catch (error) {
+        return {ok: false, error: error instanceof Error ? error.message : '直接 AI 辨識失敗'};
+      }
+    }
+    return {ok: false, error: '未設定 Gemini API Key'};
+  }
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
   let externalAbortHandler: (() => void) | null = null;
