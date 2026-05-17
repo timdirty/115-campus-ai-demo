@@ -2719,10 +2719,65 @@ function SoundLevelGauge({
   const vol = Math.max(0, Math.min(100, volumeIndex));
   const vlt = Math.max(0, Math.min(100, volatility));
   const c = GAUGE_COLORS[level];
-  // pathLength="251" normalises all dasharray values to 0–251 regardless of SVG scaling
-  const fillPx = Math.round((vol / 100) * 251);
-  const needleAngle = vol * 1.8 - 90; // −90° at 0 (left), 0° at 50 (top), +90° at 100 (right)
+  const fillPx = (vol / 100) * 251;
+  const needleAngle = vol * 1.8 - 90;
   const isVolatilityTrigger = level === 'elevated' && vol < 72;
+
+  // ── 動畫 1：中心數字 tween (RAF 平滑插值，不硬切) ──
+  const [displayedVol, setDisplayedVol] = useState(vol);
+  const animRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number>(0);
+  const fromVolRef = useRef<number>(vol);
+  const toVolRef = useRef<number>(vol);
+  useEffect(() => {
+    fromVolRef.current = displayedVol;
+    toVolRef.current = vol;
+    startTimeRef.current = performance.now();
+    if (animRef.current !== null) cancelAnimationFrame(animRef.current);
+    const tick = (now: number) => {
+      const elapsed = now - startTimeRef.current;
+      const t = Math.min(1, elapsed / 400); // 400ms tween
+      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      const next = fromVolRef.current + (toVolRef.current - fromVolRef.current) * eased;
+      setDisplayedVol(next);
+      if (t < 1) animRef.current = requestAnimationFrame(tick);
+      else animRef.current = null;
+    };
+    animRef.current = requestAnimationFrame(tick);
+    return () => { if (animRef.current !== null) cancelAnimationFrame(animRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vol]);
+
+  // ── 動畫 2：閾值跨越脈衝 ──
+  const prevVolRef = useRef<number>(vol);
+  const [pulse46, setPulse46] = useState(false);
+  const [pulse72, setPulse72] = useState(false);
+  useEffect(() => {
+    const prev = prevVolRef.current;
+    if ((prev < 46 && vol >= 46) || (prev >= 46 && vol < 46)) {
+      setPulse46(true);
+      const t = setTimeout(() => setPulse46(false), 700);
+      return () => clearTimeout(t);
+    }
+    if ((prev < 72 && vol >= 72) || (prev >= 72 && vol < 72)) {
+      setPulse72(true);
+      const t = setTimeout(() => setPulse72(false), 700);
+      return () => clearTimeout(t);
+    }
+  }, [vol]);
+  useEffect(() => { prevVolRef.current = vol; });
+
+  // ── 動畫 3：level 變化時 status badge 強調脈衝 ──
+  const prevLevelRef = useRef<AcousticLevel>(level);
+  const [badgePulse, setBadgePulse] = useState(false);
+  useEffect(() => {
+    if (prevLevelRef.current !== level) {
+      setBadgePulse(true);
+      const t = setTimeout(() => setBadgePulse(false), 600);
+      prevLevelRef.current = level;
+      return () => clearTimeout(t);
+    }
+  }, [level]);
 
   return (
     <div>
@@ -2735,55 +2790,78 @@ function SoundLevelGauge({
       >
         <title>{`環境聲量量表：${vol}/100，狀態${c.label}`}</title>
 
-        {/* Background zone bands (opacity 0.15) — dashoffset positions each band correctly */}
-        {/* Green  0–46:  offset   0 */}
+        {/* Background zone bands (opacity 0.15) */}
         <path d="M 20 95 A 80 80 0 0 1 180 95" pathLength="251"
           fill="none" stroke="#16a34a" strokeWidth="18" strokeLinecap="butt"
           strokeDasharray="116 135" strokeDashoffset="0" opacity="0.15" />
-        {/* Orange 46–72: offset 135 (= 251 − 116) */}
         <path d="M 20 95 A 80 80 0 0 1 180 95" pathLength="251"
           fill="none" stroke="#f59e0b" strokeWidth="18" strokeLinecap="butt"
           strokeDasharray="65 186" strokeDashoffset="135" opacity="0.15" />
-        {/* Red    72–100: offset  70 (= 251 − 181) */}
         <path d="M 20 95 A 80 80 0 0 1 180 95" pathLength="251"
           fill="none" stroke="#ef4444" strokeWidth="18" strokeLinecap="butt"
           strokeDasharray="70 181" strokeDashoffset="70" opacity="0.15" />
 
-        {/* Active fill — color reflects comprehensive level (vol + volatility) */}
+        {/* Active fill — strokeDasharray + stroke color 都有 transition (動畫 4) */}
         <path d="M 20 95 A 80 80 0 0 1 180 95" pathLength="251"
           fill="none" stroke={c.main} strokeWidth="18" strokeLinecap="round"
-          strokeDasharray={`${fillPx} ${251 - fillPx}`} strokeDashoffset="0" />
+          strokeDasharray={`${fillPx} ${251 - fillPx}`} strokeDashoffset="0"
+          style={{
+            transition: 'stroke-dasharray 0.4s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.5s ease',
+          }} />
 
-        {/* Threshold tick at 46 */}
-        <line x1="100" y1="6" x2="100" y2="22"
-          stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"
-          transform="rotate(-7.2, 100, 95)" />
-        <text textAnchor="middle" fontSize="8" fontWeight="800" fill="#f59e0b"
-          transform="rotate(-7.2, 100, 95)" x="100" y="3">46</text>
+        {/* Threshold tick at 46 — 跨越時脈衝 */}
+        <g style={{
+          transformOrigin: '100px 95px',
+          transform: 'rotate(-7.2deg)',
+          opacity: pulse46 ? 1 : 0.85,
+          transition: 'opacity 0.3s ease',
+        }}>
+          <line x1="100" y1="6" x2="100" y2={pulse46 ? '28' : '22'}
+            stroke="#f59e0b" strokeWidth={pulse46 ? '3' : '2'} strokeLinecap="round"
+            style={{transition: 'all 0.2s ease'}} />
+          <text textAnchor="middle" fontSize="8" fontWeight="800" fill="#f59e0b" x="100" y="3">46</text>
+          {pulse46 && (
+            <circle cx="100" cy="14" r="6" fill="none" stroke="#f59e0b" strokeWidth="2"
+              style={{animation: 'gauge-pulse 0.7s ease-out forwards'}} />
+          )}
+        </g>
 
-        {/* Threshold tick at 72 */}
-        <line x1="100" y1="6" x2="100" y2="22"
-          stroke="#ef4444" strokeWidth="2" strokeLinecap="round"
-          transform="rotate(39.6, 100, 95)" />
-        <text textAnchor="middle" fontSize="8" fontWeight="800" fill="#ef4444"
-          transform="rotate(39.6, 100, 95)" x="100" y="3">72</text>
+        {/* Threshold tick at 72 — 跨越時脈衝 */}
+        <g style={{
+          transformOrigin: '100px 95px',
+          transform: 'rotate(39.6deg)',
+          opacity: pulse72 ? 1 : 0.85,
+          transition: 'opacity 0.3s ease',
+        }}>
+          <line x1="100" y1="6" x2="100" y2={pulse72 ? '28' : '22'}
+            stroke="#ef4444" strokeWidth={pulse72 ? '3' : '2'} strokeLinecap="round"
+            style={{transition: 'all 0.2s ease'}} />
+          <text textAnchor="middle" fontSize="8" fontWeight="800" fill="#ef4444" x="100" y="3">72</text>
+          {pulse72 && (
+            <circle cx="100" cy="14" r="6" fill="none" stroke="#ef4444" strokeWidth="2"
+              style={{animation: 'gauge-pulse 0.7s ease-out forwards'}} />
+          )}
+        </g>
 
-        {/* Needle — <g> wrapper enables CSS transition on transform */}
+        {/* Needle — 含 spring easing + color transition (動畫 5) */}
         <g style={{
           transformOrigin: '100px 95px',
           transform: `rotate(${needleAngle}deg)`,
-          transition: 'transform 0.15s ease-out',
+          transition: 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',  // spring-like
         }}>
           <line x1="100" y1="95" x2="100" y2="28"
-            stroke={c.main} strokeWidth="3" strokeLinecap="round" />
-          <circle cx="100" cy="95" r="5" fill="white" stroke={c.main} strokeWidth="2.5" />
+            stroke={c.main} strokeWidth="3" strokeLinecap="round"
+            style={{transition: 'stroke 0.5s ease'}} />
+          <circle cx="100" cy="95" r="5" fill="white" stroke={c.main} strokeWidth="2.5"
+            style={{transition: 'stroke 0.5s ease'}} />
         </g>
 
-        {/* Center value */}
+        {/* Center value — RAF tween 平滑（動畫 1） */}
         <text x="100" y="76" textAnchor="middle" fontSize="26" fontWeight="900" fill="#0f172a">
-          {vol}
+          {Math.round(displayedVol)}
         </text>
-        <text x="100" y="89" textAnchor="middle" fontSize="9" fontWeight="800" fill={c.main}>
+        <text x="100" y="89" textAnchor="middle" fontSize="9" fontWeight="800" fill={c.main}
+          style={{transition: 'fill 0.5s ease'}}>
           {c.label}
         </text>
 
@@ -2792,25 +2870,42 @@ function SoundLevelGauge({
         <text x="186" y="114" textAnchor="middle" fontSize="9" fontWeight="700" fill="#94a3b8">100</text>
       </svg>
 
-      {/* ── Volatility bar ── */}
+      {/* Pulse keyframes (inline 因 component 隔離；用全域 class 為 ring 動畫) */}
+      <style>{`
+        @keyframes gauge-pulse {
+          0%   { r: 6; opacity: 0.8; stroke-width: 2; }
+          100% { r: 18; opacity: 0; stroke-width: 0.5; }
+        }
+        @keyframes gauge-badge-pop {
+          0%   { transform: scale(1); }
+          50%  { transform: scale(1.12); }
+          100% { transform: scale(1); }
+        }
+      `}</style>
+
+      {/* ── Volatility bar — fill color + width 都有 transition ── */}
       <div className="mt-1">
         <div className="mb-1 flex items-center justify-between">
           <span className="text-[10px] font-black text-slate-500">波動</span>
           <div className="flex items-center gap-1.5">
             {isVolatilityTrigger && (
-              <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-black text-red-700">
+              <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-black text-red-700 animate-pulse">
                 波動觸發
               </span>
             )}
-            <span className={`text-[10px] font-black ${vlt >= 34 ? 'text-red-600' : vlt >= 20 ? 'text-amber-600' : 'text-slate-500'}`}>
+            <span className={`text-[10px] font-black transition-colors duration-500 ${vlt >= 34 ? 'text-red-600' : vlt >= 20 ? 'text-amber-600' : 'text-slate-500'}`}>
               {vlt}{vlt >= 34 ? ' ⚠️' : ''}
             </span>
           </div>
         </div>
         <div className="relative h-3.5 overflow-visible rounded-full bg-slate-100">
           <div
-            className="h-full rounded-full transition-[width] duration-300"
-            style={{width: `${vlt}%`, background: c.main}}
+            className="h-full rounded-full"
+            style={{
+              width: `${vlt}%`,
+              background: c.main,
+              transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1), background 0.5s ease',
+            }}
           />
           {/* Tick at volatility active threshold (20) */}
           <div className="absolute inset-y-0 w-0.5 rounded-full bg-amber-400" style={{left: '20%'}}>
@@ -2827,13 +2922,19 @@ function SoundLevelGauge({
         </div>
       </div>
 
-      {/* ── Status badge ── */}
+      {/* ── Status badge — level 變化時 pop 動畫 (動畫 3) ── */}
       <div className="mt-3 flex justify-center">
         <span
           className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black"
-          style={{background: c.bg, color: c.text}}
+          style={{
+            background: c.bg,
+            color: c.text,
+            transition: 'background 0.5s ease, color 0.5s ease',
+            animation: badgePulse ? 'gauge-badge-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)' : undefined,
+          }}
         >
-          <span className="h-2 w-2 rounded-full" style={{background: c.main}} />
+          <span className="h-2 w-2 rounded-full"
+            style={{background: c.main, transition: 'background 0.5s ease'}} />
           {c.label}
         </span>
       </div>
