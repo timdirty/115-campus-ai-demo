@@ -9,6 +9,7 @@ import {
   Bot,
   Camera,
   CheckCircle2,
+  ChevronLeft,
   Download,
   Droplets,
   ExternalLink,
@@ -548,6 +549,10 @@ function AppContent() {
     robotTravel,
   ]);
 
+  const selectZoneOnly = useCallback((zone: SchoolZoneStatus) => {
+    setSelectedZoneId(zone.id);
+  }, []);
+
   const selectZoneForRobotDisplay = useCallback((zone: SchoolZoneStatus): boolean => {
     if (robotTravelRef.current) return false;
     setSelectedZoneId(zone.id);
@@ -704,7 +709,7 @@ function AppContent() {
         type: 'RECORD_HARDWARE_EVENT',
         payload: {command, source, status: result.ok ? 'sent' : 'fallback', message: result.message},
       });
-      showToast(result.ok ? `硬體已接收：${command}` : `硬體備援：${result.message}`);
+      showToast(result.ok ? `硬體已接收：${command}` : '硬體備援：指令已記錄，等待實體裝置連線');
     }).catch(() => {
       showToast('硬體指令發送失敗，使用備援模式');
     });
@@ -1310,7 +1315,7 @@ function AppContent() {
             </div>
             <div className="min-w-0">
               <h1 className="line-clamp-1 text-base font-black tracking-tight sm:text-xl">AI 校園心靈守護者</h1>
-              <p className="text-[10px] font-black text-teal-600">國中進階閉環 Demo</p>
+              <p className="text-[10px] font-black text-teal-600">校園心靈守護系統</p>
             </div>
           </button>
 
@@ -1348,15 +1353,6 @@ function AppContent() {
       </header>
 
       <main className="mx-auto grid max-w-7xl gap-4 px-4 py-4 pb-24 sm:px-6 lg:pb-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <details className="lg:col-span-2">
-            <summary className="flex cursor-pointer select-none list-none items-center gap-2 text-xs font-black tracking-widest text-slate-400 hover:text-teal-600 [&::-webkit-details-marker]:hidden">
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-[10px]">▸</span>
-              展示路線說明（上台前參考）
-            </summary>
-            <div className="mt-3">
-              <GuardianDemoRouteCards routes={guardianDemoRouteCards} />
-            </div>
-          </details>
           <CommandCenterScreen
             viewModel={viewModel}
             selectedZone={selectedZone}
@@ -1365,7 +1361,7 @@ function AppContent() {
             robotTravel={robotTravel}
             zoneAssessments={zoneAssessments}
             demoClosureSteps={demoClosureSteps}
-            onSelectZone={selectZoneForRobotDisplay}
+            onSelectZone={selectZoneOnly}
             onOpenZoneInsight={openZoneInsight}
             onOpenPanel={setActivePanel}
             onCreateProactiveAlert={createProactiveAlert}
@@ -1380,55 +1376,26 @@ function AppContent() {
             <p className="mb-2 text-[10px] font-black tracking-widest text-slate-400 uppercase">需注意狀況</p>
             {viewModel.openAlerts.length === 0 ? (
               <p className="text-xs text-slate-400 font-bold py-1">目前無待處理預警</p>
-            ) : viewModel.openAlerts.slice(0, 4).map((alert) => (
-              <button
-                key={alert.id}
-                onClick={() => setActivePanel('alerts')}
-                className="w-full text-left mb-1.5 last:mb-0 flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition hover:bg-rose-50"
-              >
-                <span className={`h-2 w-2 shrink-0 rounded-full ${alert.riskLevel === 'high' ? 'bg-rose-500' : alert.riskLevel === 'medium' ? 'bg-amber-400' : 'bg-teal-400'}`} />
-                <span className="truncate text-slate-700">{alert.location} — {alert.description}</span>
-              </button>
-            ))}
-            <button onClick={() => setActivePanel('alerts')} className="mt-2 w-full rounded-xl bg-slate-50 min-h-11 py-1.5 text-[10px] font-black text-slate-500 transition hover:bg-rose-50 hover:text-rose-600">
-              查看全部 →
-            </button>
-            <details className="mt-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
-              <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between gap-2 text-[10px] font-black tracking-widest text-teal-700 uppercase [&::-webkit-details-marker]:hidden">
-                進階：手動新增事件
-                <span className="rounded-full bg-white px-2 py-0.5 text-[9px] font-black text-slate-400 ring-1 ring-slate-200">AI 分級</span>
-              </summary>
-              <div className="mt-2">
-                <select
-                  value={manualEventZoneId}
-                  onChange={(event) => setManualEventZoneId(event.target.value)}
-                  className="mb-2 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 outline-none focus:border-teal-500"
-                >
-                  {viewModel.zones.map((zone) => (
-                    <option key={zone.id} value={zone.id}>{zone.name} · {zone.location}</option>
-                  ))}
-                </select>
-                <textarea
-                  value={manualEventText}
-                  onChange={(event) => setManualEventText(event.target.value)}
-                  maxLength={180}
-                  rows={3}
-                  className="w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-xs font-bold leading-5 text-slate-700 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-                  placeholder="例：操場有學生情緒低落、不願回教室..."
-                />
-                <button
-                  onClick={() => void submitManualEvent()}
-                  disabled={!manualEventText.trim() || manualEventBusy}
-                  className="mt-2 flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-teal-600 px-3 text-xs font-black text-white transition hover:bg-teal-700 disabled:bg-slate-200 disabled:text-slate-500"
-                >
-                  {manualEventBusy && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
-                  {manualEventBusy ? '判斷中' : '加入需注意狀況'}
+            ) : (
+              <>
+                {viewModel.openAlerts.slice(0, 4).map((alert) => (
+                  <button
+                    key={alert.id}
+                    onClick={() => setActivePanel('alerts')}
+                    className="w-full text-left mb-1.5 last:mb-0 flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition hover:bg-rose-50"
+                  >
+                    <span className={`h-2 w-2 shrink-0 rounded-full ${alert.riskLevel === 'high' ? 'bg-rose-500' : alert.riskLevel === 'medium' ? 'bg-amber-400' : 'bg-teal-400'}`} />
+                    <span className="truncate text-slate-700">{alert.location} — {alert.description}</span>
+                  </button>
+                ))}
+                <button onClick={() => setActivePanel('alerts')} className="mt-2 w-full rounded-xl bg-slate-50 min-h-11 py-1.5 text-[10px] font-black text-slate-500 transition hover:bg-rose-50 hover:text-rose-600">
+                  查看全部 →
                 </button>
-              </div>
-            </details>
+              </>
+            )}
           </div>
-          <div data-tour="zone-inspector" className="flex-1"><ZoneInspector zone={selectedZone} robotFeedback={robotFeedback} onDispatchRobot={dispatchRobotToZone} /></div>
-          <div data-tour="panel-dock"><PanelDock activePanel={activePanel} onOpenPanel={setActivePanel} onShowDemo={restartTour} /></div>
+          <div data-tour="zone-inspector"><ZoneInspector zone={selectedZone} robotFeedback={robotFeedback} onDispatchRobot={dispatchRobotToZone} /></div>
+          <div data-tour="panel-dock"><PanelDock activePanel={activePanel} onOpenPanel={setActivePanel} /></div>
           {/* 機器人顯示同步面板 */}
           <RobotDisplaySync
             latestMood={latestMood?.mood}
@@ -1759,57 +1726,8 @@ function CommandCenterScreen({
 }) {
   return (
     <section className="grid gap-4">
-      <div data-tour="signal-overview">
-        <div className="overflow-hidden rounded-2xl border border-slate-200/60 bg-linear-to-br from-white to-teal-50/40 shadow-sm">
-          <div className="p-4 sm:p-5">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div>
-                <p className="text-xs font-black text-teal-600 tracking-wide">校園指揮中心</p>
-                <h2 className="mt-1.5 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">校園即時總覽</h2>
-                <p className="mt-1 text-sm font-semibold text-slate-500">{viewModel.campusHealthLabel}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-center sm:min-w-[16rem]">
-                <SignalTile label="最高風險" value={getRiskStatusLabel(viewModel.highestZone.riskLevel)} tone={viewModel.highestZone.riskLevel === 'high' ? 'rose' : viewModel.highestZone.riskLevel === 'medium' ? 'amber' : 'emerald'} />
-                <SignalTile label="機器人" value={viewModel.activeRobotCount.toString()} tone="emerald" />
-              </div>
-            </div>
-          </div>
-          {/* risk level accent bar */}
-          <div className={`h-1 w-full ${viewModel.highestZone.riskLevel === 'high' ? 'bg-linear-to-r from-rose-400 to-rose-600' : viewModel.highestZone.riskLevel === 'medium' ? 'bg-linear-to-r from-amber-300 to-amber-500' : 'bg-linear-to-r from-teal-300 to-teal-500'}`} />
-        </div>
-      </div>
-
       <div data-tour="campus-map">
         <CampusMap2D zones={viewModel.zones} selectedZone={selectedZone} selectedZoneId={selectedZoneId} robotFeedback={robotFeedback} robotTravel={robotTravel} zoneAssessments={zoneAssessments} onSelectZone={onSelectZone} onOpenZoneInsight={onOpenZoneInsight} onDispatchRobot={onDispatchRobot} />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <OperationsBrief viewModel={viewModel} onOpenPanel={onOpenPanel} />
-        <div data-tour="dispatch-robot">
-          <Surface className="h-full p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-black text-slate-500">最高風險區</p>
-                <h3 className="mt-1 text-2xl font-black text-slate-950">{viewModel.highestZone.name}</h3>
-              </div>
-              <StatusChip level={viewModel.highestZone.riskLevel} />
-            </div>
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              <MetricTile label="燈號" value={getRiskStatusLabel(viewModel.highestZone.riskLevel)} />
-              <MetricTile label="感測" value={viewModel.highestZone.sensor?.connected ? '在線' : '離線'} />
-              <MetricTile label="提醒" value={viewModel.highestZone.alertCount} />
-            </div>
-            <PrimaryAction
-              onClick={() => onDispatchRobot(viewModel.highestZone)}
-              disabled={viewModel.highestZone.riskLevel === 'low' || Boolean(robotTravel)}
-              active={robotFeedback?.zoneId === viewModel.highestZone.id || Boolean(robotTravel)}
-              className="mt-4"
-            >
-              <Bot className={`h-5 w-5 ${robotFeedback?.zoneId === viewModel.highestZone.id || robotTravel ? 'animate-pulse' : ''}`} />
-              {robotTravel ? '機器人移動中' : viewModel.highestZone.riskLevel === 'low' ? '維持一般巡查' : robotFeedback?.zoneId === viewModel.highestZone.id ? '已送出派遣' : '派遣機器人介入'}
-            </PrimaryAction>
-          </Surface>
-        </div>
       </div>
     </section>
   );
@@ -1960,7 +1878,6 @@ function CampusMap2D({
         <div className="absolute bottom-3 left-3 right-3 z-30 rounded-2xl border border-white/60 bg-white/88 p-3 shadow-xl shadow-slate-300/30 backdrop-blur-md">
           <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-center">
             <div>
-              <p className="text-xs font-black text-slate-500">選取區域</p>
               <p className="font-black text-slate-950">{selectedZone.name} · {getRiskStatusLabel(selectedZone.riskLevel)}</p>
             </div>
             <StatusChip level={selectedZone.riskLevel} />
@@ -1989,7 +1906,7 @@ function CampusMap2D({
               <motion.div animate={{width: `${dispatchProgress}%`}} className="h-full rounded-full bg-teal-600" />
             </div>
           )}
-          <DispatchProgress stage={activeDispatch ? robotFeedback?.stage : undefined} connected={activeDispatch} className="mt-3" compact />
+          {activeDispatch && <DispatchProgress stage={robotFeedback?.stage} connected={activeDispatch} className="mt-3" compact />}
         </div>
       </div>
       <AnimatePresence>
@@ -2094,14 +2011,8 @@ function ZoneStatusBar({
 }) {
   return (
     <div className="mb-3 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-      <div className="flex flex-col gap-2 border-b border-slate-100 bg-slate-50/80 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-[10px] font-black tracking-widest text-teal-600 uppercase">AI 區域燈號</p>
-          <p className="text-xs font-bold text-slate-500">點選卡片查看 AI 判讀與建議處置</p>
-        </div>
-        <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black text-slate-500 ring-1 ring-slate-200">
-          感測器數值優先
-        </span>
+      <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/80 px-3 py-2">
+        <p className="text-[10px] font-black tracking-widest text-teal-600 uppercase">區域狀態</p>
       </div>
       <div className="p-2">
       <div className="grid gap-2 md:grid-cols-3">
@@ -2121,10 +2032,7 @@ function ZoneStatusBar({
               key={zone.id}
               type="button"
               aria-pressed={selected}
-              onClick={() => {
-                onSelectZone(zone);
-                onOpenZoneInsight(zone);
-              }}
+              onClick={() => onSelectZone(zone)}
               className={`group relative min-h-32 overflow-hidden rounded-xl border-2 bg-white px-3 py-3 text-left transition hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.99] ${cardBorder} ${selected ? 'ring-2 ring-teal-500 ring-offset-1 ring-offset-slate-50' : ''} ${dispatching ? 'zone-dispatch-pulse' : ''}`}
             >
               <span className={`absolute inset-x-0 top-0 h-1 ${tone.bar}`} />
@@ -2136,10 +2044,14 @@ function ZoneStatusBar({
                     <p className="mt-0.5 text-[10px] font-bold text-slate-500">{zone.location}</p>
                   </div>
                 </div>
-                <span className="flex shrink-0 items-center gap-1 rounded-full bg-white/75 px-2 py-1 text-[10px] font-black text-slate-600 ring-1 ring-slate-200/70">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onOpenZoneInsight(zone); }}
+                  className="flex shrink-0 items-center gap-1 rounded-full bg-white/75 px-2 py-1 text-[10px] font-black text-slate-600 ring-1 ring-slate-200/70 hover:bg-teal-50 hover:ring-teal-300 transition-colors"
+                >
                   <span className={`h-2 w-2 rounded-full ${dispatching ? identity.dot : tone.dot}`} />
                   AI 判讀
-                </span>
+                </button>
               </div>
 
               <div className="mt-3 grid gap-2 sm:grid-cols-[0.9fr_1.1fr] sm:items-stretch">
@@ -2148,8 +2060,6 @@ function ZoneStatusBar({
                     <span className={`h-3 w-3 rounded-full ${tone.dot}`} />
                     <p className={`text-lg font-black leading-tight ${tone.text}`}>{statusLabel}</p>
                   </div>
-                  <p className="mt-1 text-[10px] font-black text-slate-500">依 AI 對感測器數值判斷</p>
-                  <p className="mt-1 text-[10px] font-black text-slate-400">{sourceLabel}</p>
                 </div>
                 <div className="grid min-w-0 flex-1 grid-cols-3 gap-1.5 text-[10px] font-black text-slate-600">
                   <span className="flex min-h-8 items-center justify-center gap-1 rounded-lg bg-white/65 px-1 tabular-nums">
@@ -2361,15 +2271,19 @@ function RobotReadinessCard({state, robotFeedback}: {state: GuardianState; robot
           {connected ? '已連線' : '備援'}
         </span>
       </div>
-      <DispatchProgress stage={robotFeedback?.stage} connected={connected} className="mt-4" />
-      <div className="mt-3 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black">
-        <span className="text-slate-500">預估抵達</span>
-        <span className={robotFeedback ? 'text-teal-700' : 'text-slate-400'}>{meta.eta}</span>
-      </div>
-      <div className="mt-2 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black">
-        <span className="text-slate-500">任務單號</span>
-        <span className={robotFeedback ? 'text-slate-900' : 'text-slate-400'}>{robotFeedback?.missionId ?? '尚未建立'}</span>
-      </div>
+      {robotFeedback && (
+        <>
+          <DispatchProgress stage={robotFeedback.stage} connected={connected} className="mt-4" />
+          <div className="mt-3 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black">
+            <span className="text-slate-500">預估抵達</span>
+            <span className="text-teal-700">{meta.eta}</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black">
+            <span className="text-slate-500">任務單號</span>
+            <span className="text-slate-900">{robotFeedback.missionId}</span>
+          </div>
+        </>
+      )}
     </Surface>
   );
 }
@@ -2381,32 +2295,16 @@ function ZoneInspector({zone, robotFeedback, onDispatchRobot}: {zone: SchoolZone
     <Surface className="p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-black text-slate-500">目前選取區域</p>
-          <h3 className="mt-2 text-2xl font-black text-slate-950">{zone.name}</h3>
-          <p className="mt-1 text-xs font-bold text-slate-500">{zone.location}</p>
+          <h3 className="text-2xl font-black text-slate-950">{zone.name}</h3>
+          <p className="mt-0.5 text-xs font-bold text-slate-500">{zone.location}</p>
         </div>
         <StatusChip level={zone.riskLevel} />
       </div>
-      <div className={`mt-4 overflow-hidden rounded-2xl border ${tone.panel}`}>
-        <div className={`h-1 ${tone.bar}`} />
-        <div className="flex items-center justify-between gap-3 p-4">
-          <div>
-            <p className="text-[10px] font-black tracking-widest text-slate-500 uppercase">AI 燈號</p>
-            <p className={`mt-1 text-3xl font-black ${tone.text}`}>{getRiskStatusLabel(zone.riskLevel)}</p>
-          </div>
-          <span className={`h-6 w-6 rounded-full shadow-sm ${tone.dot}`} />
-        </div>
-      </div>
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <MetricTile label="燈號" value={getRiskStatusLabel(zone.riskLevel)} />
+      <div className="mt-4 grid grid-cols-2 gap-2">
         <MetricTile label="感測" value={zone.sensor?.connected ? '在線' : '離線'} />
         <MetricTile label="提醒" value={zone.alertCount} />
       </div>
       {zone.sensor && <ZoneSensorPanel sensor={zone.sensor} />}
-      <div className="mt-4 rounded-xl border border-teal-100 bg-teal-50 p-3">
-        <p className="text-xs font-black text-teal-700">下一步</p>
-        <p className="mt-1 text-sm font-bold text-teal-900">{activeDispatch ? robotFeedback?.stage : zone.riskLevel === 'low' ? '維持巡查' : '派遣 + 確認'}</p>
-      </div>
       {activeDispatch && (
         <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
           <div className="flex items-center justify-between text-xs font-black text-slate-500">
@@ -2418,7 +2316,7 @@ function ZoneInspector({zone, robotFeedback, onDispatchRobot}: {zone: SchoolZone
           </div>
         </div>
       )}
-      <DispatchProgress stage={activeDispatch ? robotFeedback?.stage : undefined} connected={Boolean(robotFeedback)} className="mt-3" compact />
+      {activeDispatch && <DispatchProgress stage={robotFeedback?.stage} connected={true} className="mt-3" compact />}
       <PrimaryAction onClick={() => onDispatchRobot(zone)} disabled={zone.riskLevel === 'low' || activeDispatch} active={activeDispatch} className="mt-4">
         <Bot className={`h-5 w-5 ${activeDispatch ? 'animate-pulse' : ''}`} />
         {zone.riskLevel === 'low' ? '維持巡查' : activeDispatch ? '已送出派遣' : '指派機器人'}
@@ -2508,15 +2406,9 @@ function DispatchProgress({stage, connected, compact = false, className = ''}: {
   );
 }
 
-function PanelDock({activePanel, onOpenPanel, onShowDemo}: {activePanel: ActivePanel; onOpenPanel: (panel: ActivePanel) => void; onShowDemo: () => void}) {
+function PanelDock({activePanel, onOpenPanel}: {activePanel: ActivePanel; onOpenPanel: (panel: ActivePanel) => void}) {
   return (
     <Surface className="p-2">
-      <div className="mb-2 flex items-center justify-between px-2 pt-1">
-        <p className="text-xs font-black text-slate-500">工作面板</p>
-        <button onClick={onShowDemo} className="min-h-10 rounded-xl px-3 text-xs font-black text-teal-700 transition hover:bg-teal-50">
-          導覽
-        </button>
-      </div>
       <div className="grid grid-cols-4 gap-1">
         {panelNav.map((item) => (
           <button
@@ -2634,8 +2526,6 @@ function DetailDrawer(props: {
                     state={props.state}
                     onDispatchRobot={props.onDispatchRobot}
                   />
-                  <NodesPanel {...props} />
-                  <LogsPanel {...props} />
                 </div>
               )}
             </div>
@@ -2647,14 +2537,6 @@ function DetailDrawer(props: {
 }
 
 function AlertsPanel({state, selectedAlert, setSelectedAlert, dispatch, onHardwareCommand, onCreateProactiveAlert}: Parameters<typeof DetailDrawer>[0]) {
-  const {openCount, processingCount, highCount} = useMemo(() => {
-    let open = 0, processing = 0, high = 0;
-    for (const a of state.alerts) {
-      if (a.status !== 'resolved') { open++; if (a.riskLevel === 'high') high++; }
-      if (a.status === 'processing') processing++;
-    }
-    return {openCount: open, processingCount: processing, highCount: high};
-  }, [state.alerts]);
   const detailAlert = selectedAlert ? state.alerts.find((alert) => alert.id === selectedAlert.id) ?? null : null;
 
   useEffect(() => {
@@ -2663,16 +2545,26 @@ function AlertsPanel({state, selectedAlert, setSelectedAlert, dispatch, onHardwa
       return;
     }
     if (selectedAlert && state.alerts.some((alert) => alert.id === selectedAlert.id)) return;
-    setSelectedAlert(state.alerts.find((alert) => alert.status !== 'resolved') ?? state.alerts[0]);
   }, [state.alerts, selectedAlert, setSelectedAlert]);
+
+  if (detailAlert) {
+    return (
+      <div className="grid gap-3">
+        <button
+          type="button"
+          onClick={() => setSelectedAlert(null)}
+          className="flex items-center gap-1.5 text-xs font-black text-slate-500 hover:text-teal-700 transition-colors w-fit"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+          返回清單
+        </button>
+        <AlertDetail alert={detailAlert} dispatch={dispatch} onHardwareCommand={onHardwareCommand} />
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-4">
-      <div className="grid grid-cols-3 gap-2">
-        <MetricTile label="待處理" value={openCount} />
-        <MetricTile label="高優先" value={highCount} />
-        <MetricTile label="處理中" value={processingCount} />
-      </div>
       <button
         type="button"
         onClick={onCreateProactiveAlert}
@@ -2683,20 +2575,14 @@ function AlertsPanel({state, selectedAlert, setSelectedAlert, dispatch, onHardwa
       </button>
       <div className="space-y-3">
         {state.alerts.length === 0 && (
-          <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-6 text-center">
+          <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-8 text-center">
             <p className="text-sm font-black text-slate-500">目前無待處理提醒</p>
-            <p className="mt-1 text-xs font-semibold text-slate-400">可以直接用上方 AI 巡查建立第一筆示範預警。</p>
           </div>
         )}
         {state.alerts.map((alert) => (
           <AlertRow key={alert.id} alert={alert} onOpen={() => setSelectedAlert(alert)} />
         ))}
       </div>
-      {detailAlert && (
-        <div className="rounded-xl border border-slate-200 bg-white p-4 text-slate-900">
-          <AlertDetail alert={detailAlert} dispatch={dispatch} onHardwareCommand={onHardwareCommand} />
-        </div>
-      )}
     </div>
   );
 }
@@ -3099,16 +2985,47 @@ function SensingPanel({
 
   return (
     <div className="space-y-4">
-      <GlassPanel>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-black text-slate-500">本機即時運算</p>
-            <h3 className="mt-2 text-xl font-black text-slate-950">環境聲量感知</h3>
-          </div>
-          <button onClick={onStartAcoustic} className="flex min-h-11 items-center gap-2 rounded-xl bg-teal-600 px-4 text-sm font-black text-white">
-            {micActive ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-            {micActive ? '停止' : '啟用'}
+      {/* AI 融合狀態 strip */}
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">AI 融合判讀</p>
+          <p className="mt-0.5 truncate text-sm font-black text-slate-900">{proactiveInsight.title}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${proactiveInsight.score >= 7 ? 'bg-rose-100 text-rose-700' : proactiveInsight.score >= 4 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+            {proactiveInsight.score}/10
+          </span>
+          <button onClick={onCreateProactiveAlert} className="rounded-xl bg-slate-900 px-3 py-2 text-[11px] font-black text-white">
+            建立提醒
           </button>
+        </div>
+      </div>
+
+      {/* 聲量感知 */}
+      <GlassPanel>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-xl font-black text-slate-950">環境聲量感知</h3>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                onDemoSound();
+                const now = Date.now();
+                const demo = Array.from({length: 25}, (_, i) => ({
+                  t: now - (24 - i) * 10_000,
+                  v: Math.round(18 + Math.sin(i * 0.55) * 20 + Math.max(0, i - 12) * 2.5),
+                }));
+                setSoundTrend(demo);
+                try { localStorage.setItem(TREND_LS_KEY, JSON.stringify(demo)); } catch {}
+              }}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-black text-slate-600"
+            >
+              示範
+            </button>
+            <button onClick={onStartAcoustic} className="flex items-center gap-1.5 rounded-xl bg-teal-600 px-3 py-2 text-[11px] font-black text-white">
+              {micActive ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              {micActive ? '停止' : '啟用'}
+            </button>
+          </div>
         </div>
         {micError && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{micError}</p>}
         <div className="mt-4">
@@ -3118,164 +3035,88 @@ function SensingPanel({
             level={currentAcoustic.level}
           />
         </div>
-        <p className="mt-4 text-sm font-semibold leading-6 text-slate-600">{currentAcoustic.summary}</p>
+        <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">{currentAcoustic.summary}</p>
         <SoundSparkline trend={soundTrend} />
-        <input value={acousticLocation} onChange={(event) => setAcousticLocation(event.target.value)} aria-label="感測位置" placeholder="例：穿堂、教室等位置" className="mt-4 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <button onClick={() => onRecordAcoustic({source: micActive ? 'microphone' : 'demo', location: acousticLocation, ...currentAcoustic})} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-700">
+        <div className="mt-4 flex gap-2">
+          <input value={acousticLocation} onChange={(event) => setAcousticLocation(event.target.value)} aria-label="感測位置" placeholder="位置（如：穿堂）" className="min-h-10 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" />
+          <button onClick={() => onRecordAcoustic({source: micActive ? 'microphone' : 'demo', location: acousticLocation, ...currentAcoustic})} className="rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700">
             記錄
           </button>
-          <button onClick={onCreateAcousticAlert} className="rounded-xl bg-teal-600 px-3 py-3 text-xs font-black text-white">
-            建立提醒
-          </button>
-          <button
-            onClick={() => {
-              onDemoSound();
-              const now = Date.now();
-              const demo = Array.from({length: 25}, (_, i) => ({
-                t: now - (24 - i) * 10_000,
-                v: Math.round(18 + Math.sin(i * 0.55) * 20 + Math.max(0, i - 12) * 2.5),
-              }));
-              setSoundTrend(demo);
-              try { localStorage.setItem(TREND_LS_KEY, JSON.stringify(demo)); } catch {}
-            }}
-            className="rounded-xl bg-slate-100 px-3 py-3 text-xs font-black text-slate-700"
-          >
-            示範
-          </button>
         </div>
-      </GlassPanel>
-
-      <GlassPanel>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-black text-slate-500">隱私影像感知</p>
-            <h3 className="mt-2 text-xl font-black text-slate-950">場域風險辨識</h3>
-            <p className="mt-1 text-xs font-bold text-slate-400">最近判讀：{visualAnalyzedAt}</p>
-          </div>
-          <button onClick={toggleVisualCamera} disabled={visualBusy} className="flex min-h-11 items-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-black text-white disabled:opacity-50">
-            <Camera className="h-5 w-5" />
-            {visualCameraReady ? '關閉' : '啟用'}
-          </button>
-        </div>
-        <div className="mt-4 rounded-2xl border border-teal-100 bg-teal-50/70 p-3">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <p className="text-[10px] font-black tracking-widest text-teal-700 uppercase">列印辨識圖卡</p>
-              <p className="mt-1 text-xs font-bold leading-5 text-teal-900">可下載列印後對準攝影機；上台時按「判讀＋派遣」直接跑完整閉環。</p>
-            </div>
-            <a
-              href={PRINTABLE_SCENE_SHEET_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex min-h-10 shrink-0 items-center justify-center gap-1 rounded-xl bg-white px-3 text-[10px] font-black text-teal-700 shadow-sm ring-1 ring-teal-100 transition hover:bg-teal-50"
-            >
-              <Printer className="h-3.5 w-3.5" />
-              列印版
-            </a>
-          </div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            {PRINTABLE_VISUAL_SCENES.map((scene) => (
-              <div key={scene.id} className="overflow-hidden rounded-xl border border-white/80 bg-white shadow-sm">
-                <img src={scene.imageSrc} alt={scene.title} className="aspect-video w-full object-cover" />
-                <div className="space-y-2 p-2">
-                  <div>
-                    <p className="line-clamp-1 text-xs font-black text-slate-900">{scene.title}</p>
-                    <p className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[9px] font-black ${getRiskStatusTone(scene.riskLevel).soft}`}>
-                      {getRiskStatusLabel(scene.riskLevel)} · {scene.score}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <a
-                      href={scene.imageSrc}
-                      download={scene.downloadName}
-                      className="flex min-h-9 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-black text-slate-700"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      下載
-                    </a>
-                    <button
-                      onClick={() => runPrintableScene(scene)}
-                      className="min-h-9 rounded-lg bg-teal-600 px-2 text-[10px] font-black text-white shadow-sm shadow-teal-200"
-                    >
-                      判讀＋派遣
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-950">
-          <div className="relative aspect-video">
-            <video ref={visualVideoRef} muted playsInline className={`h-full w-full object-cover ${visualCameraReady ? 'opacity-100' : 'opacity-20'}`} />
-            {!visualCameraReady && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/65">
-                <Camera className="h-8 w-8" />
-                <p className="text-xs font-black">攝影機待啟用</p>
-              </div>
-            )}
-            <canvas ref={visualCanvasRef} className="hidden" />
-          </div>
-        </div>
-        {visualError && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{visualError}</p>}
-        <div className="mt-3 grid grid-cols-4 gap-2">
-          <MiniMetric label="風險" value={visualResult.score} />
-          <MiniMetric label="紋理" value={visualResult.metrics.crowdTexture} />
-          <MiniMetric label="低光" value={visualResult.metrics.lowLightArea} />
-          <MiniMetric label="狀態" value={visualResult.level === 'support' ? '關注' : visualResult.level === 'watch' ? '觀察' : '穩定'} />
-        </div>
-        <p className="mt-4 text-sm font-semibold leading-6 text-slate-600">{visualResult.summary}</p>
-        <div className={`mt-3 rounded-xl border px-4 py-3 text-xs font-bold leading-5 ${
-          visualResult.quality.level === 'good'
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-            : visualResult.quality.level === 'warn'
-              ? 'border-amber-200 bg-amber-50 text-amber-800'
-              : 'border-rose-200 bg-rose-50 text-rose-800'
-        }`}>
-          <span className="font-black">畫面品質 · {visualResult.quality.label}</span>
-          <span className="ml-2">{visualResult.quality.hints[0] ?? '環境畫面可用，系統只做低解析場域分析。'}</span>
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {visualResult.evidence.map((item) => (
-            <span key={item} className="rounded-full bg-teal-50 px-3 py-1 text-[10px] font-black text-teal-700">{item}</span>
-          ))}
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <button onClick={analyzeVisualFrame} disabled={!visualCameraReady || visualBusy} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-700 disabled:opacity-50">
-            {visualBusy ? '判讀中' : '擷取判讀'}
-          </button>
-          <button onClick={() => onCreateVisualAlert(visualResult)} className="rounded-xl bg-teal-600 px-3 py-3 text-xs font-black text-white">
-            建立關懷提醒
-          </button>
-        </div>
-      </GlassPanel>
-
-      <GlassPanel>
-        <p className="text-xs font-black text-slate-500">AI 融合分析</p>
-        <h3 className="mt-2 text-xl font-black text-slate-950">{proactiveInsight.title}</h3>
-        <p className="mt-1 text-xs font-semibold text-slate-400">融合分數 {proactiveInsight.score}/10 · {proactiveInsight.score >= 7 ? '高風險' : proactiveInsight.score >= 4 ? '中風險' : '低風險'}</p>
-        <div className="mt-3 space-y-1.5">
-          {proactiveInsight.signals.map(({label, score: s, max}) => (
-            <div key={label} className="flex items-center gap-2">
-              <span className="w-16 text-[10px] font-black text-slate-500">{label}</span>
-              <div className="flex flex-1 gap-0.5">
-                {Array.from({length: max}).map((_, i) => (
-                  <div key={i} className={`h-2 flex-1 rounded-full ${i < s ? (s === max ? 'bg-rose-400' : 'bg-amber-400') : 'bg-slate-200'}`} />
-                ))}
-              </div>
-              <span className="w-8 text-right text-[10px] font-black text-slate-400">{s}/{max}</span>
-            </div>
-          ))}
-        </div>
-        <button onClick={onCreateProactiveAlert} className="mt-4 min-h-11 w-full rounded-xl bg-slate-950 text-sm font-black text-white">
-          由多來源訊號建立提醒
+        <button onClick={onCreateAcousticAlert} className="mt-2 min-h-11 w-full rounded-xl bg-teal-600 text-sm font-black text-white">
+          建立聲量提醒
         </button>
       </GlassPanel>
 
+      {/* 場域視覺辨識 */}
       <GlassPanel>
-        <p className="mb-2 text-xs font-black text-on-surface-variant">情緒熱圖（示範）</p>
-        <EmotionHeatmap />
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-xl font-black text-slate-950">場域風險辨識</h3>
+          <button onClick={toggleVisualCamera} disabled={visualBusy} className="flex items-center gap-1.5 rounded-xl bg-slate-950 px-3 py-2 text-[11px] font-black text-white disabled:opacity-50">
+            <Camera className="h-4 w-4" />
+            {visualCameraReady ? '關閉鏡頭' : '開啟鏡頭'}
+          </button>
+        </div>
+
+        {/* 圖卡 — 永遠顯示，Demo 主力 */}
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          {PRINTABLE_VISUAL_SCENES.map((scene) => (
+            <div key={scene.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+              <img src={scene.imageSrc} alt={scene.title} className="aspect-video w-full object-cover" />
+              <div className="space-y-2 p-2">
+                <p className="line-clamp-1 text-xs font-black text-slate-900">{scene.title}</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <a href={scene.imageSrc} download={scene.downloadName} className="flex min-h-8 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-black text-slate-700">
+                    <Download className="h-3 w-3" />
+                    下載
+                  </a>
+                  <button onClick={() => runPrintableScene(scene)} className="min-h-8 rounded-lg bg-teal-600 px-2 text-[10px] font-black text-white">
+                    判讀＋派遣
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 flex justify-end">
+          <a href={PRINTABLE_SCENE_SHEET_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] font-black text-teal-700 hover:opacity-70">
+            <Printer className="h-3 w-3" />列印版
+          </a>
+        </div>
+
+        {/* 鏡頭區 — 只在啟用時展開 */}
+        {visualCameraReady && (
+          <>
+            <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-950">
+              <div className="relative aspect-video">
+                <video ref={visualVideoRef} muted playsInline className="h-full w-full object-cover" />
+                <canvas ref={visualCanvasRef} className="hidden" />
+              </div>
+            </div>
+            {visualError && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{visualError}</p>}
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              <MiniMetric label="風險" value={visualResult.score} />
+              <MiniMetric label="紋理" value={visualResult.metrics.crowdTexture} />
+              <MiniMetric label="低光" value={visualResult.metrics.lowLightArea} />
+              <MiniMetric label="狀態" value={visualResult.level === 'support' ? '關注' : visualResult.level === 'watch' ? '觀察' : '穩定'} />
+            </div>
+            <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">{visualResult.summary}</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button onClick={analyzeVisualFrame} disabled={visualBusy} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-700 disabled:opacity-50">
+                {visualBusy ? '判讀中' : '擷取判讀'}
+              </button>
+              <button onClick={() => onCreateVisualAlert(visualResult)} className="rounded-xl bg-teal-600 px-3 py-3 text-xs font-black text-white">
+                建立關懷提醒
+              </button>
+            </div>
+          </>
+        )}
+        {!visualCameraReady && (
+          <div className="mt-3 hidden" aria-hidden>
+            <video ref={visualVideoRef} muted playsInline className="hidden" />
+            <canvas ref={visualCanvasRef} className="hidden" />
+          </div>
+        )}
       </GlassPanel>
     </div>
   );
