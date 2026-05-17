@@ -357,7 +357,7 @@ export function RemoteControlPanel({isOpen, onClose}: {isOpen: boolean; onClose:
               </div>
             </div>
 
-            {/* EV3 / SPIKE 外部機器人 */}
+            {/* 外部機器人面板 (UNO R4 + L293D) */}
             <ExternalRobotPanel />
 
             {/* 緊急停止 */}

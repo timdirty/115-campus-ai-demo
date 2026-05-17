@@ -1,5 +1,5 @@
 export const BRIDGE_URL =
-  ((import.meta as unknown as {env?: Record<string, string>}).env?.VITE_ARDUINO_BRIDGE_URL) ||
+  (import.meta as {env?: {VITE_ARDUINO_BRIDGE_URL?: string}}).env?.VITE_ARDUINO_BRIDGE_URL ||
   'http://localhost:3202';
 
 export type ClassroomScanApiResult = {

@@ -1,6 +1,6 @@
 // 校園掃地機器人輔助控制面板 (App 2 — UNO R4 + L293D + TT Motor)
 // 以折疊卡片形式嵌入 RemoteControlPanel BottomSheet。
-// 送指令走主 bridge /api/robot/command，不走 EV3/SPIKE endpoint。
+// 送指令走主 bridge /api/robot/command。
 
 import {memo, useEffect, useState} from 'react';
 import {Bot, ChevronDown, ChevronUp, Navigation2, PackageCheck, TriangleAlert, Waves} from 'lucide-react';
