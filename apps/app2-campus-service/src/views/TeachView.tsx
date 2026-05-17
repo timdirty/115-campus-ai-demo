@@ -734,17 +734,62 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
 
       {/* Simple Chart Modal */}
       <BottomSheet isOpen={modal === 'chart'} onClose={() => setModal(null)} title="即時專注度分析報表">
-         <div className="p-6 flex flex-col items-center py-10">
-           <div className="w-28 h-28 rounded-full bg-primary/10 flex items-center justify-center mb-8 relative shadow-inner">
-              <motion.div animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: 'linear' }} className="absolute inset-0 border-4 border-dashed border-primary/40 rounded-full"></motion.div>
-              <Focus size={52} className="text-primary opacity-90 drop-shadow-md" />
-           </div>
-           <p className="text-2xl font-headline font-bold mb-3 tracking-wide text-on-surface">分析數據匯總中...</p>
-           <p className="text-[15px] text-on-surface-variant font-medium text-center max-w-70 leading-relaxed">系統正在統整本堂歷史課的所有互動訊號與視覺追蹤歷程。</p>
-           <button onClick={downloadReport} className="mt-10 bg-primary hover:bg-primary/95 text-white py-5 px-8 rounded-3xl font-bold text-[17px] tracking-widest active:scale-[0.98] shadow-[0_0_20px_rgba(var(--color-primary),0.4)] w-full transition-all flex items-center justify-center gap-2 border border-primary/20">
-             匯出完整 PDF 報告
-           </button>
-         </div>
+        <div className="p-5 space-y-4">
+          {aiSignals.length === 0 ? (
+            <div className="flex flex-col items-center py-10 gap-4">
+              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+                <Focus size={38} className="text-primary opacity-80" />
+              </div>
+              <p className="text-base font-headline font-bold text-on-surface">尚無掃描記錄</p>
+              <p className="text-sm text-on-surface-variant text-center max-w-xs leading-relaxed">
+                使用「AI 掃描」後，此處將顯示每次掃描的截圖與偵測結果。
+              </p>
+            </div>
+          ) : (
+            <>
+              <h3 className="font-bold text-sm text-on-surface-variant uppercase tracking-widest">掃描記錄</h3>
+              <div className="space-y-3">
+                {aiSignals.map((sig, idx) => {
+                  const isAlert = sig.type === 'distracted';
+                  const timeLabel = sig.capturedAt
+                    ? new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(sig.capturedAt))
+                    : '—';
+                  return (
+                    <div key={idx} className="flex items-center gap-3">
+                      {sig.snapshot ? (
+                        <img
+                          src={sig.snapshot}
+                          alt="掃描截圖"
+                          className="w-14 h-11 object-cover rounded-xl flex-shrink-0 border border-outline-variant/30"
+                        />
+                      ) : (
+                        <div className="w-14 h-11 rounded-xl flex-shrink-0 bg-surface-container flex items-center justify-center border border-outline-variant/30">
+                          <span className="text-lg">📷</span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-mono text-on-surface-variant/60">{timeLabel}</p>
+                        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${
+                          isAlert
+                            ? 'bg-error/10 text-error'
+                            : 'bg-primary/10 text-primary'
+                        }`}>
+                          {isAlert ? '⚠ 分心偵測' : '❓ 舉手偵測'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+          <p className="text-[10px] text-on-surface-variant/40 text-center pt-2">
+            僅供本節課參考，重整頁面後自動清除
+          </p>
+          <button onClick={downloadReport} className="mt-2 bg-primary hover:bg-primary/95 text-white py-4 px-6 rounded-2xl font-bold text-[15px] tracking-wide active:scale-[0.98] w-full transition-all flex items-center justify-center gap-2">
+            匯出完整 PDF 報告
+          </button>
+        </div>
       </BottomSheet>
     </div>
   );
