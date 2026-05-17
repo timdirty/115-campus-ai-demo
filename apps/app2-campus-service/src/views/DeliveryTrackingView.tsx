@@ -19,7 +19,7 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: {goBack
   );
   const [eta, setEta] = useState(3);
   const [phase, setPhase] = useState<'departed' | 'arriving' | 'delivered'>('departed');
-  const [ev3RetractStatus, setEv3RetractStatus] = useState<'idle' | 'retracting' | 'done' | 'failed'>('idle');
+  const [deliveryDoneStatus, setDeliveryDoneStatus] = useState<'idle' | 'sending' | 'done' | 'failed'>('idle');
   const [deliveredAt, setDeliveredAt] = useState('');
   const [queuedItems, setQueuedItems] = useState<string[]>(['保健室藥品', '101教室文具', '圖書館書籍']);
 
@@ -48,11 +48,11 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: {goBack
       }
       setDeliveredAt(new Intl.DateTimeFormat('zh-TW', {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false}).format(new Date()));
       showToast('機器人已抵達，請取件！');
-      // Send EV3 arm retract
-      setEv3RetractStatus('retracting');
-      sendHardwareCommand('EV3_ARM_RETRACT', 'app2:delivery-confirm').then((result) => {
-        setEv3RetractStatus(result.ok ? 'done' : 'failed');
-      }).catch(() => setEv3RetractStatus('failed'));
+      // 送出配送完成指令，讓底盤回到待命
+      setDeliveryDoneStatus('sending');
+      sendHardwareCommand('DELIVERY_DONE', 'app2:delivery-confirm').then((result) => {
+        setDeliveryDoneStatus(result.ok ? 'done' : 'failed');
+      }).catch(() => setDeliveryDoneStatus('failed'));
     }
   }, [phase, activeOrder, actions, showToast]);
 
@@ -181,13 +181,13 @@ export function DeliveryTrackingView({ goBack, showToast, orderStatus }: {goBack
 
                 {phase === 'delivered' && (
                   <div className="relative pl-9 mt-8">
-                    <div className={`absolute -left-3.5 top-1 w-6 h-6 rounded-full flex items-center justify-center shadow-[0_0_0_8px_var(--color-surface-container-lowest)] ${ev3RetractStatus === 'done' ? 'bg-[#87d46c]' : ev3RetractStatus === 'failed' ? 'bg-amber-400' : 'bg-surface-container-highest'}`}>
-                      {ev3RetractStatus === 'done' && <CheckCircle2 size={14} className="text-white" strokeWidth={4} />}
+                    <div className={`absolute -left-3.5 top-1 w-6 h-6 rounded-full flex items-center justify-center shadow-[0_0_0_8px_var(--color-surface-container-lowest)] ${deliveryDoneStatus === 'done' ? 'bg-[#87d46c]' : deliveryDoneStatus === 'failed' ? 'bg-amber-400' : 'bg-surface-container-highest'}`}>
+                      {deliveryDoneStatus === 'done' && <CheckCircle2 size={14} className="text-white" strokeWidth={4} />}
                     </div>
                     <div>
-                      <h5 className="font-bold text-xl leading-none text-on-surface mb-2">取物手臂收回</h5>
+                      <h5 className="font-bold text-xl leading-none text-on-surface mb-2">機器人待命回位</h5>
                       <p className="text-xs font-bold text-on-surface-variant">
-                        {ev3RetractStatus === 'retracting' ? '收回中…' : ev3RetractStatus === 'done' ? '已到位' : ev3RetractStatus === 'failed' ? '已記錄' : ''}
+                        {deliveryDoneStatus === 'sending' ? '指令送出中…' : deliveryDoneStatus === 'done' ? '已就位' : deliveryDoneStatus === 'failed' ? '已記錄' : ''}
                       </p>
                     </div>
                   </div>

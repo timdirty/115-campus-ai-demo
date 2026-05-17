@@ -1,67 +1,39 @@
-// EV3 / SPIKE Prime 外部機器人控制面板 (App 2 — 配送機器人)
+// 校園掃地機器人輔助控制面板 (App 2 — UNO R4 + L293D + TT Motor)
 // 以折疊卡片形式嵌入 RemoteControlPanel BottomSheet。
-// 自動輪詢 /api/ev3/status 或 /api/spike/status 顯示連線狀態。
+// 送指令走主 bridge /api/robot/command，不走 EV3/SPIKE endpoint。
 
 import {memo, useEffect, useState} from 'react';
-import {Bot, ChevronDown, ChevronUp, Cpu, Navigation2, PackageCheck, TriangleAlert, Volume2} from 'lucide-react';
+import {Bot, ChevronDown, ChevronUp, Navigation2, PackageCheck, TriangleAlert, Waves} from 'lucide-react';
 import {BRIDGE_URL} from '../services/hardwareBridge';
 
-type RobotHW = 'ev3' | 'spike';
-
-interface HWStatus {
-  connected: boolean;
-  simulated: boolean;
-  activePath: string;
+interface BridgeHealth {
+  ok: boolean;
+  arduinoConnected: boolean;
+  simulated?: boolean;
+  activePath?: string | null;
 }
 
-const EV3_COMMANDS = [
-  {label: '前進', cmd: 'EV3_FORWARD', icon: '↑'},
-  {label: '後退', cmd: 'EV3_BACKWARD', icon: '↓'},
-  {label: '左轉', cmd: 'EV3_LEFT', icon: '←'},
-  {label: '右轉', cmd: 'EV3_RIGHT', icon: '→'},
-  {label: '停止', cmd: 'EV3_STOP', icon: '■', accent: true},
-  {label: '送達 A', cmd: 'EV3_DELIVER_A', icon: '📦'},
-  {label: '送達 B', cmd: 'EV3_DELIVER_B', icon: '📦'},
-  {label: '送達 C', cmd: 'EV3_DELIVER_C', icon: '📦'},
-  {label: '喇叭', cmd: 'EV3_HORN', icon: '📣'},
-  {label: '返回', cmd: 'EV3_RETURN', icon: '⏎'},
+const ROBOT_COMMANDS = [
+  {label: '前進', cmd: 'FORWARD',        icon: '↑', group: 'drive'},
+  {label: '後退', cmd: 'BACKWARD',       icon: '↓', group: 'drive'},
+  {label: '左轉', cmd: 'LEFT',           icon: '←', group: 'drive'},
+  {label: '右轉', cmd: 'RIGHT',          icon: '→', group: 'drive'},
+  {label: '停止', cmd: 'STOP',           icon: '■', group: 'stop'},
+  {label: '滾筒開', cmd: 'SWEEP_START',  icon: '🌀', group: 'sweep'},
+  {label: '滾筒停', cmd: 'SWEEP_STOP',   icon: '⏹', group: 'sweep'},
+  {label: '配送開始', cmd: 'DELIVERY_START', icon: '📦', group: 'task'},
+  {label: '配送完成', cmd: 'DELIVERY_DONE',  icon: '✅', group: 'task'},
+  {label: '巡邏', cmd: 'PATROL_START',   icon: '👁', group: 'task'},
 ] as const;
 
-const SPIKE_COMMANDS = [
-  {label: '前進', cmd: 'FORWARD', icon: '↑'},
-  {label: '後退', cmd: 'BACKWARD', icon: '↓'},
-  {label: '左轉', cmd: 'LEFT', icon: '←'},
-  {label: '右轉', cmd: 'RIGHT', icon: '→'},
-  {label: '停止', cmd: 'STOP', icon: '■', accent: true},
-  {label: '送達 A', cmd: 'DELIVER_A', icon: '📦'},
-  {label: '送達 B', cmd: 'DELIVER_B', icon: '📦'},
-  {label: '送達 C', cmd: 'DELIVER_C', icon: '📦'},
-  {label: '喇叭', cmd: 'HORN', icon: '📣'},
-  {label: '返回', cmd: 'RETURN', icon: '⏎'},
-] as const;
-
-async function fetchStatus(hw: RobotHW): Promise<HWStatus | null> {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 2000);
-  try {
-    const res = await fetch(`${BRIDGE_URL}/api/${hw}/status`, {signal: ctrl.signal});
-    if (!res.ok) return null;
-    return res.json() as Promise<HWStatus>;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(t);
-  }
-}
-
-async function sendCmd(hw: RobotHW, command: string): Promise<boolean> {
+async function sendCmd(command: string): Promise<boolean> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 3000);
   try {
-    const res = await fetch(`${BRIDGE_URL}/api/${hw}/command`, {
+    const res = await fetch(`${BRIDGE_URL}/api/robot/command`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({command}),
+      body: JSON.stringify({command, source: 'ExternalRobotPanel'}),
       signal: ctrl.signal,
     });
     const data = await res.json() as {ok: boolean};
@@ -73,10 +45,23 @@ async function sendCmd(hw: RobotHW, command: string): Promise<boolean> {
   }
 }
 
+async function fetchHealth(): Promise<BridgeHealth | null> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 2000);
+  try {
+    const res = await fetch(`${BRIDGE_URL}/api/health`, {signal: ctrl.signal});
+    if (!res.ok) return null;
+    return res.json() as Promise<BridgeHealth>;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 export const ExternalRobotPanel = memo(function ExternalRobotPanel() {
   const [expanded, setExpanded] = useState(false);
-  const [hw, setHw] = useState<RobotHW>('ev3');
-  const [status, setStatus] = useState<HWStatus | null>(null);
+  const [health, setHealth] = useState<BridgeHealth | null>(null);
   const [lastResult, setLastResult] = useState<string>('待機中');
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -84,33 +69,24 @@ export const ExternalRobotPanel = memo(function ExternalRobotPanel() {
     if (!expanded) return;
     let cancelled = false;
     const poll = async () => {
-      const s = await fetchStatus(hw);
-      if (!cancelled) setStatus(s);
+      const h = await fetchHealth();
+      if (!cancelled) setHealth(h);
     };
     void poll();
-    const pollId = setInterval(poll, 3000);
-    // Send HEARTBEAT every 20s to keep EV3/SPIKE connection warm
-    const hbId = setInterval(() => {
-      void sendCmd(hw, hw === 'ev3' ? 'HEARTBEAT' : 'HEARTBEAT');
-    }, 20000);
-    return () => {
-      cancelled = true;
-      clearInterval(pollId);
-      clearInterval(hbId);
-    };
-  }, [expanded, hw]);
+    const id = setInterval(poll, 4000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [expanded]);
 
   const handleCmd = async (cmd: string) => {
     if (busy) return;
     setBusy(cmd);
-    const ok = await sendCmd(hw, cmd);
+    const ok = await sendCmd(cmd);
     setLastResult(ok ? `✓ ${cmd}` : `✗ ${cmd} 失敗`);
     setBusy(null);
   };
 
-  const commands = hw === 'ev3' ? EV3_COMMANDS : SPIKE_COMMANDS;
-  const isConnected = status?.connected ?? false;
-  const isSimulated = status?.simulated ?? false;
+  const isConnected = health?.arduinoConnected ?? false;
+  const isSimulated = health?.simulated ?? false;
 
   return (
     <div className="rounded-2xl border border-outline-variant/20 bg-surface-container-low/40 overflow-hidden">
@@ -124,10 +100,10 @@ export const ExternalRobotPanel = memo(function ExternalRobotPanel() {
           <Bot className="h-5 w-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-black tracking-widest text-on-surface-variant uppercase">外部機器人</p>
+          <p className="text-xs font-black tracking-widest text-on-surface-variant uppercase">底盤直送指令</p>
           <p className="text-sm font-bold text-on-surface truncate">
-            {hw === 'ev3' ? 'LEGO EV3' : 'LEGO SPIKE Prime'}
-            {isSimulated && <span className="ml-1.5 text-[10px] text-amber-600 font-mono">[SIM]</span>}
+            UNO R4 + L293D
+            {isSimulated && <span className="ml-1.5 text-[10px] text-amber-600 font-mono">[模擬]</span>}
             {isConnected && !isSimulated && <span className="ml-1.5 text-[10px] text-emerald-600 font-mono">[連線中]</span>}
           </p>
         </div>
@@ -136,31 +112,12 @@ export const ExternalRobotPanel = memo(function ExternalRobotPanel() {
 
       {expanded && (
         <div className="flex flex-col gap-4 px-4 pb-4">
-          {/* HW toggle */}
-          <div className="flex gap-2">
-            {(['ev3', 'spike'] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => { setHw(t); setStatus(null); }}
-                className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-black transition ${
-                  hw === t
-                    ? 'bg-indigo-600 text-white shadow'
-                    : 'bg-surface-container-lowest text-on-surface-variant ring-1 ring-outline-variant/30'
-                }`}
-              >
-                <Cpu className="h-3.5 w-3.5" />
-                {t === 'ev3' ? 'EV3' : 'SPIKE'}
-              </button>
-            ))}
-          </div>
-
           {/* Status bar */}
           <div className="flex items-center gap-2 rounded-xl bg-surface-container-lowest p-2.5 ring-1 ring-outline-variant/20">
             <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-slate-300'}`} />
             <span className="text-xs font-bold text-on-surface-variant flex-1">
               {isConnected
-                ? isSimulated ? '模擬模式（可送指令）' : `已連線 ${status?.activePath ?? ''}`
+                ? isSimulated ? '模擬模式（可送指令）' : `已連線 ${health?.activePath ?? ''}`
                 : '未偵測到硬體'}
             </span>
             <span className="text-[10px] font-mono text-on-surface-variant">{lastResult}</span>
@@ -168,9 +125,9 @@ export const ExternalRobotPanel = memo(function ExternalRobotPanel() {
 
           {/* Command grid */}
           <div className="grid grid-cols-5 gap-1.5">
-            {commands.map(({label, cmd, icon, ...rest}) => {
-              const isAccent = 'accent' in rest && rest.accent;
-              const isNav = ['↑','↓','←','→'].includes(icon);
+            {ROBOT_COMMANDS.map(({label, cmd, icon, group}) => {
+              const isStop  = group === 'stop';
+              const isDrive = group === 'drive';
               return (
                 <button
                   key={cmd}
@@ -178,9 +135,9 @@ export const ExternalRobotPanel = memo(function ExternalRobotPanel() {
                   disabled={!isConnected || !!busy}
                   onClick={() => handleCmd(cmd)}
                   className={`flex flex-col items-center gap-0.5 rounded-xl py-2.5 text-center transition active:scale-95 disabled:opacity-40 ${
-                    isAccent
-                      ? 'bg-rose-500 text-white col-span-1 shadow-sm'
-                      : isNav
+                    isStop
+                      ? 'bg-rose-500 text-white shadow-sm'
+                      : isDrive
                       ? 'bg-indigo-100 text-indigo-800 ring-1 ring-indigo-200'
                       : 'bg-surface-container-lowest text-on-surface ring-1 ring-outline-variant/30'
                   }`}
@@ -195,8 +152,8 @@ export const ExternalRobotPanel = memo(function ExternalRobotPanel() {
           {/* Legend */}
           <div className="flex flex-wrap gap-3 text-[10px] text-on-surface-variant">
             <span className="flex items-center gap-1"><Navigation2 className="h-3 w-3" />方向控制</span>
+            <span className="flex items-center gap-1"><Waves className="h-3 w-3" />清掃滾筒</span>
             <span className="flex items-center gap-1"><PackageCheck className="h-3 w-3" />配送任務</span>
-            <span className="flex items-center gap-1"><Volume2 className="h-3 w-3" />喇叭</span>
             <span className="flex items-center gap-1"><TriangleAlert className="h-3 w-3 text-amber-500" />硬體未接時不可用</span>
           </div>
         </div>
