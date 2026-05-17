@@ -115,7 +115,7 @@ function normalizeHardwareProfile(input: unknown, fallback = defaultClassroomSes
 }
 
 function isExtendedCalibrationCommand(command: string) {
-  return /^(SERVO_SET|SET_REGION_A|SET_REGION_B|SET_ERASE_ALL|SET_STANDBY):\d{1,3}$/.test(command)
+  return /^(SERVO_SET|SET_REGION_A|SET_REGION_B|SET_REGION_C|SET_ERASE_ALL|SET_STANDBY):\d{1,3}$/.test(command)
     || command === 'CALIBRATION_STATUS';
 }
 

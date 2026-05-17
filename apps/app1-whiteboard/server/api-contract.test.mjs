@@ -184,9 +184,9 @@ try {
   assert.equal(robotCommands.response.status, 200);
   assert.ok(Array.isArray(robotCommands.body.commands));
   assert.ok(robotCommands.body.commands.some((item) => item.command === 'ERASE_REGION_B'));
-  assert.ok(!robotCommands.body.commands.some((item) => item.command === 'ERASE_REGION_C'));
+  assert.ok(robotCommands.body.commands.some((item) => item.command === 'ERASE_REGION_C'));
   assert.equal(robotCommands.body.taskActions.erase.B, 'ERASE_REGION_B');
-  assert.equal(robotCommands.body.taskActions.erase.C, undefined);
+  assert.equal(robotCommands.body.taskActions.erase.C, 'ERASE_REGION_C');
 
   const elementaryNotes = await request('/api/notes');
   assert.equal(elementaryNotes.response.status, 200);

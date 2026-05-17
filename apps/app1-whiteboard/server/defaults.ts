@@ -154,6 +154,7 @@ export const commandCatalog: RobotCommandInfo[] = [
   {command: 'CALIBRATION_STATUS', label: '校正狀態', group: 'hardware'},
   {command: 'SET_REGION_A', label: '設定左區角度', group: 'hardware'},
   {command: 'SET_REGION_B', label: '設定右區角度', group: 'hardware'},
+  {command: 'SET_REGION_C', label: '設定中區角度', group: 'hardware'},
   {command: 'SET_ERASE_ALL', label: '設定全擦角度', group: 'hardware'},
   {command: 'SET_STANDBY', label: '設定待命角度', group: 'hardware'},
   {command: 'CLEAN_START', label: '清潔開始', group: 'task'},
@@ -161,8 +162,10 @@ export const commandCatalog: RobotCommandInfo[] = [
   {command: 'ERASE_ALL', label: '一鍵全擦', group: 'task'},
   {command: 'ERASE_REGION_A', label: '擦除左區', group: 'task'},
   {command: 'ERASE_REGION_B', label: '擦除右區', group: 'task'},
+  {command: 'ERASE_REGION_C', label: '擦除中區', group: 'task'},
   {command: 'KEEP_REGION_A', label: '保留左區', group: 'task'},
   {command: 'KEEP_REGION_B', label: '保留右區', group: 'task'},
+  {command: 'KEEP_REGION_C', label: '保留中區', group: 'task'},
   {command: 'PAUSE_TASK', label: '暫停任務', group: 'task'},
   {command: 'STOP', label: '停止', group: 'task'},
   {command: 'FORWARD', label: '前進', group: 'drive'},
@@ -209,8 +212,8 @@ export const commandCatalog: RobotCommandInfo[] = [
 export const supportedCommands = new Set(commandCatalog.map((item) => item.command));
 
 export const taskActions = {
-  erase: {A: 'ERASE_REGION_A', B: 'ERASE_REGION_B', ALL: 'ERASE_ALL'},
-  keep: {A: 'KEEP_REGION_A', B: 'KEEP_REGION_B'},
+  erase: {A: 'ERASE_REGION_A', B: 'ERASE_REGION_B', C: 'ERASE_REGION_C', ALL: 'ERASE_ALL'},
+  keep: {A: 'KEEP_REGION_A', B: 'KEEP_REGION_B', C: 'KEEP_REGION_C'},
   pause: {DEFAULT: 'PAUSE_TASK'},
   clean_start: {DEFAULT: 'CLEAN_START'},
   clean_stop: {DEFAULT: 'CLEAN_STOP'},
