@@ -2049,7 +2049,7 @@ function ZoneStatusBar({
                   tabIndex={0}
                   onClick={(e) => { e.stopPropagation(); onOpenZoneInsight(zone); }}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onOpenZoneInsight(zone); } }}
-                  className="flex shrink-0 cursor-pointer items-center gap-1 rounded-full bg-white/75 px-2 py-1 text-[10px] font-black text-slate-600 ring-1 ring-slate-200/70 hover:bg-teal-50 hover:ring-teal-300 transition-colors"
+                  className="flex shrink-0 cursor-pointer items-center gap-1 rounded-full bg-white/75 px-2.5 py-1.5 min-h-[36px] text-[10px] font-black text-slate-600 ring-1 ring-slate-200/70 hover:bg-teal-50 hover:ring-teal-300 transition-colors"
                 >
                   <span className={`h-2 w-2 rounded-full ${dispatching ? identity.dot : tone.dot}`} />
                   AI 判讀
