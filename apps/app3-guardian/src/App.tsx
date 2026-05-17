@@ -29,7 +29,7 @@ import {
   X,
 } from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
-import {AcousticSignal, DetectedPort, GuardianAlert, GuardianState, MoodType, RiskLevel, ZoneSensorReading} from './types';
+import {AcousticLevel, AcousticSignal, DetectedPort, GuardianAlert, GuardianState, MoodType, RiskLevel, ZoneSensorReading} from './types';
 import {guardianReducer, loadGuardianState, normalizeGuardianState, persistGuardianState} from './state/guardianState';
 import {analyzeAcousticFrame, describeAcousticSignal} from './services/acousticGuardian';
 import {generateSupportReply} from './services/localGuardianAi';
@@ -2697,6 +2697,146 @@ function AlertsPanel({state, selectedAlert, setSelectedAlert, dispatch, onHardwa
           <AlertDetail alert={detailAlert} dispatch={dispatch} onHardwareCommand={onHardwareCommand} />
         </div>
       )}
+    </div>
+  );
+}
+
+const GAUGE_COLORS = {
+  calm:     {main: '#16a34a', bg: '#dcfce7', text: '#166534', label: '平穩'},
+  active:   {main: '#f59e0b', bg: '#fef3c7', text: '#92400e', label: '活動'},
+  elevated: {main: '#ef4444', bg: '#fee2e2', text: '#991b1b', label: '偏高'},
+} as const;
+
+function SoundLevelGauge({
+  volumeIndex,
+  volatility,
+  level,
+}: {
+  volumeIndex: number;
+  volatility: number;
+  level: AcousticLevel;
+}) {
+  const vol = Math.max(0, Math.min(100, volumeIndex));
+  const vlt = Math.max(0, Math.min(100, volatility));
+  const c = GAUGE_COLORS[level];
+  // pathLength="251" normalises all dasharray values to 0–251 regardless of SVG scaling
+  const fillPx = Math.round((vol / 100) * 251);
+  const needleAngle = vol * 1.8 - 90; // −90° at 0 (left), 0° at 50 (top), +90° at 100 (right)
+  const isVolatilityTrigger = level === 'elevated' && vol < 72;
+
+  return (
+    <div>
+      {/* ── Arc gauge ── */}
+      <svg
+        viewBox="0 0 200 120"
+        className="w-full"
+        role="img"
+        aria-label={`聲量 ${vol}，${c.label}，波動 ${vlt}`}
+      >
+        <title>{`環境聲量量表：${vol}/100，狀態${c.label}`}</title>
+
+        {/* Background zone bands (opacity 0.15) — dashoffset positions each band correctly */}
+        {/* Green  0–46:  offset   0 */}
+        <path d="M 20 95 A 80 80 0 0 1 180 95" pathLength="251"
+          fill="none" stroke="#16a34a" strokeWidth="18" strokeLinecap="butt"
+          strokeDasharray="116 135" strokeDashoffset="0" opacity="0.15" />
+        {/* Orange 46–72: offset 135 (= 251 − 116) */}
+        <path d="M 20 95 A 80 80 0 0 1 180 95" pathLength="251"
+          fill="none" stroke="#f59e0b" strokeWidth="18" strokeLinecap="butt"
+          strokeDasharray="65 186" strokeDashoffset="135" opacity="0.15" />
+        {/* Red    72–100: offset  70 (= 251 − 181) */}
+        <path d="M 20 95 A 80 80 0 0 1 180 95" pathLength="251"
+          fill="none" stroke="#ef4444" strokeWidth="18" strokeLinecap="butt"
+          strokeDasharray="70 181" strokeDashoffset="70" opacity="0.15" />
+
+        {/* Active fill — color reflects comprehensive level (vol + volatility) */}
+        <path d="M 20 95 A 80 80 0 0 1 180 95" pathLength="251"
+          fill="none" stroke={c.main} strokeWidth="18" strokeLinecap="round"
+          strokeDasharray={`${fillPx} ${251 - fillPx}`} strokeDashoffset="0" />
+
+        {/* Threshold tick at 46 */}
+        <line x1="100" y1="6" x2="100" y2="22"
+          stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"
+          transform="rotate(-7.2, 100, 95)" />
+        <text textAnchor="middle" fontSize="8" fontWeight="800" fill="#f59e0b"
+          transform="rotate(-7.2, 100, 95)" x="100" y="3">46</text>
+
+        {/* Threshold tick at 72 */}
+        <line x1="100" y1="6" x2="100" y2="22"
+          stroke="#ef4444" strokeWidth="2" strokeLinecap="round"
+          transform="rotate(39.6, 100, 95)" />
+        <text textAnchor="middle" fontSize="8" fontWeight="800" fill="#ef4444"
+          transform="rotate(39.6, 100, 95)" x="100" y="3">72</text>
+
+        {/* Needle — <g> wrapper enables CSS transition on transform */}
+        <g style={{
+          transformOrigin: '100px 95px',
+          transform: `rotate(${needleAngle}deg)`,
+          transition: 'transform 0.15s ease-out',
+        }}>
+          <line x1="100" y1="95" x2="100" y2="28"
+            stroke={c.main} strokeWidth="3" strokeLinecap="round" />
+          <circle cx="100" cy="95" r="5" fill="white" stroke={c.main} strokeWidth="2.5" />
+        </g>
+
+        {/* Center value */}
+        <text x="100" y="76" textAnchor="middle" fontSize="26" fontWeight="900" fill="#0f172a">
+          {vol}
+        </text>
+        <text x="100" y="89" textAnchor="middle" fontSize="9" fontWeight="800" fill={c.main}>
+          {c.label}
+        </text>
+
+        {/* Scale ends */}
+        <text x="14"  y="114" textAnchor="middle" fontSize="9" fontWeight="700" fill="#94a3b8">0</text>
+        <text x="186" y="114" textAnchor="middle" fontSize="9" fontWeight="700" fill="#94a3b8">100</text>
+      </svg>
+
+      {/* ── Volatility bar ── */}
+      <div className="mt-1">
+        <div className="mb-1 flex items-center justify-between">
+          <span className="text-[10px] font-black text-slate-500">波動</span>
+          <div className="flex items-center gap-1.5">
+            {isVolatilityTrigger && (
+              <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-black text-red-700">
+                波動觸發
+              </span>
+            )}
+            <span className={`text-[10px] font-black ${vlt >= 34 ? 'text-red-600' : vlt >= 20 ? 'text-amber-600' : 'text-slate-500'}`}>
+              {vlt}{vlt >= 34 ? ' ⚠️' : ''}
+            </span>
+          </div>
+        </div>
+        <div className="relative h-3.5 overflow-visible rounded-full bg-slate-100">
+          <div
+            className="h-full rounded-full transition-[width] duration-300"
+            style={{width: `${vlt}%`, background: c.main}}
+          />
+          {/* Tick at volatility active threshold (20) */}
+          <div className="absolute inset-y-0 w-0.5 rounded-full bg-amber-400" style={{left: '20%'}}>
+            <span className="absolute left-1/2 top-full mt-0.5 hidden -translate-x-1/2 whitespace-nowrap text-[8px] font-black text-amber-500 sm:block">
+              20
+            </span>
+          </div>
+          {/* Tick at volatility elevated threshold (34) */}
+          <div className="absolute inset-y-0 w-0.5 rounded-full bg-red-400" style={{left: '34%'}}>
+            <span className="absolute left-1/2 top-full mt-0.5 hidden -translate-x-1/2 whitespace-nowrap text-[8px] font-black text-red-500 sm:block">
+              34
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Status badge ── */}
+      <div className="mt-3 flex justify-center">
+        <span
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black"
+          style={{background: c.bg, color: c.text}}
+        >
+          <span className="h-2 w-2 rounded-full" style={{background: c.main}} />
+          {c.label}
+        </span>
+      </div>
     </div>
   );
 }
