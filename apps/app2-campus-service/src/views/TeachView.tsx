@@ -6,7 +6,7 @@ import { useAppActions, useAppState } from '../state/AppStateProvider';
 import type { TeachingSignal } from '../state/appState';
 import { generateTeacherReply } from '../services/localAi';
 import { openPrintableReport } from '../services/reports';
-import {scanClassroom, type ClassroomScanApiResult} from '../services/hardwareBridge';
+import {scanClassroom, type ClassroomScanApiResult, type ClassroomSignal} from '../services/hardwareBridge';
 import {useCameraSelection} from '../hooks/useCameraSelection';
 import {useGeminiVision} from '../hooks/useGeminiVision';
 import {useActionAbort} from '../hooks/useActionAbort';
@@ -36,6 +36,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
   const [scanResult, setScanResult] = useState<ClassroomScanApiResult | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [attendanceScanning, setAttendanceScanning] = useState(false);
+  const [aiSignals, setAiSignals] = useState<ClassroomSignal[]>([]);
   const autoScanDoneRef = useRef(false);
   const chatAbort = useActionAbort();
   const scanAbort = useActionAbort();
@@ -153,6 +154,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
         if (signal.aborted) return;
         if (result.ok) {
           setScanResult(result);
+          setAiSignals(result.signals ?? []);
         } else {
           setScanError(result.error ?? 'AI 辨識失敗，請重試或手動完成');
         }
@@ -190,28 +192,19 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
         <div className="flex-1 min-w-0 relative z-10">
            <p className="text-[10px] font-bold text-on-surface-variant tracking-[0.2em] mb-1.5">出缺席場域評估</p>
-           {state.attendance.scanned ? (
+           {scanResult?.ok ? (
              <div className="flex flex-col items-start gap-1">
                <div className="flex items-baseline gap-2">
-                 <p className="font-headline font-bold text-2xl tracking-tighter text-on-surface leading-none">{state.attendance.present}</p>
+                 <p className="font-headline font-bold text-2xl tracking-tighter text-on-surface leading-none">{scanResult.count}</p>
                  <span className="text-xs font-bold tracking-widest text-on-surface-variant">/ {state.attendance.total} 人出席</span>
                </div>
-               <span className="text-[10px] font-bold bg-error text-white px-2.5 py-1 rounded-full whitespace-nowrap mt-1 shadow-[0_0_10px_rgba(var(--color-error),0.3)] tracking-widest">{state.attendance.absent} 人請假/缺席</span>
+               <span className="text-[10px] font-bold bg-primary/10 text-primary px-2.5 py-1 rounded-full whitespace-nowrap mt-1 tracking-widest">AI 出席率 {scanResult.rate}%{scanResult.confidence !== undefined && scanResult.confidence < 60 ? '（估算）' : ''}</span>
+               {scanResult.summary && <p className="text-[10px] text-on-surface-variant/80 mt-1 leading-snug">{scanResult.summary}</p>}
              </div>
            ) : (
              <div className="mt-1">
-                <p className="font-headline font-bold text-base text-on-surface-variant">掃描待命狀態</p>
-                <div className="mt-1 text-[10px] text-primary/70 animate-pulse flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span> 場域掃描待命</div>
-             </div>
-           )}
-           {scanResult?.ok && (
-             <div className="mt-2 flex items-start gap-1.5 rounded-xl border border-primary/20 bg-primary/5 px-2.5 py-1.5">
-               <span className="shrink-0 text-[9px] font-black tracking-widest text-primary mt-px">AI</span>
-               <p className="text-[10px] font-bold text-primary leading-snug">
-                 約 {scanResult.count} 人・出席率 {scanResult.rate}%
-                 {scanResult.confidence !== undefined && scanResult.confidence < 60 && <span className="text-on-surface-variant font-normal">（估算）</span>}
-                 {scanResult.summary && <span className="block text-on-surface-variant font-normal mt-0.5">{scanResult.summary}</span>}
-               </p>
+               <p className="font-headline font-bold text-2xl tracking-tighter text-on-surface-variant leading-none">—</p>
+               <div className="mt-1.5 text-[10px] text-on-surface-variant/60 flex items-center gap-1">尚未掃描，請按右側按鈕</div>
              </div>
            )}
         </div>
@@ -220,7 +213,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
           className="relative z-10 shrink-0 bg-primary hover:bg-primary/95 text-white active:scale-95 transition-all w-16 h-16 rounded-2xl shadow-[0_0_20px_rgba(var(--color-primary),0.3)] border-2 border-primary/20 flex flex-col items-center justify-center gap-1"
         >
           <Camera size={20} className="drop-shadow-md" />
-          <span className="text-[10px] font-bold tracking-widest text-center drop-shadow-md">環場確認</span>
+          <span className="text-[9px] font-bold tracking-wide text-center drop-shadow-md leading-tight">AI<br/>掃描</span>
         </button>
       </section>
 
@@ -231,7 +224,7 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant font-mono">班級互動概況</p>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="font-headline font-bold text-2xl text-on-surface">{state.teachingSignals.length}</span>
+              <span className="font-headline font-bold text-2xl text-on-surface">{aiSignals.length}</span>
               <span className="text-xs font-bold text-on-surface-variant">則訊號待處理</span>
             </div>
             <p className="text-[10px] text-on-surface-variant/70 mt-0.5">點此匯出完整報表</p>
@@ -242,39 +235,54 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
       {/* AI Signals */}
       <section data-tour="alert-list" className="space-y-3">
         <div className="flex items-center justify-between">
-            <h3 className="font-headline font-bold text-base tracking-wide flex items-center gap-2">即時告警與訊號 <span className="text-[10px] bg-error/10 text-error px-2 py-0.5 rounded-full font-bold ml-1">{state.teachingSignals.length}</span></h3>
-            {state.teachingSignals.length > 3 && (
-              <span className="text-primary/60 text-xs font-medium">共 {state.teachingSignals.length} 則</span>
+            <h3 className="font-headline font-bold text-base tracking-wide flex items-center gap-2">
+              學習訊號偵測
+              {aiSignals.length > 0 && <span className="text-[10px] bg-error/10 text-error px-2 py-0.5 rounded-full font-bold ml-1">{aiSignals.length}</span>}
+            </h3>
+            {aiSignals.length > 3 && (
+              <span className="text-primary/60 text-xs font-medium">共 {aiSignals.length} 則</span>
             )}
         </div>
-        {state.teachingSignals.length === 0 ? (
-           <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 text-center text-on-surface-variant font-medium text-sm shadow-sm">
-             目前無異常或提問訊號
+        {aiSignals.length === 0 ? (
+           <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 text-center shadow-sm space-y-1.5">
+             <p className="text-on-surface-variant font-medium text-sm">尚未進行 AI 掃描</p>
+             <p className="text-on-surface-variant/60 text-xs">舉起圖卡對準攝影機，按「AI 掃描」即可自動偵測學習狀態</p>
            </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-            {state.teachingSignals.map((sig) => (
+            {aiSignals.map((sig, idx) => {
+              const isAlert = sig.type === 'distracted';
+              const syntheticSig: TeachingSignal = {
+                id: `ai-${idx}`,
+                type: isAlert ? 'alert' : 'question',
+                name: isAlert ? '⚠️ 分心警示' : '❓ 學生提問',
+                studentId: String(idx),
+                message: sig.description,
+                createdAt: new Date().toISOString(),
+              };
+              return (
               <motion.div
-                key={sig.id}
+                key={syntheticSig.id}
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => openStudent(sig)}
-                className={`bg-surface-container-lowest border ${sig.type === 'alert' ? 'border-l-4 border-l-tertiary border-y-outline-variant/20 border-r-outline-variant/20 shadow-[0_2px_10px_rgba(var(--color-tertiary),0.08)]' : 'border-outline-variant/20 shadow-sm'} rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-surface-container transition-colors`}
+                onClick={() => openStudent(syntheticSig)}
+                className={`bg-surface-container-lowest border ${isAlert ? 'border-l-4 border-l-tertiary border-y-outline-variant/20 border-r-outline-variant/20 shadow-[0_2px_10px_rgba(var(--color-tertiary),0.08)]' : 'border-outline-variant/20 shadow-sm'} rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-surface-container transition-colors`}
               >
-                <div className={`w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 shadow-inner ${sig.type === 'alert' ? 'bg-tertiary text-white' : 'bg-primary/10 text-primary'}`}>
-                  {sig.type === 'alert' ? <AlertCircle size={20} /> : <MessageCircle size={20} />}
+                <div className={`w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 shadow-inner ${isAlert ? 'bg-tertiary text-white' : 'bg-primary/10 text-primary'}`}>
+                  {isAlert ? <AlertCircle size={20} /> : <MessageCircle size={20} />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center mb-0.5 gap-2">
-                    <h4 className="font-bold text-sm tracking-wide truncate">{sig.name}</h4>
-                    <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-lg border uppercase tracking-widest ${sig.type === 'alert' ? 'text-tertiary bg-tertiary/10 border-tertiary/20' : 'text-primary bg-primary/10 border-primary/20'}`}>
-                      {sig.type === 'alert' ? '分心中' : '提問中'}
+                    <h4 className="font-bold text-sm tracking-wide truncate">{syntheticSig.name}</h4>
+                    <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-lg border uppercase tracking-widest ${isAlert ? 'text-tertiary bg-tertiary/10 border-tertiary/20' : 'text-primary bg-primary/10 border-primary/20'}`}>
+                      {isAlert ? '分心中' : '提問中'}
                     </span>
                   </div>
-                  <p className="text-xs font-medium text-on-surface-variant/90 leading-relaxed truncate">{sig.message}</p>
+                  <p className="text-xs font-medium text-on-surface-variant/90 leading-relaxed truncate">{sig.description}</p>
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

@@ -403,32 +403,7 @@ export function createInitialAppState(): AppState {
       { id: 'schedule1', title: '校區深度清掃', time: '16:30', area: '所有走廊與公共區', kind: 'cleaning' },
       { id: 'schedule2', title: '晨間活力廣播', time: '08:00', area: '全校範圍同步', kind: 'broadcast' },
     ],
-    teachingSignals: [
-      {
-        id: 'sig-12',
-        type: 'question',
-        name: '學習訊號 A',
-        studentId: '12',
-        message: '老師，我想再聽一次這段...',
-        createdAt,
-      },
-      {
-        id: 'sig-05',
-        type: 'alert',
-        name: '學習訊號 B',
-        studentId: '05',
-        message: '座位狀態待老師確認',
-        createdAt,
-      },
-      {
-        id: 'sig-08',
-        type: 'alert',
-        name: '學習訊號 C',
-        studentId: '08',
-        message: '學習狀態需要關注',
-        createdAt,
-      },
-    ],
+    teachingSignals: [],
     studentReports: {
       '05': {
         studentId: '05',

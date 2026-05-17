@@ -6,12 +6,20 @@ function isProxyDisabled(): boolean {
   return (import.meta as {env?: {VITE_AI_PROXY_DISABLED?: string}}).env?.VITE_AI_PROXY_DISABLED === '1';
 }
 
+export type ClassroomSignalType = 'question' | 'distracted';
+
+export type ClassroomSignal = {
+  type: ClassroomSignalType;
+  description: string;
+};
+
 export type ClassroomScanApiResult = {
   ok: boolean;
   count?: number;
   rate?: number;
   confidence?: number;
   summary?: string;
+  signals?: ClassroomSignal[];
   error?: string;
 };
 
