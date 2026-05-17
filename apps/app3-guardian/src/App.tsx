@@ -2044,14 +2044,16 @@ function ZoneStatusBar({
                     <p className="mt-0.5 text-[10px] font-bold text-slate-500">{zone.location}</p>
                   </div>
                 </div>
-                <button
-                  type="button"
+                <span
+                  role="button"
+                  tabIndex={0}
                   onClick={(e) => { e.stopPropagation(); onOpenZoneInsight(zone); }}
-                  className="flex shrink-0 items-center gap-1 rounded-full bg-white/75 px-2 py-1 text-[10px] font-black text-slate-600 ring-1 ring-slate-200/70 hover:bg-teal-50 hover:ring-teal-300 transition-colors"
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onOpenZoneInsight(zone); } }}
+                  className="flex shrink-0 cursor-pointer items-center gap-1 rounded-full bg-white/75 px-2 py-1 text-[10px] font-black text-slate-600 ring-1 ring-slate-200/70 hover:bg-teal-50 hover:ring-teal-300 transition-colors"
                 >
                   <span className={`h-2 w-2 rounded-full ${dispatching ? identity.dot : tone.dot}`} />
                   AI 判讀
-                </button>
+                </span>
               </div>
 
               <div className="mt-3 grid gap-2 sm:grid-cols-[0.9fr_1.1fr] sm:items-stretch">
