@@ -309,6 +309,27 @@ async function writeGuidePage(app) {
     ? `<div class="hardware-note">🤖 硬體亮點：${escapeHtml(app.hardwarePitchNote)}</div>`
     : '';
 
+  const visionCardsHtml = (app.visionCards || []).length > 0
+    ? `<div class="card vision-cards-block">
+      <div class="section-title">📷 影像辨識示範圖卡（共 ${app.visionCards.length} 張，依序展示）</div>
+      <p style="margin:0 0 14px;color:#64748b;font-weight:800;font-size:.88rem;line-height:1.6">展示時把圖卡舉到鏡頭前，系統辨識後自動建議派遣任務。點圖可放大。</p>
+      <div class="vision-cards-grid">
+        ${app.visionCards.map((vc, vi) => `<a class="vision-card-item js-lightbox"
+            href="./${app.id}/demo-assets/vision-cards/${escapeHtml(vc.file)}"
+            title="放大：${escapeHtml(vc.title)}">
+          <img src="./${app.id}/demo-assets/vision-cards/${escapeHtml(vc.file)}"
+               alt="${escapeHtml(vc.title)}" loading="lazy"
+               onerror="this.parentElement.classList.add('vc-err')">
+          <div class="vc-meta">
+            <span class="vc-num">${vi + 1}</span>
+            <span class="vc-title">${escapeHtml(vc.title)}</span>
+            <span class="vc-result">→ ${escapeHtml(vc.result)}</span>
+          </div>
+        </a>`).join('\n        ')}
+      </div>
+    </div>`
+    : '';
+
   const baseUrl = 'https://timdirty.github.io/115-campus-ai-demo/';
   const guidePageUrl = `${baseUrl}${app.id}-guide.html`;
   const qrSvgRaw = await QRCode.toString(guidePageUrl, {
@@ -422,6 +443,18 @@ async function writeGuidePage(app) {
     .route-shot-empty { display: none; min-height: 72px; align-items: center; justify-content: center; color: #94a3b8; font-size: 12px; font-weight: 900; }
     @media (min-width: 820px) { .route-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .route-card { display: flex; flex-direction: column; } .route-actions { margin-top: auto; } }
     @media (max-width: 560px) { .route-shots { grid-template-columns: 1fr; } }
+
+    /* Vision card grid */
+    .vision-cards-block { margin-top: 0; }
+    .vision-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+    .vision-card-item { display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; border: 1.5px solid #e2e8f0; background: #f8fafc; text-decoration: none; transition: border-color .15s; }
+    .vision-card-item:hover { border-color: var(--accent); }
+    .vision-card-item img { width: 100%; height: 120px; object-fit: cover; display: block; }
+    .vision-card-item.vc-err img { display: none; }
+    .vc-meta { padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+    .vc-num { font-size: .7rem; font-weight: 950; color: var(--accent); }
+    .vc-title { font-size: .88rem; font-weight: 900; color: #1e293b; }
+    .vc-result { font-size: .78rem; font-weight: 800; color: #64748b; }
 
     /* Hardware note */
     .hardware-note { margin-top: 12px; padding: 10px 14px; border-radius: 8px; background: color-mix(in srgb, var(--accent), white 90%); border: 1px solid color-mix(in srgb, var(--accent), white 62%); color: color-mix(in srgb, var(--accent), #1e293b 25%); font-weight: 800; font-size: .93rem; }
@@ -690,6 +723,8 @@ async function writeGuidePage(app) {
         ${demoRoutesHtml}
       </div>
     </section>` : ''}
+
+    ${visionCardsHtml}
 
     <div class="card">
       <div class="section-title">展示順序</div>

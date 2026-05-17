@@ -70,7 +70,7 @@ export const apps = [
         hardware: ['ERASE_REGION_A', 'ERASE_REGION_B', 'ERASE_REGION_C', 'STOP', 'HEARTBEAT'],
         proof: ['像素分析結果', '老師決策紀錄', '白板 ✓ 覆蓋層', '任務 log / bridge ack'],
         fallback: '相機、Gemini 或 Arduino 任一失敗時，改用白板樣張與模擬 log，仍能展示同一條流程。',
-        screenshots: ['app1-step1.png', 'app1-step2.png', 'app1-step3.png', 'app1-step4.png'],
+        screenshots: ['app1-step1.png', 'app1-step2.png', 'app1-step4.png'],
         startUrl: './app1/#whiteboard',
       },
       {
@@ -89,7 +89,7 @@ export const apps = [
         hardware: [],
         proof: ['課堂紀錄本卡片', 'AI 小老師問答串', '自動產生的選擇題', '所有頁面共用同一份 session'],
         fallback: 'Gemini 全失敗時切到本機備援文字，閉環依然走完；老師現場可以用「一鍵示範」走範例 note。',
-        screenshots: ['app1-step1.png', 'app1-step2.png', 'app1-step4.png'],
+        screenshots: ['app1-step1.png', 'app1-step4.png'],
         startUrl: './app1/#chat',
       },
       {
@@ -108,7 +108,7 @@ export const apps = [
         hardware: ['FORWARD', 'BACKWARD', 'LEFT', 'RIGHT', 'STOP', 'HEARTBEAT'],
         proof: ['bridge health', '最後指令', 'watchdog / STOP log', '任務面板更新'],
         fallback: '真機未接上時打開模擬模式，照樣展示同一批指令與安全停止說法。',
-        screenshots: ['app1-step2.png', 'app1-step3.png', 'app1-step4.png'],
+        screenshots: ['app1-step1.png', 'app1-step4.png'],
         startUrl: './app1/#robot',
       },
     ],
@@ -328,7 +328,7 @@ export const apps = [
         hardware: ['DELIVERY_START', 'FORWARD', 'STOP', 'SWEEP_START', 'DELIVERY_DONE'],
         proof: ['庫存扣減', '訂單紀錄', '任務 log', '到達時間戳', '報表紀錄'],
         fallback: '沒有 Arduino 時改用模擬派遣與 robot display，保留同樣的任務紀錄。',
-        screenshots: ['app2-step1.png', 'app2-step2.png', 'app2-step3.png'],
+        screenshots: ['app2-step1.png', 'app2-step3.png', 'app2-step5.png'],
         startUrl: './app2/#delivery',
       },
       {
@@ -347,7 +347,7 @@ export const apps = [
         hardware: ['TEACH_SCAN', 'TEACH_REPLY', 'PATROL_START'],
         proof: ['點名結果', '教學服務任務', 'robot display 狀態', '報表紀錄'],
         fallback: 'AI 無回應時以本機點名結果和任務卡完成示範。',
-        screenshots: ['app2-step1.png', 'app2-step4.png', 'app2-step6.png'],
+        screenshots: ['app2-step4.png', 'app2-attend.png', 'app2-teach-done.png'],
         startUrl: './app2/#teach',
       },
       {
@@ -366,7 +366,7 @@ export const apps = [
         hardware: ['VISION_CLEANING_PATROL', 'VISION_CROWD_BROADCAST', 'VISION_SAFETY_PATROL', 'STOP'],
         proof: ['影像結果', '任務類型', '派遣 log', '生活服務紀錄'],
         fallback: '相機或網路失敗時使用內建範例圖卡與本機 vision，同樣生成任務。',
-        screenshots: ['app2-step1.png', 'app2-step5.png', 'app2-step6.png'],
+        screenshots: ['app2-step6.png', 'app2-attend.png', 'app2-life-vision.png'],
         startUrl: './app2/#student',
       },
     ],
@@ -478,6 +478,13 @@ export const apps = [
       motors: 'TT 馬達 × 4（M1+M2 驅動輪，M3+M4 清掃滾筒）',
       commands: ['FORWARD', 'BACKWARD', 'LEFT', 'RIGHT', 'STOP', 'SWEEP_START', 'SWEEP_STOP', 'SWEEP_REVERSE', 'DELIVERY_START', 'DELIVERY_DONE', 'PATROL_START', 'HEARTBEAT'],
     },
+    visionCards: [
+      { file: '01-crowd-hallway.png',   title: '人流疏導', result: '廣播疏導', zone: '福利社前' },
+      { file: '02-safety-patrol.png',   title: '安全巡查', result: '派出巡查', zone: 'B棟走廊' },
+      { file: '03-cleaning-needed.png', title: '清掃需求', result: '加入清掃', zone: 'A棟穿堂' },
+      { file: '04-delivery-service.png', title: '配送服務', result: '協助配送', zone: '五年級教室' },
+      { file: '05-normal-patrol.png',   title: '一般巡邏', result: '日常巡邏', zone: '操場入口' },
+    ],
   },
   {
     id: 'app3',
