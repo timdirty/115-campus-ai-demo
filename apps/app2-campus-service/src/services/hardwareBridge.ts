@@ -1,6 +1,14 @@
+function defaultBridgeUrl(): string {
+  if (typeof window !== 'undefined') {
+    const h = window.location.hostname;
+    if (h !== 'localhost' && h !== '127.0.0.1') return `http://${h}:3202`;
+  }
+  return 'http://localhost:3202';
+}
+
 export const BRIDGE_URL =
   (import.meta as {env?: {VITE_ARDUINO_BRIDGE_URL?: string}}).env?.VITE_ARDUINO_BRIDGE_URL ||
-  'http://localhost:3202';
+  defaultBridgeUrl();
 
 function isProxyDisabled(): boolean {
   return (import.meta as {env?: {VITE_AI_PROXY_DISABLED?: string}}).env?.VITE_AI_PROXY_DISABLED === '1';
@@ -11,6 +19,8 @@ export type ClassroomSignalType = 'question' | 'distracted';
 export type ClassroomSignal = {
   type: ClassroomSignalType;
   description: string;
+  snapshot?: string;     // base64 JPEG data URL
+  capturedAt?: string;   // ISO 8601 timestamp
 };
 
 export type ClassroomScanApiResult = {
