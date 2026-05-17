@@ -663,9 +663,9 @@ async function writeGuidePage(app) {
         App：<a href="./${app.id}/">https://timdirty.github.io/115-campus-ai-demo/${app.id}/</a><br>
         教學：<a href="./${guideUrl(app)}">https://timdirty.github.io/115-campus-ai-demo/${guideUrl(app)}</a>
       </p>
-      <div class="section-title" style="margin:14px 0 8px">後續機器人連動計畫</div>
+      <div class="section-title" style="margin:14px 0 8px">本機硬體連動</div>
       <p style="margin:0;color:#465366;font-weight:800;line-height:1.7">
-        公開網址只展示畫面與教學；真 Arduino / EV3 / robot 控制走本機或 LAN bridge。現場沒有硬體時使用模擬模式，接上實機後沿用同一套任務與指令紀錄。
+        ${app.hardwarePitchNote ? escapeHtml(app.hardwarePitchNote) : '公開網址只展示畫面與教學；真實 Arduino / robot 控制走本機或 LAN bridge。現場沒有硬體時使用模擬模式，接上實機後沿用同一套任務與指令紀錄。'}
       </p>
     </div>
 
