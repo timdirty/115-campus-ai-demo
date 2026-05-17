@@ -256,6 +256,10 @@ export const apps = [
       hardware: 'Arduino UNO R4 + L293D 馬達驅動模組',
       commands: ['ERASE_REGION_A', 'ERASE_REGION_B', 'ERASE_REGION_C', 'FORWARD', 'BACKWARD', 'LEFT', 'RIGHT', 'STOP', 'HEARTBEAT'],
     },
+    ev3: {
+      role: '白板筆臂 / 板擦路徑展示',
+      commands: ['EV3_STATUS', 'EV3_CALIBRATE', 'EV3_PEN_DOWN', 'EV3_PEN_UP', 'EV3_DRAW_LINE', 'EV3_HOME', 'EV3_STOP'],
+    },
   },
   {
     id: 'app2',
@@ -477,6 +481,10 @@ export const apps = [
       motorDriver: 'L293D 模組',
       motors: 'TT 馬達 × 4（M1+M2 驅動輪，M3+M4 清掃滾筒）',
       commands: ['FORWARD', 'BACKWARD', 'LEFT', 'RIGHT', 'STOP', 'SWEEP_START', 'SWEEP_STOP', 'SWEEP_REVERSE', 'DELIVERY_START', 'DELIVERY_DONE', 'PATROL_START', 'HEARTBEAT'],
+    },
+    ev3: {
+      role: '配送旗標 / 服務機器人手臂展示',
+      commands: ['EV3_STATUS', 'EV3_ARM_EXTEND', 'EV3_ARM_RETRACT', 'EV3_SAFE_POSE', 'EV3_STOP'],
     },
     visionCards: [
       { file: '01-crowd-hallway.png',   title: '人流疏導', result: '廣播疏導', zone: '福利社前' },
@@ -711,6 +719,10 @@ export const apps = [
     robot: {
       hardware: '3D 列印機身 + Arduino UNO R4 + L293D 馬達驅動模組 + TT 馬達 × 4',
       commands: ['FORWARD', 'BACKWARD', 'LEFT', 'RIGHT', 'STOP', 'PATROL_START', 'ALERT_SIGNAL', 'CARE_DEPLOYED', 'NODE_RESTART', 'HEARTBEAT'],
+    },
+    ev3: {
+      role: '關懷提醒 / 實體提示動作展示',
+      commands: ['EV3_STATUS', 'EV3_ARM_EXTEND', 'EV3_SAFE_POSE', 'EV3_CANCEL', 'EV3_STOP'],
     },
   },
 ];
