@@ -239,7 +239,7 @@ export function RemoteControlPanel({isOpen, onClose}: {isOpen: boolean; onClose:
 
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="手動遙控中心">
-      <div className="flex flex-col gap-5 p-5 pb-8">
+      <div className="overflow-y-auto flex flex-col gap-5 p-5 pb-6">
         {/* 狀態列 */}
         <div className="flex items-center gap-3 rounded-2xl border border-outline-variant/20 bg-surface-container-low/60 p-3">
           <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${bridgeOnline ? 'bg-primary text-white' : 'bg-surface-container-high text-on-surface-variant'}`}>

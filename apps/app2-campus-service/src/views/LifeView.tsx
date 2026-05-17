@@ -239,7 +239,7 @@ export function LifeView({
       </BottomSheet>
 
       <BottomSheet isOpen={modal === 'schedule'} onClose={() => setModal(null)} title="編輯預約任務">
-        <div className="p-4 space-y-8 pb-8">
+        <div className="overflow-y-auto p-4 space-y-4 pb-6">
           <div>
             <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">任務時間</label>
             <input

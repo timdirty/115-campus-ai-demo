@@ -33,9 +33,9 @@ const TABS = [
 const TAB_IDS = new Set(TABS.map((tab) => tab.id));
 
 function getInitialTab() {
-  if (typeof window === 'undefined') return 'delivery';
+  if (typeof window === 'undefined') return 'teach';
   const hash = window.location.hash.slice(1);
-  return TAB_IDS.has(hash) ? hash : 'delivery';
+  return TAB_IDS.has(hash) ? hash : 'teach';
 }
 
 function ScreenFallback({label = '載入中'}: {label?: string}) {
@@ -371,7 +371,7 @@ export default function App() {
 
       {/* Global Settings Modal */}
       <BottomSheet isOpen={showSettings} onClose={() => setShowSettings(false)} title="教職員帳號設定">
-        <div className="p-5 space-y-8 pb-8">
+        <div className="overflow-y-auto p-5 space-y-4 pb-6">
           <div className="flex items-center gap-6 bg-surface-container-low p-6 rounded-4xl border border-outline-variant/20 shadow-sm relative overflow-hidden">
              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none"></div>
              <img

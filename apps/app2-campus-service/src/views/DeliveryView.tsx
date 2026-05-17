@@ -298,7 +298,7 @@ export function DeliveryView({ showToast, navigateTo }: { showToast: (msg: strin
       {/* Product Detail Modal */}
       <BottomSheet isOpen={modal === 'product'} onClose={() => setModal(null)} title="商品詳細細節">
         {selectedProduct && (
-          <div className="p-4 space-y-5 pb-8">
+          <div className="overflow-y-auto p-4 space-y-5 pb-6">
             <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-surface-container shadow-xl relative border-2 border-surface-container-highest">
                <img src={selectedProduct.img} className="w-full h-full object-cover transition-transform duration-1000" />
                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div>
