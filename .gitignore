@@ -62,6 +62,7 @@ app2-*.png
 app3-*.png
 map_*.png
 !assets/screenshots/*.png
+!docs/competition/assets/ai-generated/app2-speech-*.png
 scripts/gitnexus-prewarm-fts.mjs
 scripts/reindex.sh
 .agents/
