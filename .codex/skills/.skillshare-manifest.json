@@ -11,6 +11,7 @@
     "gitnexus-guide": "symlink",
     "gitnexus-impact-analysis": "symlink",
     "gitnexus-refactoring": "symlink",
+    "guide-update": "symlink",
     "hooks": "symlink",
     "include": "symlink",
     "motor-test": "symlink",
@@ -22,5 +23,5 @@
     "tour": "symlink",
     "views": "symlink"
   },
-  "updated_at": "2026-05-07T11:15:43.799722+08:00"
+  "updated_at": "2026-05-17T09:35:16.452876+08:00"
 }
