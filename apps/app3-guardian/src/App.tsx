@@ -488,7 +488,7 @@ function AppContent() {
       const latestMood = state.moodLogs[0];
       const latestAcoustic = state.acousticSignals[0];
       const robotActive = viewModel.activeRobotCount > 0;
-      const stress = Math.min(100, Math.round((insight.score / 10) * 100));
+      const stress = Math.max(0, Math.min(100, insight.score));
       const stability = Math.max(0, 100 - stress);
       const focus = latestAcoustic?.volumeIndex != null
         ? Math.max(10, Math.min(95, 95 - Math.round(latestAcoustic.volumeIndex * 0.7)))
@@ -2994,8 +2994,8 @@ function SensingPanel({
           <p className="mt-0.5 truncate text-sm font-black text-slate-900">{proactiveInsight.title}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${proactiveInsight.score >= 7 ? 'bg-rose-100 text-rose-700' : proactiveInsight.score >= 4 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-            {proactiveInsight.score}/10
+          <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${proactiveInsight.score >= 60 ? 'bg-rose-100 text-rose-700' : proactiveInsight.score >= 35 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+            {proactiveInsight.score}/100
           </span>
           <button onClick={onCreateProactiveAlert} className="rounded-xl bg-slate-900 px-3 py-2 text-[11px] font-black text-white">
             建立提醒

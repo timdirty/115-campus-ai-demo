@@ -26,7 +26,7 @@ interface ZoneLayout {
 }
 
 const ZONE_LAYOUTS: ZoneLayout[] = [
-  {id: 'zone-library',  label: '圖書館', sublabel: 'Library',   x: 18,  y: 16, w: 162, h: 148, rx: 14},
+  {id: 'zone-library',  label: '圖書館・閱讀角', sublabel: 'Library / Reading',   x: 18,  y: 16, w: 162, h: 148, rx: 14},
   {id: 'zone-hall',    label: '穿堂',   sublabel: 'Hall',      x: 202, y: 16, w: 128, h: 148, rx: 14},
   {id: 'zone-field',   label: '操場',   sublabel: 'Field',     x: 352, y: 16, w: 108, h: 308, rx: 14},
 ];

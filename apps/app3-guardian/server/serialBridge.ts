@@ -469,8 +469,15 @@ app.get('/api/sensors/live', async (_req, res) => {
   res.json({zones});
 });
 
+function parseZoneIdFromSource(source: unknown): string | null {
+  if (typeof source !== 'string') return null;
+  // 格式：app3:robot:<zoneId>、app3:care:<zoneId>、app3:alert:<zoneId>
+  const m = source.match(/^app3:(?:robot|care|alert):([\w-]+)$/);
+  return m ? m[1] : null;
+}
+
 app.post('/api/robot/command', async (req, res) => {
-  const {command, source} = req.body ?? {};
+  const {command, source, zoneId: bodyZoneId} = req.body ?? {};
   if (typeof command !== 'string' || !command.trim()) {
     return res.status(400).json({error: 'command required'});
   }
@@ -478,6 +485,24 @@ app.post('/api/robot/command', async (req, res) => {
   const result = await sendCommand(normalized);
   const fallback = !result.ok && !isConnected();
   const response = result.ok ? `Sent ${normalized}` : fallback ? robotCommandFallbackMessage(normalized) : undefined;
+  // demo 高潮 #1：派遣完成（CARE_DEPLOYED）→ 同步把該區 HY-M302 RGB 切綠
+  // 不阻塞 response，失敗只記錄不影響 drive port 主流程
+  const zoneIdForLed = (typeof bodyZoneId === 'string' && bodyZoneId) || parseZoneIdFromSource(source);
+  if (zoneIdForLed) {
+    const ledRiskLevel: ZoneAdvisorResult['riskLevel'] | null =
+      normalized === 'CARE_DEPLOYED' ? 'low' :
+      normalized === 'ALERT_SIGNAL' ? 'high' :
+      null;
+    if (ledRiskLevel) {
+      void syncZoneLed(zoneIdForLed, ledRiskLevel).catch((error) => {
+        logThrottled(
+          `led-cmd-sync:${zoneIdForLed}:${normalized}`,
+          'warn',
+          `[bridge] ${normalized} LED sync error for ${zoneIdForLed}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      });
+    }
+  }
   res.status(robotCommandStatus(result.ok)).json({
     ok: result.ok,
     response,

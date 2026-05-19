@@ -80,7 +80,20 @@ async function run() {
   assert.equal(acousticAlerted.alerts[0].riskLevel, 'medium');
 
   const proactive = evaluateProactiveGuardianState(acousticAlerted);
-  assert.ok(proactive.score >= 4);
+  assert.equal(proactive.score, 73);
+  assert.equal(proactive.riskLevel, 'high');
+  assert.equal(proactive.signals.length, 4);
+  assert.deepEqual(proactive.signals.map((signal) => signal.label), ['心情訊號', '聲量訊號', '節點狀態', '未結提醒']);
+  assert.deepEqual(
+    proactive.signals.map((signal) => ({score: signal.score, max: signal.max})),
+    [
+      {score: 2, max: 2},
+      {score: 2, max: 2},
+      {score: 2, max: 3},
+      {score: 0, max: 2},
+    ],
+  );
+  assert.ok(proactive.reasons.some((reason) => reason.includes('環境聲量 elevated/84 偏離平穩')));
   const proactiveAlerted = guardianReducer(acousticAlerted, {
     type: 'CREATE_PROACTIVE_ALERT',
     payload: proactive,

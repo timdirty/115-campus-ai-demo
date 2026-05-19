@@ -19,6 +19,7 @@ export interface ProactiveInsight {
 export function evaluateProactiveGuardianState(state: GuardianState): ProactiveInsight {
   const reasons: string[] = [];
   let moodScore = 0;
+  let acousticScore = 0;
   let nodeScore = 0;
   let alertScore = 0;
 
@@ -29,6 +30,18 @@ export function evaluateProactiveGuardianState(state: GuardianState): ProactiveI
   } else if (latestMood?.mood === 'tired') {
     moodScore = 1;
     reasons.push(`最新心情簽到為「${latestMood.label}」`);
+  }
+
+  const latestAcoustic = state.acousticSignals[0];
+  if (latestAcoustic?.level === 'elevated') {
+    acousticScore = 2;
+  } else if (latestAcoustic?.level === 'active') {
+    acousticScore = 1;
+  } else if (!latestAcoustic?.level && latestAcoustic && (latestAcoustic.volumeIndex >= 72 || latestAcoustic.volatility >= 34)) {
+    acousticScore = 2;
+  }
+  if (latestAcoustic && acousticScore >= 1) {
+    reasons.push(`環境聲量 ${latestAcoustic.level}/${latestAcoustic.volumeIndex} 偏離平穩`);
   }
 
   const attentionNodes = state.nodes.filter((node) => node.status === 'attention');
@@ -48,8 +61,12 @@ export function evaluateProactiveGuardianState(state: GuardianState): ProactiveI
     reasons.push(`${openHighAlerts.length} 則高優先關懷提醒尚未結案`);
   }
 
-  const score = moodScore + nodeScore + alertScore;
-  const riskLevel: RiskLevel = score >= 5 ? 'high' : score >= 3 ? 'medium' : 'low';
+  const moodNorm = (moodScore / 2) * 100;
+  const acousticNorm = (acousticScore / 2) * 100;
+  const nodeNorm = (nodeScore / 3) * 100;
+  const alertNorm = (alertScore / 2) * 100;
+  const score = Math.round(moodNorm * 0.3 + acousticNorm * 0.3 + nodeNorm * 0.2 + alertNorm * 0.2);
+  const riskLevel: RiskLevel = score >= 60 ? 'high' : score >= 35 ? 'medium' : 'low';
   const location = attentionNodes[0]?.location ?? openHighAlerts[0]?.location ?? '全校';
   const title = riskLevel === 'high' ? 'AI 主動巡查：優先關懷' : riskLevel === 'medium' ? 'AI 主動巡查：需要觀察' : 'AI 主動巡查：狀態穩定';
   const description =
@@ -59,6 +76,7 @@ export function evaluateProactiveGuardianState(state: GuardianState): ProactiveI
 
   const signals: FusionSignal[] = [
     {label: '心情訊號', score: moodScore, max: 2},
+    {label: '聲量訊號', score: acousticScore, max: 2},
     {label: '節點狀態', score: nodeScore, max: 3},
     {label: '未結提醒', score: alertScore, max: 2},
   ];
