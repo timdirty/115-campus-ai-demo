@@ -140,7 +140,7 @@ function cueFromCommand(command: RobotCommandLog): RobotDisplayCue {
 export function buildRobotDisplayCue(state: AppState): RobotDisplayCue {
   if (state.campusStatus.isEmergency) {
     return {
-      emotion: 'surprised',
+      emotion: 'angry',
       mission: '全校安全',
       status: state.campusStatus.activeZone ? `${state.campusStatus.activeZone} 管制中` : '管制中',
       message: '我收到全校安全提醒，請大家聽老師指示並保持冷靜。',

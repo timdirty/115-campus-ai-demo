@@ -12,14 +12,16 @@ import {CommandFeedbackToast} from './components/CommandFeedbackToast';
 
 const AVATAR_SVG = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#1d4ed8"/><circle cx="50" cy="36" r="16" fill="#BFDBFE"/><ellipse cx="50" cy="80" rx="28" ry="22" fill="#BFDBFE"/></svg>')}`;
 import { motion, AnimatePresence } from 'motion/react';
-import { Bot, GraduationCap, Truck, Building2, CheckCircle2, Download, Upload } from 'lucide-react';
+import { Bot, Eye, GraduationCap, Truck, Building2, CheckCircle2, Download, Upload } from 'lucide-react';
 import { BottomSheet } from './components/ui';
+import { DemoClosureRail } from './components/DemoClosureRail';
 import { RemoteControlLauncher } from './components/RemoteControlPanel';
 import { useAppActions, useAppState } from './state/AppStateProvider';
 
 const TeachView = React.lazy(() => import('./views/TeachView').then((module) => ({default: module.TeachView})));
 const DeliveryView = React.lazy(() => import('./views/DeliveryView').then((module) => ({default: module.DeliveryView})));
 const LifeView = React.lazy(() => import('./views/LifeView').then((module) => ({default: module.LifeView})));
+const VisionProximityView = React.lazy(() => import('./views/VisionProximityView').then((module) => ({default: module.VisionProximityView})));
 const TaskScheduleView = React.lazy(() => import('./views/TaskScheduleView').then((module) => ({default: module.TaskScheduleView})));
 const StudentReportView = React.lazy(() => import('./views/StudentReportView').then((module) => ({default: module.StudentReportView})));
 const DeliveryTrackingView = React.lazy(() => import('./views/DeliveryTrackingView').then((module) => ({default: module.DeliveryTrackingView})));
@@ -29,6 +31,7 @@ const TABS = [
   { id: 'teach', icon: GraduationCap, label: '教學' },
   { id: 'delivery', icon: Truck, label: '配送' },
   { id: 'life', icon: Building2, label: '生活' },
+  { id: 'vision', icon: Eye, label: '機器人視角' },
 ];
 const TAB_IDS = new Set(TABS.map((tab) => tab.id));
 
@@ -305,6 +308,7 @@ export default function App() {
       {/* Dynamic Content Views */}
       <main className="mx-auto min-h-screen max-w-6xl px-4 pb-36 pt-24 sm:px-5 md:px-8 md:pb-12 md:pt-28">
         <h1 className="sr-only">{TABS.find(t => t.id === activeTab)?.label ?? '校園服務機器人'}</h1>
+        <DemoClosureRail activeTab={activeTab} state={state} onTabChange={setActiveTab} />
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -317,6 +321,7 @@ export default function App() {
               {activeTab === 'teach' && <TeachView showToast={showToast} navigateTo={navigateTo} />}
               {activeTab === 'delivery' && <DeliveryView showToast={showToast} navigateTo={navigateTo} />}
               {activeTab === 'life' && <LifeView showToast={showToast} navigateTo={navigateTo} />}
+              {activeTab === 'vision' && <VisionProximityView />}
             </Suspense>
           </motion.div>
         </AnimatePresence>
@@ -345,7 +350,7 @@ export default function App() {
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 w-full z-50 rounded-t-4xl border-t border-outline-variant/30 bg-background/95 backdrop-blur-3xl shadow-[0_-8px_40px_rgba(0,0,0,0.08)] left-0 right-0 pb-safe pb-4 md:hidden" aria-label="手機底部導覽">
-        <div className="grid h-20.5 w-full grid-cols-3 items-end gap-1 px-2 pt-3 mx-auto">
+        <div className="grid h-20.5 w-full grid-cols-4 items-end gap-1 px-2 pt-3 mx-auto">
           {TABS.map(tab => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
