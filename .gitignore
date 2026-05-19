@@ -37,9 +37,11 @@ apps/app3-guardian/data/backups/
 *-smoke.png
 demo-ready-report.json
 
-# Python (EV3 brick scripts)
+# Python (EV3 brick scripts) + venv
 **/__pycache__/
 *.pyc
+**/.venv/
+**/venv/
 
 # PlatformIO / browser tooling
 .pio/
@@ -82,8 +84,24 @@ robot-display-sad.jpg
 robot-panel-current.png
 sad_emoji.jpg
 sensing-panel.png
+attend_*.png
+attend_*.jpeg
+campus-demo-entry.png
+final_teach.jpeg
+notion-app1.png
+pages_*.jpeg
+teach_view.png
+verify_*.jpeg
 
 # Runtime demo data (created by bridge — populated at demo time, should not be committed)
 apps/app2-campus-service/data/
 apps/app3-guardian/data/
 apps/app1-whiteboard/data/
+
+# Generated LLM/demo outputs
+outputs/
+
+# Competition doc generation artifacts (auto-rendered mermaid, drafts)
+docs/competition/assets/mermaid/
+docs/competition/assets/mermaid-dynamic/
+docs/competition/drafts/
