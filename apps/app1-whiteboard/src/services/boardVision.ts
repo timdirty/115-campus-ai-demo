@@ -133,3 +133,86 @@ export async function analyzeWhiteboardImage(imageDataUrl: string, calibration?:
   const cropped = context.getImageData(cropX, cropY, cropWidth, cropHeight);
   return analyzeWhiteboardPixels(cropped.width, cropped.height, cropped.data, calibration);
 }
+
+// ─── Visual obstacle guard (replaces ultrasonic narrative — FUN-341) ──────────
+// Frame-diff motion detector. Used by Home.tsx via useMotionGuard to monitor
+// the robot's path zone while an ERASE_REGION task is executing — when a hand
+// or other moving object enters the zone, the bridge gets PAUSE_TASK and the
+// UI shows a "視覺避障：偵測到障礙物，已暫停" toast (Notion Q8 alignment).
+
+export interface MotionZone {
+  /** Relative box on the frame, all values in 0..1 (fractions of width/height) */
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface MotionResult {
+  triggered: boolean;
+  /** Mean absolute luma difference in the zone, normalised to 0..100. */
+  intensity: number;
+  /** Number of sampled pixels (after the step grid). */
+  samples: number;
+}
+
+/** Robot path band: bottom 30% of the frame, full width. */
+export const DEFAULT_ROBOT_ZONE: MotionZone = {x: 0, y: 0.7, width: 1, height: 0.3};
+
+/** Intensity (0..100) above which the zone is considered "motion present". */
+export const DEFAULT_MOTION_THRESHOLD = 12;
+
+function clampUnit(value: number) {
+  if (!Number.isFinite(value)) return 0;
+  if (value < 0) return 0;
+  if (value > 1) return 1;
+  return value;
+}
+
+function lumaAt(data: Uint8ClampedArray | number[], width: number, x: number, y: number) {
+  const index = (y * width + x) * 4;
+  return 0.2126 * (data[index] ?? 0) + 0.7152 * (data[index + 1] ?? 0) + 0.0722 * (data[index + 2] ?? 0);
+}
+
+/**
+ * Compare two frames over a relative zone and report whether enough motion
+ * occurred to suspect a hand / body / obstacle in the robot path band.
+ *
+ * - `step` controls grid sparsity (default 8 → every 8 px in x and y) so the
+ *   work stays O(zoneSize / 64) and stable on mobile.
+ * - The intensity score is the mean per-sample absolute luma diff, scaled into
+ *   0..100 (255 luma diff ≈ 100 score).
+ */
+export function detectMotionInRobotZone(
+  width: number,
+  height: number,
+  prevData: Uint8ClampedArray | number[],
+  currData: Uint8ClampedArray | number[],
+  zone: MotionZone = DEFAULT_ROBOT_ZONE,
+  threshold: number = DEFAULT_MOTION_THRESHOLD,
+  step: number = 8,
+): MotionResult {
+  if (width <= 0 || height <= 0) return {triggered: false, intensity: 0, samples: 0};
+
+  const xStart = Math.max(0, Math.floor(clampUnit(zone.x) * width));
+  const yStart = Math.max(0, Math.floor(clampUnit(zone.y) * height));
+  const xEnd = Math.min(width, Math.ceil(clampUnit(zone.x + zone.width) * width));
+  const yEnd = Math.min(height, Math.ceil(clampUnit(zone.y + zone.height) * height));
+  if (xEnd <= xStart || yEnd <= yStart) return {triggered: false, intensity: 0, samples: 0};
+
+  const safeStep = Math.max(1, Math.floor(step));
+  let diffTotal = 0;
+  let samples = 0;
+  for (let y = yStart; y < yEnd; y += safeStep) {
+    for (let x = xStart; x < xEnd; x += safeStep) {
+      const a = lumaAt(prevData, width, x, y);
+      const b = lumaAt(currData, width, x, y);
+      diffTotal += Math.abs(a - b);
+      samples += 1;
+    }
+  }
+  if (samples === 0) return {triggered: false, intensity: 0, samples: 0};
+  // 255 = full luma swing per pixel; scale to 0..100 so thresholds are intuitive.
+  const intensity = Math.min(100, (diffTotal / samples) * (100 / 255));
+  return {triggered: intensity >= threshold, intensity, samples};
+}

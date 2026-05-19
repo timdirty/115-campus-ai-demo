@@ -1,8 +1,11 @@
 import {memo, useState} from 'react';
 import type {ChangeEvent, RefObject} from 'react';
-import {Bot, Camera, CircleStop, Loader2, LocateFixed, Mic, RefreshCw, Sparkles, Upload} from 'lucide-react';
+import {Bot, Camera, CircleStop, Loader2, LocateFixed, Mic, RefreshCw, ShieldCheck, ShieldAlert, Sparkles, Upload} from 'lucide-react';
 import {RobotPoseEstimate} from '../../services/robotPose';
 import {BoardCalibration, BoardCalibrationMode, CalibrationCornerId} from '../../services/whiteboardCalibration';
+import type {AudioVolumeSample} from '../../hooks/useMediaCapture';
+import type {MotionGuardState} from '../../hooks/useMotionGuard';
+import {AudioHeatMeter} from './AudioHeatMeter';
 
 type CapturePanelProps = {
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -32,6 +35,9 @@ type CapturePanelProps = {
   cameras?: MediaDeviceInfo[];
   activeCameraId?: string;
   onSwitchCamera?: (deviceId: string) => void;
+  audioVolume?: number;
+  audioVolumeHistory?: AudioVolumeSample[];
+  motionGuard?: MotionGuardState;
 };
 
 export const CapturePanel = memo(function CapturePanel({
@@ -62,6 +68,9 @@ export const CapturePanel = memo(function CapturePanel({
   cameras = [],
   activeCameraId,
   onSwitchCamera,
+  audioVolume = 0,
+  audioVolumeHistory = [],
+  motionGuard,
 }: CapturePanelProps) {
   const [showCalibration, setShowCalibration] = useState(false);
   const showEngineerTools = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('engineerTools') === '1';
@@ -133,6 +142,27 @@ export const CapturePanel = memo(function CapturePanel({
           <rect width="100%" height="100%" fill="url(#grid)" />
         </svg>
         <video ref={videoRef} muted playsInline className={`absolute inset-0 w-full h-full object-cover ${cameraReady ? 'opacity-100' : 'opacity-0'}`} />
+        {motionGuard?.active && (
+          <div
+            className={`pointer-events-none absolute top-3 left-3 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold shadow-md transition-colors ${
+              motionGuard.triggered ? 'bg-red-500 text-white' : 'bg-emerald-500/95 text-white'
+            }`}
+            data-tour="motion-guard"
+            aria-live="polite"
+          >
+            {motionGuard.triggered ? (
+              <>
+                <ShieldAlert className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>視覺避障：偵測到障礙物，已暫停</span>
+              </>
+            ) : (
+              <>
+                <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>視覺避障守護中</span>
+              </>
+            )}
+          </div>
+        )}
         {showCalibration && (cameraReady || previewImage) && (
           <div className="pointer-events-none absolute inset-0 z-10">
             <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -286,6 +316,9 @@ export const CapturePanel = memo(function CapturePanel({
             placeholder="錄音後會自動填入，也可手動補上孩子容易卡住的地方。"
             className="mt-2 w-full bg-transparent resize-none outline-none text-sm leading-relaxed"
           />
+          <div className="mt-2">
+            <AudioHeatMeter active={recording} volume={audioVolume} history={audioVolumeHistory} />
+          </div>
         </div>
       </div>
 

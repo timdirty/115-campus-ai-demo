@@ -1,6 +1,100 @@
 import assert from 'node:assert/strict';
-import {analyzeWhiteboardPixels} from './boardVision';
+import {
+  analyzeWhiteboardPixels,
+  detectMotionInRobotZone,
+  DEFAULT_MOTION_THRESHOLD,
+  DEFAULT_ROBOT_ZONE,
+} from './boardVision';
 import {detectBoardCalibrationFromPixels} from './whiteboardCalibration';
+
+function makeFrame(width: number, height: number, fill: (x: number, y: number) => number) {
+  const data = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const idx = (y * width + x) * 4;
+      const v = fill(x, y);
+      data[idx] = v;
+      data[idx + 1] = v;
+      data[idx + 2] = v;
+      data[idx + 3] = 255;
+    }
+  }
+  return data;
+}
+
+// 1) Identical frames → no motion.
+{
+  const a = makeFrame(80, 60, () => 200);
+  const b = makeFrame(80, 60, () => 200);
+  const r = detectMotionInRobotZone(80, 60, a, b);
+  assert.equal(r.triggered, false, 'identical frames should not trigger');
+  assert.ok(r.intensity < 1, 'identical frames intensity should be near 0');
+  assert.ok(r.samples > 0, 'identical frames should still sample pixels');
+}
+
+// 2) Full-frame swing → trigger.
+{
+  const a = makeFrame(80, 60, () => 0);
+  const b = makeFrame(80, 60, () => 255);
+  const r = detectMotionInRobotZone(80, 60, a, b);
+  assert.equal(r.triggered, true, 'full luma swing must trigger');
+  assert.ok(r.intensity >= 90, 'full luma swing should be near max intensity');
+}
+
+// 3) Change only OUTSIDE the bottom-band zone → no trigger (zone protects against ceiling noise).
+{
+  const a = makeFrame(80, 60, () => 200);
+  const b = makeFrame(80, 60, (x, y) => (y < 30 ? 10 : 200));  // change only top half
+  const r = detectMotionInRobotZone(80, 60, a, b);  // default zone = bottom 30%
+  assert.equal(r.triggered, false, 'changes outside path zone must be ignored');
+  assert.ok(r.intensity < DEFAULT_MOTION_THRESHOLD, 'intensity below threshold expected');
+}
+
+// 4) Change only INSIDE the bottom-band zone → trigger.
+{
+  const a = makeFrame(80, 60, () => 200);
+  const b = makeFrame(80, 60, (x, y) => (y >= 42 ? 10 : 200));  // change only bottom 30%
+  const r = detectMotionInRobotZone(80, 60, a, b);
+  assert.equal(r.triggered, true, 'changes inside path zone must trigger');
+}
+
+// 5) Threshold boundary: small uniform diff → controllable by threshold.
+{
+  const a = makeFrame(80, 60, () => 100);
+  const b = makeFrame(80, 60, () => 120);  // diff = 20/255 → ~7.8 intensity
+  const lowThreshold = detectMotionInRobotZone(80, 60, a, b, DEFAULT_ROBOT_ZONE, 5);
+  const highThreshold = detectMotionInRobotZone(80, 60, a, b, DEFAULT_ROBOT_ZONE, 50);
+  assert.equal(lowThreshold.triggered, true, 'low threshold should detect mild diff');
+  assert.equal(highThreshold.triggered, false, 'high threshold should ignore mild diff');
+}
+
+// 6) Custom zone + step still samples the right region.
+{
+  const a = makeFrame(80, 60, () => 200);
+  // change only a 10x10 patch top-left (x:0..10, y:0..10)
+  const b = makeFrame(80, 60, (x, y) => (x < 10 && y < 10 ? 0 : 200));
+  const topLeft = {x: 0, y: 0, width: 0.2, height: 0.2};  // covers the patch
+  const elsewhere = {x: 0.5, y: 0.5, width: 0.5, height: 0.5};
+  const tlResult = detectMotionInRobotZone(80, 60, a, b, topLeft, 5, 2);
+  const elseResult = detectMotionInRobotZone(80, 60, a, b, elsewhere, 5, 2);
+  assert.equal(tlResult.triggered, true, 'zone-aligned patch should trigger');
+  assert.equal(elseResult.triggered, false, 'zone away from patch should not trigger');
+  assert.ok(tlResult.samples > 0 && elseResult.samples > 0, 'both zones should sample');
+}
+
+// 7) Degenerate inputs do not crash.
+{
+  const tiny = makeFrame(2, 2, () => 100);
+  const empty = detectMotionInRobotZone(0, 0, tiny, tiny);
+  assert.equal(empty.triggered, false);
+  assert.equal(empty.samples, 0);
+  const outOfRange = detectMotionInRobotZone(2, 2, tiny, tiny, {x: 2, y: 2, width: 1, height: 1});
+  assert.equal(outOfRange.triggered, false);
+  assert.equal(outOfRange.samples, 0);
+}
+
+console.log('boardVision.test.ts: motion detector assertions passed (7 cases)');
+
 
 const frame = new Uint8ClampedArray(40 * 24 * 4);
 for (let i = 0; i < frame.length; i += 4) {

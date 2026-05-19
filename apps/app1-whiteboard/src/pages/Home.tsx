@@ -6,7 +6,8 @@ import {CapturePanel} from '../components/home/CapturePanel';
 import {NoticeBar} from '../components/home/NoticeBar';
 import {useBridgeStatus} from '../hooks/useBridgeStatus';
 import {useMediaCapture} from '../hooks/useMediaCapture';
-import {analyzeBoardCapture, analyzeBoardDemoSample, BoardAnalysisResponse, BoardRegion, OcrLocalResult, saveClassroomSession, transcribeAudio} from '../services/classroomApi';
+import {useMotionGuard} from '../hooks/useMotionGuard';
+import {analyzeBoardCapture, analyzeBoardDemoSample, BoardAnalysisResponse, BoardRegion, OcrLocalResult, saveClassroomSession, sendRobotCommand, transcribeAudio} from '../services/classroomApi';
 import {resetDemoProgress, saveDemoProgress} from '../services/demoProgress';
 import {addNoteAsync, DEFAULT_NOTES, STAGE_DEMO_NOTE_ID} from '../services/notesStore';
 import {defaultRobotPose} from '../services/robotPose';
@@ -86,6 +87,28 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
   const [busy, setBusy] = useState('');
   const [ocrResult, setOcrResult] = useState<OcrLocalResult | null>(() => ssGet<OcrLocalResult | null>('ocrResult', null));
   const [ocrBusy] = useState(false);
+
+  // FUN-343 — Visual obstacle guard. ALWAYS-ON whenever the camera is ready,
+  // not gated on Home's local `busy` state — the actual robot tasks are
+  // dispatched from TeacherDashboard so Home would otherwise miss them and
+  // the guard would silently fail on stage. PAUSE_TASK is a no-op when no
+  // task is running, so over-triggering is harmless.
+  const motionGuardEnabled = media.cameraReady;
+  const motionGuard = useMotionGuard(media.videoRef, motionGuardEnabled, () => {
+    sendRobotCommand('PAUSE_TASK', 'visual-guard').catch(() => {});
+    setNotice('視覺避障：偵測到障礙物，已自動送出暫停指令');
+  });
+
+  // FUN-340 — When the R4 RESET button is pressed, bridge broadcasts a
+  // robot_reset WS event; useHardwareSocket re-emits as a window CustomEvent.
+  useEffect(() => {
+    const onReset = (event: Event) => {
+      const detail = (event as CustomEvent<{message?: string}>).detail;
+      setNotice(detail?.message ?? '機器人已重啟回安全狀態');
+    };
+    window.addEventListener('app1:robot-reset', onReset as EventListener);
+    return () => window.removeEventListener('app1:robot-reset', onReset as EventListener);
+  }, [setNotice]);
 
   const beginAction = (busyKey: string): {signal: AbortSignal; gen: number} => {
     _abortController?.abort();
@@ -572,6 +595,9 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
             cameras={media.cameras}
             activeCameraId={media.activeCameraId}
             onSwitchCamera={media.switchCamera}
+            audioVolume={media.audioVolume}
+            audioVolumeHistory={media.audioVolumeHistory}
+            motionGuard={motionGuard}
           />
           <BoardTextPanel
             analysis={analysis}

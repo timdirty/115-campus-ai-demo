@@ -5,6 +5,11 @@ type AudioReadyPayload = {
   mimeType: string;
 };
 
+export type AudioVolumeSample = {t: number; v: number};
+
+const AUDIO_HISTORY_WINDOW_MS = 30_000;
+const AUDIO_HISTORY_MAX_SAMPLES = 240;  // ~8 Hz over 30 s; cheap to render.
+
 function blobToDataUrl(blob: Blob) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -21,9 +26,84 @@ export function useMediaCapture() {
   const audioStreamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const audioAnalyserRef = useRef<AnalyserNode | null>(null);
+  const audioRafRef = useRef<number | null>(null);
+  const audioBufferRef = useRef<Uint8Array | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [recording, setRecording] = useState(false);
   const [mediaBusy, setMediaBusy] = useState('');
+  // 即時音量 0..1 與最近 30 秒的取樣歷史，提供「聲音熱度曲線」UI。
+  const [audioVolume, setAudioVolume] = useState(0);
+  const [audioVolumeHistory, setAudioVolumeHistory] = useState<AudioVolumeSample[]>([]);
+
+  const stopAudioMeter = () => {
+    if (audioRafRef.current !== null) {
+      cancelAnimationFrame(audioRafRef.current);
+      audioRafRef.current = null;
+    }
+    audioAnalyserRef.current?.disconnect();
+    audioAnalyserRef.current = null;
+    audioBufferRef.current = null;
+    if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+      audioCtxRef.current.close().catch(() => {});
+    }
+    audioCtxRef.current = null;
+    setAudioVolume(0);
+  };
+
+  const startAudioMeter = (stream: MediaStream) => {
+    type WebkitWindow = typeof globalThis & {webkitAudioContext?: typeof AudioContext};
+    const AudioCtor: typeof AudioContext | undefined =
+      typeof window === 'undefined'
+        ? undefined
+        : window.AudioContext ?? (window as WebkitWindow).webkitAudioContext;
+    if (!AudioCtor) return;  // 瀏覽器不支援時靜默忽略，不影響錄音與轉文字流程。
+    try {
+      const ctx = new AudioCtor();
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.6;
+      source.connect(analyser);
+      audioCtxRef.current = ctx;
+      audioAnalyserRef.current = analyser;
+      audioBufferRef.current = new Uint8Array(analyser.fftSize);
+      setAudioVolumeHistory([]);  // 重新錄音時清空歷史，避免上一輪殘留。
+
+      let lastSampleAt = 0;
+      const tick = () => {
+        const analyserNode = audioAnalyserRef.current;
+        const buffer = audioBufferRef.current;
+        if (!analyserNode || !buffer) return;
+        analyserNode.getByteTimeDomainData(buffer);
+        let sumSquares = 0;
+        for (let i = 0; i < buffer.length; i += 1) {
+          const centred = (buffer[i] - 128) / 128;  // -1..1
+          sumSquares += centred * centred;
+        }
+        const rms = Math.sqrt(sumSquares / buffer.length);  // 0..1
+        setAudioVolume(rms);
+        const now = performance.now();
+        if (now - lastSampleAt >= 125) {  // ~8 Hz 取樣寫入歷史
+          lastSampleAt = now;
+          setAudioVolumeHistory((prev) => {
+            const cutoff = now - AUDIO_HISTORY_WINDOW_MS;
+            const trimmed = prev.filter((s) => s.t >= cutoff);
+            trimmed.push({t: now, v: rms});
+            return trimmed.length > AUDIO_HISTORY_MAX_SAMPLES
+              ? trimmed.slice(trimmed.length - AUDIO_HISTORY_MAX_SAMPLES)
+              : trimmed;
+          });
+        }
+        audioRafRef.current = requestAnimationFrame(tick);
+      };
+      audioRafRef.current = requestAnimationFrame(tick);
+    } catch {
+      // AudioContext 在無使用者手勢/權限下可能拋例外，安全降級。
+      stopAudioMeter();
+    }
+  };
 
   const stopCamera = () => {
     cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -113,6 +193,7 @@ export function useMediaCapture() {
       const stream = await navigator.mediaDevices.getUserMedia({audio: true});
       audioStreamRef.current = stream;
       audioChunksRef.current = [];
+      startAudioMeter(stream);  // 開始即時 RMS 取樣 → 暴露 audioVolume 與 history
       const recorder = new MediaRecorder(stream);
       recorderRef.current = recorder;
       recorder.ondataavailable = (event) => {
@@ -129,6 +210,7 @@ export function useMediaCapture() {
         } catch {
           // onAudioReady failure is surfaced by the caller's own error handling
         } finally {
+          stopAudioMeter();
           audioStreamRef.current?.getTracks().forEach((track) => track.stop());
           audioStreamRef.current = null;
           recorderRef.current = null;
@@ -151,6 +233,7 @@ export function useMediaCapture() {
     return () => {
       cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
       audioStreamRef.current?.getTracks().forEach((track) => track.stop());
+      stopAudioMeter();
     };
   }, []);
 
@@ -169,5 +252,7 @@ export function useMediaCapture() {
     activeCameraId,
     refreshCameras,
     switchCamera,
+    audioVolume,
+    audioVolumeHistory,
   };
 }

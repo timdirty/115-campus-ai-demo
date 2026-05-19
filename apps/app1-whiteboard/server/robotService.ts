@@ -3,6 +3,7 @@ import {baudRate} from './config';
 import {taskActions} from './defaults';
 import {appendTaskLog, updateRobotStatus} from './storage';
 import type {PortInfo} from './types';
+import {broadcast} from './wsBroadcast';
 
 let activePort: SerialPort | null = null;
 let activePath = process.env.ARDUINO_PORT ?? '';
@@ -107,8 +108,23 @@ async function getPort(requestedPath?: string) {
         activePort?.open((error) => (error ? reject(error) : resolve()));
       });
 
+      // Line-buffered reader: log raw bytes to stdout AND parse for known
+      // banners (e.g. READY:RESET from the R4 RESET button → broadcast a
+      // robot_reset event so the UI can show "機器人已重啟回安全狀態").
+      let lineBuffer = '';
       activePort.on('data', (data) => {
-        process.stdout.write(`[arduino] ${data.toString()}`);
+        const text = data.toString();
+        process.stdout.write(`[arduino] ${text}`);
+        lineBuffer += text;
+        let newlineIdx = lineBuffer.indexOf('\n');
+        while (newlineIdx !== -1) {
+          const line = lineBuffer.slice(0, newlineIdx).trim();
+          lineBuffer = lineBuffer.slice(newlineIdx + 1);
+          if (line === 'READY:RESET') {
+            broadcast({type: 'robot_reset', message: '機器人已重啟回安全狀態', at: Date.now()});
+          }
+          newlineIdx = lineBuffer.indexOf('\n');
+        }
       });
 
       return activePort;
