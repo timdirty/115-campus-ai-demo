@@ -11,7 +11,7 @@ const CATEGORIES = [
   { id: 'drinks', icon: Coffee, label: '飲品' },
 ];
 
-const LOCATIONS = ['101 教室', '507 教室', '教職員辦公室', '圖書館', '操場 A 區'] as const;
+const LOCATIONS = ['101 教室', '507 教室', '教師休息室', '教職員辦公室', '圖書館', '操場 A 區'] as const;
 
 const containerVariants = {
   hidden: { opacity: 0 },

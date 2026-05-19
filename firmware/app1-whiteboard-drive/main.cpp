@@ -108,7 +108,10 @@ void setup() {
   Serial.begin(115200);
   while (!Serial && millis() < 3000) {
   }
-  Serial.println("App 1 M3/M4 motor test ready.");
+  // Emit a machine-parseable boot banner so the bridge can broadcast a
+  // robot_reset event whenever the R4 RESET button is pressed (physical
+  // emergency stop — see Notion Q5 narrative alignment, FUN-340).
+  Serial.println("READY:RESET");
   Serial.println("Commands: FORWARD, BACKWARD, LEFT, RIGHT, STOP, SPEED:<0-255>, HEARTBEAT, MOTOR_TEST");
 }
 

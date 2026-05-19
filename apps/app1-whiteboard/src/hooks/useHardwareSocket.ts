@@ -117,7 +117,7 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
     ws.onmessage = (evt) => {
       if (!mountedRef.current) return;
       try {
-        const event = JSON.parse(String(evt.data)) as {type?: string; connected?: boolean; port?: string; simulated?: boolean; command?: string; ok?: boolean};
+        const event = JSON.parse(String(evt.data)) as {type?: string; connected?: boolean; port?: string; simulated?: boolean; command?: string; ok?: boolean; message?: string};
         if (event.type === 'arduino_status') {
           setStatus((s) => ({
             ...s,
@@ -132,6 +132,12 @@ export function useHardwareSocket(bridgeBaseUrl: string): HardwareSocketStatus {
             ...s,
             lastCommandAck: {command: event.command ?? '', ok: Boolean(event.ok), ts: Date.now()},
           }));
+        } else if (event.type === 'robot_reset') {
+          // FUN-340: R4 RESET 鍵被按下 → 廣播給 UI 顯示 toast
+          if (typeof window !== 'undefined') {
+            const detail = {message: event.message ?? '機器人已重啟回安全狀態'};
+            window.dispatchEvent(new CustomEvent('app1:robot-reset', {detail}));
+          }
         }
       } catch { /* ignore malformed */ }
     };
