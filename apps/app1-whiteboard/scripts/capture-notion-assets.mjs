@@ -8,6 +8,8 @@ const appDir = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(appDir, '../..');
 const outputDir = path.join(repoRoot, 'docs/competition/assets/notion-app1');
 const appUrl = process.env.APP1_CAPTURE_URL ?? 'http://127.0.0.1:3201';
+const captureFiles = new Set((process.env.APP1_CAPTURE_FILES ?? '').split(',').map((file) => file.trim()).filter(Boolean));
+const skipAppScreens = process.env.APP1_CAPTURE_SKIP_APP === '1';
 
 const shell = (title, kicker, body) => `<!doctype html>
 <html lang="zh-Hant">
@@ -267,9 +269,9 @@ const diagrams = {
       </div>
       <div style="position:absolute; right:34px; top:210px; width:170px; height:112px; border:3px solid #9ccfc4; border-radius:24px; display:flex; align-items:center; justify-content:center; text-align:center; font-weight:900; color:#1f7a67; font-size:22px; background:#fff;">後方固定<br/>攝影機</div>
       <div class="grid" style="position:absolute; left:92px; right:92px; bottom:130px; grid-template-columns: repeat(3, 1fr);">
-        <div class="node">B 家齊<br/><span class="small">白板 / 機器人</span></div>
-        <div class="node dark">A 光希<br/><span class="small" style="color:rgba(255,255,255,.82);">主講 / 轉場</span></div>
-        <div class="node">C 靖傑<br/><span class="small">平板 / APP</span></div>
+        <div class="node" style="flex-direction:column; gap:8px;"><div>家齊</div><span class="small">白板 / 機器人</span></div>
+        <div class="node dark" style="flex-direction:column; gap:8px;"><div>光希</div><span class="small" style="color:rgba(255,255,255,.82);">主講 / 轉場</span></div>
+        <div class="node" style="flex-direction:column; gap:8px;"><div>靖傑</div><span class="small">平板 / APP</span></div>
       </div>
       <div style="position:absolute; left:280px; right:280px; bottom:36px; height:64px; border-radius:22px; background:#dcefe9; color:#176b59; display:flex; align-items:center; justify-content:center; font-size:25px; font-weight:900;">評審座位前方 1.5m</div>
     </section>
@@ -340,9 +342,12 @@ async function main() {
   const browser = await chromium.launch({headless: true});
   try {
     for (const [fileName, html] of Object.entries(diagrams)) {
+      if (captureFiles.size > 0 && !captureFiles.has(fileName)) continue;
       await captureDiagram(browser, fileName, html);
     }
-    await captureAppScreens(browser);
+    if (!skipAppScreens && captureFiles.size === 0) {
+      await captureAppScreens(browser);
+    }
   } finally {
     await browser.close();
   }
