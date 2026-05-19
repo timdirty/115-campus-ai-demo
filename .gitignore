@@ -105,3 +105,6 @@ outputs/
 docs/competition/assets/mermaid/
 docs/competition/assets/mermaid-dynamic/
 docs/competition/drafts/
+
+# Student-face photos kept locally for reference but NOT public
+docs/competition/assets/photos/**/PRIVATE-*
