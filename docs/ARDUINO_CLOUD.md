@@ -5,8 +5,8 @@ This project is currently in local Serial Monitor mode. Keep this mode working w
 ## Current Status
 
 - Board id: `uno_r4_wifi`
-- Local command entry point: `handleCommand(const String &command)` in `firmware/shared-command-demo/commands.cpp`
-- Serial test entry point: `firmware/shared-command-demo/main.cpp`
+- Local command entry point: `handleCommand(const String &command)` in `src/commands.cpp`
+- Serial test entry point: `src/main.cpp`
 - Secrets template: `include/arduino_secrets.example.h`
 - Real secrets file, ignored by git: `include/arduino_secrets.h`
 
@@ -68,7 +68,7 @@ pio pkg search "Arduino_ConnectionHandler"
 5. Fill Wi-Fi SSID, Wi-Fi password, and device secret.
 6. Add Arduino Cloud libraries to `platformio.ini`.
 7. Add `thingProperties.h` from Arduino Cloud generated code, then adapt it for PlatformIO.
-8. Update `firmware/shared-command-demo/main.cpp` to call:
+8. Update `src/main.cpp` to call:
    - `initProperties()`
    - `ArduinoCloud.begin(ArduinoIoTPreferredConnection)`
    - `ArduinoCloud.update()` inside `loop()`

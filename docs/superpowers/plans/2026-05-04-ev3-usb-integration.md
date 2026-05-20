@@ -34,7 +34,7 @@
 | `APP1/src/services/classroomApi.ts` | Add `loadEV3Status()` and `sendRobotCommand()` reuse for EV3 |
 | `APP1/package.json` | Add `ws` + `@types/ws` dependencies |
 
-`APP1` = `apps/app1-whiteboard`
+`APP1` = `google ai studio/app_1（國小）/AI自動板擦機器人`  
 `ROOT` = repo root (`/Volumes/Tim aaddtional/Download/115資通訊/tedt`)
 
 ---
@@ -47,7 +47,7 @@
 - [ ] **Step 1: Install dependencies**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npm install ws
 npm install --save-dev @types/ws
 ```
@@ -57,7 +57,7 @@ Expected: `ws` appears in `dependencies`, `@types/ws` in `devDependencies`.
 - [ ] **Step 2: Verify TypeScript can find ws types**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 echo "import WebSocket from 'ws'; console.log(typeof WebSocket);" | npx tsx --input-type=module
 ```
 
@@ -66,8 +66,8 @@ Expected output: `function`
 - [ ] **Step 3: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/package.json" \
-        "apps/app1-whiteboard/package-lock.json"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/package.json" \
+        "google ai studio/app_1（國小）/AI自動板擦機器人/package-lock.json"
 git commit -m "feat(ev3): add ws npm package for EV3 WebSocket client"
 ```
 
@@ -80,7 +80,7 @@ git commit -m "feat(ev3): add ws npm package for EV3 WebSocket client"
 
 - [ ] **Step 1: Create the file**
 
-Create `apps/app1-whiteboard/server/ev3Manager.ts`:
+Create `google ai studio/app_1（國小）/AI自動板擦機器人/server/ev3Manager.ts`:
 
 ```typescript
 import WebSocket from 'ws';
@@ -195,7 +195,7 @@ export async function sendEV3Command(command: string): Promise<Ev3Response> {
 - [ ] **Step 2: Type-check**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npx tsc --noEmit
 ```
 
@@ -204,7 +204,7 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/server/ev3Manager.ts"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/server/ev3Manager.ts"
 git commit -m "feat(ev3): add ev3Manager WebSocket client with auto-detect and backoff reconnect"
 ```
 
@@ -217,7 +217,7 @@ git commit -m "feat(ev3): add ev3Manager WebSocket client with auto-detect and b
 
 - [ ] **Step 1: Create the test (it will fail — ev3Manager not started yet)**
 
-Create `apps/app1-whiteboard/server/ev3Manager.test.ts`:
+Create `google ai studio/app_1（國小）/AI自動板擦機器人/server/ev3Manager.test.ts`:
 
 ```typescript
 import {createServer} from 'node:http';
@@ -276,7 +276,7 @@ console.log('[test] ev3Manager: all 4 assertions passed ✓');
 - [ ] **Step 2: Run test — expect it to pass**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npx tsx server/ev3Manager.test.ts
 ```
 
@@ -285,7 +285,7 @@ Expected: `[test] ev3Manager: all 4 assertions passed ✓`
 - [ ] **Step 3: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/server/ev3Manager.test.ts"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/server/ev3Manager.test.ts"
 git commit -m "test(ev3): ev3Manager connection, command round-trip, and disconnect tests"
 ```
 
@@ -298,7 +298,7 @@ git commit -m "test(ev3): ev3Manager connection, command round-trip, and disconn
 
 - [ ] **Step 1: Append EV3 commands to `commandCatalog`**
 
-In `apps/app1-whiteboard/server/defaults.ts`, find the closing `];` of `commandCatalog` and add before it:
+In `google ai studio/app_1（國小）/AI自動板擦機器人/server/defaults.ts`, find the closing `];` of `commandCatalog` and add before it:
 
 ```typescript
   // EV3 pen-arm commands
@@ -318,7 +318,7 @@ In `apps/app1-whiteboard/server/defaults.ts`, find the closing `];` of `commandC
 Also update the `RobotCommandInfo` type in `types.ts` if `group` is typed. Check:
 
 ```bash
-grep -n "group" "apps/app1-whiteboard/server/types.ts"
+grep -n "group" "google ai studio/app_1（國小）/AI自動板擦機器人/server/types.ts"
 ```
 
 If `group` has a union type (e.g. `'display' | 'hardware' | ...`), add `| 'ev3'` to it.
@@ -326,7 +326,7 @@ If `group` has a union type (e.g. `'display' | 'hardware' | ...`), add `| 'ev3'`
 - [ ] **Step 2: Type-check**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npx tsc --noEmit
 ```
 
@@ -335,8 +335,8 @@ Expected: no errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/server/defaults.ts" \
-        "apps/app1-whiteboard/server/types.ts"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/server/defaults.ts" \
+        "google ai studio/app_1（國小）/AI自動板擦機器人/server/types.ts"
 git commit -m "feat(ev3): add 11 EV3 commands to commandCatalog"
 ```
 
@@ -426,7 +426,7 @@ Find the `app.post('/api/robot/command', ...)` handler. Inside the try block, re
 - [ ] **Step 4: Type-check**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npx tsc --noEmit
 ```
 
@@ -435,7 +435,7 @@ Expected: no errors.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/server/routes.ts"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/server/routes.ts"
 git commit -m "feat(ev3): route EV3_ commands to ev3Manager, STOP dual-sends to both devices"
 ```
 
@@ -471,14 +471,14 @@ app.listen(bridgePort, () => {
 - [ ] **Step 2: Type-check**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npx tsc --noEmit
 ```
 
 - [ ] **Step 3: Smoke test — bridge starts without error**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 timeout 5 npx tsx server/serialBridge.ts 2>&1 | head -20 || true
 ```
 
@@ -487,7 +487,7 @@ Expected: see `Arduino serial bridge listening on http://localhost:3200` and `[e
 - [ ] **Step 4: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/server/serialBridge.ts"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/server/serialBridge.ts"
 git commit -m "feat(ev3): wire startEV3Manager into bridge startup"
 ```
 
@@ -1014,7 +1014,7 @@ git commit -m "feat(ev3): add ev3-diagnose.sh troubleshooting script"
 
 - [ ] **Step 1: Create the component**
 
-Create `apps/app1-whiteboard/src/components/EV3ControlPanel.tsx`:
+Create `google ai studio/app_1（國小）/AI自動板擦機器人/src/components/EV3ControlPanel.tsx`:
 
 ```tsx
 import {useCallback, useEffect, useState} from 'react';
@@ -1115,7 +1115,7 @@ export default function EV3ControlPanel() {
 
 Check if `sendRobotCommand` exists:
 ```bash
-grep -n "sendRobotCommand" "apps/app1-whiteboard/src/services/classroomApi.ts"
+grep -n "sendRobotCommand" "google ai studio/app_1（國小）/AI自動板擦機器人/src/services/classroomApi.ts"
 ```
 
 If not found, add to `classroomApi.ts`:
@@ -1133,15 +1133,15 @@ export async function sendRobotCommand(command: string): Promise<{ok: boolean; r
 - [ ] **Step 3: Type-check**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npx tsc --noEmit
 ```
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/src/components/EV3ControlPanel.tsx" \
-        "apps/app1-whiteboard/src/services/classroomApi.ts"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/src/components/EV3ControlPanel.tsx" \
+        "google ai studio/app_1（國小）/AI自動板擦機器人/src/services/classroomApi.ts"
 git commit -m "feat(ev3): add EV3ControlPanel component with connection status and 11 control buttons"
 ```
 
@@ -1156,7 +1156,7 @@ git commit -m "feat(ev3): add EV3ControlPanel component with connection status a
 
 ```bash
 grep -rn "RobotControl\|robot.*control\|commandCatalog\|串口\|serialBridge" \
-  "apps/app1-whiteboard/src/" --include="*.tsx" -l
+  "google ai studio/app_1（國小）/AI自動板擦機器人/src/" --include="*.tsx" -l
 ```
 
 - [ ] **Step 2: Add EV3ControlPanel import and render**
@@ -1176,14 +1176,14 @@ And in the JSX, below the existing robot control section:
 - [ ] **Step 3: Verify no TypeScript errors**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npx tsc --noEmit
 ```
 
 - [ ] **Step 4: Run CI gate**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npm run check
 ```
 
@@ -1192,7 +1192,7 @@ Expected: lint passes, build passes.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/src/"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/src/"
 git commit -m "feat(ev3): wire EV3ControlPanel into App 1 robot control UI"
 ```
 

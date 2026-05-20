@@ -20,8 +20,6 @@ function run(name, command, args, env = {}) {
 }
 
 run('Generate student demo docs', 'node', ['scripts/generate-demo-docs.mjs']);
-run('Validate demo routes', 'node', ['scripts/demo-routes-check.mjs']);
-run('Bridge health and robot command smoke', 'node', ['scripts/bridge-smoke-check.mjs']);
 run('Competition readiness', 'node', ['scripts/competition-readiness-check.mjs']);
 run('Generate demo evidence report', 'node', ['scripts/generate-demo-evidence.mjs']);
 run('Generate demo scorecard', 'node', ['scripts/generate-demo-scorecard.mjs']);
@@ -42,7 +40,6 @@ const report = {
   })),
   docs: [
     'docs/DEMO_READY.md',
-    'docs/DEMO_ROUTES.md',
     'docs/STUDENT_PITCHES.md',
     'docs/EV3_CALIBRATION_TABLE.md',
     'docs/FIELD_CHECKLIST.md',

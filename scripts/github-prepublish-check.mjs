@@ -25,10 +25,10 @@ const requiredFiles = [
   'README.md',
   'scripts/demo-check.sh',
   'scripts/verify-command-catalog.mjs',
-  'apps/app1-whiteboard/package-lock.json',
-  'apps/app2-campus-service/package-lock.json',
-  'apps/app3-guardian/package-lock.json',
-  'apps/app3-guardian/firebase-applet-config.json',
+  'google ai studio/app_1（國小）/AI自動板擦機器人/package-lock.json',
+  'google ai studio/app_2（國小）/校園服務機器人 app/package-lock.json',
+  'google ai studio/app_3（國中）/AI校園心靈守護者/package-lock.json',
+  'google ai studio/app_3（國中）/AI校園心靈守護者/firebase-applet-config.json',
 ];
 
 const failures = [];
@@ -44,7 +44,7 @@ if (fs.existsSync(realSecretsPath)) {
 
 const firebaseConfigPath = path.join(
   rootDir,
-  'apps/app3-guardian/firebase-applet-config.json',
+  'google ai studio/app_3（國中）/AI校園心靈守護者/firebase-applet-config.json',
 );
 if (fs.existsSync(firebaseConfigPath)) {
   const firebaseConfig = fs.readFileSync(firebaseConfigPath, 'utf8');

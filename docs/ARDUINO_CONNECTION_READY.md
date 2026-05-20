@@ -23,7 +23,7 @@ VITE_ARDUINO_BRIDGE_URL=http://localhost:3202 npm run dev
 cd "/Volumes/Tim aaddtional/Download/115資通訊/tedt"
 pio run -t upload
 
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 BRIDGE_PORT=3200 NODE_ENV=production npm run start
 ```
 
@@ -44,9 +44,9 @@ ARDUINO_PORT=/dev/cu.usbmodemXXXX BRIDGE_PORT=3200 NODE_ENV=production npm run s
 ## 驗收
 
 ```zsh
-npm run check --prefix "apps/app1-whiteboard"
-npm run check --prefix "apps/app2-campus-service"
-npm run check --prefix "apps/app3-guardian"
+npm run check --prefix "google ai studio/app_1（國小）/AI自動板擦機器人"
+npm run check --prefix "google ai studio/app_2（國小）/校園服務機器人 app"
+npm run check --prefix "google ai studio/app_3（國中）/AI校園心靈守護者"
 node scripts/verify-command-catalog.mjs
 pio run
 node scripts/full-demo-smoke.mjs

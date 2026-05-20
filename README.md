@@ -6,9 +6,9 @@
 
 ## 三隊作品
 
-- `apps/app1-whiteboard`：白板拍照、語音逐字稿、AI 摘要、教師決策、筆記複習與 UNO R4 Serial 控制。
-- `apps/app2-campus-service`：福利社配送、清潔排程、教學輔助、放學引導、鐘聲廣播與校園中控台。
-- `apps/app3-guardian`：校園情緒關懷、預警處理、自我照護、匿名心情牆與節點監控。
+- `google ai studio/app_1（國小）/AI自動板擦機器人`：白板拍照、語音逐字稿、AI 摘要、教師決策、筆記複習與 UNO R4 Serial 控制。
+- `google ai studio/app_2（國小）/校園服務機器人 app`：福利社配送、清潔排程、教學輔助、放學引導、鐘聲廣播與校園中控台。
+- `google ai studio/app_3（國中）/AI校園心靈守護者`：校園情緒關懷、預警處理、自我照護、匿名心情牆與節點監控。
 
 每隊 app 根目錄都有自己的 `README.md`、`PLAN_TODO.md`、`STUDENT_DEMO_GUIDE.md`、`package.json`、`package-lock.json` 與 `localStorage`/資料命名空間。除共用 Arduino bridge 之外，不把三隊的 UI、狀態、測試或展示資料混在一起。
 
@@ -133,21 +133,20 @@ node scripts/github-prepublish-check.mjs
 
 ## Arduino UNO R4 WiFi
 
-Firmware 已依作品分開放，先看 `docs/FIRMWARE_ENV_MAP.md`。人眼找檔案時，直接看 `firmware/` 底下這些清楚命名的資料夾：
+Firmware 已依作品分開放，先看 `docs/FIRMWARE_ENV_MAP.md`。人眼找檔案時，直接看 `src/` 底下這三個清楚命名的資料夾：
 
 ```text
-firmware/app1-whiteboard-drive/       App 1 白板機器人雙馬達 M3/M4
-firmware/app2-sweeper-drive/          App 2 校園服務機器人掃地 / 底盤
-firmware/app3-guardian-sensor/        App 3 心靈守護者感測器
-firmware/app3-guardian-drive/         App 3 心靈守護者四輪底盤
+src/app1_whiteboard_drive/       App 1 白板機器人雙馬達 M3/M4
+src/app3_guardian_sensor/        App 3 心靈守護者感測器
+src/app3_guardian_drive/         App 3 心靈守護者四輪底盤
 ```
 
 共用展示 firmware 留在：
 
 ```text
-firmware/shared-command-demo/main.cpp
-firmware/shared-command-demo/commands.cpp
-firmware/shared-command-demo/matrix_show.cpp
+src/main.cpp
+src/commands.cpp
+src/matrix_show.cpp
 ```
 
 常用燒錄指令：
@@ -228,7 +227,7 @@ npm run check:app3
 App 1 production bridge：
 
 ```zsh
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npm run build
 BRIDGE_PORT=3201 NODE_ENV=production npm run start
 ```
@@ -236,20 +235,20 @@ BRIDGE_PORT=3201 NODE_ENV=production npm run start
 App 2 local demo：
 
 ```zsh
-cd "apps/app2-campus-service"
+cd "google ai studio/app_2（國小）/校園服務機器人 app"
 npm run dev
 ```
 
 App 3 local demo：
 
 ```zsh
-cd "apps/app3-guardian"
+cd "google ai studio/app_3（國中）/AI校園心靈守護者"
 npm run dev
 ```
 
 ## Project Helpers
 
-- `firmware/shared-command-demo/commands.cpp`：UNO R4 WiFi 共用 Serial 指令處理。
+- `src/commands.cpp`：UNO R4 WiFi 共用 Serial 指令處理。
 - `docs/ARDUINO_CLOUD.md`：未來 Arduino Cloud 對接計畫。
 - `docs/ARDUINO_CONNECTION_READY.md`：三隊共用 bridge 與實機驗收步驟。
 - `docs/GITHUB_STUDENT_PUBLISH.md`：GitHub 發布、安全預檢與學生操作說明。

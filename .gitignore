@@ -28,20 +28,14 @@ include/arduino_secrets.h
 **/firebase-applet-config.local.json
 
 # Local runtime data
-apps/app1-whiteboard/data/*.json
-apps/app1-whiteboard/data/backups/
-apps/app2-campus-service/.demo-runtime/
-apps/app3-guardian/data/*.json
-apps/app3-guardian/data/backups/
-**/.demo-runtime/
+google ai studio/app_1（國小）/AI自動板擦機器人/data/*.json
+google ai studio/app_1（國小）/AI自動板擦機器人/data/backups/
 *-smoke.png
 demo-ready-report.json
 
-# Python (EV3 brick scripts) + venv
+# Python (EV3 brick scripts)
 **/__pycache__/
 *.pyc
-**/.venv/
-**/venv/
 
 # PlatformIO / browser tooling
 .pio/
@@ -64,47 +58,5 @@ app2-*.png
 app3-*.png
 map_*.png
 !assets/screenshots/*.png
-!docs/competition/assets/ai-generated/app2-speech-*.png
 scripts/gitnexus-prewarm-fts.mjs
 scripts/reindex.sh
-.agents/
-
-# Dev-only E2E experiments (per app2 — not portable, hardcoded paths/ports)
-apps/app2-campus-service/e2e-demo-flow.mjs
-apps/app2-campus-service/simulate-real-demo.mjs
-apps/app2-campus-service/demo-screenshots/
-
-# Root-level demo screenshots
-care-*.png
-clean-view.png
-demo-00-*.png
-final-clean.png
-full-view.png
-robot-display-sad.jpg
-robot-panel-current.png
-sad_emoji.jpg
-sensing-panel.png
-attend_*.png
-attend_*.jpeg
-campus-demo-entry.png
-final_teach.jpeg
-notion-app1.png
-pages_*.jpeg
-teach_view.png
-verify_*.jpeg
-
-# Runtime demo data (created by bridge — populated at demo time, should not be committed)
-apps/app2-campus-service/data/
-apps/app3-guardian/data/
-apps/app1-whiteboard/data/
-
-# Generated LLM/demo outputs
-outputs/
-
-# Competition doc generation artifacts (auto-rendered mermaid, drafts)
-docs/competition/assets/mermaid/
-docs/competition/assets/mermaid-dynamic/
-docs/competition/drafts/
-
-# Student-face photos kept locally for reference but NOT public
-docs/competition/assets/photos/**/PRIVATE-*
