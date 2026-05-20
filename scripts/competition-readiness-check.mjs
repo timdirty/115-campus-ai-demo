@@ -1,0 +1,79 @@
+#!/usr/bin/env node
+
+import {spawnSync} from 'node:child_process';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+const steps = [
+  {
+    name: 'Publish safety check',
+    command: 'node',
+    args: ['scripts/github-prepublish-check.mjs'],
+  },
+  {
+    name: '500-round package polish check',
+    command: 'node',
+    args: ['scripts/polish-500-check.mjs'],
+  },
+  {
+    name: 'Three-app demo check and firmware build',
+    command: 'zsh',
+    args: ['scripts/demo-check.sh'],
+  },
+  {
+    name: 'Build GitHub Pages student bundle',
+    command: 'node',
+    args: ['scripts/build-github-pages.mjs'],
+  },
+  {
+    name: 'Verify GitHub Pages artifact',
+    command: 'node',
+    args: ['scripts/pages-artifact-check.mjs'],
+  },
+  {
+    name: 'Responsive layout check',
+    command: 'node',
+    args: ['scripts/responsive-layout-check.mjs'],
+  },
+];
+
+if (process.env.CHECK_PUBLIC_URLS === '1') {
+  steps.push({
+    name: 'Public deployed URL check',
+    command: 'node',
+    args: ['scripts/public-url-check.mjs'],
+  });
+}
+
+for (const [index, step] of steps.entries()) {
+  console.log(`\n== ${index + 1}/${steps.length} ${step.name} ==`);
+  const result = spawnSync(step.command, step.args, {
+    cwd: rootDir,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
+
+  if (result.status !== 0) {
+    console.error(`\nCompetition readiness check failed at: ${step.name}`);
+    process.exit(result.status ?? 1);
+  }
+}
+
+console.log(`
+== Ready ==
+Competition readiness check passed.
+
+Public URLs:
+  https://timdirty.github.io/115-campus-ai-demo/
+  https://timdirty.github.io/115-campus-ai-demo/app1/
+  https://timdirty.github.io/115-campus-ai-demo/app2/
+  https://timdirty.github.io/115-campus-ai-demo/app3/
+  https://timdirty.github.io/115-campus-ai-demo/app1-guide.html
+  https://timdirty.github.io/115-campus-ai-demo/app2-guide.html
+  https://timdirty.github.io/115-campus-ai-demo/app3-guide.html
+
+After GitHub Pages deploys, run:
+  CHECK_PUBLIC_URLS=1 node scripts/competition-readiness-check.mjs
+`);

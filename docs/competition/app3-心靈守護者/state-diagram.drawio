@@ -1,0 +1,250 @@
+<mxfile host="app.diagrams.net" modified="2026-05-03T00:00:00.000Z" agent="Claude Code" version="21.0.0" type="device">
+  <diagram name="警示生命週期" id="alert-lifecycle">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- 標題 -->
+        <mxCell id="title1" value="警示生命週期狀態機" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="20" width="380" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- 起始點 -->
+        <mxCell id="start1" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="455" y="80" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- 狀態：監控中（藍色） -->
+        <mxCell id="s1" value="監控中" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="140" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- 狀態：偵測到異常（橘色） -->
+        <mxCell id="s2" value="偵測到異常" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="240" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- 狀態：AI 分析建議（紫色） -->
+        <mxCell id="s3" value="AI 分析建議" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="340" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- 決策框：風險等級 -->
+        <mxCell id="d1" value="風險等級？" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="440" width="140" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- 狀態：高風險警示（紅色） -->
+        <mxCell id="s4" value="高風險警示" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="160" y="560" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- 狀態：中風險警示（橘色） -->
+        <mxCell id="s5" value="中風險警示" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="560" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- 狀態：低風險警示（黃色） -->
+        <mxCell id="s6" value="低風險警示" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffff88;strokeColor=#cccc00;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="620" y="560" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- 狀態：老師處理中（藍色） -->
+        <mxCell id="s7" value="老師處理中" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="670" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- 狀態：關懷部署（綠色） -->
+        <mxCell id="s8" value="關懷部署" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="770" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- 狀態：結案（灰色） -->
+        <mxCell id="s9" value="結案" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="870" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- 終止點 -->
+        <mxCell id="end1" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="455" y="960" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="end1ring" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#000000;strokeWidth=4;" vertex="1" parent="1">
+          <mxGeometry x="449" y="954" width="42" height="42" as="geometry" />
+        </mxCell>
+
+        <!-- 箭頭：起始 → 監控中 -->
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="start1" target="s1" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 箭頭：監控中 → 偵測到異常 -->
+        <mxCell id="e2" value="感測器偵測到異常數值" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="s1" target="s2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 箭頭：偵測到異常 → AI 分析建議 -->
+        <mxCell id="e3" value="送交 AI 分析" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="s2" target="s3" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 箭頭：AI 分析建議 → 決策框 -->
+        <mxCell id="e4" value="分析完成" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="s3" target="d1" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 箭頭：決策框 → 高風險（左） -->
+        <mxCell id="e5" value="高" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" source="d1" target="s4" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 箭頭：決策框 → 中風險（下） -->
+        <mxCell id="e6" value="中" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" source="d1" target="s5" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 箭頭：決策框 → 低風險（右） -->
+        <mxCell id="e7" value="低" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" source="d1" target="s6" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 箭頭：高風險 → 老師處理中 -->
+        <mxCell id="e8" value="通知老師" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="s4" target="s7" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="240" y="640" />
+              <mxPoint x="240" y="700" />
+              <mxPoint x="390" y="700" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 箭頭：中風險 → 老師處理中 -->
+        <mxCell id="e9" value="通知老師" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="s5" target="s7" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 箭頭：低風險 → 老師處理中 -->
+        <mxCell id="e10" value="通知老師" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="s6" target="s7" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="640" />
+              <mxPoint x="700" y="700" />
+              <mxPoint x="550" y="700" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 箭頭：老師處理中 → 關懷部署 -->
+        <mxCell id="e11" value="勾選關懷清單 / 按部署" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="s7" target="s8" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 箭頭：關懷部署 → 結案 -->
+        <mxCell id="e12" value="CARE_DEPLOYED 指令成功" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="s8" target="s9" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 箭頭：結案 → 終止點 -->
+        <mxCell id="e13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="s9" target="end1ring" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 回路：結案 → 監控中 -->
+        <mxCell id="e14" value="繼續監控" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;dashed=1;" edge="1" source="s9" target="s1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="840" y="900" />
+              <mxPoint x="840" y="170" />
+              <mxPoint x="550" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== 感測節點狀態機 ===== -->
+
+        <!-- 標題 2 -->
+        <mxCell id="title2" value="感測節點狀態機" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="960" y="100" width="280" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- 起始點 2 -->
+        <mxCell id="start2" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="160" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- 節點狀態：正常（綠色） -->
+        <mxCell id="n1" value="節點正常" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="220" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- 節點狀態：異常（紅色） -->
+        <mxCell id="n2" value="節點異常" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="340" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- 節點狀態：通報完成（藍色） -->
+        <mxCell id="n3" value="通報完成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="460" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- 節點狀態：離線（深灰色） -->
+        <mxCell id="n4" value="節點離線" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#666666;strokeColor=#333333;fontColor=#ffffff;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="340" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- 箭頭：起始 2 → 節點正常 -->
+        <mxCell id="en1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="start2" target="n1" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 箭頭：節點正常 → 節點異常 -->
+        <mxCell id="en2" value="偵測到異常數值" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="n1" target="n2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 箭頭：節點正常 → 節點離線 -->
+        <mxCell id="en3" value="連線中斷" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" source="n1" target="n4" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 箭頭：節點異常 → 通報完成 -->
+        <mxCell id="en4" value="已送出警示通報" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="n2" target="n3" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 箭頭：通報完成 → 節點正常 -->
+        <mxCell id="en5" value="老師處理完畢 / 結案" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="n3" target="n1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1210" y="490" />
+              <mxPoint x="1210" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 箭頭：節點離線 → 節點正常 -->
+        <mxCell id="en6" value="重新連線" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="n4" target="n1" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 硬體指令標籤 -->
+        <mxCell id="hw1" value="硬體指令：ALERT_SIGNAL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=12;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="10" y="580" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="hw2" value="硬體指令：CARE_DEPLOYED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="10" y="800" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- 指向硬體指令的虛線 -->
+        <mxCell id="hw1e" value="" style="edgeStyle=orthogonalEdgeStyle;dashed=1;endArrow=none;" edge="1" source="s4" target="hw1" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hw2e" value="" style="edgeStyle=orthogonalEdgeStyle;dashed=1;endArrow=none;" edge="1" source="s8" target="hw2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

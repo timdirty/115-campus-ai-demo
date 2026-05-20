@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #005bb3;
+  --color-primary-container: #d6e3ff;
+  --color-primary-fixed: #d6e3ff;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #001b3d;
+
+  --color-secondary: #565e71;
+  --color-secondary-container: #dae2f9;
+  --color-on-secondary-container: #131c2b;
+
+  --color-tertiary: #a93c78;
+  --color-tertiary-container: #ffd8ec;
+  --color-on-tertiary-container: #370023;
+
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f7f9ff;
+  --color-surface-container: #f0f4fa;
+  --color-surface-container-high: #e9eff7;
+  --color-surface-container-highest: #e2eaf4;
+  --color-inverse-surface: #1a1c1e;
+  --color-on-surface: #1a1c1e;
+  --color-on-surface-variant: #44474e;
+
+  --color-outline: #74777f;
+  --color-outline-variant: #c4c6cf;
+
+  --color-background: #fdfbff;
+  --color-on-background: #1a1c1e;
+
+  --font-headline: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-label: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+}
+
+html,
+#root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.dispatch-robot-live {
+  animation: dispatch-breath 780ms ease-in-out infinite alternate;
+}
+
+.dispatch-robot-live > span:first-child {
+  animation: dispatch-wave 1.1s ease-out infinite;
+}
+
+@keyframes dispatch-breath {
+  from {
+    box-shadow: 0 0 36px rgba(var(--color-primary), 0.32);
+  }
+  to {
+    box-shadow: 0 0 72px rgba(var(--color-primary), 0.62);
+  }
+}
+
+@keyframes dispatch-wave {
+  from {
+    opacity: 0.7;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+button,
+[role="button"],
+input,
+textarea,
+select {
+  touch-action: manipulation;
+}
+
+@media (max-width: 640px) {
+  .app2-shell,
+  .app2-shell * {
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .app2-shell nav[aria-label="手機底部導覽"] > div {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    max-width: 100vw !important;
+  }
+
+  .app2-shell [class*="rounded-[2.5rem]"],
+  .app2-shell [class*="rounded-[3rem]"] {
+    border-radius: 1.25rem !important;
+  }
+
+  .app2-shell [class*="p-8"] {
+    padding: 1.25rem !important;
+  }
+
+  .app2-shell [class*="p-7"] {
+    padding: 1.125rem !important;
+  }
+
+  .app2-shell h2,
+  .app2-shell h3 {
+    overflow-wrap: anywhere;
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "國小 AI 白板助教",
+  "description": "本機可上線運作的國小課堂白板 AI 助教，支援快照分析、老師講解逐字稿、課堂紀錄本、AI 小老師、學習單、備份與匯入。",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

@@ -1,0 +1,26 @@
+{
+  "managed": {
+    "arduino-uno-r4-vibecoding": "symlink",
+    "cluster-0": "symlink",
+    "cluster-34": "symlink",
+    "competition": "symlink",
+    "components": "symlink",
+    "gitnexus-cli": "symlink",
+    "gitnexus-debugging": "symlink",
+    "gitnexus-exploring": "symlink",
+    "gitnexus-guide": "symlink",
+    "gitnexus-impact-analysis": "symlink",
+    "gitnexus-refactoring": "symlink",
+    "hooks": "symlink",
+    "include": "symlink",
+    "motor-test": "symlink",
+    "pages": "symlink",
+    "scripts": "symlink",
+    "server": "symlink",
+    "services": "symlink",
+    "state": "symlink",
+    "tour": "symlink",
+    "views": "symlink"
+  },
+  "updated_at": "2026-05-07T11:15:43.799722+08:00"
+}
