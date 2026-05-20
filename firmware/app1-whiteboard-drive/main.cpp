@@ -88,6 +88,27 @@ static void runM3(int signedSpeed) {
   drive(bits, pwm, 0, 0);
 }
 
+// 可中斷的等待：每 20ms 檢查 serial，遇到 STOP/PAUSE_TASK 立即停馬達並回 false
+// 收到的指令直接 ack 回去（保持與正常 handler 一致的 response 格式）
+// true = 走完整段時間沒被打斷；false = 中途被打斷，馬達已停
+static bool waitInterruptible(uint32_t ms) {
+  const uint32_t start = millis();
+  while (millis() - start < ms) {
+    if (Serial.available()) {
+      String peek = Serial.readStringUntil('\n');
+      peek.trim();
+      if (peek == "STOP" || peek == "PAUSE_TASK") {
+        stopAll();
+        Serial.println(peek);  // STOP/PAUSE_TASK 的標準 ack
+        return false;
+      }
+      // 其他指令（含重複 ERASE_*）讀掉後丟棄，避免污染 serial buffer
+    }
+    delay(20);
+  }
+  return true;
+}
+
 static void runM4(int signedSpeed) {
   const uint8_t pwm = static_cast<uint8_t>(min(255, abs(signedSpeed)));
   const uint8_t bits = signedSpeed >= 0 ? m4FwdBits() : m4BackBits();
@@ -179,17 +200,23 @@ void loop() {
     Serial.print(",WDT:");
     Serial.println(watchdogArmed ? "armed" : "off");
   } else if (cmd == "ERASE_ALL") {
-    forward(); delay(1500); stopAll();
-    Serial.println("ERASE_ALL");
+    forward();
+    if (waitInterruptible(1500)) { stopAll(); Serial.println("ERASE_ALL"); }
   } else if (cmd == "ERASE_REGION_A") {
-    turnLeft(); delay(400); forward(); delay(1000); stopAll();
-    Serial.println("ERASE_REGION_A");
+    turnLeft();
+    if (waitInterruptible(400)) {
+      forward();
+      if (waitInterruptible(1000)) { stopAll(); Serial.println("ERASE_REGION_A"); }
+    }
   } else if (cmd == "ERASE_REGION_B") {
-    turnRight(); delay(400); forward(); delay(1000); stopAll();
-    Serial.println("ERASE_REGION_B");
+    turnRight();
+    if (waitInterruptible(400)) {
+      forward();
+      if (waitInterruptible(1000)) { stopAll(); Serial.println("ERASE_REGION_B"); }
+    }
   } else if (cmd == "ERASE_REGION_C") {
-    forward(); delay(1000); stopAll();
-    Serial.println("ERASE_REGION_C");
+    forward();
+    if (waitInterruptible(1000)) { stopAll(); Serial.println("ERASE_REGION_C"); }
   } else if (cmd == "KEEP_REGION_A" || cmd == "KEEP_REGION_B" || cmd == "KEEP_REGION_C") {
     Serial.println(cmd);  // 保留指令：機器人不動作，回 ack 給 App
   } else if (cmd == "PAUSE_TASK") {

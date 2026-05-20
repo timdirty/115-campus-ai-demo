@@ -120,10 +120,17 @@ async function readSensorFromPort(portPath: string): Promise<{temp: number | nul
 }
 
 async function scanArduinoPorts(): Promise<PortInfo[]> {
-  // Also fall back to ARDUINO_PORT env var before the robot port is opened
-  const robotPath = getActivePath() || (process.env.ARDUINO_PORT ?? '');
+  // Reserve the primary Arduino for robotService — never let sensor polling grab it.
+  // Priority of "primary": getActivePath() > ARDUINO_PORT env > first Arduino-like port.
+  // The last fallback covers cold-start before robotService has opened any port,
+  // which is when the previous race condition manifested as "Cannot lock port".
   const all = await listPorts().catch(() => [] as PortInfo[]);
-  return all.filter(isArduinoLikePort).filter((p) => !robotPath || p.path !== robotPath);
+  const arduinoPorts = all.filter(isArduinoLikePort);
+  const reservedPath = getActivePath()
+    || (process.env.ARDUINO_PORT ?? '')
+    || arduinoPorts[0]?.path
+    || '';
+  return arduinoPorts.filter((p) => p.path !== reservedPath);
 }
 
 async function pollSensors(): Promise<void> {

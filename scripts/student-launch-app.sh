@@ -127,14 +127,29 @@ if [[ -n "$port_pids" ]]; then
   kill -9 ${(f)port_pids} >/dev/null 2>&1 || true
 fi
 
-# 釋放 Arduino serial port — 殺掉所有佔住 /dev/cu.* 或 /dev/tty.* 的 node 程序
-# （其他 App 的 bridge 可能還在背景跑）
-serial_locks="$(lsof /dev/cu.* /dev/tty.* 2>/dev/null | awk 'NR>1 && /node/{print $2}' | sort -u || true)"
-if [[ -n "$serial_locks" ]]; then
-  echo ""
-  echo "🔌 釋放被佔用的 Serial port..."
-  echo "$serial_locks" | xargs kill -9 2>/dev/null || true
-  sleep 0.5
+# 釋放 Arduino serial port — 只殺「自家 app bridge」(serialBridge.ts) 佔住 port 的情形
+# 嚴格匹配：必須是 node、必須持有 /dev/cu.* 或 /dev/tty.*、command line 必須含 serialBridge.ts
+# 不會碰到系統 process、IDE、語言伺服器、其他 node 服務
+serial_holders="$(lsof /dev/cu.* /dev/tty.* 2>/dev/null | awk 'NR>1 && /node/{print $2}' | sort -u || true)"
+if [[ -n "$serial_holders" ]]; then
+  to_kill=""
+  while read -r pid; do
+    [[ -z "$pid" ]] && continue
+    # 必須是當前使用者自己的 process
+    proc_user="$(ps -o user= -p "$pid" 2>/dev/null | xargs || true)"
+    [[ "$proc_user" != "$(whoami)" ]] && continue
+    # command 必須包含 serialBridge.ts（我們自家 bridge 的特徵字串）
+    proc_cmd="$(ps -o command= -p "$pid" 2>/dev/null || true)"
+    if [[ "$proc_cmd" == *serialBridge.ts* ]]; then
+      to_kill="$to_kill $pid"
+    fi
+  done <<< "$serial_holders"
+  if [[ -n "$to_kill" ]]; then
+    echo ""
+    echo "🔌 釋放被自家 App bridge 佔住的 Serial port (PIDs:$to_kill)"
+    echo "$to_kill" | xargs kill -9 2>/dev/null || true
+    sleep 0.5
+  fi
 fi
 
 # Auto-detect Arduino unless caller already forced a mode
@@ -152,14 +167,29 @@ if [[ -z "${DEMO_SIMULATE_HARDWARE:-}" ]]; then
       if command -v pio >/dev/null 2>&1 && [[ -n "$PIO_ENV" && -n "$PIO_ROOT" ]]; then
         echo "   正在自動燒錄韌體：$PIO_ENV ..."
         cd "$PIO_ROOT"
-        pio run -e "$PIO_ENV" --target upload 2>&1 | grep -E "SUCCESS|ERROR|Uploading|Writing|error" || true
+        # 用 PIPESTATUS 抓 pio 的 exit code（grep 過濾不能 mask 失敗）
+        pio run -e "$PIO_ENV" --target upload 2>&1 | tee "$RUNTIME_DIR/pio-upload.log" | grep -E "SUCCESS|ERROR|Uploading|Writing|error" || true
+        pio_status="${PIPESTATUS[1]}"
         cd "$APP_DIR"
+        if [[ "$pio_status" != "0" ]]; then
+          echo ""
+          echo "❌ 韌體燒錄失敗（pio exit=$pio_status）"
+          echo "   請把 $RUNTIME_DIR/pio-upload.log 最後幾行給老師看："
+          tail -10 "$RUNTIME_DIR/pio-upload.log" 2>/dev/null
+          echo ""
+          echo "   檢查：USB 線是否為 data 線（不是只能充電）、Arduino 是否真的接好、pio 是否安裝。"
+          pause_exit 1
+        fi
         echo "   燒錄完成，等待板子重新啟動..."
         for _ in {1..24}; do
           arduino_port="$(ls /dev/cu.* 2>/dev/null | grep -iv 'bluetooth\|debug-console' | head -1 || true)"
           [[ -n "$arduino_port" ]] && break
           sleep 0.5
         done
+        if [[ -z "$arduino_port" ]]; then
+          echo "❌ 燒錄後板子沒有重新啟動為 serial 模式，請拔重插 USB 後再試。"
+          pause_exit 1
+        fi
       else
         echo "   找不到 PlatformIO 或未設定韌體環境，請按板子上的 Reset 鍵一次。"
         echo "   等待板子離開 DFU 模式（12 秒）..."
