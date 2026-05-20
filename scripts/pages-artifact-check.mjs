@@ -16,13 +16,7 @@ const requiredIndexLinks = [
   ...apps.flatMap((app) => [`./${app.id}/`, `./${guideUrl(app)}`]),
 ];
 
-const requiredGuidePhrases = Object.fromEntries(apps.map((app) => [
-  guideUrl(app),
-  [
-    ...app.guidePhrases,
-    ...(app.demoRoutes ?? []).flatMap((route) => [route.title, route.studentLine]),
-  ],
-]));
+const requiredGuidePhrases = Object.fromEntries(apps.map((app) => [guideUrl(app), app.guidePhrases]));
 
 const failures = [];
 

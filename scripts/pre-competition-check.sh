@@ -51,9 +51,9 @@ fi
 echo ""
 echo "--- npm install status ---"
 for app_dir in \
-  "apps/app1-whiteboard" \
-  "apps/app2-campus-service" \
-  "apps/app3-guardian"; do
+  "google ai studio/app_1（國小）/AI自動板擦機器人" \
+  "google ai studio/app_2（國小）/校園服務機器人 app" \
+  "google ai studio/app_3（國中）/AI校園心靈守護者"; do
   full="$ROOT/$app_dir"
   if [[ -d "$full/node_modules" ]]; then
     pass "$(basename "$app_dir")  node_modules present"
@@ -76,9 +76,9 @@ fi
 echo ""
 echo "--- Environment Files ---"
 for app_dir in \
-  "apps/app1-whiteboard" \
-  "apps/app2-campus-service" \
-  "apps/app3-guardian"; do
+  "google ai studio/app_1（國小）/AI自動板擦機器人" \
+  "google ai studio/app_2（國小）/校園服務機器人 app" \
+  "google ai studio/app_3（國中）/AI校園心靈守護者"; do
   full="$ROOT/$app_dir"
   if [[ -f "$full/.env" || -f "$full/.env.local" ]]; then
     pass "$(basename "$app_dir")  .env present"
@@ -91,9 +91,9 @@ done
 echo ""
 echo "--- TypeScript (fast check) ---"
 for app_dir in \
-  "apps/app1-whiteboard" \
-  "apps/app2-campus-service" \
-  "apps/app3-guardian"; do
+  "google ai studio/app_1（國小）/AI自動板擦機器人" \
+  "google ai studio/app_2（國小）/校園服務機器人 app" \
+  "google ai studio/app_3（國中）/AI校園心靈守護者"; do
   full="$ROOT/$app_dir"
   if (cd "$full" && npx tsc --noEmit 2>&1 | grep -q "error TS"); then
     fail "$(basename "$app_dir")  TypeScript errors found"

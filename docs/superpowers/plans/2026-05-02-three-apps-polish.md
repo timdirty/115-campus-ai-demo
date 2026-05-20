@@ -9,9 +9,9 @@
 **Tech Stack:** @google/genai (already installed in App 1), express-rate-limit + zod (to install in App 1), motion/react (already in App 3 for SVG animations)
 
 **Key paths:**
-- `APP1` = `apps/app1-whiteboard`
-- `APP2` = `apps/app2-campus-service`
-- `APP3` = `apps/app3-guardian`
+- `APP1` = `google ai studio/app_1（國小）/AI自動板擦機器人`
+- `APP2` = `google ai studio/app_2（國小）/校園服務機器人 app`
+- `APP3` = `google ai studio/app_3（國中）/AI校園心靈守護者`
 
 ---
 
@@ -27,7 +27,7 @@
 - [ ] **Step 1: Install server dependencies**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npm install express-rate-limit zod
 ```
 
@@ -64,10 +64,10 @@ res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-AI-Mode, X-AI-Fal
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/server/config.ts" \
-        "apps/app1-whiteboard/server/serialBridge.ts" \
-        "apps/app1-whiteboard/package.json" \
-        "apps/app1-whiteboard/package-lock.json"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/server/config.ts" \
+        "google ai studio/app_1（國小）/AI自動板擦機器人/server/serialBridge.ts" \
+        "google ai studio/app_1（國小）/AI自動板擦機器人/package.json" \
+        "google ai studio/app_1（國小）/AI自動板擦機器人/package-lock.json"
 git commit -m "feat(app1): install rate-limit+zod, add AI_PROXY_KEY config"
 ```
 
@@ -217,7 +217,7 @@ export function registerProxyRoutes(app: Express) {
 - [ ] **Step 2: Verify TypeScript compiles**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npx tsc --noEmit 2>&1 | head -20
 ```
 
@@ -226,7 +226,7 @@ Expected: 0 errors. If `rateLimit` type errors appear, add `import type {Options
 - [ ] **Step 3: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/server/proxyRoutes.ts"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/server/proxyRoutes.ts"
 git commit -m "feat(app1): add AI proxy routes for apps 2 and 3"
 ```
 
@@ -254,7 +254,7 @@ registerProxyRoutes(app);
 - [ ] **Step 2: Start bridge and smoke-test**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npm run dev:bridge &
 sleep 3
 curl -s http://localhost:3200/api/health | python3 -m json.tool
@@ -282,7 +282,7 @@ pkill -f "tsx server/serialBridge.ts" 2>/dev/null; true
 - [ ] **Step 5: Run App 1 check**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npm run check 2>&1 | tail -20
 ```
 
@@ -291,7 +291,7 @@ Expected: all checks pass.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/server/serialBridge.ts"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/server/serialBridge.ts"
 git commit -m "feat(app1): register proxy routes in bridge server"
 ```
 
@@ -308,7 +308,7 @@ git commit -m "feat(app1): register proxy routes in bridge server"
 
 ```bash
 grep -n "ok={true}\|aiMode\|geminiConfigured\|本機展示模式" \
-  "apps/app1-whiteboard/src/pages/Home.tsx" | head -10
+  "google ai studio/app_1（國小）/AI自動板擦機器人/src/pages/Home.tsx" | head -10
 ```
 
 Note the line number(s) of the StatusTile that shows Gemini status.
@@ -334,7 +334,7 @@ With:
 - [ ] **Step 3: Verify build**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npm run lint
 ```
 
@@ -343,7 +343,7 @@ Expected: 0 errors.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/src/pages/Home.tsx"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/src/pages/Home.tsx"
 git commit -m "fix(app1): show amber status tile when Gemini not configured"
 ```
 
@@ -397,7 +397,7 @@ export async function askGemini(route: string, body: Record<string, unknown>): P
 - [ ] **Step 3: Verify type-check passes**
 
 ```bash
-cd "apps/app2-campus-service"
+cd "google ai studio/app_2（國小）/校園服務機器人 app"
 npm run lint
 ```
 
@@ -406,7 +406,7 @@ Expected: 0 errors.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add "apps/app2-campus-service/src/services/geminiAi.ts"
+git add "google ai studio/app_2（國小）/校園服務機器人 app/src/services/geminiAi.ts"
 git commit -m "feat(app2): add geminiAi proxy client"
 ```
 
@@ -592,7 +592,7 @@ export async function generateDispatchRecommendation(zone: string, taskType: Dis
 - [ ] **Step 2: Type-check**
 
 ```bash
-cd "apps/app2-campus-service"
+cd "google ai studio/app_2（國小）/校園服務機器人 app"
 npm run lint
 ```
 
@@ -601,7 +601,7 @@ Expected: 0 errors. If `StudentReport` type errors appear, check that `learningS
 - [ ] **Step 3: Commit**
 
 ```bash
-git add "apps/app2-campus-service/src/services/localAi.ts"
+git add "google ai studio/app_2（國小）/校園服務機器人 app/src/services/localAi.ts"
 git commit -m "feat(app2): rewrite localAi with Gemini proxy + 40 fallback templates"
 ```
 
@@ -642,7 +642,7 @@ Search for any `setInterval` that mutates a `focusScore` state. If found, remove
 
 ```bash
 grep -n "setInterval\|focusScore\|setFocus" \
-  "apps/app2-campus-service/src/views/DashboardView.tsx"
+  "google ai studio/app_2（國小）/校園服務機器人 app/src/views/DashboardView.tsx"
 ```
 
 Remove any `setInterval` blocks that generate random numbers. Leave `setSpeed` if it's already driven by `activeRobot?.speed`.
@@ -650,7 +650,7 @@ Remove any `setInterval` blocks that generate random numbers. Leave `setSpeed` i
 - [ ] **Step 3: Verify build**
 
 ```bash
-cd "apps/app2-campus-service"
+cd "google ai studio/app_2（國小）/校園服務機器人 app"
 npm run lint
 ```
 
@@ -659,7 +659,7 @@ Expected: 0 errors.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add "apps/app2-campus-service/src/views/DashboardView.tsx"
+git add "google ai studio/app_2（國小）/校園服務機器人 app/src/views/DashboardView.tsx"
 git commit -m "fix(app2): replace random dashboard metrics with state-derived values"
 ```
 
@@ -707,7 +707,7 @@ console.log('All tests passed ✓');
 - [ ] **Step 2: Run tests**
 
 ```bash
-cd "apps/app2-campus-service"
+cd "google ai studio/app_2（國小）/校園服務機器人 app"
 npm test
 ```
 
@@ -724,7 +724,7 @@ Expected: tests pass, lint pass, build succeeds.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add "apps/app2-campus-service/src/state/appState.test.ts"
+git add "google ai studio/app_2（國小）/校園服務機器人 app/src/state/appState.test.ts"
 git commit -m "test(app2): add geminiAi fallback tests; all checks pass"
 ```
 
@@ -778,7 +778,7 @@ export async function askGemini(route: string, body: Record<string, unknown>): P
 - [ ] **Step 3: Verify lint**
 
 ```bash
-cd "apps/app3-guardian"
+cd "google ai studio/app_3（國中）/AI校園心靈守護者"
 npm run lint
 ```
 
@@ -787,7 +787,7 @@ Expected: 0 errors.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add "apps/app3-guardian/src/services/geminiAi.ts"
+git add "google ai studio/app_3（國中）/AI校園心靈守護者/src/services/geminiAi.ts"
 git commit -m "feat(app3): add geminiAi proxy client"
 ```
 
@@ -920,7 +920,7 @@ export function recommendationForAlert(alert: GuardianAlert): string {
 - [ ] **Step 2: Verify lint**
 
 ```bash
-cd "apps/app3-guardian"
+cd "google ai studio/app_3（國中）/AI校園心靈守護者"
 npm run lint
 ```
 
@@ -929,7 +929,7 @@ Expected: 0 errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add "apps/app3-guardian/src/services/localGuardianAi.ts"
+git add "google ai studio/app_3（國中）/AI校園心靈守護者/src/services/localGuardianAi.ts"
 git commit -m "feat(app3): enhance guardian AI with proxy + 30+ context-aware fallbacks"
 ```
 
@@ -1014,7 +1014,7 @@ export function CampusMapSvg() {
 - [ ] **Step 2: Lint check**
 
 ```bash
-cd "apps/app3-guardian"
+cd "google ai studio/app_3（國中）/AI校園心靈守護者"
 npm run lint
 ```
 
@@ -1023,7 +1023,7 @@ Expected: 0 errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add "apps/app3-guardian/src/components/CampusMapSvg.tsx"
+git add "google ai studio/app_3（國中）/AI校園心靈守護者/src/components/CampusMapSvg.tsx"
 git commit -m "feat(app3): add SVG campus floor plan component"
 ```
 
@@ -1077,7 +1077,7 @@ function MapGrid2D() {
 - [ ] **Step 4: Lint and build**
 
 ```bash
-cd "apps/app3-guardian"
+cd "google ai studio/app_3（國中）/AI校園心靈守護者"
 npm run lint
 ```
 
@@ -1086,8 +1086,8 @@ Expected: 0 errors. If TypeScript complains about `CampusMapSvg` props, verify i
 - [ ] **Step 5: Commit**
 
 ```bash
-git add "apps/app3-guardian/src/App.tsx" \
-        "apps/app3-guardian/src/components/CampusMapSvg.tsx"
+git add "google ai studio/app_3（國中）/AI校園心靈守護者/src/App.tsx" \
+        "google ai studio/app_3（國中）/AI校園心靈守護者/src/components/CampusMapSvg.tsx"
 git commit -m "feat(app3): replace CSS skew boxes with SVG school floor plan"
 ```
 
@@ -1134,7 +1134,7 @@ console.log('All guardian tests passed ✓');
 - [ ] **Step 2: Run tests**
 
 ```bash
-cd "apps/app3-guardian"
+cd "google ai studio/app_3（國中）/AI校園心靈守護者"
 npm test
 ```
 
@@ -1151,7 +1151,7 @@ Expected: tests pass, lint pass, build succeeds.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add "apps/app3-guardian/src/state/guardianState.test.ts"
+git add "google ai studio/app_3（國中）/AI校園心靈守護者/src/state/guardianState.test.ts"
 git commit -m "test(app3): add guardian AI fallback tests; all checks pass"
 ```
 
@@ -1164,7 +1164,7 @@ git commit -m "test(app3): add guardian AI fallback tests; all checks pass"
 - [ ] **Step 1: App 1 final check**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npm run check
 ```
 
@@ -1173,7 +1173,7 @@ Expected: all pass.
 - [ ] **Step 2: App 2 final check**
 
 ```bash
-cd "apps/app2-campus-service"
+cd "google ai studio/app_2（國小）/校園服務機器人 app"
 npm run check
 ```
 
@@ -1182,7 +1182,7 @@ Expected: all pass.
 - [ ] **Step 3: App 3 final check**
 
 ```bash
-cd "apps/app3-guardian"
+cd "google ai studio/app_3（國中）/AI校園心靈守護者"
 npm run check
 ```
 

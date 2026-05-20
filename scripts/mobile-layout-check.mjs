@@ -146,7 +146,7 @@ for (const route of routes) {
         clientHeight: el.clientHeight,
         className: String(el.className).slice(0, 120),
       }))
-      .filter((item) => item.text && !item.className.includes('sr-only') && !item.className.includes('line-clamp') && !item.className.includes('truncate') && !item.className.includes('overflow-hidden') && (item.scrollWidth > item.clientWidth + 2 || item.scrollHeight > item.clientHeight + 8))
+      .filter((item) => item.text && !item.className.includes('line-clamp') && !item.className.includes('truncate') && !item.className.includes('overflow-hidden') && (item.scrollWidth > item.clientWidth + 2 || item.scrollHeight > item.clientHeight + 8))
       .slice(0, 10);
     const smallButtons = [...document.querySelectorAll('button,a')]
       .filter((el) => el.offsetParent !== null)

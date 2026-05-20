@@ -30,7 +30,7 @@
 ## Task 1: Create `server/sensorManager.ts`
 
 **Files:**
-- Create: `apps/app1-whiteboard/server/sensorManager.ts`
+- Create: `google ai studio/app_1（國小）/AI自動板擦機器人/server/sensorManager.ts`
 
 - [ ] **Step 1: Write the file**
 
@@ -219,7 +219,7 @@ export function unassignPort(portPath: string): void {
 - [ ] **Step 2: Verify TypeScript compiles (no errors expected yet, just check syntax)**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npx tsc --noEmit 2>&1 | head -20
 ```
 
@@ -228,7 +228,7 @@ Expected: 0 errors (or only errors from files that haven't been updated yet).
 - [ ] **Step 3: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/server/sensorManager.ts"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/server/sensorManager.ts"
 git commit -m "feat(bridge): add sensorManager with background port polling and zone assignments"
 ```
 
@@ -237,7 +237,7 @@ git commit -m "feat(bridge): add sensorManager with background port polling and 
 ## Task 2: Remove old zone port code from `robotService.ts`
 
 **Files:**
-- Modify: `apps/app1-whiteboard/server/robotService.ts`
+- Modify: `google ai studio/app_1（國小）/AI自動板擦機器人/server/robotService.ts`
 
 - [ ] **Step 1: Remove the manual zone port block (lines 132–201)**
 
@@ -248,7 +248,7 @@ After deletion, the line immediately after `sendSerialCommand` export should be 
 - [ ] **Step 2: Verify**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npx tsc --noEmit 2>&1 | head -30
 ```
 
@@ -257,7 +257,7 @@ Expected: errors referencing `readAllZoneSensors` and `ZoneSensorReading` in `ro
 - [ ] **Step 3: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/server/robotService.ts"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/server/robotService.ts"
 git commit -m "refactor(bridge): remove manual zone port code superseded by sensorManager"
 ```
 
@@ -266,7 +266,7 @@ git commit -m "refactor(bridge): remove manual zone port code superseded by sens
 ## Task 3: Update `routes.ts` — three new sensor endpoints
 
 **Files:**
-- Modify: `apps/app1-whiteboard/server/routes.ts`
+- Modify: `google ai studio/app_1（國小）/AI自動板擦機器人/server/routes.ts`
 
 - [ ] **Step 1: Replace the import of `readAllZoneSensors` and add sensorManager import**
 
@@ -327,7 +327,7 @@ Replace with:
 - [ ] **Step 3: Verify compiles clean**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npx tsc --noEmit 2>&1
 ```
 
@@ -336,7 +336,7 @@ Expected: 0 errors.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/server/routes.ts"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/server/routes.ts"
 git commit -m "feat(bridge): add /api/sensors/ports, /api/sensors/live, /api/sensors/assign endpoints"
 ```
 
@@ -345,7 +345,7 @@ git commit -m "feat(bridge): add /api/sensors/ports, /api/sensors/live, /api/sen
 ## Task 4: Start sensor polling in `serialBridge.ts`
 
 **Files:**
-- Modify: `apps/app1-whiteboard/server/serialBridge.ts`
+- Modify: `google ai studio/app_1（國小）/AI自動板擦機器人/server/serialBridge.ts`
 
 - [ ] **Step 1: Add import and start call**
 
@@ -373,7 +373,7 @@ startSensorPolling();
 - [ ] **Step 2: Verify**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npm run check 2>&1 | tail -15
 ```
 
@@ -382,7 +382,7 @@ Expected: all tests pass, build succeeds.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/server/serialBridge.ts"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/server/serialBridge.ts"
 git commit -m "feat(bridge): start background sensor polling on bridge startup"
 ```
 
@@ -391,8 +391,8 @@ git commit -m "feat(bridge): start background sensor polling on bridge startup"
 ## Task 5: App 3 — extend types and hardwareBridge
 
 **Files:**
-- Modify: `apps/app3-guardian/src/types.ts`
-- Modify: `apps/app3-guardian/src/services/hardwareBridge.ts`
+- Modify: `google ai studio/app_3（國中）/AI校園心靈守護者/src/types.ts`
+- Modify: `google ai studio/app_3（國中）/AI校園心靈守護者/src/services/hardwareBridge.ts`
 
 - [ ] **Step 1: Add `DetectedPort` to `types.ts`**
 
@@ -489,7 +489,7 @@ export async function sendGuardianHardwareCommand(command: string, source: strin
 - [ ] **Step 3: Verify**
 
 ```bash
-cd "apps/app3-guardian"
+cd "google ai studio/app_3（國中）/AI校園心靈守護者"
 npx tsc --noEmit 2>&1 | head -20
 ```
 
@@ -498,8 +498,8 @@ Expected: 0 errors (or errors only in App.tsx which still uses old import — wi
 - [ ] **Step 4: Commit**
 
 ```bash
-git add "apps/app3-guardian/src/types.ts" \
-        "apps/app3-guardian/src/services/hardwareBridge.ts"
+git add "google ai studio/app_3（國中）/AI校園心靈守護者/src/types.ts" \
+        "google ai studio/app_3（國中）/AI校園心靈守護者/src/services/hardwareBridge.ts"
 git commit -m "feat(app3): add DetectedPort type, fetchSensorPorts, assignSensorPort APIs"
 ```
 
@@ -508,7 +508,7 @@ git commit -m "feat(app3): add DetectedPort type, fetchSensorPorts, assignSensor
 ## Task 6: Create `ZoneSensorPanel.tsx`
 
 **Files:**
-- Create: `apps/app3-guardian/src/components/ZoneSensorPanel.tsx`
+- Create: `google ai studio/app_3（國中）/AI校園心靈守護者/src/components/ZoneSensorPanel.tsx`
 
 - [ ] **Step 1: Write the component**
 
@@ -668,14 +668,14 @@ export function ZoneSensorPanel({sensor}: {sensor: ZoneSensorReading | undefined
 - [ ] **Step 2: Verify**
 
 ```bash
-cd "apps/app3-guardian"
+cd "google ai studio/app_3（國中）/AI校園心靈守護者"
 npx tsc --noEmit 2>&1 | head -20
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add "apps/app3-guardian/src/components/ZoneSensorPanel.tsx"
+git add "google ai studio/app_3（國中）/AI校園心靈守護者/src/components/ZoneSensorPanel.tsx"
 git commit -m "feat(app3): add ZoneSensorPanel with temperature/humidity/light gauges"
 ```
 
@@ -684,7 +684,7 @@ git commit -m "feat(app3): add ZoneSensorPanel with temperature/humidity/light g
 ## Task 7: Create `SensorAssignmentWidget.tsx`
 
 **Files:**
-- Create: `apps/app3-guardian/src/components/SensorAssignmentWidget.tsx`
+- Create: `google ai studio/app_3（國中）/AI校園心靈守護者/src/components/SensorAssignmentWidget.tsx`
 
 - [ ] **Step 1: Write the component**
 
@@ -803,14 +803,14 @@ export function SensorAssignmentWidget({ports, onAssigned}: Props) {
 - [ ] **Step 2: Verify**
 
 ```bash
-cd "apps/app3-guardian"
+cd "google ai studio/app_3（國中）/AI校園心靈守護者"
 npx tsc --noEmit 2>&1 | head -20
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add "apps/app3-guardian/src/components/SensorAssignmentWidget.tsx"
+git add "google ai studio/app_3（國中）/AI校園心靈守護者/src/components/SensorAssignmentWidget.tsx"
 git commit -m "feat(app3): add SensorAssignmentWidget for port-to-zone assignment UI"
 ```
 
@@ -819,7 +819,7 @@ git commit -m "feat(app3): add SensorAssignmentWidget for port-to-zone assignmen
 ## Task 8: Wire `ZoneSensorPanel` into `ZoneInspector` in `App.tsx`
 
 **Files:**
-- Modify: `apps/app3-guardian/src/App.tsx`
+- Modify: `google ai studio/app_3（國中）/AI校園心靈守護者/src/App.tsx`
 
 - [ ] **Step 1: Add imports at top of App.tsx (after existing component imports)**
 
@@ -885,7 +885,7 @@ The function signature needs updating to import `ZoneSensorPanel` — already do
 - [ ] **Step 6: Full verify**
 
 ```bash
-cd "apps/app3-guardian"
+cd "google ai studio/app_3（國中）/AI校園心靈守護者"
 npm run check 2>&1 | tail -20
 ```
 
@@ -894,7 +894,7 @@ Expected: all tests pass, TypeScript clean, build succeeds.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add "apps/app3-guardian/src/App.tsx"
+git add "google ai studio/app_3（國中）/AI校園心靈守護者/src/App.tsx"
 git commit -m "feat(app3): integrate ZoneSensorPanel in ZoneInspector + SensorAssignmentWidget in header"
 ```
 
@@ -903,7 +903,7 @@ git commit -m "feat(app3): integrate ZoneSensorPanel in ZoneInspector + SensorAs
 ## Task 9: Enhance `CampusMapSvg.tsx` — live animation, humidity badge, zone click
 
 **Files:**
-- Modify: `apps/app3-guardian/src/components/CampusMapSvg.tsx`
+- Modify: `google ai studio/app_3（國中）/AI校園心靈守護者/src/components/CampusMapSvg.tsx`
 
 - [ ] **Step 1: Add `onZoneClick` and `selectedZoneId` props, enhance `SensorBadge`, add live dot**
 
@@ -1172,7 +1172,7 @@ Note: `onSelectZone` is already a prop of the `CampusMap2D` function — confirm
 - [ ] **Step 3: Full verify**
 
 ```bash
-cd "apps/app3-guardian"
+cd "google ai studio/app_3（國中）/AI校園心靈守護者"
 npm run check 2>&1 | tail -20
 ```
 
@@ -1181,8 +1181,8 @@ Expected: all tests pass, TypeScript clean, build succeeds.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add "apps/app3-guardian/src/components/CampusMapSvg.tsx" \
-        "apps/app3-guardian/src/App.tsx"
+git add "google ai studio/app_3（國中）/AI校園心靈守護者/src/components/CampusMapSvg.tsx" \
+        "google ai studio/app_3（國中）/AI校園心靈守護者/src/App.tsx"
 git commit -m "feat(app3): zone click on map, live-sensor animation, humidity badge in CampusMapSvg"
 ```
 
@@ -1202,7 +1202,7 @@ Expected: `"ok": true`
 - [ ] **Step 2: Verify App 1 bridge**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npm run check 2>&1 | tail -10
 ```
 
@@ -1211,7 +1211,7 @@ Expected: build succeeds, API contract ok.
 - [ ] **Step 3: Verify App 3**
 
 ```bash
-cd "apps/app3-guardian"
+cd "google ai studio/app_3（國中）/AI校園心靈守護者"
 npm run check 2>&1 | tail -10
 ```
 

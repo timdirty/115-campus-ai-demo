@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1779247560705,
+    "createdAt": "2026-05-20T11:26:00+0800",
+    "app": "app2",
+    "appLabel": "App 2 校園服務機器人",
+    "provider": "google-ai-studio",
+    "model": "gemma-4-31b-it",
+    "status": "success",
+    "latencyMs": 7745,
+    "promptTokens": 42,
+    "outputTokens": 6,
+    "totalTokens": 284,
+    "promptPreview": "請用一句繁體中文回答：後台是否連線成功？",
+    "output": "*   Role: Teaching and dispatching assistant for an elementary school campus service robot.\n    *   Language: Traditional Chinese.\n    *   Style: Short sentences, actionable/executable.\n    *   Specific Request: Answer the question \"Is the backend connected successfully?\" in one sentence of Traditional Chinese.\n\n    *   The user wants a status check confirmation.\n    *   Since I am acting as an assistant, the answer should be a clear \"Yes\" or \"No\" (or a status report) in a professional yet simple tone suitable for a school environment.\n\n    *   *Option 1 (Formal):* 後台已成功連線。 (Backend has connected successfully.)\n    *   *Option 2 (Short/Actionable):* 後台連線成功。 (Backend connection successful.)\n    *   *Option 3 (Confirmation):* 是的，後台已連線。 (Yes, backend is connected.)\n\n    *   The prompt asks for \"short sentences\" and \"executable/actionable\" style.\n    *   \"後台連線成功。\" is the most direct and concise.後台連線成功。",
+    "outputPreview": "*   Role: Teaching and dispatching assistant for an elementary school campus service robot.\n    *   Language: Traditional Chinese.\n    *   Style: Short sentences, actionable/executable.\n    *   Specific Request: Answer the question \"Is the backend connected successfully?\" in one sentence of Traditional Chinese.\n\n    *   The user wants a status check confirmation.\n    *   Since I am acting as an assistant, the answer should be a clear \"Yes\" or \"No\" (or a status report) in a professional yet simple tone suitable for a school environment.\n\n    *   *Option 1 (Formal):* 後台已成功連線。 (Backend has connected successfully.)\n    *   *Option 2 (Short/Actionable):* 後台連線成功。 (Backend connection successful.)\n    *   *Option 3 (Confirmation):* 是的，後台已連線。 (Yes, backend is connected.)\n\n    *   The prompt asks for \"short sentences\" and \"executable/actionable\" style.\n    *   \"後台連線成功。\" is the most direct and concise.後台連線成功。"
+  }
+]

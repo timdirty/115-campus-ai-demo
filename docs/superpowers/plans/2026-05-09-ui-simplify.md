@@ -14,18 +14,18 @@
 
 | 檔案 | 改動性質 |
 |---|---|
-| `apps/app1-whiteboard/src/pages/Home.tsx` | 刪除 6 個說明區塊 |
-| `apps/app1-whiteboard/src/App.tsx` | 重命名 tab home→whiteboard |
-| `apps/app1-whiteboard/src/components/tour/tourSteps.ts` | 更新 tab 引用，移除 status-tiles 步驟 |
-| `apps/app2-campus-service/src/App.tsx` | 移除 dashboard tab，nav 4→3 格，加 AI 指示燈 |
-| `apps/app3-guardian/src/App.tsx` | ActivePanel 型別、panelNav、PanelDock、DetailDrawer、panelTitle |
+| `google ai studio/app_1（國小）/AI自動板擦機器人/src/pages/Home.tsx` | 刪除 6 個說明區塊 |
+| `google ai studio/app_1（國小）/AI自動板擦機器人/src/App.tsx` | 重命名 tab home→whiteboard |
+| `google ai studio/app_1（國小）/AI自動板擦機器人/src/components/tour/tourSteps.ts` | 更新 tab 引用，移除 status-tiles 步驟 |
+| `google ai studio/app_2（國小）/校園服務機器人 app/src/App.tsx` | 移除 dashboard tab，nav 4→3 格，加 AI 指示燈 |
+| `google ai studio/app_3（國中）/AI校園心靈守護者/src/App.tsx` | ActivePanel 型別、panelNav、PanelDock、DetailDrawer、panelTitle |
 
 ---
 
 ## Task 1: App 1 — Home.tsx 砍說明區塊
 
 **Files:**
-- Modify: `apps/app1-whiteboard/src/pages/Home.tsx`
+- Modify: `google ai studio/app_1（國小）/AI自動板擦機器人/src/pages/Home.tsx`
 
 - [ ] **Step 1: 刪除 DEMO_STEPS 常數和主流程說明卡**
 
@@ -79,7 +79,7 @@ const saveQuickNote = async () => { ... };
 - [ ] **Step 5: 執行 TypeScript check**
 
 ```bash
-cd "apps/app1-whiteboard"
+cd "google ai studio/app_1（國小）/AI自動板擦機器人"
 npm run check:app1
 ```
 預期：無 type error
@@ -94,7 +94,7 @@ npm run dev:app1
 - [ ] **Step 7: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/src/pages/Home.tsx"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/src/pages/Home.tsx"
 git commit -m "feat(app1): strip home page to camera+region panels only"
 ```
 
@@ -103,7 +103,7 @@ git commit -m "feat(app1): strip home page to camera+region panels only"
 ## Task 2: App 1 — App.tsx tab 改名 home→whiteboard
 
 **Files:**
-- Modify: `apps/app1-whiteboard/src/App.tsx`
+- Modify: `google ai studio/app_1（國小）/AI自動板擦機器人/src/App.tsx`
 
 - [ ] **Step 1: 更新 AppTab type 和 appTabs 陣列**
 
@@ -177,7 +177,7 @@ npm run check:app1
 - [ ] **Step 8: 修正 TourProvider.tsx 中 hardcode 的 'home'**
 
 **Files:**
-- Modify: `apps/app1-whiteboard/src/components/tour/TourProvider.tsx`
+- Modify: `google ai studio/app_1（國小）/AI自動板擦機器人/src/components/tour/TourProvider.tsx`
 
 找到第 80 行：
 ```ts
@@ -198,8 +198,8 @@ npm run check:app1
 - [ ] **Step 10: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/src/App.tsx" \
-        "apps/app1-whiteboard/src/components/tour/TourProvider.tsx"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/src/App.tsx" \
+        "google ai studio/app_1（國小）/AI自動板擦機器人/src/components/tour/TourProvider.tsx"
 git commit -m "feat(app1): rename home tab to whiteboard, fix TourProvider hardcode"
 ```
 
@@ -208,7 +208,7 @@ git commit -m "feat(app1): rename home tab to whiteboard, fix TourProvider hardc
 ## Task 3: App 1 — tourSteps.ts 更新 tab 引用
 
 **Files:**
-- Modify: `apps/app1-whiteboard/src/components/tour/tourSteps.ts`
+- Modify: `google ai studio/app_1（國小）/AI自動板擦機器人/src/components/tour/tourSteps.ts`
 
 - [ ] **Step 1: 更新 TourStep type 中的 tab 聯合型別**
 
@@ -265,7 +265,7 @@ npm run check:app1
 - [ ] **Step 6: Commit**
 
 ```bash
-git add "apps/app1-whiteboard/src/components/tour/tourSteps.ts"
+git add "google ai studio/app_1（國小）/AI自動板擦機器人/src/components/tour/tourSteps.ts"
 git commit -m "feat(app1): update tour steps to use whiteboard tab, remove status-tiles step"
 ```
 
@@ -274,7 +274,7 @@ git commit -m "feat(app1): update tour steps to use whiteboard tab, remove statu
 ## Task 4: App 2 — 移除 dashboard tab，nav 4→3，加 AI 指示燈
 
 **Files:**
-- Modify: `apps/app2-campus-service/src/App.tsx`
+- Modify: `google ai studio/app_2（國小）/校園服務機器人 app/src/App.tsx`
 
 - [ ] **Step 1: 移除 dashboard 從 TABS 陣列**
 
@@ -335,7 +335,7 @@ sidebar `<nav>` 裡的 TABS.map 已會自動反映 TABS 的變動，不需要額
 - [ ] **Step 5.5: 更新 App 2 tourSteps.ts**
 
 **Files:**
-- Modify: `apps/app2-campus-service/src/components/tour/tourSteps.ts`
+- Modify: `google ai studio/app_2（國小）/校園服務機器人 app/src/components/tour/tourSteps.ts`
 
 ```ts
 // 改前（第 3 行 type）
@@ -406,7 +406,7 @@ npm run dev:app2
 - [ ] **Step 10: Commit**
 
 ```bash
-git add "apps/app2-campus-service/src/App.tsx"
+git add "google ai studio/app_2（國小）/校園服務機器人 app/src/App.tsx"
 git commit -m "feat(app2): remove dashboard tab, default delivery, add AI status indicators to header"
 ```
 
@@ -415,7 +415,7 @@ git commit -m "feat(app2): remove dashboard tab, default delivery, add AI status
 ## Task 5: App 3 — 砍 panel 5→3，nodes 改名 robot
 
 **Files:**
-- Modify: `apps/app3-guardian/src/App.tsx`
+- Modify: `google ai studio/app_3（國中）/AI校園心靈守護者/src/App.tsx`
 
 - [ ] **Step 1: 更新 ActivePanel 型別**
 
@@ -550,7 +550,7 @@ npm run dev:app3
 - [ ] **Step 10: Commit**
 
 ```bash
-git add "apps/app3-guardian/src/App.tsx"
+git add "google ai studio/app_3（國中）/AI校園心靈守護者/src/App.tsx"
 git commit -m "feat(app3): reduce panels 5→3, rename nodes to robot, remove sensing/logs panels"
 ```
 

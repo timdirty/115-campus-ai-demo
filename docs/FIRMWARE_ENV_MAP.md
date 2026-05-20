@@ -6,13 +6,13 @@ Use this file when you need to open, maintain, build, or upload the correct Ardu
 
 | Project | PlatformIO env | Firmware file | Board | Hardware role |
 | --- | --- | --- | --- | --- |
-| App 1 白板機器人雙馬達 | `uno_r4_minima_app1_whiteboard_drive` | `firmware/app1-whiteboard-drive/main.cpp` | UNO R4 Minima | L293D Motor Shield v1, M3/M4 drive base |
-| App 2 掃地機器人 (R4 WiFi) | `uno_r4_wifi_app2_sweeper` | `firmware/app2-sweeper-drive/main.cpp` | UNO R4 WiFi | L293D shield, M1+M2 雙輪驅動，M3+M4 掃地滾筒 |
-| App 2 掃地機器人 (R4 Minima) | `uno_r4_minima_app2_sweeper` | `firmware/app2-sweeper-drive/main.cpp` | UNO R4 Minima | 同上，DFU 上傳 |
-| App 3 心靈守護者感測器 | `uno_r4_wifi_sensor` | `firmware/app3-guardian-sensor/main.cpp` | UNO R4 WiFi | HY-M302 / DHT11 / photoresistor / RGB LED sensor node |
-| App 3 心靈守護者四輪底盤 (R4 WiFi) | `uno_r4_wifi_app3_guardian_drive` | `firmware/app3-guardian-drive/main.cpp` | UNO R4 WiFi | L293D M1+M4 left side, M2+M3 right side |
-| App 3 心靈守護者四輪底盤 (R4 Minima) | `uno_r4_minima_app3_guardian_drive` | `firmware/app3-guardian-drive/main.cpp` | UNO R4 Minima | 同上，改用 DFU 上傳 |
-| Shared three-app command demo | `uno_r4_wifi` | `firmware/shared-command-demo/main.cpp`, `firmware/shared-command-demo/commands.cpp`, `firmware/shared-command-demo/matrix_show.cpp` | UNO R4 WiFi | Shared serial command catalog, LED matrix, servo, DHT |
+| App 1 白板機器人雙馬達 | `uno_r4_minima_app1_whiteboard_drive` | `src/app1_whiteboard_drive/main.cpp` | UNO R4 Minima | L293D Motor Shield v1, M3/M4 drive base |
+| App 2 掃地機器人 (R4 WiFi) | `uno_r4_wifi_app2_sweeper` | `src/app2_sweeper_drive/main.cpp` | UNO R4 WiFi | L293D shield, M1+M2 後輪驅動，M3+M4 前方掃地葉片 |
+| App 2 掃地機器人 (R4 Minima) | `uno_r4_minima_app2_sweeper` | `src/app2_sweeper_drive/main.cpp` | UNO R4 Minima | 同上，DFU 上傳 |
+| App 3 心靈守護者感測器 | `uno_r4_wifi_sensor` | `src/app3_guardian_sensor/main.cpp` | UNO R4 WiFi | HY-M302 / DHT11 / photoresistor / RGB LED sensor node |
+| App 3 心靈守護者四輪底盤 (R4 WiFi) | `uno_r4_wifi_app3_guardian_drive` | `src/app3_guardian_drive/main.cpp` | UNO R4 WiFi | L293D M1+M4 left side, M2+M3 right side |
+| App 3 心靈守護者四輪底盤 (R4 Minima) | `uno_r4_minima_app3_guardian_drive` | `src/app3_guardian_drive/main.cpp` | UNO R4 Minima | 同上，改用 DFU 上傳 |
+| Shared three-app command demo | `uno_r4_wifi` | `src/main.cpp`, `src/commands.cpp`, `src/matrix_show.cpp` | UNO R4 WiFi | Shared serial command catalog, LED matrix, servo, DHT |
 
 ## Upload Commands
 
@@ -51,6 +51,7 @@ curl -s -X POST -H "Content-Type: application/json" \
 
 | 指令 | 行為 |
 | --- | --- |
+| `CHASSIS_TEST` | App 2 專用：只測 M1+M2 後輪，短暫前進後停止 |
 | `MOTOR_TEST` | 依序 M1→M4（或 M3→M4 對 App 1）各正轉 700ms，目視判斷哪顆沒反應 |
 | `M1_FWD` / `M1_BACK` / `M1_OFF` | 個別馬達直驅（M2/M3/M4 同理；App 1 只有 M3/M4） |
 | `READ_SENSORS` | 回 `SENSORS:TEMP:..,HUM:..,LIGHT:..` 或 `SENSORS:NONE` |
@@ -62,16 +63,16 @@ App 2 和 App 3 的 drive firmware 內建 3 秒看門狗：收到任何方向指
 
 方向反了改 firmware 對應 `invertMotorN` 旗標（App 2/3）或 `invertM3 / invertM4`（App 1），重燒即可，不用拆排線。
 
-App 2 sweeper 因為兩顆滾筒預設「反向相對」轉，掃地方向相反就送 `SWEEP_REVERSE` 切換、或永久改 invertMotor3/4。
+App 2 sweeper 因為兩個前方掃地葉片預設「反向相對」轉，掃地方向相反就送 `BLADES_REVERSE`（舊別名 `SWEEP_REVERSE` 也可）切換、或永久改 invertMotor3/4。葉片速度用 `BLADE_SPEED:<0-255>`（舊別名 `SWEEP_SPEED:<0-255>` 也可），啟停用 `BLADES_START` / `BLADES_STOP`。
 
 App 2 sweeper 還支援 kick-start（靜止 → 移動瞬間用高 PWM 突破靜摩擦力），所以速度可拉到 60-90 也能起步。
 
 ## Maintenance Rules
 
-- Do not put App 1 motor code in `firmware/app3-guardian-sensor/main.cpp`; that file is now the App 3 sensor node.
-- Do not put App 3 drive code in `firmware/shared-command-demo/commands.cpp`; keep it in `firmware/app3-guardian-drive/main.cpp`.
+- Do not put App 1 motor code in `src/app3_guardian_sensor/main.cpp`; that file is now the App 3 sensor node.
+- Do not put App 3 drive code in `src/commands.cpp`; keep it in `src/app3_guardian_drive/main.cpp`.
 - Keep standalone firmware folders excluded from `uno_r4_wifi` in `platformio.ini`, or the shared build will compile multiple `setup()` / `loop()` functions.
-- If you add another physical robot firmware, create a new folder under `firmware/` and a new PlatformIO env instead of reusing an existing app env.
+- If you add another physical robot firmware, create a new folder under `src/` and a new PlatformIO env instead of reusing an existing app env.
 
 ## Current Verification
 
