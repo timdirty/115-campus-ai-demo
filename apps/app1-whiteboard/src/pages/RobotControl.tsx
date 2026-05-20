@@ -153,6 +153,11 @@ export default function RobotControl() {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({command: dir, port: activePortRef.current || undefined}),
+    }).then((resp) => {
+      // fetch 只在網路斷線才 reject；5xx 也算 resolve，必須檢查 ok
+      if (!resp.ok) {
+        setActiveFeedback({title: '移動任務失敗', detail: `機器人服務回應 HTTP ${resp.status}，請確認硬體連線。`, ok: false, working: false});
+      }
     }).catch(() => {
       setActiveFeedback({title: '移動任務失敗', detail: '無法送出移動任務，請確認展示服務已啟動。', ok: false, working: false});
     });

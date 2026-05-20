@@ -723,12 +723,17 @@ export function registerRoutes(app: Express) {
       catch {}
     };
 
+    // 客戶端斷線時停掉序列、補送 STOP；否則機器人會繼續執行下一個區塊
+    let cancelled = false;
+    req.on('close', () => { cancelled = true; });
+
     let okCount = 0;
     let failCount = 0;
 
     sse({type: 'start', regions: regionIds, gapMs});
 
     for (const regionId of regionIds) {
+      if (cancelled) break;
       const command = `ERASE_REGION_${regionId}`;
       sse({type: 'sending', region: regionId, command});
 
@@ -754,11 +759,23 @@ export function registerRoutes(app: Express) {
 
       // Inter-region gap: gives robot time to move and erase
       if (regionId !== regionIds[regionIds.length - 1]) {
-        await new Promise((r) => setTimeout(r, gapMs));
+        // 把 gap 切成多段檢查，斷線時最多 200ms 內中斷
+        const slices = Math.ceil(gapMs / 200);
+        for (let i = 0; i < slices; i++) {
+          if (cancelled) break;
+          await new Promise((r) => setTimeout(r, Math.min(200, gapMs - i * 200)));
+        }
       }
     }
 
-    sse({type: 'done', total: regionIds.length, ok: okCount, failed: failCount});
+    if (cancelled) {
+      // 客戶端已斷，補送 STOP 確保機器人不會繼續移動
+      try { await sendSerialCommand('STOP', undefined); }
+      catch { /* best effort — UI 已不在，無處回報 */ }
+      await appendTaskLog({command: 'STOP', source: 'erase-sequence-cancelled', ok: true, message: 'client disconnected mid-sequence'});
+    } else {
+      sse({type: 'done', total: regionIds.length, ok: okCount, failed: failCount});
+    }
     res.end();
   });
 
