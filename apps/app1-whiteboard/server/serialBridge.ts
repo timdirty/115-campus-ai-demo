@@ -3,12 +3,13 @@ import path from 'node:path';
 import {access} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import {WebSocketServer, WebSocket} from 'ws';
-import {baudRate, bridgePort, distDir, nodeEnv} from './config';
+import {baudRate, bridgePort, distDir, isHardwareSimulationEnabled, nodeEnv} from './config';
 import {registerRoutes} from './routes';
 import {registerProxyRoutes} from './proxyRoutes';
 import {startSensorPolling} from './sensorManager';
 import {startEV3Manager} from './ev3Manager';
 import {setBroadcast} from './wsBroadcast';
+import {getActivePath, isArduinoLikePort, listPorts} from './robotService';
 
 const app = express();
 const httpServer = createServer(app);
@@ -26,6 +27,24 @@ const wsKeepalive = setInterval(() => {
 wss.on('connection', (ws) => {
   wsAlive.set(ws, true);
   ws.on('pong', () => wsAlive.set(ws, true));
+
+  // Push current hardware status immediately so frontend doesn't wait for first command
+  const sendStatus = async () => {
+    const simulated = isHardwareSimulationEnabled();
+    let port = getActivePath();
+    let connected = !simulated && port !== '' && !port.startsWith('simulated://');
+    if (!simulated && !connected) {
+      try {
+        const ports = await listPorts();
+        const found = ports.find(isArduinoLikePort);
+        if (found) { connected = true; port = found.path; }
+      } catch { /* ignore */ }
+    }
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({type: 'arduino_status', connected, port, simulated}), () => {});
+    }
+  };
+  void sendStatus();
 });
 httpServer.on('close', () => clearInterval(wsKeepalive));
 

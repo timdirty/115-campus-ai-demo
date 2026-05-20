@@ -374,6 +374,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      <DemoFlowRail currentTab={currentTab} whiteboardHasContent={whiteboardHasContent} demoProgress={demoProgress} onNavigate={setCurrentTab} />
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col w-full relative pb-44 md:pb-10">

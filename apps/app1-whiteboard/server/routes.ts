@@ -147,14 +147,30 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  app.get('/api/health', (_req, res) => {
+  app.get('/api/health', async (_req, res) => {
+    const simulated = isHardwareSimulationEnabled();
+    let activePath = getActivePath();
+    let arduinoConnected = false;
+    if (!simulated) {
+      if (activePath && !activePath.startsWith('simulated://')) {
+        arduinoConnected = true;
+      } else {
+        try {
+          const ports = await listPorts();
+          const found = ports.find(isArduinoLikePort);
+          if (found) { arduinoConnected = true; activePath = found.path; }
+        } catch { /* ignore */ }
+      }
+    }
     res.json({
       ok: true,
       bridgePort,
       baudRate,
       dataDir,
       geminiConfigured: isGeminiConfigured(),
-      hardwareSimulation: isHardwareSimulationEnabled(),
+      hardwareSimulation: simulated,
+      arduinoConnected,
+      activePath,
       uptimeSeconds: Math.round(process.uptime()),
     });
   });

@@ -178,6 +178,31 @@ void loop() {
     Serial.print(motorSpeed);
     Serial.print(",WDT:");
     Serial.println(watchdogArmed ? "armed" : "off");
+  } else if (cmd == "ERASE_ALL") {
+    forward(); delay(1500); stopAll();
+    Serial.println("ERASE_ALL");
+  } else if (cmd == "ERASE_REGION_A") {
+    turnLeft(); delay(400); forward(); delay(1000); stopAll();
+    Serial.println("ERASE_REGION_A");
+  } else if (cmd == "ERASE_REGION_B") {
+    turnRight(); delay(400); forward(); delay(1000); stopAll();
+    Serial.println("ERASE_REGION_B");
+  } else if (cmd == "ERASE_REGION_C") {
+    forward(); delay(1000); stopAll();
+    Serial.println("ERASE_REGION_C");
+  } else if (cmd == "KEEP_REGION_A" || cmd == "KEEP_REGION_B" || cmd == "KEEP_REGION_C") {
+    Serial.println(cmd);  // 保留指令：機器人不動作，回 ack 給 App
+  } else if (cmd == "PAUSE_TASK") {
+    stopAll();
+    Serial.println("PAUSE_TASK");
+  } else if (cmd == "CLEAN_START" || cmd == "CLEAN_STOP") {
+    Serial.println(cmd);  // 清潔流程：先 ack，不做動作
+  } else if (cmd.startsWith("SET_") || cmd == "CALIBRATION_STATUS") {
+    Serial.println(cmd);  // 校正類指令：暫時 ack，後續可加實作
+  } else if (cmd == "SHOW_ON" || cmd == "SHOW_OFF" || cmd == "FIREWORK" ||
+             cmd == "RESET" || cmd == "LED_ON" || cmd == "LED_OFF" ||
+             cmd.startsWith("SERVO_")) {
+    Serial.println(cmd);  // 顯示/伺服指令：暫時 ack（無實體 LED Matrix/Servo）
   } else {
     Serial.print("ERR:UNKNOWN:");
     Serial.println(cmd);

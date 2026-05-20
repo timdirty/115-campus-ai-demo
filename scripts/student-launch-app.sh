@@ -127,11 +127,67 @@ if [[ -n "$port_pids" ]]; then
   kill -9 ${(f)port_pids} >/dev/null 2>&1 || true
 fi
 
+# 釋放 Arduino serial port — 殺掉所有佔住 /dev/cu.* 或 /dev/tty.* 的 node 程序
+# （其他 App 的 bridge 可能還在背景跑）
+serial_locks="$(lsof /dev/cu.* /dev/tty.* 2>/dev/null | awk 'NR>1 && /node/{print $2}' | sort -u || true)"
+if [[ -n "$serial_locks" ]]; then
+  echo ""
+  echo "🔌 釋放被佔用的 Serial port..."
+  echo "$serial_locks" | xargs kill -9 2>/dev/null || true
+  sleep 0.5
+fi
+
+# Auto-detect Arduino unless caller already forced a mode
+if [[ -z "${DEMO_SIMULATE_HARDWARE:-}" ]]; then
+  arduino_port="$(ls /dev/cu.* 2>/dev/null | grep -iv 'bluetooth\|debug-console' | head -1 || true)"
+
+  if [[ -z "$arduino_port" ]]; then
+    # Check if board is in DFU mode (double-reset or never flashed)
+    dfu_detected="$(ioreg -p IOUSB -w0 -l 2>/dev/null | grep -c '"Santiago DFU"' || true)"
+    if [[ "$dfu_detected" -gt 0 ]]; then
+      echo ""
+      echo "⚡ 偵測到 Arduino 處於 DFU 模式（等待燒錄）"
+      PIO_ENV="${STUDENT_PIO_ENV:-}"
+      PIO_ROOT="${STUDENT_PIO_ROOT:-}"
+      if command -v pio >/dev/null 2>&1 && [[ -n "$PIO_ENV" && -n "$PIO_ROOT" ]]; then
+        echo "   正在自動燒錄韌體：$PIO_ENV ..."
+        cd "$PIO_ROOT"
+        pio run -e "$PIO_ENV" --target upload 2>&1 | grep -E "SUCCESS|ERROR|Uploading|Writing|error" || true
+        cd "$APP_DIR"
+        echo "   燒錄完成，等待板子重新啟動..."
+        for _ in {1..24}; do
+          arduino_port="$(ls /dev/cu.* 2>/dev/null | grep -iv 'bluetooth\|debug-console' | head -1 || true)"
+          [[ -n "$arduino_port" ]] && break
+          sleep 0.5
+        done
+      else
+        echo "   找不到 PlatformIO 或未設定韌體環境，請按板子上的 Reset 鍵一次。"
+        echo "   等待板子離開 DFU 模式（12 秒）..."
+        for _ in {1..24}; do
+          arduino_port="$(ls /dev/cu.* 2>/dev/null | grep -iv 'bluetooth\|debug-console' | head -1 || true)"
+          [[ -n "$arduino_port" ]] && break
+          sleep 0.5
+        done
+      fi
+    fi
+  fi
+
+  if [[ -n "$arduino_port" ]]; then
+    DEMO_SIMULATE_HARDWARE=0
+    echo ""
+    echo "✅ 偵測到實體 Arduino：$arduino_port（硬體模式）"
+  else
+    DEMO_SIMULATE_HARDWARE=1
+    echo ""
+    echo "📱 未偵測到 Arduino，使用展示模式（所有功能仍可操作）"
+  fi
+fi
+
 echo ""
 echo "啟動本機展示服務：http://127.0.0.1:$BRIDGE_PORT$URL_PATH"
 BRIDGE_PORT="$BRIDGE_PORT" \
 NODE_ENV=production \
-DEMO_SIMULATE_HARDWARE="${DEMO_SIMULATE_HARDWARE:-1}" \
+DEMO_SIMULATE_HARDWARE="$DEMO_SIMULATE_HARDWARE" \
 npm run "$START_SCRIPT" > "$RUNTIME_DIR/app.log" 2>&1 &
 APP_PID=$!
 echo "$APP_PID" > "$RUNTIME_DIR/app.pid"

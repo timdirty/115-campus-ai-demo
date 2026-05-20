@@ -139,9 +139,11 @@ async function pollSensors(): Promise<void> {
     }
   }
 
-  // Open newly detected ports (best effort)
+  // Only open ports that are actually assigned to a zone — speculative opens
+  // race robotService for the primary Arduino and cause "Cannot lock port".
+  const assignedPaths = new Set(zoneAssignments.values());
   for (const port of detected) {
-    if (!portCache.has(port.path)) {
+    if (assignedPaths.has(port.path) && !portCache.has(port.path)) {
       openPort(port.path).catch(() => {});
     }
   }
