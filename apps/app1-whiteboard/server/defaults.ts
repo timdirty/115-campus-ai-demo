@@ -144,6 +144,7 @@ export const commandCatalog: RobotCommandInfo[] = [
   {command: 'SHOW_ON', label: '開始動畫', group: 'display'},
   {command: 'SHOW_OFF', label: '停止動畫', group: 'display'},
   {command: 'FIREWORK', label: '放煙火', group: 'display'},
+  {command: 'CELEBRATE', label: '慶祝動作', group: 'display'},
   {command: 'RESET', label: '重置動畫', group: 'display'},
   {command: 'LED_ON', label: 'LED 開', group: 'hardware'},
   {command: 'LED_OFF', label: 'LED 關', group: 'hardware'},

@@ -217,6 +217,17 @@ void loop() {
   } else if (cmd == "ERASE_REGION_C") {
     forward();
     if (waitInterruptible(1000)) { stopAll(); Serial.println("ERASE_REGION_C"); }
+  } else if (cmd == "CELEBRATE") {
+    // 慶祝動作：左右搖擺 3 次，每次 200ms 顯露成功感
+    bool ok = true;
+    for (int i = 0; i < 3 && ok; i++) {
+      turnLeft();
+      if (!waitInterruptible(200)) { ok = false; break; }
+      turnRight();
+      if (!waitInterruptible(200)) { ok = false; break; }
+    }
+    stopAll();
+    Serial.println(ok ? "CELEBRATE" : "CELEBRATE:ABORTED");
   } else if (cmd == "KEEP_REGION_A" || cmd == "KEEP_REGION_B" || cmd == "KEEP_REGION_C") {
     Serial.println(cmd);  // 保留指令：機器人不動作，回 ack 給 App
   } else if (cmd == "PAUSE_TASK") {

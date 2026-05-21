@@ -11,7 +11,33 @@ import {
 } from '../services/classroomApi';
 import type {BoardRegion, RobotCommandInfo, TaskLogItem} from '../services/classroomApi';
 import {saveDemoProgress} from '../services/demoProgress';
+import {say as robotSay, cancel as robotVoiceCancel} from '../services/robotVoice';
+import {runEraseWithVerification, residualToQualityLabel} from '../services/eraseVerifier';
 import EV3ControlPanel from '../components/EV3ControlPanel';
+import AIThinkingOverlay, {type ThinkingRegion} from '../components/AIThinkingOverlay';
+import CelebrationOverlay from '../components/CelebrationOverlay';
+
+function commandVoicePhrase(command: string, phase: 'start' | 'done'): string | null {
+  const trimmed = command.trim().toUpperCase();
+  if (phase === 'start') {
+    if (trimmed === 'ERASE_ALL') return '好，我要全部擦掉囉';
+    if (trimmed === 'ERASE_REGION_A') return '好，我來擦 A 區';
+    if (trimmed === 'ERASE_REGION_B') return '好，我來擦 B 區';
+    if (trimmed === 'ERASE_REGION_C') return '好，我來擦 C 區';
+    if (trimmed === 'CELEBRATE') return '擦好了，我來慶祝一下';
+    if (trimmed === 'PAUSE_TASK') return '暫停一下';
+    if (trimmed.startsWith('KEEP_REGION_')) return '這區是重點，我會保留';
+    return null;
+  }
+  if (trimmed === 'ERASE_ALL') return '全部擦好了！';
+  if (trimmed === 'ERASE_REGION_A') return 'A 區擦好了！';
+  if (trimmed === 'ERASE_REGION_B') return 'B 區擦好了！';
+  if (trimmed === 'ERASE_REGION_C') return 'C 區擦好了！';
+  if (trimmed === 'CELEBRATE') return '耶！';
+  return null;
+}
+
+const ERASE_COMMAND_PATTERN = /^(ERASE_REGION_[ABC]|ERASE_ALL|CELEBRATE)$/i;
 
 type SerialPortInfo = {
   path: string;
@@ -99,6 +125,9 @@ export default function RobotControl() {
     working: false,
   });
   const [logExpanded, setLogExpanded] = useState(false);
+  const [thinking, setThinking] = useState<{open: boolean; label: string; progress?: number; regions?: ThinkingRegion[]}>({open: false, label: ''});
+  const [celebrating, setCelebrating] = useState(false);
+  const [celebrateMessage, setCelebrateMessage] = useState('擦好了！');
 
   const refreshPorts = async () => {
     try {
@@ -209,6 +238,9 @@ export default function RobotControl() {
     if (!trimmedCommand) return;
     setBusy(true);
     const displayName = commandDisplayName(trimmedCommand);
+    const startPhrase = commandVoicePhrase(trimmedCommand, 'start');
+    if (startPhrase) robotSay(startPhrase, {priority: 'urgent'});
+    setThinking({open: true, label: `機器人收到「${displayName}」`, progress: 15});
     setActiveFeedback({title: displayName, detail: '正在送出任務，等待回饋。', ok: true, working: true});
     try {
       const result = await sendRobotCommand(trimmedCommand, 'robot-control', activePort || undefined);
@@ -222,7 +254,16 @@ export default function RobotControl() {
       });
       saveDemoProgress({robot: true});
       setCustomCommand('');
+      setThinking((prev) => ({...prev, open: false}));
+      const donePhrase = commandVoicePhrase(trimmedCommand, 'done');
+      if (donePhrase) robotSay(donePhrase, {priority: 'normal'});
+      if (ERASE_COMMAND_PATTERN.test(trimmedCommand)) {
+        setCelebrateMessage(donePhrase ?? '擦好了！');
+        setCelebrating(true);
+      }
     } catch (error) {
+      setThinking((prev) => ({...prev, open: false}));
+      robotSay('出狀況了，請老師檢查機器人', {priority: 'urgent'});
       setActiveFeedback({
         title: `${displayName} 未送出`,
         detail: error instanceof Error ? error.message : '請稍後再試。',
@@ -262,12 +303,24 @@ export default function RobotControl() {
   const sendTask = async (action: string, regionId?: string) => {
     setBusy(true);
     const taskName = regionId ? `區塊 ${regionId}` : '全板';
+    if (action === 'erase') robotSay(`好，我來擦${taskName}`, {priority: 'urgent'});
+    else if (action === 'keep') robotSay(`好，${taskName}是重點，我會保留`, {priority: 'urgent'});
+    else if (action === 'pause') robotSay('暫停一下', {priority: 'urgent'});
+    const thinkingRegions: ThinkingRegion[] | undefined = classroomRegions.length > 0
+      ? classroomRegions.map((r) => ({
+          id: r.id,
+          label: `${r.id} 區`,
+          status: r.id === regionId
+            ? (action === 'erase' ? 'erase' : action === 'keep' ? 'keep' : 'analyzing')
+            : (r.status === 'erased' ? 'done' : r.status === 'keep' ? 'keep' : 'analyzing'),
+        }))
+      : undefined;
+    setThinking({open: true, label: `${taskName}任務分析中`, progress: 30, regions: thinkingRegions});
     setActiveFeedback({title: `${taskName}任務`, detail: '正在整理擦除範圍與保留重點。', ok: true, working: true});
     try {
       const result = await sendRobotTask(action, regionId, 'robot-control', activePort || undefined);
       setTaskLog(result.taskLog ?? []);
       setActivePort(result.status.activePort);
-      await markClassroomTaskDone(action, regionId);
       const displayName = commandDisplayName(result.command);
       setActiveFeedback({
         title: result.ok ? `${displayName} 已排程` : `${displayName} 已記錄`,
@@ -276,7 +329,69 @@ export default function RobotControl() {
         working: false,
       });
       saveDemoProgress({robot: true});
+      // codex-adv finding #2：bridge fallback (result.ok=false) 不該標已擦也不該進 verify cycle
+      // 否則 hardware 沒接時會偽稱「AI 自我驗證通過」並飛撒花，跟實機沒擦這事實衝突
+      if (!result.ok) {
+        setThinking((prev) => ({...prev, open: false}));
+        robotSay('機器人沒回應，請老師檢查連線', {priority: 'urgent'});
+        return;
+      }
+      await markClassroomTaskDone(action, regionId);
+      if (action === 'erase') {
+        await runEraseWithVerification({
+          regionLabel: taskName,
+          eraseRunner: async (attempt) => {
+            if (attempt === 1) return;
+            const retryCmd = regionId ? `ERASE_REGION_${regionId}` : 'ERASE_ALL';
+            try {
+              await sendRobotCommand(retryCmd, 'robot-control', activePortRef.current || undefined);
+            } catch {
+              // 重試失敗時不中斷閉環，讓 verifier 用最後一輪結果決定 pass/fail
+            }
+          },
+          callbacks: {
+            onAttemptStart: (attempt) => {
+              if (attempt > 1) {
+                robotSay(`咦，還有殘留，再擦一次`, {priority: 'urgent'});
+              }
+            },
+            onProgress: (msg, percent) => {
+              setThinking((prev) => ({...prev, label: msg, progress: percent, open: true}));
+            },
+            onResidual: (residual, attempt) => {
+              setActiveFeedback({
+                title: `第 ${attempt} 次驗證`,
+                detail: residualToQualityLabel(residual),
+                ok: residual <= 0.25,
+                working: false,
+              });
+            },
+            onPassed: (_residual, attempt) => {
+              const msg = `${taskName}擦好了！${attempt > 1 ? `（${attempt} 次達標）` : ''}`;
+              robotSay(attempt === 1 ? `${taskName}擦好了！` : `乾淨了！${attempt} 次達標`, {priority: 'normal'});
+              setCelebrateMessage(msg);
+              window.setTimeout(() => setCelebrating(true), 600);
+              sendRobotCommand('CELEBRATE', 'robot-control', activePortRef.current || undefined).catch(() => {});
+            },
+            onFailed: () => {
+              robotSay('我擦不夠乾淨，請老師補擦', {priority: 'urgent'});
+              setActiveFeedback({
+                title: '需老師補擦',
+                detail: '機器人試了 3 次仍有殘留，請老師接手最後一段（HITL）。',
+                ok: false,
+                working: false,
+              });
+            },
+          },
+        });
+        await new Promise((r) => window.setTimeout(r, 700));
+        setThinking((prev) => ({...prev, open: false}));
+      } else {
+        setThinking((prev) => ({...prev, open: false}));
+      }
     } catch (error) {
+      setThinking((prev) => ({...prev, open: false}));
+      robotSay('出狀況了，請老師檢查機器人', {priority: 'urgent'});
       setActiveFeedback({
         title: '任務未送出',
         detail: error instanceof Error ? error.message : '請稍後再試。',
@@ -288,8 +403,13 @@ export default function RobotControl() {
     }
   };
 
+  useEffect(() => {
+    return () => robotVoiceCancel();
+  }, []);
+
   return (
-    /* flex-col so the drive bar sits at the bottom without fixed-positioning issues */
+    <>
+    {/* flex-col so the drive bar sits at the bottom without fixed-positioning issues */}
     <motion.div
       variants={containerVariants}
       initial="hidden"
@@ -591,6 +711,19 @@ export default function RobotControl() {
         </div>
       </details>
     </motion.div>
+    <AIThinkingOverlay
+      open={thinking.open}
+      label={thinking.label}
+      progress={thinking.progress}
+      regions={thinking.regions}
+      onClose={() => setThinking((prev) => ({...prev, open: false}))}
+    />
+    <CelebrationOverlay
+      open={celebrating}
+      message={celebrateMessage}
+      onDone={() => setCelebrating(false)}
+    />
+    </>
   );
 }
 
