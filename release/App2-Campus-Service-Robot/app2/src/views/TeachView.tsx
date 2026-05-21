@@ -349,20 +349,23 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
 	    }
 	  };
 
-	  const applyDetectionTracks = (
+  const applyDetectionTracks = (
     detections: ClassroomPersonDetection[],
     source: 'yolo' | 'local',
     frame: {width: number; height: number},
+    fallbackCount = 0,
   ) => {
-    const count = source === 'yolo' ? detections.length : 0;
+    const hasYoloPeople = source === 'yolo' && detections.length > 0;
+    const count = hasYoloPeople ? detections.length : fallbackCount;
+    const attendanceSource: AttendanceScanResult['source'] = hasYoloPeople ? 'yolo' : 'llm-cv';
     const missing = Math.max(0, expectedAttendanceTotal - count);
     setAttendanceScan({
       count,
-      source,
+      source: attendanceSource,
       updatedAt: Date.now(),
-      note: source === 'yolo'
+      note: attendanceSource === 'yolo'
         ? `點名辨識：YOLO 判斷 ${count}/${expectedAttendanceTotal} 人${missing > 0 ? `，不足 ${missing} 人待確認` : '，人數已到齊'}，接續分析學習氛圍。`
-        : '點名辨識：YOLO 暫時無法偵測人數，請確認後端模型或換一張照片。',
+        : `點名辨識：YOLO 暫無可靠框選，先用本機 CV 暫估 ${count}/${expectedAttendanceTotal} 人。`,
     });
     setTrackingFrame(frame);
     setTrackingSource(source);
@@ -417,8 +420,12 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
 	          void analyzeAndPublishAlerts(capture, ctrl.signal);
 	          const result = await detectClassroomPeople(capture, ctrl.signal);
 	          if (ctrl.signal.aborted) break;
+          const cvCount = analyzeClassroomPixels(capture.width, capture.height, capture.data, previousFrameRef.current).estimatedPeople;
           const reconciled = reconcileTrackedPeople(trackedPeopleRef.current, result.detections, nextTrackIdRef.current);
           const visibleCount = reconciled.tracks.filter((track) => track.missed === 0).length;
+          const hasYoloPeople = result.source === 'yolo' && visibleCount > 0;
+          const attendanceCount = hasYoloPeople ? visibleCount : cvCount;
+          const attendanceSource: AttendanceScanResult['source'] = hasYoloPeople ? 'yolo' : 'llm-cv';
           nextTrackIdRef.current = reconciled.nextId;
           trackedPeopleRef.current = reconciled.tracks;
           setTrackedPeople(reconciled.tracks);
@@ -426,12 +433,12 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
           setTrackingFrame({width: capture.width, height: capture.height});
           drawTrackingOverlay(reconciled.tracks, capture.width, capture.height);
           setAttendanceScan({
-            count: result.source === 'yolo' ? visibleCount : 0,
-            source: result.source,
+            count: attendanceCount,
+            source: attendanceSource,
             updatedAt: Date.now(),
-            note: result.source === 'yolo'
+            note: attendanceSource === 'yolo'
               ? `即時點名：YOLO 框選 ${visibleCount}/${expectedAttendanceTotal} 人${Math.max(0, expectedAttendanceTotal - visibleCount) > 0 ? `，不足 ${Math.max(0, expectedAttendanceTotal - visibleCount)} 人待確認` : '，人數已到齊'}，接續分析學習氛圍。`
-              : '即時點名：YOLO 啟動中，暫無可靠人數。',
+              : `即時點名：YOLO 暫無可靠框選，先用本機 CV 暫估 ${attendanceCount}/${expectedAttendanceTotal} 人。`,
           });
 
 	          try {
@@ -642,10 +649,11 @@ export function TeachView({ showToast, navigateTo }: { showToast: (m: string) =>
 	      const capture = await captureClassroomImage(file, 960, 0.82);
 	      setClassroomPreviewImage(capture.imageDataUrl);
 	      publishFastClassroomAnalysis(capture, previousFrameRef.current);
-	      const analysisPromise = analyzeClassroomFrame(capture, previousFrameRef.current);
-	      const alertPromise = analyzeAndPublishAlerts(capture);
-	      const detection = await detectClassroomPeople(capture);
-	      const count = applyDetectionTracks(detection.detections, detection.source, {width: capture.width, height: capture.height});
+		      const analysisPromise = analyzeClassroomFrame(capture, previousFrameRef.current);
+		      const alertPromise = analyzeAndPublishAlerts(capture);
+		      const detection = await detectClassroomPeople(capture);
+		      const cvCount = analyzeClassroomPixels(capture.width, capture.height, capture.data, previousFrameRef.current).estimatedPeople;
+		      const count = applyDetectionTracks(detection.detections, detection.source, {width: capture.width, height: capture.height}, cvCount);
 	      showToast(`點名照片辨識完成：${count} 人，學習氛圍分析持續更新中`);
 	      const analysis = await analysisPromise;
 	      previousFrameRef.current = new Uint8ClampedArray(capture.data);

@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import {execFile, spawn, type ChildProcessWithoutNullStreams} from 'node:child_process';
+import {execFile, spawn, spawnSync, type ChildProcessWithoutNullStreams} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {GoogleGenAI, createPartFromBase64} from '@google/genai';
 
@@ -9,6 +9,7 @@ const geminiVisionModel = process.env.GEMINI_VISION_MODEL?.trim() || (geminiMode
 const ai = geminiApiKey ? new GoogleGenAI({apiKey: geminiApiKey}) : null;
 const yoloWorkerEnabled = process.env.YOLO_WORKER_DISABLED !== '1';
 const yoloWorkerTimeoutMs = Math.max(900, Number(process.env.YOLO_WORKER_TIMEOUT_MS ?? 2200));
+let pythonCommandCache: {command: string; args: string[]} | null | undefined;
 
 export function isOllamaConfigured(): boolean {
   return Boolean(ai);
@@ -449,9 +450,11 @@ function handleYoloWorkerLine(line: string) {
 
 function ensureYoloWorker() {
   if (!yoloWorkerEnabled || yoloWorker || yoloWorkerBooting) return;
+  const python = resolvePythonCommand();
+  if (!python) return;
   yoloWorkerBooting = true;
   const scriptPath = fileURLToPath(new URL('./classroom_yolo_worker.py', import.meta.url));
-  yoloWorker = spawn('python3', [scriptPath], {stdio: ['pipe', 'pipe', 'pipe']});
+  yoloWorker = spawn(python.command, [...python.args, scriptPath], {stdio: ['pipe', 'pipe', 'pipe']});
   yoloWorker.stdout.on('data', (chunk: Buffer) => {
     yoloWorkerBuffer += chunk.toString('utf8');
     let newline = yoloWorkerBuffer.indexOf('\n');
@@ -491,11 +494,13 @@ async function runYoloWorker(imageBase64: string, options: YoloRunOptions = {}):
 async function runYoloClassroomScript(imageBase64: string, options: YoloRunOptions = {}): Promise<YoloClassroomResult | null> {
   const workerResult = await runYoloWorker(imageBase64, options);
   if (workerResult) return workerResult;
+  const python = resolvePythonCommand();
+  if (!python) return null;
   const scriptPath = fileURLToPath(new URL('./classroom_yolo_llm.py', import.meta.url));
   return new Promise((resolve) => {
     const child = execFile(
-      'python3',
-      [scriptPath],
+      python.command,
+      [...python.args, scriptPath],
       {timeout: 4500, maxBuffer: 1024 * 1024},
       (error, stdout) => {
         if (error) {
@@ -512,6 +517,37 @@ async function runYoloClassroomScript(imageBase64: string, options: YoloRunOptio
     );
     child.stdin?.end(JSON.stringify({imageBase64, ...options}));
   });
+}
+
+function resolvePythonCommand(): {command: string; args: string[]} | null {
+  if (pythonCommandCache !== undefined) return pythonCommandCache;
+  const configured = process.env.YOLO_PYTHON?.trim() || process.env.PYTHON?.trim();
+  const candidates: Array<{command: string; args: string[]}> = [
+    ...(configured ? [{command: configured, args: []}] : []),
+    ...(process.platform === 'win32'
+      ? [
+          {command: 'py', args: ['-3']},
+          {command: 'python', args: []},
+          {command: 'python3', args: []},
+        ]
+      : [
+          {command: 'python3', args: []},
+          {command: 'python', args: []},
+        ]),
+  ];
+
+  pythonCommandCache = null;
+  for (const candidate of candidates) {
+    const result = spawnSync(candidate.command, [...candidate.args, '--version'], {
+      stdio: 'ignore',
+      shell: process.platform === 'win32',
+    });
+    if (result.status === 0) {
+      pythonCommandCache = candidate;
+      break;
+    }
+  }
+  return pythonCommandCache;
 }
 
 export async function detectClassroomPeople(imageBase64: string, options: YoloRunOptions = {}): Promise<{detections: ClassroomPersonDetection[]; source: 'yolo' | 'local'}> {

@@ -63,6 +63,7 @@ export default function App() {
   const state = useAppState();
   const actions = useAppActions();
   const [activeTab, setActiveTab] = useState('delivery');
+  const [visitedTabs, setVisitedTabs] = useState(() => new Set(['delivery']));
   const [toastMessage, setToastMessage] = useState<{ id: number; message: string } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [subView, setSubView] = useState<{ id: string; props?: any } | null>(null);
@@ -127,6 +128,15 @@ export default function App() {
   useEffect(() => {
     setToastMessage(null);
     setSubView(null);
+  }, [activeTab]);
+
+  useEffect(() => {
+    setVisitedTabs((current) => {
+      if (current.has(activeTab)) return current;
+      const next = new Set(current);
+      next.add(activeTab);
+      return next;
+    });
   }, [activeTab]);
 
   useEffect(() => {
@@ -326,21 +336,26 @@ export default function App() {
 
       {/* Dynamic Content Views */}
       <main className="mx-auto min-h-screen max-w-6xl px-4 pb-36 pt-24 sm:px-5 md:px-8 md:pb-12 md:pt-28">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-          >
-            <Suspense fallback={<ScreenFallback label="正在載入頁面" />}>
-              {activeTab === 'teach' && <TeachView showToast={showToast} navigateTo={navigateTo} />}
-              {activeTab === 'delivery' && <DeliveryView showToast={showToast} navigateTo={navigateTo} />}
-              {activeTab === 'life' && <LifeView showToast={showToast} navigateTo={navigateTo} />}
-            </Suspense>
-          </motion.div>
-        </AnimatePresence>
+        <Suspense fallback={<ScreenFallback label="正在載入頁面" />}>
+          {TABS.map((tab) => {
+            if (!visitedTabs.has(tab.id)) return null;
+            const isActive = activeTab === tab.id;
+            return (
+              <motion.div
+                key={tab.id}
+                className={isActive ? 'block' : 'hidden'}
+                initial={false}
+                animate={{opacity: isActive ? 1 : 0, y: isActive ? 0 : 10}}
+                transition={{duration: 0.2, ease: 'easeOut'}}
+                aria-hidden={!isActive}
+              >
+                {tab.id === 'teach' && <TeachView showToast={showToast} navigateTo={navigateTo} />}
+                {tab.id === 'delivery' && <DeliveryView showToast={showToast} navigateTo={navigateTo} />}
+                {tab.id === 'life' && <LifeView showToast={showToast} navigateTo={navigateTo} />}
+              </motion.div>
+            );
+          })}
+        </Suspense>
       </main>
 
       {/* Sub-Views (Full page overlays) */}

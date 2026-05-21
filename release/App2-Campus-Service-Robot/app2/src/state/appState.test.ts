@@ -9,6 +9,7 @@ import {
   resolveTeachingSignal,
   resetDemoState,
   normalizePersistedState,
+  loadPersistedState,
 } from './appState';
 import {
   generateClassSummary,
@@ -177,6 +178,29 @@ async function run() {
   });
   assert.equal(restored.orders[0].id, 'order-live');
   assert.equal(restored.logs[0].message.includes('已匯入展示資料'), true);
+
+  const reloadSource = appReducer(restored, {
+    type: 'ADD_DISPATCH_TASK',
+    payload: {zone: 'C', taskType: 'patrol'},
+    now: '2026-04-29T09:35:00.000+08:00',
+  });
+  let persistedAfterLoad = '';
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {
+      localStorage: {
+        getItem: () => JSON.stringify(reloadSource),
+        setItem: (_key: string, value: string) => {
+          persistedAfterLoad = value;
+        },
+      },
+    },
+  });
+  const reloaded = loadPersistedState();
+  assert.equal(reloaded.tasks.length, reloadSource.tasks.length);
+  assert.equal(reloaded.tasks[0].id, reloadSource.tasks[0].id);
+  assert.equal(JSON.parse(persistedAfterLoad).tasks.length, reloadSource.tasks.length);
+  delete (globalThis as {window?: unknown}).window;
 
   const reply = await generateTeacherReply('文藝復興三傑是誰？');
   assert.match(reply, /達文西|米開朗基羅|拉斐爾/);

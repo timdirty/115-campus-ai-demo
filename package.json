@@ -42,6 +42,8 @@
     "skills:interop": "sed -n '1,260p' docs/AGENT_INTEROP.md",
     "preview": "node scripts/build-github-pages.mjs && npx serve pages-dist -p 11500",
     "build": "node scripts/build-github-pages.mjs",
+    "package:app2": "node scripts/package-app2.mjs",
+    "package:app3": "node scripts/package-app3.mjs",
     "check": "npm run check:polish && npm run check:app1 && npm run check:app2 && npm run check:app3",
     "upload": "node scripts/upload-firmware.mjs",
     "start:all": "bash scripts/start-all-bridges.sh",

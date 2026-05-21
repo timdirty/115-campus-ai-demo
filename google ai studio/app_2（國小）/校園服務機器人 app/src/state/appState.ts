@@ -1260,23 +1260,15 @@ export function loadPersistedState(): AppState {
   if (typeof window === 'undefined') return createInitialAppState();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return clearStartupTasks(createInitialAppState());
+    if (!raw) return createInitialAppState();
     const normalized = normalizePersistedState(JSON.parse(raw));
-    const startupState = clearStartupTasks(normalized);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(startupState));
-    return startupState;
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    return normalized;
   } catch {
-    const initial = clearStartupTasks(createInitialAppState());
+    const initial = createInitialAppState();
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
     return initial;
   }
-}
-
-function clearStartupTasks(state: AppState): AppState {
-  return {
-    ...state,
-    tasks: [],
-  };
 }
 
 export function persistState(state: AppState) {

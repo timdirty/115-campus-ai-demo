@@ -71,8 +71,17 @@ export async function listPorts(): Promise<PortInfo[]> {
 }
 
 export function isArduinoLikePort(port: PortInfo) {
-  const text = `${port.path} ${port.manufacturer ?? ''}`.toLowerCase();
-  return text.includes('arduino') || text.includes('usbmodem') || text.includes('uno');
+  const text = `${port.path} ${port.manufacturer ?? ''} ${port.vendorId ?? ''} ${port.productId ?? ''}`.toLowerCase();
+  const vendorId = (port.vendorId ?? '').toLowerCase();
+  const knownArduinoVendor = ['2341', '2a03', '1a86', '10c4', '239a'].includes(vendorId);
+  const usbSerialLabel = text.includes('usb serial') || text.includes('wch') || text.includes('ch340') || text.includes('cp210');
+  const windowsComPort = process.platform === 'win32' && /^com\d+$/i.test(port.path);
+  return text.includes('arduino') ||
+    text.includes('usbmodem') ||
+    text.includes('uno') ||
+    knownArduinoVendor ||
+    usbSerialLabel ||
+    (windowsComPort && Boolean(port.manufacturer || port.vendorId));
 }
 
 async function pickPortPath(): Promise<string | null> {
@@ -156,6 +165,9 @@ function waitForNextLine(timeoutMs: number): Promise<string | null> {
 }
 
 function killPortHolders(portPath: string): boolean {
+  if (process.platform === 'win32') {
+    return false;
+  }
   try {
     const pids = execSync(`lsof -ti "${portPath}" 2>/dev/null`, {encoding: 'utf8'}).trim();
     if (!pids) return false;

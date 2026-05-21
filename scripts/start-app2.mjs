@@ -46,12 +46,23 @@ function openUrl(url) {
 }
 
 function findPython() {
-  const candidates = isWin ? ['py', 'python', 'python3'] : ['python3', 'python'];
+  const candidates = isWin
+    ? [{command: 'py', args: ['-3']}, {command: 'python', args: []}, {command: 'python3', args: []}]
+    : [{command: 'python3', args: []}, {command: 'python', args: []}];
   for (const candidate of candidates) {
-    const result = spawnSync(candidate, ['--version'], {stdio: 'ignore', shell: isWin});
+    const result = spawnSync(candidate.command, [...candidate.args, '--version'], {stdio: 'ignore', shell: isWin});
     if (result.status === 0) return candidate;
   }
   return null;
+}
+
+function runPython(python, args, cwd = appDir) {
+  const result = spawnSync(python.command, [...python.args, ...args], {
+    cwd,
+    stdio: 'inherit',
+    shell: isWin,
+  });
+  if (result.status !== 0) throw new Error(`${python.command} ${[...python.args, ...args].join(' ')} failed`);
 }
 
 function ensurePythonYoloDeps() {
@@ -60,15 +71,15 @@ function ensurePythonYoloDeps() {
     console.log('[app2] 找不到 Python，YOLO 會使用前端 CV 備援。');
     return;
   }
-  const check = spawnSync(python, ['-c', 'import cv2, numpy, ultralytics'], {stdio: 'ignore', shell: isWin});
+  const check = spawnSync(python.command, [...python.args, '-c', 'import cv2, numpy, ultralytics'], {stdio: 'ignore', shell: isWin});
   if (check.status === 0) {
     console.log('[app2] Python YOLO 依賴已就緒。');
     return;
   }
   console.log('[app2] 安裝 Python YOLO 依賴（ultralytics / opencv-python / numpy）...');
   try {
-    run(`${python} -m pip install --upgrade pip`, {cwd: appDir});
-    run(`${python} -m pip install ultralytics opencv-python numpy`, {cwd: appDir});
+    runPython(python, ['-m', 'pip', 'install', '--upgrade', 'pip']);
+    runPython(python, ['-m', 'pip', 'install', 'ultralytics', 'opencv-python', 'numpy']);
   } catch {
     console.log('[app2] Python YOLO 依賴安裝失敗，系統仍會用 CV 備援繼續啟動。');
   }
@@ -110,6 +121,7 @@ const env = {
   APP2_WEB_PORT: String(webPort),
   APP2_BRIDGE_PORT: String(bridgePort),
   BRIDGE_PORT: String(bridgePort),
+  YOLO_MODEL_PATH: process.env.YOLO_MODEL_PATH || path.join(appDir, 'yolov8n.pt'),
   VITE_ARDUINO_BRIDGE_URL: `http://localhost:${bridgePort}`,
 };
 
