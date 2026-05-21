@@ -286,7 +286,8 @@ function AppContent() {
   const autoDispatchSeenRef = useRef<Record<string, RiskLevel>>({});
   const robotEmotionCursorRef = useRef<string>('');
   const robotEmotionSeenRef = useRef<Set<string>>(new Set());
-  const proxyOnline = useProxyHealth();
+  const proxyHealth = useProxyHealth();
+  const proxyOnline = proxyHealth.online;
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const hwStatus = useHardwareSocket('http://localhost:3203');
   const volumeHistoryRef = useRef<number[]>([]);
@@ -1140,6 +1141,13 @@ function AppContent() {
           {/* Bridge + campus health status */}
           <div className="hidden items-center gap-2 md:flex">
             <BridgeStatusPill online={bridgeOnline} sensorCount={zoneSensors.filter((s) => s.connected).length} />
+            <div
+              title={proxyOnline === null ? 'AI 連線檢查中' : proxyOnline ? `AI 已連線${proxyHealth.model ? `：${proxyHealth.model}` : ''}` : `AI 異常：${proxyHealth.message}`}
+              className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-600"
+            >
+              <span className={`h-2 w-2 rounded-full ${proxyOnline === null ? 'animate-pulse bg-slate-300' : proxyOnline ? 'bg-emerald-500' : 'bg-red-500'}`} />
+              {proxyOnline === null ? 'AI 檢查中' : proxyOnline ? 'AI 已連線' : 'AI 異常'}
+            </div>
             <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-600">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
               {viewModel.campusHealthLabel}
@@ -1206,12 +1214,12 @@ function AppContent() {
 
       {/* LLM Health Banner — below header so it never covers navigation */}
       {proxyOnline === false && !bannerDismissed && (
-        <div className="flex items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
-          <span>Google AI Studio / Gemini 尚未連線，區域 AI 判讀會先使用本機備援</span>
+        <div role="alert" className="flex items-center justify-between gap-2 border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">
+          <span>Google AI Studio / Gemini 無法使用或回應異常：{proxyHealth.message}。區域 AI 判讀會先使用本機備援。</span>
           <button
             onClick={() => setBannerDismissed(true)}
             aria-label="關閉提示"
-            className="flex h-11 w-11 shrink-0 items-center justify-center font-medium text-amber-600 hover:text-amber-900"
+            className="flex h-11 w-11 shrink-0 items-center justify-center font-medium text-red-600 hover:text-red-900"
           >
             ✕
           </button>

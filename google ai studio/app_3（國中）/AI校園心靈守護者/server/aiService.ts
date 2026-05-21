@@ -1,6 +1,7 @@
 import {GoogleGenAI} from '@google/genai';
 
 const geminiApiKey = process.env.GEMINI_API_KEY?.trim() || process.env.VITE_GEMINI_API_KEY?.trim() || '';
+const geminiModel = process.env.GEMINI_MODEL?.trim() || process.env.GOOGLE_AI_MODEL?.trim() || 'gemini-3.5-flash';
 const ai = geminiApiKey ? new GoogleGenAI({apiKey: geminiApiKey}) : null;
 
 export function isGeminiConfigured(): boolean {
@@ -48,7 +49,7 @@ export async function analyzeGuardianAlert(context: GuardianAlertContext): Promi
     ].filter(Boolean).join('\n');
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: geminiModel,
       contents: [{role: 'user', parts: [{text: prompt}]}],
     });
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';

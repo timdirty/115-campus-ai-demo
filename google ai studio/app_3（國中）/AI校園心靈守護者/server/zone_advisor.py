@@ -4,7 +4,7 @@
 Input can come from stdin JSON, CLI flags, environment variables, or the
 interactive prompt:
 
-  python3 zone_advisor.py --provider google --model gemini-2.0-flash --api-key ...
+  python3 zone_advisor.py --provider google --model gemini-3.5-flash --api-key ...
   python3 zone_advisor.py --provider ollama --url http://127.0.0.1:11434 --model gemma3:4b
   python3 zone_advisor.py --provider openai --url https://api.example.com/v1 --model gemma --api-key ...
   python3 zone_advisor.py --interactive
@@ -32,7 +32,7 @@ Risk = str
 SCRIPT_LLM_PROVIDER = "google"  # "google", "ollama", or "openai"
 SCRIPT_LLM_API_URL = "https://generativelanguage.googleapis.com/v1beta"
 SCRIPT_LLM_API_KEY = ""
-SCRIPT_LLM_MODEL = "gemini-2.0-flash"
+SCRIPT_LLM_MODEL = "gemini-3.5-flash"
 
 ZONE_RULES = {
     "zone-library": {
@@ -472,7 +472,7 @@ def resolve_config(payload, args):
             os.environ.get("LLM_MODEL"),
             SCRIPT_LLM_MODEL,
             os.environ.get("OLLAMA_MODEL"),
-            "gemini-2.0-flash",
+            "gemini-3.5-flash",
         ),
         "provider": first_text(getattr(args, "provider", ""), os.environ.get("ZONE_ADVISOR_PROVIDER"), os.environ.get("LLM_PROVIDER"), SCRIPT_LLM_PROVIDER),
     }

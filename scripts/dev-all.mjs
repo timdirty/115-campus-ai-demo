@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // 一鍵啟動三組獨立的開發環境（vite + 自家 bridge）。
-// 每組互不依賴，bridge port 各自獨立（3201 / 3202 / 3203）。
+// 每組互不依賴，bridge port 各自獨立（依 app-catalog.mjs 設定）。
 import concurrently from 'concurrently';
 import { exec, execSync } from 'node:child_process';
 import { appDir, apps } from './app-catalog.mjs';

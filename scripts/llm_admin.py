@@ -34,13 +34,13 @@ APPS = {
     "app2": {
         "label": "App 2 校園服務機器人",
         "env": ROOT / "google ai studio/app_2（國小）/校園服務機器人 app/.env",
-        "default_model": "gemma-4-31b-it",
+        "default_model": "gemini-3.5-flash",
         "system": "你是國小校園服務機器人的教學與派遣助理。請用繁體中文，短句、可執行。",
     },
     "app3": {
         "label": "App 3 AI校園心靈守護者",
         "env": ROOT / "google ai studio/app_3（國中）/AI校園心靈守護者/.env",
-        "default_model": "gemma-4-31b-it",
+        "default_model": "gemini-3.5-flash",
         "system": "你是國中校園心靈守護系統助理。請用繁體中文，溫暖、非診斷、可執行。",
     },
 }
@@ -285,7 +285,7 @@ HTML = r"""<!doctype html>
           </div>
           <label>
             <span class="label">模型</span>
-            <input id="modelInput" placeholder="gemma-4-31b-it / gemini-2.5-flash" />
+            <input id="modelInput" placeholder="gemini-3.5-flash" />
           </label>
           <label>
             <span class="label">輸入</span>

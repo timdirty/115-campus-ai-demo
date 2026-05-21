@@ -162,7 +162,7 @@ export const apps = [
     flow: ['下任務', '看追蹤', '匯報表'],
     robotDisplay: true,
     devPort: 11502,
-    bridgePort: 3202,
+    bridgePort: 3203,
     devName: 'App2',
     devColor: 'blue',
     pagePhrases: ['校園', '服務'],

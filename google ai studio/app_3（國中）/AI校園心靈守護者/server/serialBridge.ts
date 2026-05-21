@@ -72,7 +72,7 @@ const bridgePort = Number(process.env.BRIDGE_PORT ?? 3203) || 3203;
 const sensorPollIntervalMs = Number(process.env.SENSOR_POLL_INTERVAL_MS ?? 5000) || 5000;
 const zoneAdvisorScript = fileURLToPath(new URL('./zone_advisor.py', import.meta.url));
 const zoneAdvisorApiUrl = (process.env.ZONE_ADVISOR_API_URL || process.env.GEMINI_API_URL || process.env.GOOGLE_AI_STUDIO_API_URL || 'https://generativelanguage.googleapis.com/v1beta').replace(/\/$/, '');
-const zoneAdvisorModel = process.env.ZONE_ADVISOR_MODEL || process.env.GEMINI_MODEL || process.env.GOOGLE_AI_MODEL || 'gemini-2.0-flash';
+const zoneAdvisorModel = process.env.ZONE_ADVISOR_MODEL || process.env.GEMINI_MODEL || process.env.GOOGLE_AI_MODEL || 'gemini-3.5-flash';
 const zoneAdvisorApiKey = process.env.ZONE_ADVISOR_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GOOGLE_AI_STUDIO_API_KEY || '';
 
 interface ZoneSensorReading {
@@ -400,19 +400,37 @@ app.get('/api/llm/health', async (_req, res) => {
   const endpoint = `${zoneAdvisorApiUrl}/models/${encodeURIComponent(zoneAdvisorModel)}:generateContent?key=${encodeURIComponent(zoneAdvisorApiKey)}`;
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1800);
+    const timeout = setTimeout(() => controller.abort(), 7000);
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        contents: [{role: 'user', parts: [{text: '只回覆 JSON：{"ok":true}'}]}],
-        generationConfig: {temperature: 0, maxOutputTokens: 16, responseMimeType: 'application/json'},
+        contents: [{role: 'user', parts: [{text: 'Return exactly this JSON and nothing else: {"ok":true}'}]}],
+        generationConfig: {temperature: 0, maxOutputTokens: 256, responseMimeType: 'application/json', thinkingConfig: {thinkingBudget: 0}},
       }),
       signal: controller.signal,
     });
     clearTimeout(timeout);
     if (!response.ok) {
       res.status(503).json({ok: false, provider: 'google-ai-studio', model: zoneAdvisorModel, error: `Gemini HTTP ${response.status}`});
+      return;
+    }
+    const payload = await response.json().catch(() => null);
+    const text = payload?.candidates?.[0]?.content?.parts?.map((part: {text?: string}) => part.text ?? '').join('').trim() ?? '';
+    let parsed: {ok?: boolean} | null = null;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = null;
+    }
+    if (parsed?.ok !== true) {
+      res.status(503).json({
+        ok: false,
+        provider: 'google-ai-studio',
+        model: zoneAdvisorModel,
+        baseUrl: zoneAdvisorApiUrl,
+        error: 'Gemini returned malformed health response',
+      });
       return;
     }
     res.json({
