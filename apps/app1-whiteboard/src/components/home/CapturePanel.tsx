@@ -73,7 +73,6 @@ export const CapturePanel = memo(function CapturePanel({
   motionGuard,
 }: CapturePanelProps) {
   const [showCalibration, setShowCalibration] = useState(false);
-  const showEngineerTools = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('engineerTools') === '1';
   const cameraBusy = mediaBusy === 'camera';
   const transcriptionBusy = mediaBusy === 'transcribe';
   const analyzing = busy === 'analyze' || busy === 'demo';
@@ -322,7 +321,6 @@ export const CapturePanel = memo(function CapturePanel({
         </div>
       </div>
 
-      {showEngineerTools && (
       <div className="mt-4 rounded-2xl border border-outline-variant/20 bg-surface-container p-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
@@ -383,7 +381,6 @@ export const CapturePanel = memo(function CapturePanel({
           </>
         )}
       </div>
-      )}
     </section>
   );
 });

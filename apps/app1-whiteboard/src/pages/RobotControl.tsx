@@ -11,6 +11,7 @@ import {
 } from '../services/classroomApi';
 import type {BoardRegion, RobotCommandInfo, TaskLogItem} from '../services/classroomApi';
 import {saveDemoProgress} from '../services/demoProgress';
+import {loadNotesAsync, type NoteContentType} from '../services/notesStore';
 import {say as robotSay, cancel as robotVoiceCancel} from '../services/robotVoice';
 import {runEraseWithVerification, residualToQualityLabel} from '../services/eraseVerifier';
 import EV3ControlPanel from '../components/EV3ControlPanel';
@@ -102,6 +103,21 @@ function commandDisplayName(command: string) {
   return command.replace(/_/g, ' ');
 }
 
+function contentTypeVoiceOpening(contentType: NoteContentType) {
+  if (contentType === 'illustration') return '發現小插圖，';
+  if (contentType === 'message') return '發現鼓勵話，';
+  if (contentType === 'reminder') return '發現提醒事項，';
+  return '發現練習題，';
+}
+
+function taskVoicePhrase(action: string, taskName: string, contentType: NoteContentType) {
+  const opening = contentTypeVoiceOpening(contentType);
+  if (action === 'erase') return `${opening}好，我來擦${taskName}`;
+  if (action === 'keep') return `${opening}建議保留這區`;
+  if (action === 'pause') return '暫停一下';
+  return '';
+}
+
 function dirLabel(dir: string) {
   const map: Record<string, string> = {FORWARD: '前進', BACKWARD: '後退', LEFT: '左轉', RIGHT: '右轉'};
   return map[dir] ?? dir;
@@ -118,6 +134,7 @@ export default function RobotControl() {
   const [taskLog, setTaskLog] = useState<TaskLogItem[]>([]);
   const [commands, setCommands] = useState<RobotCommandInfo[]>(QUICK_COMMANDS);
   const [classroomRegions, setClassroomRegions] = useState<BoardRegion[]>([]);
+  const [latestContentType, setLatestContentType] = useState<NoteContentType>('question');
   const [activeFeedback, setActiveFeedback] = useState({
     title: '板擦機器人待命',
     detail: '選擇任務後，這裡會即時顯示動作與結果。',
@@ -134,10 +151,11 @@ export default function RobotControl() {
       const result = await fetch('/api/arduino/ports')
         .then((r) => r.json())
         .catch(() => ({ports: [], activePath: ''}));
-      const [robot, commandResult, classroom] = await Promise.all([
+      const [robot, commandResult, classroom, notes] = await Promise.all([
         loadRobotStatus(),
         loadRobotCommands().catch(() => ({commands: QUICK_COMMANDS})),
         loadClassroomSession().catch(() => null),
+        loadNotesAsync().catch(() => []),
       ]);
       const filtered = (commandResult.commands ?? QUICK_COMMANDS).filter(
         (c: RobotCommandInfo) => c.group !== 'drive' && QUICK_COMMANDS.some((q) => q.command === c.command),
@@ -145,6 +163,7 @@ export default function RobotControl() {
       setCommands(filtered.length ? filtered : QUICK_COMMANDS);
       setTaskLog(robot.taskLog);
       setClassroomRegions(classroom?.boardRegions ?? []);
+      setLatestContentType(notes[0]?.contentType ?? 'question');
       const isArduinoLike = (s: string) => /usbmodem|arduino|uno/i.test(s);
       const arduinoPort = result.ports?.find((p: SerialPortInfo) =>
         isArduinoLike(`${p.path} ${p.manufacturer ?? ''}`),
@@ -249,7 +268,7 @@ export default function RobotControl() {
       setActiveFeedback({
         title: result.ok ? `${displayName} 已接收` : `${displayName} 已記錄`,
         detail: result.ok ? '實體機器人已收到任務。' : '目前使用展示備援，任務仍會出現在紀錄中。',
-        ok: result.ok,
+        ok: Boolean(result.ok),
         working: false,
       });
       saveDemoProgress({robot: true});
@@ -303,9 +322,8 @@ export default function RobotControl() {
   const sendTask = async (action: string, regionId?: string) => {
     setBusy(true);
     const taskName = regionId ? `區塊 ${regionId}` : '全板';
-    if (action === 'erase') robotSay(`好，我來擦${taskName}`, {priority: 'urgent'});
-    else if (action === 'keep') robotSay(`好，${taskName}是重點，我會保留`, {priority: 'urgent'});
-    else if (action === 'pause') robotSay('暫停一下', {priority: 'urgent'});
+    const voicePhrase = taskVoicePhrase(action, taskName, latestContentType);
+    if (voicePhrase) robotSay(voicePhrase, {priority: 'urgent'});
     const thinkingRegions: ThinkingRegion[] | undefined = classroomRegions.length > 0
       ? classroomRegions.map((r) => ({
           id: r.id,
@@ -325,7 +343,7 @@ export default function RobotControl() {
       setActiveFeedback({
         title: result.ok ? `${displayName} 已排程` : `${displayName} 已記錄`,
         detail: result.ok ? '板擦機器人會依照區塊執行。' : '展示模式會保留任務流程，方便評審看見互動結果。',
-        ok: result.ok,
+        ok: Boolean(result.ok),
         working: false,
       });
       saveDemoProgress({robot: true});

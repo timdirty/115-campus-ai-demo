@@ -7,6 +7,7 @@ import {BoardCalibration, BoardCalibrationMode, defaultBoardCalibration, normali
 
 export type BoardRegionStatus = 'keep' | 'erasable' | 'erased';
 export type TeacherPace = 'normal' | 'slow_down' | 'review_needed';
+export type BoardContentType = 'question' | 'illustration' | 'message' | 'reminder';
 
 export type BoardRegion = {
   id: string;
@@ -20,12 +21,7 @@ export type BoardRegion = {
 };
 
 export type HardwareCalibrationProfile = {
-  servoAngles: {
-    regionA: number;
-    regionB: number;
-    eraseAll: number;
-    standby: number;
-  };
+  [legacyKey: string]: any;
   cameraMounted: boolean;
   boardAnchored: boolean;
   visionReady: boolean;
@@ -156,6 +152,7 @@ export type BoardAnalysisResponse = {
     keywords?: string[];
     boardRegions?: BoardRegion[];
     aiRecommendation?: string;
+    contentType?: BoardContentType;
   };
   boardRegions: BoardRegion[];
   currentRecommendation: string;
@@ -196,30 +193,96 @@ const SUBJECT_LEARNING_STATUS: Record<string, {focus: number; confused: number; 
   '綜合': {focus: 80, confused: 12, tired: 8},
 };
 
-const SUBJECT_BOARD_REGIONS: Record<string, Array<{label: string; keep: boolean; reason: string}>> = {
+type SubjectBoardRegionTemplate = {label: string; keep: boolean; reason: string; contentType: BoardContentType};
+
+const SUBJECT_BOARD_REGIONS: Record<string, SubjectBoardRegionTemplate[]> = {
+  '國小數學': [
+    {label: '左區', keep: true, reason: '解題重點需要保留複習', contentType: 'question'},
+    {label: '右區', keep: false, reason: '練習已完成，可擦除', contentType: 'question'},
+  ],
   '數學': [
-    {label: '左區', keep: true, reason: '解題重點需要保留複習'},
-    {label: '右區', keep: false, reason: '練習已完成，可擦除'},
+    {label: '左區', keep: true, reason: '解題重點需要保留複習', contentType: 'question'},
+    {label: '右區', keep: false, reason: '練習已完成，可擦除', contentType: 'question'},
+  ],
+  '國語': [
+    {label: '左區', keep: true, reason: '本課生字與重點需要繼續練習', contentType: 'question'},
+    {label: '右區', keep: false, reason: '學生已抄寫完畢', contentType: 'question'},
   ],
   '語文': [
-    {label: '左區', keep: true, reason: '本課生字與重點需要繼續練習'},
-    {label: '右區', keep: false, reason: '學生已抄寫完畢'},
+    {label: '左區', keep: true, reason: '本課生字與重點需要繼續練習', contentType: 'question'},
+    {label: '右區', keep: false, reason: '學生已抄寫完畢', contentType: 'question'},
   ],
   '自然': [
-    {label: '左區', keep: true, reason: '實驗方法需要對照'},
-    {label: '右區', keep: false, reason: '已記錄在課本'},
+    {label: '左區', keep: true, reason: '實驗方法需要對照', contentType: 'question'},
+    {label: '右區', keep: false, reason: '已記錄在課本', contentType: 'question'},
   ],
   '社會': [
-    {label: '左區', keep: true, reason: '時序與位置關係需要對照'},
-    {label: '右區', keep: false, reason: '已完成討論'},
+    {label: '左區', keep: true, reason: '時序與位置關係需要對照', contentType: 'question'},
+    {label: '右區', keep: false, reason: '已完成討論', contentType: 'question'},
   ],
   '英語': [
-    {label: '左區', keep: true, reason: '句型需要反覆練習'},
-    {label: '右區', keep: false, reason: '口語活動已結束'},
+    {label: '左區', keep: true, reason: '句型需要反覆練習', contentType: 'question'},
+    {label: '右區', keep: false, reason: '口語活動已結束', contentType: 'question'},
+  ],
+  practice: [
+    {label: '左區', keep: true, reason: '題目說明需要保留', contentType: 'question'},
+    {label: '右區', keep: false, reason: '練習已完成，可擦除', contentType: 'question'},
+  ],
+  exercise: [
+    {label: '左區', keep: true, reason: '題目說明需要保留', contentType: 'question'},
+    {label: '右區', keep: false, reason: '練習已完成，可擦除', contentType: 'question'},
+  ],
+  '美術': [
+    {label: '左區', keep: true, reason: '學生小插圖有鼓勵與展示價值', contentType: 'illustration'},
+    {label: '右區', keep: false, reason: '空白練習區可清出空間', contentType: 'illustration'},
+  ],
+  '繪畫': [
+    {label: '左區', keep: true, reason: '學生小插圖有鼓勵與展示價值', contentType: 'illustration'},
+    {label: '右區', keep: false, reason: '空白練習區可清出空間', contentType: 'illustration'},
+  ],
+  '塗鴉': [
+    {label: '左區', keep: true, reason: '學生小插圖有鼓勵與展示價值', contentType: 'illustration'},
+    {label: '右區', keep: false, reason: '空白練習區可清出空間', contentType: 'illustration'},
+  ],
+  'illustration-style': [
+    {label: '左區', keep: true, reason: '學生小插圖有鼓勵與展示價值', contentType: 'illustration'},
+    {label: '右區', keep: false, reason: '空白練習區可清出空間', contentType: 'illustration'},
+  ],
+  '鼓勵話': [
+    {label: '左區', keep: true, reason: '鼓勵話能照顧班級情緒', contentType: 'message'},
+    {label: '右區', keep: false, reason: '練習區已保存，可清出空間', contentType: 'message'},
+  ],
+  '班級口號': [
+    {label: '左區', keep: true, reason: '班級口號能維持班級凝聚', contentType: 'message'},
+    {label: '右區', keep: false, reason: '練習區已保存，可清出空間', contentType: 'message'},
+  ],
+  cheer: [
+    {label: '左區', keep: true, reason: '鼓勵話能照顧班級情緒', contentType: 'message'},
+    {label: '右區', keep: false, reason: '練習區已保存，可清出空間', contentType: 'message'},
+  ],
+  motivation: [
+    {label: '左區', keep: true, reason: '鼓勵話能照顧班級情緒', contentType: 'message'},
+    {label: '右區', keep: false, reason: '練習區已保存，可清出空間', contentType: 'message'},
+  ],
+  '提醒事項': [
+    {label: '左區', keep: true, reason: '提醒事項下課前仍需要看見', contentType: 'reminder'},
+    {label: '右區', keep: false, reason: '已完成內容可清出空間', contentType: 'reminder'},
+  ],
+  '校規': [
+    {label: '左區', keep: true, reason: '校規提醒下課前仍需要看見', contentType: 'reminder'},
+    {label: '右區', keep: false, reason: '已完成內容可清出空間', contentType: 'reminder'},
+  ],
+  rules: [
+    {label: '左區', keep: true, reason: '提醒事項下課前仍需要看見', contentType: 'reminder'},
+    {label: '右區', keep: false, reason: '已完成內容可清出空間', contentType: 'reminder'},
+  ],
+  reminders: [
+    {label: '左區', keep: true, reason: '提醒事項下課前仍需要看見', contentType: 'reminder'},
+    {label: '右區', keep: false, reason: '已完成內容可清出空間', contentType: 'reminder'},
   ],
   default: [
-    {label: '左區', keep: true, reason: '核心概念需保留'},
-    {label: '右區', keep: false, reason: '練習已完成'},
+    {label: '左區', keep: true, reason: '核心概念需保留', contentType: 'question'},
+    {label: '右區', keep: false, reason: '練習已完成', contentType: 'question'},
   ],
 };
 
@@ -231,7 +294,11 @@ const SUBJECT_TRANSCRIPTS: Record<string, string> = {
   '英語': 'New Words: happy (快樂的), sad (悲傷的), angry (生氣的)\nSentence Pattern: I feel ___.\nExample: I feel happy today.',
   default: '今日課堂重點整理\n一、主要概念說明\n二、重要定義與公式\n三、練習題與解答\n請同學課後複習以上內容。',
 };
-const SUBJECT_KEYS = ['數學', '語文', '國語', '自然', '社會', '英語', '體育', '藝術'] as const;
+const SUBJECT_KEYS = [
+  '國小數學', '數學', '語文', '國語', '自然', '社會', '英語', '體育', '藝術',
+  'practice', 'exercise', '美術', '繪畫', '塗鴉', 'illustration-style',
+  '鼓勵話', '班級口號', 'cheer', 'motivation', '提醒事項', '校規', 'rules', 'reminders',
+] as const;
 
 const REGION_POSITIONS: Array<{id: string; x: number; y: number; width: number; height: number}> = [
   {id: 'A', x: 5, y: 12, width: 43, height: 76},
@@ -239,12 +306,6 @@ const REGION_POSITIONS: Array<{id: string; x: number; y: number; width: number; 
 ];
 
 export const defaultHardwareCalibrationProfile: HardwareCalibrationProfile = {
-  servoAngles: {
-    regionA: 20,
-    regionB: 92,
-    eraseAll: 180,
-    standby: 90,
-  },
   cameraMounted: false,
   boardAnchored: false,
   visionReady: false,
@@ -256,8 +317,21 @@ export const defaultHardwareCalibrationProfile: HardwareCalibrationProfile = {
 };
 
 function resolveSubjectKey(subject: string) {
-  const key = SUBJECT_KEYS.find((item) => subject.includes(item));
-  return key === '國語' ? '語文' : key ?? '綜合';
+  const normalized = subject.toLowerCase();
+  const key = SUBJECT_KEYS.find((item) => normalized.includes(item.toLowerCase()));
+  return key ?? '綜合';
+}
+
+function resolveBoardContentType(subject: string): BoardContentType {
+  const subjectKey = resolveSubjectKey(subject);
+  return SUBJECT_BOARD_REGIONS[subjectKey]?.[0]?.contentType ?? SUBJECT_BOARD_REGIONS.default[0].contentType;
+}
+
+function recommendationForContentType(contentType: BoardContentType, fallback: string) {
+  if (contentType === 'illustration') return '發現學生畫的鼓勵小插圖，建議保留這區不擦';
+  if (contentType === 'message') return '發現鼓勵話，建議保留這區';
+  if (contentType === 'reminder') return '提醒事項，建議保留';
+  return fallback;
 }
 
 function buildBoardRegions(subject: string): BoardRegion[] {
@@ -298,10 +372,6 @@ const fallbackCommands: RobotCommandInfo[] = [
   {command: 'RESET', label: '重置動畫', group: 'display'},
   {command: 'LED_ON', label: 'LED 開', group: 'hardware'},
   {command: 'LED_OFF', label: 'LED 關', group: 'hardware'},
-  {command: 'SERVO_0', label: '伺服 0 度', group: 'hardware'},
-  {command: 'SERVO_90', label: '伺服 90 度', group: 'hardware'},
-  {command: 'SERVO_180', label: '伺服 180 度', group: 'hardware'},
-  {command: 'CALIBRATION_STATUS', label: '校正狀態', group: 'hardware'},
   {command: 'ERASE_ALL', label: '一鍵全擦', group: 'task'},
   {command: 'ERASE_REGION_A', label: '擦除左區', group: 'task'},
   {command: 'ERASE_REGION_B', label: '擦除右區', group: 'task'},
@@ -340,31 +410,14 @@ function writeJson(key: string, value: unknown) {
   }
 }
 
-function normalizeServoAngle(value: unknown, fallback: number) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) {
-    return fallback;
-  }
-  return Math.max(0, Math.min(180, Math.round(numeric)));
-}
-
 function normalizeHardwareProfile(value: unknown): HardwareCalibrationProfile {
   const source = value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
-  const servoAngles = source.servoAngles && typeof source.servoAngles === 'object' && !Array.isArray(source.servoAngles)
-    ? source.servoAngles as Record<string, unknown>
-    : {};
   const rawRobotPose = source.robotPose && typeof source.robotPose === 'object' && !Array.isArray(source.robotPose)
     ? source.robotPose as Record<string, unknown>
     : {};
   const fallbackPose = defaultRobotPose();
   return {
     ...defaultHardwareCalibrationProfile,
-    servoAngles: {
-      regionA: normalizeServoAngle(servoAngles.regionA, defaultHardwareCalibrationProfile.servoAngles.regionA),
-      regionB: normalizeServoAngle(servoAngles.regionB, defaultHardwareCalibrationProfile.servoAngles.regionB),
-      eraseAll: normalizeServoAngle(servoAngles.eraseAll, defaultHardwareCalibrationProfile.servoAngles.eraseAll),
-      standby: normalizeServoAngle(servoAngles.standby, defaultHardwareCalibrationProfile.servoAngles.standby),
-    },
     cameraMounted: Boolean(source.cameraMounted),
     boardAnchored: Boolean(source.boardAnchored),
     visionReady: Boolean(source.visionReady),
@@ -514,11 +567,15 @@ function localBoardAnalysis(input: {imageBase64: string; transcript?: string; su
   const subjectKey = resolveSubjectKey(subject);
   const status = SUBJECT_LEARNING_STATUS[subjectKey] ?? SUBJECT_LEARNING_STATUS['綜合'];
   const boardRegions = vision?.regions ?? buildBoardRegions(subject);
+  const contentType = resolveBoardContentType(subject);
   const fallbackTranscript = SUBJECT_TRANSCRIPTS[subjectKey] ?? SUBJECT_TRANSCRIPTS['default'];
 
   const keepLabels = boardRegions.filter(r => r.status === 'keep').map(r => r.label).join('、');
   const eraseLabels = boardRegions.filter(r => r.status === 'erasable').map(r => r.label).join('、');
-  const recommendation = vision?.recommendation ?? `靜態展示分析完成：保留「${keepLabels}」，「${eraseLabels}」可清出空間繼續教學。`;
+  const recommendation = recommendationForContentType(
+    contentType,
+    vision?.recommendation ?? `靜態展示分析完成：保留「${keepLabels}」，「${eraseLabels}」可清出空間繼續教學。`,
+  );
 
   const session = saveLocalSession({
     ...fallbackSession,
@@ -555,6 +612,7 @@ function localBoardAnalysis(input: {imageBase64: string; transcript?: string; su
       keywords: vision ? [subject, '白板', '國小', '照片判斷', ...vision.evidence] : [subject, '白板', '國小', '展示模式'],
       boardRegions: session.boardRegions,
       aiRecommendation: session.currentRecommendation,
+      contentType,
     },
     boardRegions: session.boardRegions,
     currentRecommendation: session.currentRecommendation,
@@ -771,6 +829,7 @@ export async function getOcrStatus(): Promise<boolean> {
 
 export type EraseSequenceEvent =
   | {type: 'start'; regions: string[]; gapMs: number}
+  | {kind: 'progress'; region: string; pass: number; total: number}
   | {type: 'sending'; region: string; command: string}
   | {type: 'ok'; region: string; command: string; response: string}
   | {type: 'timeout'; region: string; command: string; message: string}
@@ -793,7 +852,7 @@ export function eraseRegionSequence(
     try {
       const data = JSON.parse(e.data) as EraseSequenceEvent;
       onEvent(data);
-      if (data.type === 'done') es.close();
+      if ('type' in data && data.type === 'done') es.close();
     } catch {}
   };
   es.onerror = () => {

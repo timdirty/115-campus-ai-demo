@@ -6,6 +6,7 @@ export type PortInfo = {
 };
 
 export type NoteTheme = 'primary' | 'secondary' | 'tertiary';
+export type NoteContentType = 'question' | 'illustration' | 'message' | 'reminder';
 
 export type BoardRegionStatus = 'keep' | 'erasable' | 'erased';
 export type TeacherPace = 'normal' | 'slow_down' | 'review_needed';
@@ -22,12 +23,6 @@ export type BoardRegion = {
 };
 
 export type HardwareCalibrationProfile = {
-  servoAngles: {
-    regionA: number;
-    regionB: number;
-    eraseAll: number;
-    standby: number;
-  };
   cameraMounted: boolean;
   boardAnchored: boolean;
   visionReady: boolean;
@@ -68,6 +63,7 @@ export type WhiteboardNote = {
   keywords?: string[];
   boardRegions?: BoardRegion[];
   aiRecommendation?: string;
+  contentType?: NoteContentType;
   linkedTaskIds?: number[];
   date: string;
   time: string;

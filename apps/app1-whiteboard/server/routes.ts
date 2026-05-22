@@ -8,7 +8,7 @@ import {ApiError, getErrorMessage, sendError} from './http';
 import {buildAppExport, getReadyStatus, importAppData, writeBackupFile} from './opsService';
 import {getEV3Status, sendEV3Command} from './ev3Manager';
 import {getSpikeStatus, sendSpikeCommand, startSpikeManager} from './spikeManager';
-import {getActivePath, isArduinoLikePort, listPorts, recordUnsupportedTask, resolveTaskCommand, sendSerialCommand, sendSerialCommandDrive} from './robotService';
+import {getActivePath, isArduinoLikePort, listPorts, onEraseProgress, recordUnsupportedTask, resolveTaskCommand, sendSerialCommand, sendSerialCommandDrive} from './robotService';
 import {assignPortToZone, getAllDetectedPorts, getLiveZoneReadings, unassignPort} from './sensorManager';
 import {appendTaskLog, readCalibration, readJsonFile, saveCalibration, updateRobotStatus, writeJsonFile} from './storage';
 import type {CalibrationData} from './storage';
@@ -17,14 +17,6 @@ import {assertMediaPayload, audioPayloadOptions, imagePayloadOptions} from './va
 
 function forceLocalAi(req: Request) {
   return req.get('x-ai-mode') === 'local-fallback' || req.get('x-ai-fallback') === '1' || req.body?.forceLocal === true;
-}
-
-function normalizeServoAngle(value: unknown, fallback: number) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) {
-    return fallback;
-  }
-  return Math.max(0, Math.min(180, Math.round(numeric)));
 }
 
 function normalizeBoardPercent(value: unknown, fallback: number) {
@@ -45,9 +37,6 @@ function normalizeConfidence(value: unknown, fallback: number) {
 
 function normalizeHardwareProfile(input: unknown, fallback = defaultClassroomSession.hardwareProfile) {
   const source = input && typeof input === 'object' && !Array.isArray(input) ? input as Record<string, unknown> : {};
-  const servoAngles = source.servoAngles && typeof source.servoAngles === 'object' && !Array.isArray(source.servoAngles)
-    ? source.servoAngles as Record<string, unknown>
-    : {};
   const boardCalibration = source.boardCalibration && typeof source.boardCalibration === 'object' && !Array.isArray(source.boardCalibration)
     ? source.boardCalibration as Record<string, unknown>
     : {};
@@ -66,14 +55,9 @@ function normalizeHardwareProfile(input: unknown, fallback = defaultClassroomSes
   const robotPose = source.robotPose && typeof source.robotPose === 'object' && !Array.isArray(source.robotPose)
     ? source.robotPose as Record<string, unknown>
     : {};
+  const heading = Number(robotPose.heading);
   return {
     ...fallback,
-    servoAngles: {
-      regionA: normalizeServoAngle(servoAngles.regionA, fallback.servoAngles.regionA),
-      regionB: normalizeServoAngle(servoAngles.regionB, fallback.servoAngles.regionB),
-      eraseAll: normalizeServoAngle(servoAngles.eraseAll, fallback.servoAngles.eraseAll),
-      standby: normalizeServoAngle(servoAngles.standby, fallback.servoAngles.standby),
-    },
     cameraMounted: Boolean(source.cameraMounted),
     boardAnchored: Boolean(source.boardAnchored),
     visionReady: Boolean(source.visionReady),
@@ -100,7 +84,7 @@ function normalizeHardwareProfile(input: unknown, fallback = defaultClassroomSes
     robotPose: {
       x: normalizeBoardPercent(robotPose.x, fallback.robotPose.x),
       y: normalizeBoardPercent(robotPose.y, fallback.robotPose.y),
-      heading: normalizeServoAngle(robotPose.heading, fallback.robotPose.heading),
+      heading: Number.isFinite(heading) ? Math.round(heading) : fallback.robotPose.heading,
       stage: ['standby', 'preview', 'moving', 'erasing', 'paused', 'done'].includes(String(robotPose.stage))
         ? String(robotPose.stage) as typeof fallback.robotPose.stage
         : fallback.robotPose.stage,
@@ -112,11 +96,6 @@ function normalizeHardwareProfile(input: unknown, fallback = defaultClassroomSes
     notes: typeof source.notes === 'string' ? source.notes : fallback.notes,
     lastCalibratedAt: typeof source.lastCalibratedAt === 'string' && source.lastCalibratedAt ? source.lastCalibratedAt : fallback.lastCalibratedAt,
   };
-}
-
-function isExtendedCalibrationCommand(command: string) {
-  return /^(SERVO_SET|SET_REGION_A|SET_REGION_B|SET_REGION_C|SET_ERASE_ALL|SET_STANDBY):\d{1,3}$/.test(command)
-    || command === 'CALIBRATION_STATUS';
 }
 
 function demoFallbackStatus(source: string) {
@@ -613,7 +592,7 @@ export function registerRoutes(app: Express) {
       return;
     }
 
-    if (!supportedCommands.has(command) && !/^SPEED:\d+$/.test(command) && !isExtendedCalibrationCommand(command)) {
+    if (!supportedCommands.has(command) && !/^SPEED:\d+$/.test(command)) {
       const result = await recordUnsupportedTask(command, source, 'Unsupported command');
       res.status(400).json({error: 'Unsupported command', ...result});
       return;
@@ -696,7 +675,7 @@ export function registerRoutes(app: Express) {
   });
 
   // ── SSE: erase region sequence ────────────────────────────────────────────
-  // GET /api/robot/erase-sequence?regions=A,B&gap=2000
+  // GET /api/robot/erase-sequence?regions=A,B,C&gap=2000
   // Streams per-region progress as the robot erases each one in order.
   app.get('/api/robot/erase-sequence', async (req, res) => {
     const regionParam = String(req.query.regions ?? '');
@@ -704,10 +683,10 @@ export function registerRoutes(app: Express) {
     const regionIds = regionParam
       .split(',')
       .map((s) => s.trim().toUpperCase())
-      .filter((s) => /^[AB]$/.test(s));
+      .filter((s) => /^[ABC]$/.test(s));
 
     if (regionIds.length === 0) {
-      res.status(400).json({error: 'No valid region IDs (A-B) provided'});
+      res.status(400).json({error: 'No valid region IDs (A-C) provided'});
       return;
     }
 
@@ -737,8 +716,14 @@ export function registerRoutes(app: Express) {
       const command = `ERASE_REGION_${regionId}`;
       sse({type: 'sending', region: regionId, command});
 
+      let stopProgressForwarding: (() => void) | null = null;
       try {
-        const result = await sendSerialCommand(command, undefined);
+        stopProgressForwarding = onEraseProgress(({pass, total}) => {
+          if (!cancelled) {
+            sse({kind: 'progress', region: regionId, pass, total});
+          }
+        });
+        const result = await sendSerialCommand(command, undefined, 'ERASE_DONE:', 6000);
         const timedOut = (result as any).timedOut ?? false;
         const ok = !timedOut;
         const message = ok ? result.response || `${command} sent` : `ACK timeout for ${command}`;
@@ -755,6 +740,8 @@ export function registerRoutes(app: Express) {
         const message = err instanceof Error ? err.message : String(err);
         await appendTaskLog({command, source: 'erase-sequence', ok: false, message});
         sse({type: 'error', region: regionId, command, message});
+      } finally {
+        stopProgressForwarding?.();
       }
 
       // Inter-region gap: gives robot time to move and erase
@@ -829,7 +816,7 @@ export function registerRoutes(app: Express) {
         throw new ApiError(400, 'Missing command');
       }
 
-      if (!supportedCommands.has(command) && !isExtendedCalibrationCommand(command)) {
+      if (!supportedCommands.has(command)) {
         const result = await recordUnsupportedTask(command, 'legacy-arduino-api', 'Unsupported command');
         res.status(400).json({ok: false, error: 'Unsupported command', ...result});
         return;

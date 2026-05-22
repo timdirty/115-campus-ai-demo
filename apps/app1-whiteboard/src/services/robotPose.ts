@@ -15,18 +15,11 @@ export type RobotPoseEstimate = {
   updatedAt: string;
 };
 
-type ServoAngles = {
-  regionA: number;
-  regionB: number;
-  eraseAll: number;
-  standby: number;
-};
-
 type PoseContext = {
   boardRegions: BoardRegion[];
   boardCalibration: BoardCalibration;
-  servoAngles: ServoAngles;
   previousPose?: RobotPoseEstimate;
+  [legacyKey: string]: any;
 };
 
 const clampPercent = (value: number) => Math.max(0, Math.min(100, Math.round(value * 10) / 10));
@@ -38,7 +31,7 @@ export function defaultRobotPose(): RobotPoseEstimate {
     heading: 180,
     stage: 'standby',
     label: '待命位置',
-    command: 'SET_STANDBY',
+    command: 'STANDBY',
     updatedAt: '',
   };
 }
@@ -68,18 +61,6 @@ function regionCenter(region: BoardRegion) {
 
 function findRegion(boardRegions: BoardRegion[], regionId?: string) {
   return regionId ? boardRegions.find((region) => region.id === regionId) : undefined;
-}
-
-function nearestServoTarget(angle: number, servoAngles: ServoAngles) {
-  const targets = [
-    {label: '左區', regionId: 'A', angle: servoAngles.regionA},
-    {label: '右區', regionId: 'B', angle: servoAngles.regionB},
-    {label: '全板', regionId: 'ALL', angle: servoAngles.eraseAll},
-    {label: '待命位置', regionId: undefined, angle: servoAngles.standby},
-  ];
-  return targets.reduce((best, current) => (
-    Math.abs(current.angle - angle) < Math.abs(best.angle - angle) ? current : best
-  ));
 }
 
 export function estimateRobotPose(command: string, context: PoseContext): RobotPoseEstimate {
@@ -130,83 +111,13 @@ export function estimateRobotPose(command: string, context: PoseContext): RobotP
     };
   }
 
-  if (normalized === 'CLEAN_STOP' || normalized === 'SET_STANDBY') {
+  if (normalized === 'CLEAN_STOP') {
     return {
       x: standby.x,
       y: standby.y,
       heading: 180,
       stage: 'standby',
       label: '待命位置',
-      command: normalized,
-      updatedAt: now,
-    };
-  }
-
-  const namedSetup = normalized.match(/^SET_REGION_([AB])$/);
-  if (namedSetup) {
-    const region = findRegion(context.boardRegions, namedSetup[1]);
-    const point = region ? regionCenter(region) : center;
-    return {
-      x: point.x,
-      y: point.y,
-      heading: 180,
-      stage: 'preview',
-      label: `預覽區塊 ${namedSetup[1]}`,
-      targetRegion: namedSetup[1],
-      command: normalized,
-      updatedAt: now,
-    };
-  }
-
-  if (normalized === 'SET_ERASE_ALL') {
-    return {
-      x: center.x,
-      y: center.y,
-      heading: 180,
-      stage: 'preview',
-      label: '預覽全板',
-      targetRegion: 'ALL',
-      command: normalized,
-      updatedAt: now,
-    };
-  }
-
-  const servoSet = normalized.match(/^SERVO_SET:(\d{1,3})$/);
-  if (servoSet) {
-    const angle = Number(servoSet[1]);
-    const nearest = nearestServoTarget(angle, context.servoAngles);
-    if (nearest.regionId === 'ALL') {
-      return {
-        x: center.x,
-        y: center.y,
-        heading: 180,
-        stage: 'preview',
-        label: `伺服預覽 ${nearest.label}`,
-        targetRegion: 'ALL',
-        command: normalized,
-        updatedAt: now,
-      };
-    }
-    if (nearest.regionId) {
-      const region = findRegion(context.boardRegions, nearest.regionId);
-      const point = region ? regionCenter(region) : center;
-      return {
-        x: point.x,
-        y: point.y,
-        heading: 180,
-        stage: 'preview',
-        label: `伺服預覽 ${nearest.label}`,
-        targetRegion: nearest.regionId,
-        command: normalized,
-        updatedAt: now,
-      };
-    }
-    return {
-      x: standby.x,
-      y: standby.y,
-      heading: 180,
-      stage: 'preview',
-      label: '伺服預覽待命位置',
       command: normalized,
       updatedAt: now,
     };

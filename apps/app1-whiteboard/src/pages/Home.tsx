@@ -468,7 +468,10 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
           boardCalibrationMode: calibrationMode,
           boardDetectionConfidence: detectionConfidence,
           cameraMounted: media.cameraReady || classroom?.hardwareProfile.cameraMounted || false,
+          boardAnchored: classroom?.hardwareProfile.boardAnchored ?? analysis?.session.hardwareProfile.boardAnchored ?? false,
           visionReady: true,
+          robotPose: classroom?.hardwareProfile.robotPose ?? analysis?.session.hardwareProfile.robotPose ?? defaultRobotPose(),
+          notes: classroom?.hardwareProfile.notes ?? analysis?.session.hardwareProfile.notes ?? '',
         },
       });
       setClassroom(nextSession);
@@ -612,4 +615,3 @@ export default function Home({onNavigate}: {onNavigate: (tab: string) => void}) 
     </motion.div>
   );
 }
-

@@ -131,7 +131,6 @@ try {
   assert.equal(typeof session.body.session.focusPercent, 'number');
   assert.ok(Array.isArray(session.body.session.boardRegions));
   assert.deepEqual(session.body.session.boardRegions.map((region) => region.id), ['A', 'B']);
-  assert.equal(typeof session.body.session.hardwareProfile.servoAngles.regionA, 'number');
   assert.equal(typeof session.body.session.hardwareProfile.boardDetectionConfidence, 'number');
   assert.equal(typeof session.body.session.hardwareProfile.robotPose.x, 'number');
 
@@ -144,7 +143,6 @@ try {
       teacherPace: 'slow_down',
       currentRecommendation: '建議先保留左區，清空右區。',
       hardwareProfile: {
-        servoAngles: {regionA: 25, regionB: 95, eraseAll: 178, standby: 88},
         cameraMounted: true,
         boardAnchored: true,
         visionReady: false,
@@ -158,7 +156,6 @@ try {
   assert.equal(updatedSession.body.session.focusPercent, 71);
   assert.equal(updatedSession.body.session.teacherPace, 'slow_down');
   assert.equal(updatedSession.body.session.hardwareProfile.cameraMounted, true);
-  assert.equal(updatedSession.body.session.hardwareProfile.servoAngles.regionB, 95);
   assert.equal(updatedSession.body.session.hardwareProfile.boardCalibrationMode, 'auto');
   assert.equal(updatedSession.body.session.hardwareProfile.boardDetectionConfidence, 81);
 
@@ -244,13 +241,6 @@ try {
   assert.equal(robotCommand.body.status.lastCommand, 'PAUSE_TASK');
   assert.ok(Array.isArray(robotCommand.body.taskLog));
   assert.equal(robotCommand.body.taskLog[0].command, 'PAUSE_TASK');
-
-  const calibrationCommand = await request('/api/robot/command', {
-    method: 'POST',
-    body: JSON.stringify({command: 'SET_REGION_A:42', source: 'contract-test'}),
-  });
-  assert.ok([200, 503].includes(calibrationCommand.response.status));
-  assert.equal(calibrationCommand.body.status.lastCommand, 'SET_REGION_A:42');
 
   for (const [regionId, expectedCommand] of [['A', 'ERASE_REGION_A'], ['B', 'ERASE_REGION_B']]) {
     const robotTask = await request('/api/robot/task', {

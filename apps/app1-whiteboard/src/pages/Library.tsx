@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import type { Variants } from 'motion/react';
 import { useState, useMemo, useEffect } from 'react';
 import {saveDemoProgress} from '../services/demoProgress';
-import {deleteNoteAsync, downloadTextFile, loadNotesAsync, updateNoteAsync, WhiteboardNote} from '../services/notesStore';
+import {deleteNoteAsync, downloadTextFile, loadNotesAsync, updateNoteAsync, type NoteContentType, type WhiteboardNote} from '../services/notesStore';
 
 const containerVariants: Variants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1, ease: "easeOut" } }, exit: { opacity: 0, y: -10 } };
 const itemVariants: Variants = { hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: "spring", bounce: 0.3 } } };
@@ -11,6 +11,16 @@ const filterOptions = [
   {key: 'recent', label: '最近'},
   {key: 'topic', label: '科目'},
 ] as const;
+const contentTypeOptions: Array<{key: NoteContentType; label: string}> = [
+  {key: 'question', label: '練習題'},
+  {key: 'illustration', label: '小插圖'},
+  {key: 'message', label: '鼓勵話'},
+  {key: 'reminder', label: '提醒事項'},
+];
+
+function contentTypeLabel(contentType: NoteContentType | undefined) {
+  return contentTypeOptions.find((option) => option.key === contentType)?.label ?? '練習題';
+}
 
 export default function Library({ onNavigate }: { onNavigate: (tab: string) => void }) {
   const [activeFilter, setActiveFilter] = useState<'recent' | 'topic' | 'folder'>('recent');
@@ -30,6 +40,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
     content: '',
     ocrText: '',
     transcript: '',
+    contentType: 'question' as NoteContentType,
   });
 
   useEffect(() => {
@@ -98,6 +109,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
       content: selectedNote.content,
       ocrText: selectedNote.ocrText || '',
       transcript: selectedNote.transcript || '',
+      contentType: selectedNote.contentType || 'question',
     });
   }, [selectedNote]);
 
@@ -119,6 +131,7 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
         content: editDraft.content.trim(),
         ocrText: editDraft.ocrText.trim() || editDraft.content.trim(),
         transcript: editDraft.transcript.trim() || '尚未匯入老師講解逐字稿。',
+        contentType: editDraft.contentType,
       });
       setNotes((current) => current.map((note) => note.id === updated.id ? updated : note));
       setSelectedNote(updated);
@@ -297,12 +310,16 @@ export default function Library({ onNavigate }: { onNavigate: (tab: string) => v
                         <EditField label="課節" value={editDraft.period} onChange={(value) => setEditDraft((draft) => ({...draft, period: value}))} />
                         <EditField label="摘要" value={editDraft.desc} onChange={(value) => setEditDraft((draft) => ({...draft, desc: value}))} />
                       </div>
+                      <ContentTypeSelect value={editDraft.contentType} onChange={(value) => setEditDraft((draft) => ({...draft, contentType: value}))} />
                     </div>
                   ) : (
                     <>
                       <div className="flex items-center gap-2 mb-4">
                         <span className={`text-[10px] font-bold tracking-widest uppercase px-3 py-1 rounded-full ${selectedNote.theme === 'primary' ? 'bg-primary-container text-primary' : selectedNote.theme === 'secondary' ? 'bg-secondary-container text-secondary-dim' : 'bg-tertiary-container text-tertiary'}`}>
                           {selectedNote.subject}
+                        </span>
+                        <span className="text-[10px] font-bold tracking-widest uppercase px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant border border-outline-variant/20">
+                          {contentTypeLabel(selectedNote.contentType)}
                         </span>
                         <span className="text-[11px] font-bold text-on-surface-variant uppercase">{selectedNote.date} • {selectedNote.time}</span>
                       </div>
@@ -448,6 +465,23 @@ function EditField({label, value, onChange}: {label: string; value: string; onCh
         onChange={(event) => onChange(event.target.value)}
         className="mt-1.5 w-full min-h-11 rounded-xl bg-surface-container px-3 outline-none border border-outline-variant/20 font-bold"
       />
+    </label>
+  );
+}
+
+function ContentTypeSelect({value, onChange}: {value: NoteContentType; onChange: (value: NoteContentType) => void}) {
+  return (
+    <label className="block">
+      <span className="text-[11px] font-bold text-on-surface-variant uppercase">內容類型</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value as NoteContentType)}
+        className="mt-1.5 w-full min-h-11 rounded-xl bg-surface-container px-3 outline-none border border-outline-variant/20 font-bold"
+      >
+        {contentTypeOptions.map((option) => (
+          <option key={option.key} value={option.key}>{option.label}</option>
+        ))}
+      </select>
     </label>
   );
 }

@@ -133,7 +133,7 @@ void setup() {
   // robot_reset event whenever the R4 RESET button is pressed (physical
   // emergency stop — see Notion Q5 narrative alignment, FUN-340).
   Serial.println("READY:RESET");
-  Serial.println("Commands: FORWARD, BACKWARD, LEFT, RIGHT, STOP, SPEED:<0-255>, HEARTBEAT, MOTOR_TEST");
+  Serial.println("Commands: FORWARD, BACKWARD, LEFT, RIGHT, STOP, SPEED:<0-255>, HEARTBEAT, MOTOR_TEST, ERASE_REGION_A, ERASE_REGION_B, ERASE_REGION_C");
 }
 
 void loop() {
@@ -203,20 +203,58 @@ void loop() {
     forward();
     if (waitInterruptible(1500)) { stopAll(); Serial.println("ERASE_ALL"); }
   } else if (cmd == "ERASE_REGION_A") {
+    bool ok = true;
     turnLeft();
-    if (waitInterruptible(400)) {
+    if (!waitInterruptible(400)) {
+      ok = false;
+    }
+    for (int pass = 1; pass <= 3 && ok; pass++) {
       forward();
-      if (waitInterruptible(1000)) { stopAll(); Serial.println("ERASE_REGION_A"); }
+      if (!waitInterruptible(500)) { ok = false; break; }
+      Serial.println("ERASE_PROGRESS:" + String(pass) + "/3");
+      backward();
+      if (!waitInterruptible(500)) { ok = false; break; }
+    }
+    if (ok) {
+      turnRight();
+      if (waitInterruptible(400)) {
+        stopAll();
+        Serial.println("ERASE_DONE:REGION_A");
+      }
     }
   } else if (cmd == "ERASE_REGION_B") {
+    bool ok = true;
     turnRight();
-    if (waitInterruptible(400)) {
+    if (!waitInterruptible(400)) {
+      ok = false;
+    }
+    for (int pass = 1; pass <= 3 && ok; pass++) {
       forward();
-      if (waitInterruptible(1000)) { stopAll(); Serial.println("ERASE_REGION_B"); }
+      if (!waitInterruptible(500)) { ok = false; break; }
+      Serial.println("ERASE_PROGRESS:" + String(pass) + "/3");
+      backward();
+      if (!waitInterruptible(500)) { ok = false; break; }
+    }
+    if (ok) {
+      turnLeft();
+      if (waitInterruptible(400)) {
+        stopAll();
+        Serial.println("ERASE_DONE:REGION_B");
+      }
     }
   } else if (cmd == "ERASE_REGION_C") {
-    forward();
-    if (waitInterruptible(1000)) { stopAll(); Serial.println("ERASE_REGION_C"); }
+    bool ok = true;
+    for (int pass = 1; pass <= 3 && ok; pass++) {
+      forward();
+      if (!waitInterruptible(500)) { ok = false; break; }
+      Serial.println("ERASE_PROGRESS:" + String(pass) + "/3");
+      backward();
+      if (!waitInterruptible(500)) { ok = false; break; }
+    }
+    if (ok) {
+      stopAll();
+      Serial.println("ERASE_DONE:REGION_C");
+    }
   } else if (cmd == "CELEBRATE") {
     // 慶祝動作：左右搖擺 3 次，每次 200ms 顯露成功感
     bool ok = true;
