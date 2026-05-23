@@ -3,7 +3,7 @@
 // SECURITY: VITE_GEMINI_API_KEY is baked into the bundle. Restrict the key via
 // HTTP referrer in Google Cloud Console to `https://timdirty.github.io/*` only.
 
-import type {BoardAnalysisResponse, BoardRegion} from './classroomApi';
+import type {BoardAnalysisResponse, BoardContentType, BoardRegion} from './classroomApi';
 
 type GenContent = {
   role?: 'user' | 'model';
@@ -116,6 +116,27 @@ const REGION_LAYOUT = {
   B: {x: 52, y: 12, width: 43, height: 76, label: '右區'},
 } as const;
 
+const CONTENT_TYPES: BoardContentType[] = ['question', 'illustration', 'message', 'reminder'];
+
+function normalizeContentType(value: unknown, fallback: BoardContentType = 'question'): BoardContentType {
+  return CONTENT_TYPES.includes(value as BoardContentType) ? (value as BoardContentType) : fallback;
+}
+
+function contentTypeFromSubject(subject: string): BoardContentType {
+  const normalized = subject.toLowerCase();
+  if (/美術|繪畫|塗鴉|illustration-style/.test(normalized)) return 'illustration';
+  if (/鼓勵話|班級口號|cheer|motivation/.test(normalized)) return 'message';
+  if (/提醒事項|校規|rules|reminders/.test(normalized)) return 'reminder';
+  return 'question';
+}
+
+function recommendationForContentType(contentType: BoardContentType, fallback: string) {
+  if (contentType === 'illustration') return '發現學生畫的鼓勵小插圖，建議保留這區不擦';
+  if (contentType === 'message') return '發現鼓勵話，建議保留這區';
+  if (contentType === 'reminder') return '提醒事項，建議保留';
+  return fallback;
+}
+
 function normalizeBoardRegions(input: unknown): BoardRegion[] {
   const fallback: BoardRegion[] = [
     {id: 'A', label: '左區', x: 5, y: 12, width: 43, height: 76, status: 'keep', reason: '建議保留'},
@@ -153,7 +174,8 @@ export async function directAnalyzeBoard(input: {imageBase64: string; transcript
     '所有內容必須適合國小生與國小老師：句子短、用生活例子、避免高中以上術語，不做個人身份辨識。',
     '只輸出資料物件，不要 markdown。',
     '欄位：noteDraft, boardRegions, currentRecommendation, focusPercent, confusedPercent, tiredPercent。',
-    'noteDraft 必須包含 title, subject, period, desc, content, ocrText, transcript, keywords, aiRecommendation。',
+    'noteDraft 必須包含 title, subject, period, desc, content, ocrText, transcript, keywords, aiRecommendation, contentType。',
+    '請從白板內容判斷 contentType，只能回 question, illustration, message, reminder；練習題/學科題目是 question，小插圖是 illustration，鼓勵話/口號是 message，提醒事項/校規是 reminder。',
     'noteDraft.content 請包含「今日學習目標」、「板書重點」、「小朋友練習」、「老師提醒」。',
     'boardRegions 必須是 A、B 兩個大區塊：A 代表左區，B 代表右區。每個區塊包含 id, status, reason；status 只能是 keep, erasable, erased。',
     `科目提示：${subjectHint || '未提供'}`,
@@ -166,17 +188,24 @@ export async function directAnalyzeBoard(input: {imageBase64: string; transcript
     type Parsed = Partial<BoardAnalysisResponse> & {noteDraft?: {content?: unknown; [k: string]: unknown}};
     const parsed = parseJsonFromText<Parsed>(text);
     const defaultContent = localFallbackContent(subjectHint, transcript);
+    const parsedSubject = String(parsed.noteDraft?.subject ?? subjectHint);
+    const contentType = normalizeContentType(parsed.noteDraft?.contentType, contentTypeFromSubject(parsedSubject));
+    const recommendation = recommendationForContentType(
+      contentType,
+      String(parsed.currentRecommendation ?? parsed.noteDraft?.aiRecommendation ?? '建議保留左區重點，先清出右區，給下一題或上台分享使用。'),
+    );
     const noteDraft = {
       ...(parsed.noteDraft || {}),
       title: String(parsed.noteDraft?.title ?? `${subjectHint} 國小白板紀錄`),
-      subject: String(parsed.noteDraft?.subject ?? subjectHint),
+      subject: parsedSubject,
       period: String(parsed.noteDraft?.period ?? '即時擷取'),
       desc: String(parsed.noteDraft?.desc ?? '由白板快照與老師講解建立的國小課堂學習紀錄。'),
       content: coerceMultilineString(parsed.noteDraft?.content, defaultContent),
       ocrText: typeof parsed.noteDraft?.ocrText === 'string' ? parsed.noteDraft.ocrText as string : '',
       transcript: String(parsed.noteDraft?.transcript ?? transcript ?? ''),
       keywords: Array.isArray(parsed.noteDraft?.keywords) ? parsed.noteDraft.keywords as string[] : [],
-      aiRecommendation: String(parsed.noteDraft?.aiRecommendation ?? ''),
+      aiRecommendation: recommendation,
+      contentType,
       captureSource: 'camera' as const,
       img: imageBase64,
       imageUrl: imageBase64,
@@ -188,10 +217,10 @@ export async function directAnalyzeBoard(input: {imageBase64: string; transcript
       session: {
         ...((parsed as {session?: unknown}).session as object || {}),
         boardOcrText: noteDraft.ocrText,
-        currentRecommendation: String(parsed.currentRecommendation ?? '建議保留左區重點，先清出右區，給下一題或上台分享使用。'),
-        hardwareProfile: {boardCalibration: undefined, boardCalibrationMode: 'default', boardDetectionConfidence: 0, cameraMounted: true, visionReady: true},
-      } as BoardAnalysisResponse['session'],
-      currentRecommendation: String(parsed.currentRecommendation ?? '建議保留左區重點，先清出右區，給下一題或上台分享使用。'),
+        currentRecommendation: recommendation || '建議保留左區重點，先清出右區，給下一題或上台分享使用。',
+        hardwareProfile: {boardCalibration: undefined, boardCalibrationMode: 'default', boardDetectionConfidence: 0, cameraMounted: true, boardAnchored: true, visionReady: true, robotPose: undefined, notes: ''},
+      } as unknown as BoardAnalysisResponse['session'],
+      currentRecommendation: recommendation || '建議保留左區重點，先清出右區，給下一題或上台分享使用。',
       focusPercent: Number(parsed.focusPercent ?? 80),
       confusedPercent: Number(parsed.confusedPercent ?? 14),
       tiredPercent: Number(parsed.tiredPercent ?? 6),
@@ -200,6 +229,8 @@ export async function directAnalyzeBoard(input: {imageBase64: string; transcript
     } as BoardAnalysisResponse;
   } catch (e) {
     console.warn('[directGemini] analyzeBoard failed, returning local fallback:', e);
+    const contentType = contentTypeFromSubject(subjectHint);
+    const recommendation = recommendationForContentType(contentType, '建議保留左區重點，先清出右區，給下一題或上台分享使用。');
     return {
       noteDraft: {
         title: `${subjectHint} 國小白板紀錄`,
@@ -213,11 +244,12 @@ export async function directAnalyzeBoard(input: {imageBase64: string; transcript
         captureSource: 'camera',
         img: imageBase64,
         imageUrl: imageBase64,
-        aiRecommendation: '',
+        aiRecommendation: recommendation,
+        contentType,
       } as unknown as BoardAnalysisResponse['noteDraft'],
       boardRegions: normalizeBoardRegions(null),
-      session: {boardOcrText: '', currentRecommendation: '展示模式', hardwareProfile: {} as never} as unknown as BoardAnalysisResponse['session'],
-      currentRecommendation: '展示模式',
+      session: {boardOcrText: '', currentRecommendation: recommendation, hardwareProfile: {} as never} as unknown as BoardAnalysisResponse['session'],
+      currentRecommendation: recommendation,
       focusPercent: 80, confusedPercent: 14, tiredPercent: 6,
       teacherPace: 'normal',
       aiMode: 'local-fallback',

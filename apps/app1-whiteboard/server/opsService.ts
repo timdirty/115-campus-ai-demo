@@ -79,14 +79,6 @@ function normalizePercent(value: unknown, fallback: number) {
   return Math.max(0, Math.min(100, numeric));
 }
 
-function normalizeServoAngle(value: unknown, fallback: number) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) {
-    return fallback;
-  }
-  return Math.max(0, Math.min(180, Math.round(numeric)));
-}
-
 function normalizeBoardPercent(value: unknown, fallback: number) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) {
@@ -105,21 +97,15 @@ function normalizeConfidence(value: unknown, fallback: number) {
 
 function sanitizeHardwareProfile(value: unknown) {
   const source = isObject(value) ? value : {};
-  const servoAngles = isObject(source.servoAngles) ? source.servoAngles : {};
   const boardCalibration = isObject(source.boardCalibration) ? source.boardCalibration : {};
   const topLeft = isObject(boardCalibration.topLeft) ? boardCalibration.topLeft : {};
   const topRight = isObject(boardCalibration.topRight) ? boardCalibration.topRight : {};
   const bottomRight = isObject(boardCalibration.bottomRight) ? boardCalibration.bottomRight : {};
   const bottomLeft = isObject(boardCalibration.bottomLeft) ? boardCalibration.bottomLeft : {};
   const robotPose = isObject(source.robotPose) ? source.robotPose : {};
+  const heading = Number(robotPose.heading);
   return {
     ...defaultHardwareCalibrationProfile,
-    servoAngles: {
-      regionA: normalizeServoAngle(servoAngles.regionA, defaultHardwareCalibrationProfile.servoAngles.regionA),
-      regionB: normalizeServoAngle(servoAngles.regionB, defaultHardwareCalibrationProfile.servoAngles.regionB),
-      eraseAll: normalizeServoAngle(servoAngles.eraseAll, defaultHardwareCalibrationProfile.servoAngles.eraseAll),
-      standby: normalizeServoAngle(servoAngles.standby, defaultHardwareCalibrationProfile.servoAngles.standby),
-    },
     cameraMounted: Boolean(source.cameraMounted),
     boardAnchored: Boolean(source.boardAnchored),
     visionReady: Boolean(source.visionReady),
@@ -146,7 +132,7 @@ function sanitizeHardwareProfile(value: unknown) {
     robotPose: {
       x: normalizeBoardPercent(robotPose.x, defaultHardwareCalibrationProfile.robotPose.x),
       y: normalizeBoardPercent(robotPose.y, defaultHardwareCalibrationProfile.robotPose.y),
-      heading: normalizeServoAngle(robotPose.heading, defaultHardwareCalibrationProfile.robotPose.heading),
+      heading: Number.isFinite(heading) ? Math.round(heading) : defaultHardwareCalibrationProfile.robotPose.heading,
       stage: ['standby', 'preview', 'moving', 'erasing', 'paused', 'done'].includes(optionalString(robotPose.stage))
         ? optionalString(robotPose.stage) as typeof defaultHardwareCalibrationProfile.robotPose.stage
         : defaultHardwareCalibrationProfile.robotPose.stage,

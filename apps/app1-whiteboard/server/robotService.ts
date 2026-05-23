@@ -9,6 +9,19 @@ let activePort: SerialPort | null = null;
 let activePath = process.env.ARDUINO_PORT ?? '';
 let openingPromise: Promise<SerialPort> | null = null;
 const simulatedPortPath = 'simulated://arduino-uno-r4';
+export type EraseProgressEvent = {pass: number; total: number};
+const eraseProgressListeners = new Set<(event: EraseProgressEvent) => void>();
+
+export function onEraseProgress(listener: (event: EraseProgressEvent) => void): () => void {
+  eraseProgressListeners.add(listener);
+  return () => eraseProgressListeners.delete(listener);
+}
+
+function emitEraseProgress(event: EraseProgressEvent) {
+  for (const listener of eraseProgressListeners) {
+    listener(event);
+  }
+}
 
 function isSimulated() {
   return process.env.ARDUINO_SIMULATE === '1' || process.env.DEMO_SIMULATE_HARDWARE === '1';
@@ -120,6 +133,15 @@ async function getPort(requestedPath?: string) {
         while (newlineIdx !== -1) {
           const line = lineBuffer.slice(0, newlineIdx).trim();
           lineBuffer = lineBuffer.slice(newlineIdx + 1);
+          const eraseProgress = line.match(/^ERASE_PROGRESS:(\d+)\/(\d+)/);
+          if (eraseProgress) {
+            emitEraseProgress({
+              pass: Number.parseInt(eraseProgress[1], 10),
+              total: Number.parseInt(eraseProgress[2], 10),
+            });
+            newlineIdx = lineBuffer.indexOf('\n');
+            continue;
+          }
           if (line === 'READY:RESET') {
             broadcast({type: 'robot_reset', message: '機器人已重啟回安全狀態', at: Date.now()});
           }
@@ -136,7 +158,7 @@ async function getPort(requestedPath?: string) {
   return openingPromise;
 }
 
-async function waitForSerialResponse(port: SerialPort, timeoutMs = 2500) {
+async function waitForSerialResponse(port: SerialPort, timeoutMs = 2500, expectedPrefix?: string) {
   return new Promise<{response: string; timedOut: boolean}>((resolve) => {
     let buffer = '';
     const cleanup = () => {
@@ -145,14 +167,30 @@ async function waitForSerialResponse(port: SerialPort, timeoutMs = 2500) {
     };
     const onData = (data: Buffer) => {
       buffer += data.toString();
-      if (buffer.includes('\n')) {
+      if (!expectedPrefix && buffer.includes('\n')) {
         cleanup();
         resolve({response: buffer.trim(), timedOut: false});
+        return;
+      }
+      if (!expectedPrefix) {
+        return;
+      }
+
+      let newlineIdx = buffer.indexOf('\n');
+      while (newlineIdx !== -1) {
+        const line = buffer.slice(0, newlineIdx).trim();
+        buffer = buffer.slice(newlineIdx + 1);
+        if (line.startsWith(expectedPrefix)) {
+          cleanup();
+          resolve({response: line, timedOut: false});
+          return;
+        }
+        newlineIdx = buffer.indexOf('\n');
       }
     };
     const timer = setTimeout(() => {
       cleanup();
-      resolve({response: buffer.trim(), timedOut: true});
+      resolve({response: expectedPrefix ? '' : buffer.trim(), timedOut: true});
     }, timeoutMs);
     port.on('data', onData);
   });
@@ -167,16 +205,18 @@ export async function sendSerialCommandDrive(command: string, requestedPath?: st
   return {port: activePath};
 }
 
-export async function sendSerialCommand(command: string, requestedPath?: string): Promise<{port: string; response: string; timedOut?: boolean}> {
+export async function sendSerialCommand(command: string, requestedPath?: string, expectedPrefix?: string, timeoutMs = 2500): Promise<{port: string; response: string; timedOut?: boolean}> {
   if (isSimulated()) {
     activePath = simulatedPortPath;
     const response = command === 'READ_SENSORS'
       ? 'SENSORS:TEMP:25.6,HUM:58,LIGHT:640'
+      : expectedPrefix === 'ERASE_DONE:' && command.startsWith('ERASE_REGION_')
+        ? `ERASE_DONE:REGION_${command.slice('ERASE_REGION_'.length)}`
       : `SIMULATED_ARDUINO_OK:${command}`;
     return {port: simulatedPortPath, response};
   }
   const port = await getPort(requestedPath);
-  const responsePromise = waitForSerialResponse(port);
+  const responsePromise = waitForSerialResponse(port, timeoutMs, expectedPrefix);
 
   await new Promise<void>((resolve, reject) => {
     port.write(`${command}\n`, (error) => {

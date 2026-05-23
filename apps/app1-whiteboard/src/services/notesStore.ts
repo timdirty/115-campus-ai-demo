@@ -1,6 +1,7 @@
 import {apiRequest} from './apiClient';
 
 export type NoteTheme = 'primary' | 'secondary' | 'tertiary';
+export type NoteContentType = 'question' | 'illustration' | 'message' | 'reminder';
 
 export type WhiteboardNote = {
   id: number;
@@ -26,6 +27,7 @@ export type WhiteboardNote = {
     reason: string;
   }>;
   aiRecommendation?: string;
+  contentType: NoteContentType;
   linkedTaskIds?: number[];
   date: string;
   time: string;
@@ -49,6 +51,7 @@ const DEMO_RESET_KEYS = [
   'issues-app1:v1',
 ];
 const THEMES: NoteTheme[] = ['primary', 'secondary', 'tertiary'];
+const CONTENT_TYPES: NoteContentType[] = ['question', 'illustration', 'message', 'reminder'];
 
 const svgUri = (svg: string) => `data:image/svg+xml,${encodeURIComponent(svg)}`;
 const WHITEBOARD_MATH = svgUri(
@@ -76,6 +79,7 @@ export const DEFAULT_NOTES: WhiteboardNote[] = [
     ocrText: '同分母分數加法、分母不變、分子相加、1/4 + 2/4 = 3/4',
     transcript: '老師用披薩切片說明分母和分子的意思，請孩子先看圖，再把圖轉成算式。',
     keywords: ['國小', '數學', '分數', '披薩圖', '同分母加法'],
+    contentType: 'question',
     date: '4月29日',
     time: '上午 09:20',
     theme: 'secondary',
@@ -94,6 +98,7 @@ export const DEFAULT_NOTES: WhiteboardNote[] = [
     ocrText: '水循環、蒸發、凝結、降水、流回大海',
     transcript: '老師把水滴想像成小旅人，從大海出發到天空，再變成雨回到地面。',
     keywords: ['國小', '自然', '水循環', '蒸發', '凝結', '降水'],
+    contentType: 'question',
     date: '4月28日',
     time: '下午 01:35',
     theme: 'tertiary',
@@ -112,6 +117,7 @@ export const DEFAULT_NOTES: WhiteboardNote[] = [
     ocrText: '故事六要素、角色、時間、地點、起因、經過、結果',
     transcript: '老師提醒孩子不要只說好玩，要說清楚誰、在哪裡、發生什麼事。',
     keywords: ['國小', '國語', '閱讀', '故事六要素', '口語表達'],
+    contentType: 'question',
     date: '4月27日',
     time: '上午 10:10',
     theme: 'primary',
@@ -127,6 +133,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function safeText(value: unknown, fallback: string) {
   return typeof value === 'string' && value.trim() ? value : fallback;
+}
+
+function normalizeContentType(value: unknown, fallback: NoteContentType = 'question'): NoteContentType {
+  return CONTENT_TYPES.includes(value as NoteContentType) ? (value as NoteContentType) : fallback;
 }
 
 function normalizeNote(input: unknown, index: number): WhiteboardNote | null {
@@ -157,6 +167,7 @@ function normalizeNote(input: unknown, index: number): WhiteboardNote | null {
     keywords: Array.isArray(input.keywords) ? input.keywords.filter((keyword): keyword is string => typeof keyword === 'string') : fallback.keywords,
     boardRegions: Array.isArray(input.boardRegions) ? input.boardRegions as WhiteboardNote['boardRegions'] : [],
     aiRecommendation: safeText(input.aiRecommendation, ''),
+    contentType: normalizeContentType(input.contentType, fallback.contentType),
     linkedTaskIds: Array.isArray(input.linkedTaskIds) ? input.linkedTaskIds.filter((id): id is number => typeof id === 'number') : [],
     date: safeText(input.date, fallback.date),
     time: safeText(input.time, fallback.time),
@@ -193,8 +204,9 @@ export function loadNotes(): WhiteboardNote[] {
 }
 
 export function saveNotes(notes: WhiteboardNote[]) {
+  const normalized = normalizeNotes(notes);
   try {
-    localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+    localStorage.setItem(NOTES_KEY, JSON.stringify(normalized));
   } catch {
     // QuotaExceededError or storage disabled — best-effort
   }
@@ -218,6 +230,7 @@ export function addNote(input: Pick<WhiteboardNote, 'title' | 'subject' | 'conte
     keywords: input.keywords ?? [input.subject, input.title].filter(Boolean),
     boardRegions: input.boardRegions ?? [],
     aiRecommendation: input.aiRecommendation ?? '',
+    contentType: normalizeContentType(input.contentType),
     linkedTaskIds: input.linkedTaskIds ?? [],
     date: now.toLocaleDateString('zh-TW', {month: 'long', day: 'numeric'}),
     time: now.toLocaleTimeString('zh-TW', {hour: '2-digit', minute: '2-digit'}),
@@ -252,6 +265,7 @@ export function updateNote(id: number, input: Partial<WhiteboardNote>) {
       keywords: input.keywords ?? note.keywords,
       boardRegions: input.boardRegions ?? note.boardRegions,
       aiRecommendation: input.aiRecommendation ?? note.aiRecommendation,
+      contentType: normalizeContentType(input.contentType, note.contentType),
       img: input.img ?? input.imageUrl ?? note.img,
       imageUrl: input.imageUrl ?? input.img ?? note.imageUrl,
       createdAt: note.createdAt,
@@ -302,9 +316,12 @@ export async function addNoteAsync(input: Pick<WhiteboardNote, 'title' | 'subjec
       method: 'POST',
       body: JSON.stringify(input),
     });
-    const notes = Array.isArray(result.notes) ? result.notes : [result.note, ...loadNotes()];
+    const note = normalizeNotes([{...result.note, contentType: result.note.contentType ?? input.contentType}])[0];
+    const notes = Array.isArray(result.notes)
+      ? result.notes.map((item) => item.id === note.id ? note : item)
+      : [note, ...loadNotes()];
     saveNotes(notes);
-    return result.note as WhiteboardNote;
+    return note;
   } catch {
     return addNote(input);
   }
@@ -316,9 +333,12 @@ export async function updateNoteAsync(id: number, input: Partial<WhiteboardNote>
       method: 'PUT',
       body: JSON.stringify(input),
     });
-    const notes = Array.isArray(result.notes) ? result.notes : loadNotes().map((note) => note.id === id ? result.note : note);
+    const note = normalizeNotes([{...result.note, contentType: result.note.contentType ?? input.contentType}])[0];
+    const notes = Array.isArray(result.notes)
+      ? result.notes.map((item) => item.id === note.id ? note : item)
+      : loadNotes().map((item) => item.id === id ? note : item);
     saveNotes(notes);
-    return result.note as WhiteboardNote;
+    return note;
   } catch {
     return updateNote(id, input);
   }
