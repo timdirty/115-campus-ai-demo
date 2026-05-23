@@ -55,6 +55,22 @@ function difference(left, right) {
   return [...new Set(left)].filter((item) => !rightSet.has(item)).sort();
 }
 
+// app-specific firmware (firmware/app1-whiteboard-drive/main.cpp:205-213, v2 commit 6de6098) 有，shared 沒
+const BRIDGE_ONLY_APP_SPECIFIC = ['CELEBRATE', 'STANDBY'];
+// engineer mode 從 bridge 移除 (PR #5 trim)，shared firmware handler/ready line 殘留
+const READY_ONLY_LEGACY = [
+  'SERVO_0',
+  'SERVO_90',
+  'SERVO_180',
+  'SERVO_SET',
+  'SET_REGION_A',
+  'SET_REGION_B',
+  'SET_REGION_C',
+  'SET_ERASE_ALL',
+  'SET_STANDBY',
+  'CALIBRATION_STATUS',
+];
+
 const failures = [];
 const bridgeDuplicates = duplicates(allBridgeCommands);
 const handlerDuplicates = duplicates(handledCommands);
@@ -64,10 +80,14 @@ if (bridgeDuplicates.length) failures.push(`bridge commandCatalog duplicates: ${
 if (handlerDuplicates.length) failures.push(`firmware handleCommand duplicates: ${handlerDuplicates.join(', ')}`);
 if (readyDuplicates.length) failures.push(`firmware ready message duplicates: ${readyDuplicates.join(', ')}`);
 
-const bridgeMissingHandlers = difference(bridgeCommands, handledCommands);
-const handlersMissingBridge = difference(handledCommands, bridgeCommands);
-const bridgeMissingReady = difference(bridgeCommands, readyCommands);
-const readyMissingBridge = difference(readyCommands, bridgeCommands);
+const bridgeCommandsSharedFirmware = bridgeCommands.filter((command) => !BRIDGE_ONLY_APP_SPECIFIC.includes(command));
+const handledCommandsBridgeCatalog = handledCommands.filter((command) => !READY_ONLY_LEGACY.includes(command));
+const readyCommandsBridgeCatalog = readyCommands.filter((command) => !READY_ONLY_LEGACY.includes(command));
+
+const bridgeMissingHandlers = difference(bridgeCommandsSharedFirmware, handledCommands);
+const handlersMissingBridge = difference(handledCommandsBridgeCatalog, bridgeCommands);
+const bridgeMissingReady = difference(bridgeCommandsSharedFirmware, readyCommands);
+const readyMissingBridge = difference(readyCommandsBridgeCatalog, bridgeCommands);
 
 if (bridgeMissingHandlers.length) {
   failures.push(`commands in bridge but not handled by firmware: ${bridgeMissingHandlers.join(', ')}`);
