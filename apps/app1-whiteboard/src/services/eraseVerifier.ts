@@ -56,7 +56,7 @@ export async function runEraseWithVerification(opts: EraseVerificationOptions): 
     await opts.eraseRunner(attempt);
 
     opts.callbacks?.onProgress?.(
-      `AI 拍照分析殘留中...`,
+      `AI 比對標準測試樣本中...`,
       Math.min(95, baseProgress + 60),
     );
 

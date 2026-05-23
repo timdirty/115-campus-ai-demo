@@ -131,15 +131,21 @@ export function registerRoutes(app: Express) {
     let activePath = getActivePath();
     let arduinoConnected = false;
     if (!simulated) {
-      if (activePath && !activePath.startsWith('simulated://')) {
-        arduinoConnected = true;
-      } else {
-        try {
-          const ports = await listPorts();
+      // codex-adv final review #1: re-validate active port on every health poll
+      // 否則 USB 拔線後 activePath 仍 stale，JudgePreflightChip 還會顯示 Arduino 綠燈
+      try {
+        const ports = await listPorts();
+        if (activePath && !activePath.startsWith('simulated://') && ports.some((p) => p.path === activePath)) {
+          arduinoConnected = true;
+        } else {
           const found = ports.find(isArduinoLikePort);
-          if (found) { arduinoConnected = true; activePath = found.path; }
-        } catch { /* ignore */ }
-      }
+          if (found) {
+            arduinoConnected = true;
+            activePath = found.path;
+          }
+          // else: unplugged or never found — arduinoConnected stays false, chip 轉黃
+        }
+      } catch { /* listPorts failed, arduinoConnected stays false */ }
     }
     res.json({
       ok: true,
