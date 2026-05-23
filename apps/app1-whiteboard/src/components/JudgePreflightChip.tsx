@@ -32,11 +32,22 @@ const LIGHT_COLOR: Record<LightStatus, string> = {
   unknown: 'bg-gray-300',
 };
 
+// 線上公開展示 host (GitHub Pages / Vercel / Pages.dev) 沒 bridge server，
+// fetch /api/health + WebSocket :3201 被 Mixed Content 阻擋。
+// 偵測 host → 跳過 polling，render「線上展示模式」alt chip。
+function isProductionDemoHost(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname.toLowerCase();
+  return host.endsWith('github.io') || host.endsWith('pages.dev') || host.endsWith('vercel.app');
+}
+
 export function JudgePreflightChip({className = 'fixed top-2 right-2 z-50', pollIntervalMs = 30_000}: JudgePreflightChipProps) {
   const [lights, setLights] = useState<Lights>(INITIAL_LIGHTS);
   const [details, setDetails] = useState<string>('檢查中...');
+  const productionDemo = isProductionDemoHost();
 
   useEffect(() => {
+    if (productionDemo) return; // 線上展示版本不 poll bridge
     let cancelled = false;
 
     async function poll() {
@@ -57,7 +68,19 @@ export function JudgePreflightChip({className = 'fixed top-2 right-2 z-50', poll
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [pollIntervalMs]);
+  }, [pollIntervalMs, productionDemo]);
+
+  if (productionDemo) {
+    return (
+      <div
+        className={`${className} flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50/95 dark:bg-amber-900/40 backdrop-blur shadow-md border border-amber-300 dark:border-amber-700 text-xs font-medium text-amber-900 dark:text-amber-100`}
+        title="線上公開展示版本不連硬體 bridge。5/25 現場 demo 在筆電 local 跑會接 Arduino，三燈狀態即時顯示。"
+      >
+        <span className="w-2 h-2 rounded-full bg-amber-400" aria-label="線上展示模式" />
+        <span>📡 線上展示模式</span>
+      </div>
+    );
+  }
 
   return (
     <div className={`${className} flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur shadow-md border border-gray-200 dark:border-gray-700 text-xs font-medium`} title={details}>
