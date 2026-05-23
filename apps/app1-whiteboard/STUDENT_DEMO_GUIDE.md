@@ -102,7 +102,7 @@
 
 ## 老師提醒
 
-- 學生展示前用 `npm run dev:full`（同時起 vite + bridge）；確認 [http://localhost:3001/api/health](http://localhost:3001/api/health) 回 200 再上台。
+- 學生展示前用 `npm run dev:full`（同時起 vite + bridge）；確認 [http://localhost:3201/api/health](http://localhost:3201/api/health) 回 200 再上台。
 - 真實 demo 一次大概用 5–10 次 Gemini 呼叫；現場若重練超過 4 次以上可能撞每日配額，會自動切到下一個 model。
 - `apps/app1-whiteboard/.env` 必須有 `GEMINI_API_KEY=...`，不能放 `.env.local` 否則優先級會撞到。
 - 攝影機切換、auto-save、4 層 fallback 都是這版新增，舊版操作流程已棄用。
