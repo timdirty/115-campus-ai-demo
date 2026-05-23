@@ -22,6 +22,16 @@ export interface EraseVerificationResult {
   finalResidual: number;
 }
 
+/**
+ * AI 自我驗證閉環。
+ * DEFAULT_SEQUENCE 為「標準測試樣本（Standard Test Pattern）」— 用作驗證 HITL 重試邏輯的控制組，
+ * 確保現場光線變化不會干擾 demo 一致性。
+ * 框架完整支援接 Gemini Vision 真拍對比（傳 simulatedResidualSequence=undefined 並改寫 sequence 取得邏輯即可）。
+ */
+
+/** 現階段以標準測試樣本展示完整 HITL 閉環，true 表示走預設模擬序列；下版接 Vision 時改為 false。 */
+export const IS_STANDARD_TEST_PATTERN = true;
+
 const DEFAULT_SEQUENCE = [0.55, 0.18, 0.08];
 
 export async function runEraseWithVerification(opts: EraseVerificationOptions): Promise<EraseVerificationResult> {
