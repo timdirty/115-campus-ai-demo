@@ -11,7 +11,7 @@
     "dev:full": "concurrently \"npm:dev:web\" \"npm:dev:bridge\" \"npm:ocr\"",
     "build": "vite build",
     "start": "cross-env NODE_ENV=production tsx server/serialBridge.ts",
-    "check": "npm run lint && tsx src/services/notesStore.test.ts && tsx src/services/boardVision.test.ts && tsx src/services/robotVoice.test.ts && tsx src/services/eraseVerifier.test.ts && tsx src/components/CelebrationOverlay.test.tsx && tsx src/components/AIThinkingOverlay.test.tsx && npm run build && node server/api-contract.test.mjs && tsx server/ev3Manager.test.ts && tsx server/hardwareSimulation.test.ts",
+    "check": "npm run lint && tsx src/services/notesStore.test.ts && tsx src/services/boardVision.test.ts && tsx src/services/robotVoice.test.ts && tsx src/services/eraseVerifier.test.ts && tsx src/components/CelebrationOverlay.test.tsx && tsx src/components/AIThinkingOverlay.test.tsx && tsx src/components/JudgePreflightChip.test.tsx && npm run build && node server/api-contract.test.mjs && tsx server/ev3Manager.test.ts && tsx server/hardwareSimulation.test.ts",
     "demo:check": "node scripts/demo-readiness-check.mjs",
     "preview": "vite preview",
     "clean": "rm -rf dist",
