@@ -25,5 +25,4 @@ jobs:
         run: node scripts/github-prepublish-check.mjs
 
       - name: Full demo check
-        continue-on-error: true
         run: bash scripts/demo-check.sh
