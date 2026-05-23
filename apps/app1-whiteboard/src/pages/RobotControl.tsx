@@ -379,7 +379,7 @@ export default function RobotControl() {
             onResidual: (residual, attempt) => {
               setActiveFeedback({
                 title: `第 ${attempt} 次驗證`,
-                detail: residualToQualityLabel(residual),
+                detail: `${residualToQualityLabel(residual)} · 標準測試樣本`,
                 ok: residual <= 0.25,
                 working: false,
               });

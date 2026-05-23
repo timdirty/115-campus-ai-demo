@@ -71,6 +71,7 @@ export type BridgeHealth = {
   dataDir: string;
   geminiConfigured: boolean;
   hardwareSimulation?: boolean;
+  arduinoConnected?: boolean;
 };
 
 export type ReadyStatus = BridgeHealth & {

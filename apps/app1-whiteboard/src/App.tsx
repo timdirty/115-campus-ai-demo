@@ -19,6 +19,7 @@ import {useHardwareSocket} from './hooks/useHardwareSocket';
 import {HardwareStatusBanner} from './components/HardwareStatusBanner';
 import {CommandFeedbackToast} from './components/CommandFeedbackToast';
 import {DemoTimer} from './components/DemoTimer';
+import {JudgePreflightChip} from './components/JudgePreflightChip';
 import {getBridgeBase} from './services/apiClient';
 import {DemoProgress, loadDemoProgress, resetDemoProgress, subscribeDemoProgress} from './services/demoProgress';
 
@@ -306,6 +307,7 @@ export default function App() {
     <div className="app1-shell flex flex-col min-h-screen relative overflow-x-hidden bg-surface">
       <HardwareStatusBanner status={hwStatus} />
       <CommandFeedbackToast lastCommandAck={hwStatus.lastCommandAck} />
+      <JudgePreflightChip className="fixed right-3 top-16 z-40 sm:right-4" />
       <div className="noise-overlay" />
       {/* TopAppBar */}
       <header className="sticky top-0 w-full z-30 flex items-center justify-between px-4 sm:px-6 py-2.5 sm:py-4 bg-surface/90 backdrop-blur-xl transition-all border-b border-outline-variant/10">

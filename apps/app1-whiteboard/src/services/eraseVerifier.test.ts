@@ -1,4 +1,4 @@
-import {runEraseWithVerification, residualToQualityLabel} from './eraseVerifier';
+import {IS_STANDARD_TEST_PATTERN, runEraseWithVerification, residualToQualityLabel} from './eraseVerifier';
 
 function check(actual: unknown, expected: unknown, label: string) {
   if (actual !== expected) {
@@ -44,6 +44,7 @@ async function run() {
   check(residualToQualityLabel(0.1).includes('非常乾淨'), true, 'quality label very clean');
   check(residualToQualityLabel(0.2).includes('通過'), true, 'quality label pass');
   check(residualToQualityLabel(0.5).includes('殘留明顯'), true, 'quality label residue');
+  check(IS_STANDARD_TEST_PATTERN, true, 'IS_STANDARD_TEST_PATTERN exported and true');
 
   console.log('eraseVerifier tests passed');
 }
