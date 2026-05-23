@@ -71,13 +71,14 @@ export function JudgePreflightChip({className = 'fixed top-2 right-2 z-50', poll
   }, [pollIntervalMs, productionDemo]);
 
   if (productionDemo) {
+    // 線上 production demo 用 inline 全寬 banner（不 fixed-position 避免撞 header 按鈕）
     return (
       <div
-        className={`${className} flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50/95 dark:bg-amber-900/40 backdrop-blur shadow-md border border-amber-300 dark:border-amber-700 text-xs font-medium text-amber-900 dark:text-amber-100`}
+        className="w-full bg-amber-50/95 dark:bg-amber-900/40 border-b border-amber-300 dark:border-amber-700 px-4 py-1.5 text-xs text-amber-900 dark:text-amber-100 flex items-center justify-center gap-2"
         title="線上公開展示版本不連硬體 bridge。5/25 現場 demo 在筆電 local 跑會接 Arduino，三燈狀態即時顯示。"
       >
-        <span className="w-2 h-2 rounded-full bg-amber-400" aria-label="線上展示模式" />
-        <span>📡 線上展示模式</span>
+        <span className="inline-block w-2 h-2 rounded-full bg-amber-400 shrink-0" aria-label="線上展示模式" />
+        <span>📡 線上展示模式 · 5/25 現場 demo 接 Arduino 後三燈會即時顯示</span>
       </div>
     );
   }
