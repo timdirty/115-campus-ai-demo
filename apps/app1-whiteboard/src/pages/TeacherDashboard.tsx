@@ -211,23 +211,26 @@ export default function TeacherDashboard({onNavigate}: {onNavigate?: (tab: strin
     setRobotNotice(`正在建立「${label}」任務，板擦機器人會先確認目標區再執行。`);
     try {
       const result = await sendRobotTask(action, regionId, 'teacher-dashboard');
+      if (!result.ok) {
+        setRobotStage('fallback');
+        setRobotNotice('機器人沒回應，請老師檢查連線後重試（任務已記入展示 log）');
+        setNotice('機器人沒回應，請老師檢查連線');
+        saveDemoProgress({teacher: true});
+        return;
+      }
       const nextSession = await persistRobotTaskOutcome(action, regionId);
-      setRobotStage(result.ok ? 'done' : 'fallback');
+      setRobotStage('done');
       markCompletedRegions(action, regionId, nextSession?.boardRegions ?? session.boardRegions);
-      const message = result.ok
-        ? `機器人任務已送出：${label}`
-        : `展示模式已完成${regionId ? `「區塊 ${regionId}」` : '全板'}擦除。接上實體機器人後，同一個流程就能實際執行。`;
+      const message = `機器人任務已送出：${label}`;
       setRobotNotice(message);
       setNotice(message);
       saveDemoProgress({teacher: true, robot: true});
     } catch (error) {
       const message = error instanceof Error ? error.message : '無法送出機器人任務';
-      const nextSession = await persistRobotTaskOutcome(action, regionId);
-      markCompletedRegions(action, regionId, nextSession?.boardRegions ?? session.boardRegions);
       setRobotStage('fallback');
-      setRobotNotice(`展示模式已完成${regionId ? `「區塊 ${regionId}」` : '全板'}擦除。接上實體機器人後，同一個流程就能實際執行。`);
+      setRobotNotice('機器人沒回應，請老師檢查連線後重試');
       setNotice(`課堂決策仍可展示；${message}`);
-      saveDemoProgress({teacher: true, robot: true});
+      saveDemoProgress({teacher: true});
     } finally {
       setRobotBusy('');
       if (robotResetTimerRef.current) clearTimeout(robotResetTimerRef.current);
