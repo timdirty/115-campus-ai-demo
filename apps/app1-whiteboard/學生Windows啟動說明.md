@@ -37,6 +37,23 @@
 
 ---
 
+## 右上角「評審預檢條」三燈 chip（v4 新增）
+
+右上會出現一個小 chip：`● Gemini · ● Arduino · ● Ready`，每 30 秒自動更新。
+
+| 燈色 | 意思 |
+|------|------|
+| **全 3 顆綠** | Gemini key 設好 + Arduino 連上 + Storage 正常，滿狀態 |
+| Arduino 燈**黃** | USB 沒接（展示模式可完整跑流程，不影響 demo） |
+| Gemini 燈**黃** | 沒設 GEMINI_API_KEY，會走本機 fallback 文字 |
+| Storage 燈**紅** | localStorage 異常（極少發生；換瀏覽器/清 cache） |
+
+派擦除任務時，AI 思考動畫文字會說「**AI 比對標準測試樣本中...**」+ 結果 chip 顯示「品質X% · 通過 · **標準測試樣本**」。這是 v4 narrative — 不是「假」的，是工程設計的科學控制組（評審問可參考 `STUDENT_DEMO_GUIDE.md` Q15-Q16）。
+
+拔 Arduino 後從教師看板派擦除 → UI 會顯示「**機器人沒回應，請老師檢查連線**」（不再像舊版誤標「展示模式已完成擦除」）。
+
+---
+
 ## Arduino 沒抓到怎麼辦？
 
 腳本會在啟動時顯示三個檢查項：
@@ -63,6 +80,7 @@ App 內建本機 fallback：
 
 ## 老師端 demo 前一週 checklist
 
+- [ ] **比賽前一晚** `git pull origin main` 拿最新 v4 fix（標準測試樣本 narrative / JudgePreflightChip 三燈 / TeacherDashboard fallback fix）
 - [ ] 把整個 repo 解壓縮到學生電腦的「桌面 / Documents」（不要放有中文/空白特殊字元的路徑）
 - [ ] 學生電腦上跑 `node -v` 確認有 Node.js 20+；沒有就裝
 - [ ] 老師用 Mac 預先燒 firmware 到 Arduino
